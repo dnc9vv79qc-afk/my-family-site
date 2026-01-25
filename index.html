@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.2.1</title>
+    <title>間取りシミュレーター v5.3</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -31,21 +31,19 @@
         .chip { background: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         .chip input { margin: 0; width: 18px; height: 18px; }
 
-        .summary { background: #1c1c1e; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; }
+        .summary { background: #1c1c1e; color: #fff; padding: 12px 16px; display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; }
         .summary b { color: var(--warning); }
 
         #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
         canvas { display: block; }
 
-        /* 保存モーダル */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .modal h3 { margin-top: 0; font-size: 18px; }
-        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; background: #f9f9f9; }
+        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
+        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.2.1</div>
+    <div class="ver-label">ver 5.3</div>
 
     <div class="toolbar">
         <div class="grid-layout">
@@ -59,7 +57,7 @@
             <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
         </div>
         <div class="grid-layout" style="grid-template-columns: 1fr 1fr;">
-            <button class="btn-save" id="saveBtn">共有リンク作成</button>
+            <button class="btn-save" id="saveBtn">共有URL作成</button>
             <button class="btn-reset" id="resetBtn">削除 / 消去</button>
         </div>
     </div>
@@ -69,59 +67,38 @@
             <label class="chip"><input type="checkbox" id="showJou" checked>畳</label>
             <label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
         </div>
-        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示をリセット</button>
+        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示を戻す</button>
     </div>
 
     <div class="summary">
         <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
         <span><b id="totalJou">0.0</b> 畳</span>
-        <span>(<span id="totalHeibe">0.00</span> ㎡)</span>
     </div>
 
-    <div id="canvas-container">
-        <canvas id="canvas"></canvas>
-    </div>
+    <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
-    <div id="saveModal" class="modal-overlay">
-        <div class="modal">
-            <h3>共有URLを発行しました</h3>
-            <p style="font-size:12px; color:#666;">このリンクを保存・共有してください</p>
-            <input type="text" id="shareUrlInput" readonly onclick="this.select()">
-            <div style="display:flex; gap:12px;">
-                <button style="flex:1; background:var(--primary); height:48px;" id="copyUrlBtn">URLコピー</button>
-                <button style="flex:1; background:#8e8e93; height:48px;" id="closeModalBtn">閉じる</button>
-            </div>
-        </div>
-    </div>
+    <div id="saveModal" class="modal-overlay"><div class="modal"><h3>共有URL</h3><input type="text" id="shareUrlInput" readonly onclick="this.select()"><div style="display:flex; gap:12px;"><button style="flex:1; background:var(--primary); height:48px;" id="copyUrlBtn">コピー</button><button style="flex:1; background:#8e8e93; height:48px;" id="closeModalBtn">閉じる</button></div></div></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
     const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
-    const app = initializeApp(firebaseConfig); 
-    const db = getFirestore(app);
-
-    const canvas = document.getElementById('canvas'); 
-    const ctx = canvas.getContext('2d'); 
-    const container = document.getElementById('canvas-container');
+    const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+    const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
     const GRID_SIZE = 32; const SUB_GRID = 16; const MODULE = 0.91;
-    
     let items = []; let selectedItem = null; let isResizing = false; let isMerged = false;
     let camera = { x: 0, y: 0, zoom: 1 };
     let dragStart = null; let pinchStartDist = null; let lastCamera = { x: 0, y: 0 };
     let startX, startY;
 
     function init() {
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
         const params = new URLSearchParams(window.location.search);
-        const planId = params.get('id');
-        if (planId) {
-            getDoc(doc(db, "layouts", planId)).then(snap => {
+        if (params.get('id')) {
+            getDoc(doc(db, "layouts", params.get('id'))).then(snap => {
                 if (snap.exists()) { items = snap.data().items; isMerged = snap.data().isMerged || false; draw(); }
                 else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
-            }).catch(() => addFunc('外枠', 10, 10, '#f8f8f8', 'frame'));
+            });
         } else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
     }
 
@@ -132,14 +109,10 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
         ctx.scale(camera.zoom, camera.zoom);
-
         ctx.strokeStyle = "#eee"; ctx.lineWidth = 1 / camera.zoom;
-        const range = 2000;
-        for (let x = -range; x <= range; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke(); }
-        for (let y = -range; y <= range; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke(); }
-        
+        for (let x = -2000; x <= 2000; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -2000); ctx.lineTo(x, 2000); ctx.stroke(); }
+        for (let y = -2000; y <= 2000; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-2000, y); ctx.lineTo(2000, y); ctx.stroke(); }
         if (isMerged) drawMerged(); else drawNormal();
-
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3 / camera.zoom;
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
@@ -156,15 +129,13 @@
             ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
             ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
             ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1 / camera.zoom;
-            ctx.strokeRect(item.x, item.y, item.w, item.h);
-            drawText(item, true);
+            ctx.strokeRect(item.x, item.y, item.w, item.h); drawText(item, true);
         });
     }
 
     function drawMerged() {
         const roomMap = {}; const frameMap = {}; const groups = {};
-        const showJou = document.getElementById('showJou').checked;
-        const showTsubo = document.getElementById('showTsubo').checked;
+        const showJou = document.getElementById('showJou').checked; const showTsubo = document.getElementById('showTsubo').checked;
         items.forEach((item, index) => {
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
@@ -180,12 +151,10 @@
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number); const current = roomMap[pos];
             [{dx:0, dy:-SUB_GRID}, {dx:0, dy:SUB_GRID}, {dx:-SUB_GRID, dy:0}, {dx:SUB_GRID, dy:0}].forEach(d => {
-                const neighbor = roomMap[`${x+d.dx},${y+d.dy}`];
-                if (!neighbor || neighbor.label !== current.label) { 
+                const neighbor = roomMap[`${x+d.dx},${y+d.dy}`]; if (!neighbor || neighbor.label !== current.label) { 
                     ctx.beginPath();
                     if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?SUB_GRID:0)); ctx.lineTo(x+SUB_GRID, y+(d.dy>0?SUB_GRID:0)); }
-                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); }
-                    ctx.stroke();
+                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); } ctx.stroke();
                 }
             });
         }
@@ -193,20 +162,17 @@
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number); const current = frameMap[pos];
             [{dx:0, dy:-SUB_GRID}, {dx:0, dy:SUB_GRID}, {dx:-SUB_GRID, dy:0}, {dx:SUB_GRID, dy:0}].forEach(d => {
-                const neighbor = frameMap[`${x+d.dx},${y+d.dy}`];
-                if (!neighbor || neighbor !== current) { 
+                const neighbor = frameMap[`${x+d.dx},${y+d.dy}`]; if (!neighbor || neighbor !== current) { 
                     ctx.beginPath();
                     if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?SUB_GRID:0)); ctx.lineTo(x+SUB_GRID, y+(d.dy>0?SUB_GRID:0)); }
-                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); }
-                    ctx.stroke();
+                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); } ctx.stroke();
                 }
             });
         }
         for (const key in groups) { 
             const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = `bold ${14/camera.zoom}px sans-serif`;
             ctx.fillText(g.label, g.textX, g.textY - (5/camera.zoom));
-            ctx.font = `${11/camera.zoom}px sans-serif`; let subText = ""; 
-            if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+            ctx.font = `${11/camera.zoom}px sans-serif`; let subText = ""; if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
             ctx.fillText(subText, g.textX, g.textY + (12/camera.zoom)); ctx.textAlign = "left";
         }
     }
@@ -216,92 +182,69 @@
         const sJ = document.getElementById('showJou').checked; const sT = document.getElementById('showTsubo').checked;
         const area = (item.w/GRID_SIZE) * (item.h/GRID_SIZE); ctx.fillStyle = "#111"; ctx.font = `bold ${13/camera.zoom}px sans-serif`;
         let ty = item.y + (16/camera.zoom); ctx.fillText(item.label, item.x + 6, ty);
-        if (!force) return; ctx.font = `${10/camera.zoom}px sans-serif`; 
-        if (sJ) { ty += (12/camera.zoom); ctx.fillText(`${(area/2).toFixed(1)}畳`, item.x+6, ty); } 
-        if (sT) { ty += (12/camera.zoom); ctx.fillText(`${(area/4).toFixed(2)}坪`, item.x+6, ty); }
+        if (!force) return; ctx.font = `${10/camera.zoom}px sans-serif`; if (sJ) { ty += (12/camera.zoom); ctx.fillText(`${(area/2).toFixed(1)}畳`, item.x+6, ty); } if (sT) { ty += (12/camera.zoom); ctx.fillText(`${(area/4).toFixed(2)}坪`, item.x+6, ty); }
     }
 
     function updateSummary() {
         let tm = 0; items.forEach(i => { if(i.type === 'frame') tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE); });
-        document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2);
-        document.getElementById('totalHeibe').innerText = (tm*MODULE*MODULE).toFixed(2);
-        document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
+        document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2); document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
     }
 
     const addFunc = (l, w, h, c, t='room') => { 
-        const i = { type: t, x: - (w*GRID_SIZE)/2, y: - (h*GRID_SIZE)/2, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
+        // 画面中央のワールド座標を計算
+        const worldCenterX = - camera.x / camera.zoom;
+        const worldCenterY = - camera.y / camera.zoom;
+        // グリッドにスナップさせて配置
+        const snapX = Math.round(worldCenterX / GRID_SIZE) * GRID_SIZE - (w*GRID_SIZE)/2;
+        const snapY = Math.round(worldCenterY / GRID_SIZE) * GRID_SIZE - (h*GRID_SIZE)/2;
+        const i = { type: t, x: snapX, y: snapY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
         if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); 
     };
 
-    // UIイベント
-    document.getElementById('addGenericRoomBtn').onclick = () => { const name = prompt("部屋の名前を入力", "洋室"); if(name) addFunc(name, 4, 4, '#FFF3E0'); };
+    document.getElementById('addGenericRoomBtn').onclick = () => { const name = prompt("部屋名", "洋室"); if(name) addFunc(name, 4, 4, '#FFF3E0'); };
     document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
     document.getElementById('addWallBtn').onclick = () => addFunc('壁', 0.25, 2, '#616161', 'wall');
     document.getElementById('mergeBtn').onclick = () => { isMerged = !isMerged; document.getElementById('mergeBtn').innerText = isMerged ? "編集モード" : "結合モード"; draw(); };
-    document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(i); selectedItem = i; draw(); } };
+    document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+32, y: selectedItem.y+32}; items.push(i); selectedItem = i; draw(); } };
     document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("全消去？")) { items = []; isMerged = false; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
     document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); } };
     document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0, zoom: 1 }; draw(); };
     document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
-    // 共有機能（修正版）
-    document.getElementById('saveBtn').onclick = async () => { 
-        try {
-            const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
-            const url = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
-            document.getElementById('shareUrlInput').value = url;
-            document.getElementById('saveModal').style.display = 'flex';
-        } catch (e) { alert("保存に失敗しました: " + e.message); }
-    };
-    document.getElementById('copyUrlBtn').onclick = () => { 
-        const input = document.getElementById('shareUrlInput');
-        input.select();
-        navigator.clipboard.writeText(input.value).then(() => alert("コピーしました")).catch(() => alert("手動でコピーしてください"));
-    };
-    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
-
-    // --- タッチ操作 ---
     function getPos(e) { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; }
     function screenToWorld(p) { return { x: (p.x - canvas.width/2 - camera.x) / camera.zoom, y: (p.y - canvas.height/2 - camera.y) / camera.zoom }; }
 
     canvas.addEventListener('touchstart', e => {
         const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        if (e.touches.length === 2) {
-            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
-            pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y); return;
-        }
+        if (e.touches.length === 2) { pinchStartDist = Math.hypot(e.touches[1].clientX - p1.x, e.touches[1].clientY - p1.y); return; }
         const worldP = screenToWorld(getPos(e));
         if(selectedItem && !(isMerged && selectedItem.type==='frame')) {
-            const handleSize = 35 / camera.zoom;
-            if(Math.abs(worldP.x - (selectedItem.x+selectedItem.w)) < handleSize && Math.abs(worldP.y - (selectedItem.y+selectedItem.h)) < handleSize) { isResizing = true; return; }
+            if(Math.abs(worldP.x - (selectedItem.x+selectedItem.w)) < 35/camera.zoom && Math.abs(worldP.y - (selectedItem.y+selectedItem.h)) < 35/camera.zoom) { isResizing = true; return; }
         }
         let foundIdx = -1;
         for (let i = items.length-1; i >= 0; i--) {
             if (isMerged && items[i].type === 'frame') continue;
             if (worldP.x >= items[i].x && worldP.x <= items[i].x+items[i].w && worldP.y >= items[i].y && worldP.y <= items[i].y+items[i].h) { foundIdx = i; break; }
         }
-        if(foundIdx !== -1) {
-            selectedItem = items[foundIdx]; items.splice(foundIdx, 1); items.push(selectedItem);
-            startX = worldP.x - selectedItem.x; startY = worldP.y - selectedItem.y; dragStart = null;
-        } else { selectedItem = null; dragStart = p1; lastCamera = { ...camera }; }
+        if(foundIdx !== -1) { selectedItem = items[foundIdx]; items.splice(foundIdx, 1); items.push(selectedItem); startX = worldP.x - selectedItem.x; startY = worldP.y - selectedItem.y; dragStart = null; }
+        else { selectedItem = null; dragStart = p1; lastCamera = { ...camera }; }
         draw();
     }, {passive: false});
 
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
         if (e.touches.length === 2 && pinchStartDist) {
-            const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
-            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            const dist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
             camera.zoom *= (dist / pinchStartDist); pinchStartDist = dist; draw(); return;
         }
         const worldP = screenToWorld(getPos(e));
+        const snap = GRID_SIZE;
         if (isResizing && selectedItem) {
-            selectedItem.w = Math.max(16, Math.round(worldP.x - selectedItem.x));
-            selectedItem.h = Math.max(16, Math.round(worldP.y - selectedItem.y));
+            selectedItem.w = Math.max(snap, Math.round((worldP.x - selectedItem.x) / snap) * snap);
+            selectedItem.h = Math.max(snap, Math.round((worldP.y - selectedItem.y) / snap) * snap);
         } else if (selectedItem) {
-            selectedItem.x = Math.round(worldP.x - startX);
-            selectedItem.y = Math.round(worldP.y - startY);
+            selectedItem.x = Math.round((worldP.x - startX) / snap) * snap;
+            selectedItem.y = Math.round((worldP.y - startY) / snap) * snap;
         } else if (dragStart) {
             camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x);
             camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y);
@@ -310,7 +253,13 @@
     }, {passive: false});
 
     canvas.addEventListener('touchend', () => { isResizing = false; dragStart = null; pinchStartDist = null; });
-    
+    document.getElementById('saveBtn').onclick = async () => { 
+        const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+        document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
+        document.getElementById('saveModal').style.display = 'flex';
+    };
+    document.getElementById('copyUrlBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピー完了"); };
+    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
     init();
 </script>
 </body>
