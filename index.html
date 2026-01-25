@@ -3,78 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.0</title>
+    <title>間取りシミュレーター v5.2</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
         .ver-label { position: fixed; top: 4px; right: 8px; font-size: 9px; color: #8e8e93; z-index: 100; pointer-events: none; font-weight: bold; }
 
-        /* メインUI：ボタンを大きく、押しやすく */
-        .toolbar { padding: 8px; background: var(--card); border-bottom: 1px solid #d1d1d6; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .grid-layout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
-        .grid-layout-small { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px; }
-
-        button { height: 44px; font-size: 13px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; -webkit-tap-highlight-color: transparent; }
+        .toolbar { padding: 12px; background: var(--card); border-bottom: 1px solid #d1d1d6; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        
+        button { height: 48px; font-size: 14px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; -webkit-tap-highlight-color: transparent; }
         button:active { opacity: 0.7; transform: scale(0.95); }
         
         .btn-frame { background: #3a3a3c; }
-        .btn-ldk { background: #4FC3F7; color: #004D40; }
-        .btn-room { background: #007AFF; }
+        .btn-room { background: var(--primary); }
+        .btn-wall { background: #616161; }
         .btn-merge { background: #5856d6; }
         .btn-copy { background: var(--success); }
-        .btn-del { background: var(--danger); }
-        .btn-save { background: var(--warning); }
         .btn-reset { background: #8e8e93; }
+        .btn-save { background: var(--warning); }
 
-        /* カラー選択のアイコン化 */
-        .color-circle { background: #fff; border: 2px solid #d1d1d6; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        input[type="color"] { width: 50px; height: 50px; border: none; background: none; cursor: pointer; padding: 0; }
+        .color-circle { background: #fff; border: 2px solid #d1d1d6; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; }
+        input[type="color"] { width: 60px; height: 60px; border: none; background: none; cursor: pointer; padding: 0; }
 
-        /* 設定パネル */
-        .config-bar { background: #e5e5ea; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #c6c6c8; }
-        .chip-group { display: flex; gap: 5px; }
-        .chip { background: #fff; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
-        .chip input { margin: 0; width: 16px; height: 16px; }
+        .config-bar { background: #e5e5ea; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #c6c6c8; }
+        .chip-group { display: flex; gap: 6px; }
+        .chip { background: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+        .chip input { margin: 0; width: 18px; height: 18px; }
 
-        .summary { background: #1c1c1e; color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
+        .summary { background: #1c1c1e; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; }
         .summary b { color: var(--warning); }
 
         #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
         canvas { display: block; }
 
-        /* 十字キー */
-        #nudge-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 8px; z-index: 50; }
-        .nudge-btn { width: 52px; height: 52px; border-radius: 50%; background: var(--primary); color: white; border: none; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
-
-        /* モーダル */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
-        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
+        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
+        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.0</div>
+    <div class="ver-label">ver 5.2</div>
 
     <div class="toolbar">
         <div class="grid-layout">
-            <button class="btn-frame" id="addFrameBtn">+外枠</button>
-            <button class="btn-ldk" id="addLdkBtn">+LDK</button>
-            <button class="btn-room" id="addRoomBtn">+洋室</button>
-            <button class="btn-room" style="background:#0288D1;" id="addBathBtn">+浴室</button>
-            <button class="btn-room" style="background:#FF7043;" id="addKBtn">+K</button>
-            <button class="btn-room" style="background:#616161;" id="addWallBtn">+壁</button>
+            <button class="btn-frame" id="addFrameBtn">+ 外枠</button>
+            <button class="btn-room" id="addGenericRoomBtn">+ 部屋追加</button>
+            <button class="btn-wall" id="addWallBtn">+ 壁</button>
         </div>
-        <div class="grid-layout-small">
+        <div class="grid-layout" style="grid-template-columns: 2fr 1fr 1fr;">
             <button id="mergeBtn" class="btn-merge">結合モード</button>
             <button class="btn-copy" id="copyBtn">複製</button>
-            <button style="background:#8e8e93;" id="renameBtn">名前</button>
             <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-top:6px;">
+        <div class="grid-layout" style="grid-template-columns: 1fr 1fr;">
             <button class="btn-save" id="saveBtn">共有保存</button>
-            <button class="btn-del" id="delBtn">削除</button>
-            <button class="btn-reset" id="resetBtn">全消去</button>
+            <button class="btn-reset" id="resetBtn">削除 / 消去</button>
         </div>
     </div>
 
@@ -82,9 +66,8 @@
         <div class="chip-group">
             <label class="chip"><input type="checkbox" id="showJou" checked>畳</label>
             <label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
-            <label class="chip"><input type="checkbox" id="showMasu" checked>マス</label>
         </div>
-        <label class="chip" style="background:#d1d1d6;"><input type="checkbox" id="useHalfGrid">半マス</label>
+        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示を中央に</button>
     </div>
 
     <div class="summary">
@@ -95,14 +78,9 @@
 
     <div id="canvas-container">
         <canvas id="canvas"></canvas>
-        <div id="nudge-controls">
-            <button class="nudge-btn" id="upBtn">▲</button>
-            <div style="display:flex; gap:8px;"><button class="nudge-btn" id="leftBtn">◀</button><button class="nudge-btn" id="rightBtn">▶</button></div>
-            <button class="nudge-btn" id="downBtn">▼</button>
-        </div>
     </div>
 
-    <div id="saveModal" class="modal-overlay"><div class="modal"><h3>共有URLを作成</h3><input type="text" id="shareUrlInput" readonly onclick="this.select()"><div style="display:flex; gap:12px;"><button style="flex:1; background:var(--primary); height:44px;" id="copyUrlBtn">コピー</button><button style="flex:1; background:#8e8e93; height:44px;" id="closeModalBtn">閉じる</button></div></div></div>
+    <div id="saveModal" class="modal-overlay"><div class="modal"><h3>共有URL</h3><input type="text" id="shareUrlInput" readonly onclick="this.select()"><div style="display:flex; gap:12px;"><button style="flex:1; background:var(--primary); height:48px;" id="copyUrlBtn">コピー</button><button style="flex:1; background:#8e8e93; height:48px;" id="closeModalBtn">閉じる</button></div></div></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -110,33 +88,56 @@
     const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
     const app = initializeApp(firebaseConfig); const db = getFirestore(app);
     const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
-    const GRID_SIZE = 32; const SUB_GRID = 16; const MODULE = 0.91; let items = []; let selectedItem = null; let isResizing = false; let isMerged = false; let startX, startY;
+    const GRID_SIZE = 32; const SUB_GRID = 16; const MODULE = 0.91;
+    
+    let items = []; let selectedItem = null; let isResizing = false; let isMerged = false;
+    let camera = { x: 0, y: 0, zoom: 1 };
+    let dragStart = null; let pinchStartDist = null; let lastCamera = { x: 0, y: 0 };
 
-    // --- 各種初期化 ---
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('id')) {
+            getDoc(doc(db, "layouts", params.get('id'))).then(snap => {
+                if (snap.exists()) { items = snap.data().items; isMerged = snap.data().isMerged || false; draw(); }
+                else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
+            });
+        } else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
+    }
+
     function resizeCanvas() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; draw(); }
-    window.addEventListener('resize', resizeCanvas);
 
-    // --- 描画ロジック ---
     function draw() {
+        ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#eee"; ctx.lineWidth = 1;
-        for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
-        for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+        ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+
+        ctx.strokeStyle = "#eee"; ctx.lineWidth = 1 / camera.zoom;
+        const range = 2000;
+        for (let x = -range; x <= range; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke(); }
+        for (let y = -range; y <= range; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke(); }
         
         if (isMerged) drawMerged(); else drawNormal();
 
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-            ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            if (document.getElementById('showMasu').checked) drawTooltip(selectedItem);
+            ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3 / camera.zoom;
+            ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+            ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath();
+            ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 18 / camera.zoom, 0, Math.PI*2);
+            ctx.fill(); ctx.stroke();
         }
+        ctx.restore();
         updateSummary();
     }
 
     function drawNormal() {
         items.forEach(item => {
-            ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0; ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
-            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1; ctx.strokeRect(item.x, item.y, item.w, item.h);
+            ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
+            ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1 / camera.zoom;
+            ctx.strokeRect(item.x, item.y, item.w, item.h);
             drawText(item, true);
         });
     }
@@ -155,96 +156,138 @@
             }}
         });
         items.forEach(item => { ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-        ctx.lineWidth = 2; ctx.strokeStyle = "#333";
+        ctx.lineWidth = 2 / camera.zoom; ctx.strokeStyle = "#333";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number); const current = roomMap[pos];
-            [{dx:0, dy:-SUB_GRID, x1:x, y1:y, x2:x+SUB_GRID, y2:y}, {dx:0, dy:SUB_GRID, x1:x, y1:y+SUB_GRID, x2:x+SUB_GRID, y2:y+SUB_GRID}, {dx:-SUB_GRID, dy:0, x1:x, y1:y, x2:x, y2:y+SUB_GRID}, {dx:SUB_GRID, dy:0, x1:x+SUB_GRID, y1:y, x2:x+SUB_GRID, y2:y+SUB_GRID}].forEach(d => {
-                const neighbor = roomMap[`${x+d.dx},${y+d.dy}`]; if (!neighbor || neighbor.label !== current.label) { ctx.beginPath(); ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke(); }
+            [{dx:0, dy:-SUB_GRID}, {dx:0, dy:SUB_GRID}, {dx:-SUB_GRID, dy:0}, {dx:SUB_GRID, dy:0}].forEach(d => {
+                const neighbor = roomMap[`${x+d.dx},${y+d.dy}`];
+                if (!neighbor || neighbor.label !== current.label) { 
+                    ctx.beginPath();
+                    if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?SUB_GRID:0)); ctx.lineTo(x+SUB_GRID, y+(d.dy>0?SUB_GRID:0)); }
+                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); }
+                    ctx.stroke();
+                }
             });
         }
-        ctx.lineWidth = 4; ctx.strokeStyle = "#111";
+        ctx.lineWidth = 4 / camera.zoom; ctx.strokeStyle = "#111";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number); const current = frameMap[pos];
-            [{dx:0, dy:-SUB_GRID, x1:x, y1:y, x2:x+SUB_GRID, y2:y}, {dx:0, dy:SUB_GRID, x1:x, y1:y+SUB_GRID, x2:x+SUB_GRID, y2:y+SUB_GRID}, {dx:-SUB_GRID, dy:0, x1:x, y1:y, x2:x, y2:y+SUB_GRID}, {dx:SUB_GRID, dy:0, x1:x+SUB_GRID, y1:y, x2:x+SUB_GRID, y2:y+SUB_GRID}].forEach(c => {
-                const neighbor = frameMap[`${x+c.dx},${y+c.dy}`]; if (!neighbor || neighbor !== current) { ctx.beginPath(); ctx.moveTo(c.x1, c.y1); ctx.lineTo(c.x2, c.y2); ctx.stroke(); }
+            [{dx:0, dy:-SUB_GRID}, {dx:0, dy:SUB_GRID}, {dx:-SUB_GRID, dy:0}, {dx:SUB_GRID, dy:0}].forEach(d => {
+                const neighbor = frameMap[`${x+d.dx},${y+d.dy}`];
+                if (!neighbor || neighbor !== current) { 
+                    ctx.beginPath();
+                    if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?SUB_GRID:0)); ctx.lineTo(x+SUB_GRID, y+(d.dy>0?SUB_GRID:0)); }
+                    else { ctx.moveTo(x+(d.dx>0?SUB_GRID:0), y); ctx.lineTo(x+(d.dx>0?SUB_GRID:0), y+SUB_GRID); }
+                    ctx.stroke();
+                }
             });
         }
         for (const key in groups) { 
-            const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 13px sans-serif"; ctx.fillText(g.label, g.textX, g.textY - 5);
-            ctx.font = "10px sans-serif"; let subText = ""; if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-            ctx.fillText(subText, g.textX, g.textY + 12); ctx.textAlign = "left";
+            const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = `bold ${14/camera.zoom}px sans-serif`;
+            ctx.fillText(g.label, g.textX, g.textY - (5/camera.zoom));
+            ctx.font = `${11/camera.zoom}px sans-serif`; let subText = ""; 
+            if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+            ctx.fillText(subText, g.textX, g.textY + (12/camera.zoom)); ctx.textAlign = "left";
         }
     }
 
     function drawText(item, force) {
         if (item.w < 16 || item.h < 16 || item.type === 'frame') return;
         const sJ = document.getElementById('showJou').checked; const sT = document.getElementById('showTsubo').checked;
-        const area = (item.w/GRID_SIZE) * (item.h/GRID_SIZE); ctx.fillStyle = "#111"; ctx.font = "bold 12px sans-serif";
-        let ty = item.y + 16; ctx.fillText(item.label, item.x + 6, ty);
-        if (!force) return; ctx.font = "9px sans-serif"; if (sJ) { ty += 12; ctx.fillText(`${(area/2).toFixed(1)}畳`, item.x+6, ty); } if (sT) { ty += 12; ctx.fillText(`${(area/4).toFixed(2)}坪`, item.x+6, ty); }
-    }
-
-    function drawTooltip(item) {
-        const text = `${item.w/GRID_SIZE}x${item.h/GRID_SIZE}`; ctx.font = "bold 11px sans-serif"; const tw = ctx.measureText(text).width;
-        ctx.fillStyle = "rgba(0,122,255,0.8)"; ctx.beginPath(); ctx.roundRect(item.x, item.y - 28, tw + 10, 22, 6); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillText(text, item.x + 5, item.y - 12);
+        const area = (item.w/GRID_SIZE) * (item.h/GRID_SIZE); ctx.fillStyle = "#111"; ctx.font = `bold ${13/camera.zoom}px sans-serif`;
+        let ty = item.y + (16/camera.zoom); ctx.fillText(item.label, item.x + 6, ty);
+        if (!force) return; ctx.font = `${10/camera.zoom}px sans-serif`; 
+        if (sJ) { ty += (12/camera.zoom); ctx.fillText(`${(area/2).toFixed(1)}畳`, item.x+6, ty); } 
+        if (sT) { ty += (12/camera.zoom); ctx.fillText(`${(area/4).toFixed(2)}坪`, item.x+6, ty); }
     }
 
     function updateSummary() {
         let tm = 0; items.forEach(i => { if(i.type === 'frame') tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE); });
-        document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2); document.getElementById('totalHeibe').innerText = (tm*MODULE*MODULE).toFixed(2); document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
+        document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2);
+        document.getElementById('totalHeibe').innerText = (tm*MODULE*MODULE).toFixed(2);
+        document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
     }
 
-    // --- ボタン・イベント ---
-    const addFunc = (l, w, h, c, t='room') => { const i = { type: t, x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); };
-    document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 6, 6, '#f8f8f8', 'frame');
-    document.getElementById('addLdkBtn').onclick = () => addFunc('LDK', 6, 6, '#E1F5FE');
-    document.getElementById('addRoomBtn').onclick = () => addFunc('洋室', 4, 4, '#FFF3E0');
-    document.getElementById('addBathBtn').onclick = () => addFunc('浴室', 2, 2, '#B3E5FC');
-    document.getElementById('addKBtn').onclick = () => addFunc('キッチン', 3, 1, '#FFCCBC');
+    const addFunc = (l, w, h, c, t='room') => { 
+        const i = { type: t, x: - (w*GRID_SIZE)/2, y: - (h*GRID_SIZE)/2, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
+        if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); 
+    };
+
+    // 汎用部屋追加ボタン
+    document.getElementById('addGenericRoomBtn').onclick = () => {
+        const name = prompt("部屋の名前を入力してください", "洋室");
+        if(name) { addFunc(name, 4, 4, '#FFF3E0'); }
+    };
+    document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
     document.getElementById('addWallBtn').onclick = () => addFunc('壁', 0.25, 2, '#616161', 'wall');
     
     document.getElementById('mergeBtn').onclick = () => { isMerged = !isMerged; document.getElementById('mergeBtn').innerText = isMerged ? "編集モード" : "結合モード"; draw(); };
     document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(i); selectedItem = i; draw(); } };
-    document.getElementById('delBtn').onclick = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
-    document.getElementById('resetBtn').onclick = () => { if(confirm("消去？")) { items = []; isMerged = false; addFunc('外枠', 6, 6, '#f8f8f8', 'frame'); } };
+    document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("全消去？")) { items = []; isMerged = false; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
     document.getElementById('renameBtn').onclick = () => { if(selectedItem) { const l = prompt("名前変更", selectedItem.label); if(l) { selectedItem.label = l; draw(); } } };
     document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); } };
+    document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0, zoom: 1 }; draw(); };
+    document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
-    // 単位チップの即時反映
-    document.getElementById('showJou').onchange = draw;
-    document.getElementById('showTsubo').onchange = draw;
-    document.getElementById('showMasu').onchange = draw;
+    function getPos(e) { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; }
+    function screenToWorld(p) { return { x: (p.x - canvas.width/2 - camera.x) / camera.zoom, y: (p.y - canvas.height/2 - camera.y) / camera.zoom }; }
 
-    // 保存
-    document.getElementById('saveBtn').onclick = async () => { const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() }); document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${r.id}`; document.getElementById('saveModal').style.display = 'flex'; };
-    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
-    document.getElementById('copyUrlBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
-
-    // --- 十字キー ---
-    const nudge = (dx, dy) => { if(selectedItem) { const s = document.getElementById('useHalfGrid').checked ? 16 : 32; selectedItem.x += dx*s; selectedItem.y += dy*s; draw(); } };
-    document.getElementById('upBtn').onclick = () => nudge(0, -1); document.getElementById('downBtn').onclick = () => nudge(0, 1);
-    document.getElementById('leftBtn').onclick = () => nudge(-1, 0); document.getElementById('rightBtn').onclick = () => nudge(1, 0);
-
-    // --- タッチ操作 ---
-    function getPos(e) { const r = canvas.getBoundingClientRect(); const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY; return { x: cx - r.left, y: cy - r.top }; }
     canvas.addEventListener('touchstart', e => {
-        const p = getPos(e); if(selectedItem && !(isMerged && selectedItem.type==='frame')) { if(Math.abs(p.x - (selectedItem.x+selectedItem.w)) < 30 && Math.abs(p.y - (selectedItem.y+selectedItem.h)) < 30) { isResizing = true; return; } }
-        let idx = -1; for (let i = items.length-1; i >= 0; i--) { if (isMerged && items[i].type === 'frame') continue; if (p.x >= items[i].x && p.x <= items[i].x+items[i].w && p.y >= items[i].y && p.y <= items[i].y+items[i].h) { idx = i; break; } }
-        if(idx !== -1) { selectedItem = items[idx]; items.splice(idx, 1); items.push(selectedItem); startX = p.x - selectedItem.x; startY = p.y - selectedItem.y; document.getElementById('nudge-controls').style.display = 'flex'; document.getElementById('colorPicker').value = selectedItem.color; }
-        else { selectedItem = null; document.getElementById('nudge-controls').style.display = 'none'; }
+        const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if (e.touches.length === 2) {
+            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+            pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y); return;
+        }
+        const worldP = screenToWorld(getPos(e));
+        if(selectedItem && !(isMerged && selectedItem.type==='frame')) {
+            const handleSize = 35 / camera.zoom;
+            if(Math.abs(worldP.x - (selectedItem.x+selectedItem.w)) < handleSize && Math.abs(worldP.y - (selectedItem.y+selectedItem.h)) < handleSize) { isResizing = true; return; }
+        }
+        let foundIdx = -1;
+        for (let i = items.length-1; i >= 0; i--) {
+            const it = items[i]; if (isMerged && it.type === 'frame') continue;
+            if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) { foundIdx = i; break; }
+        }
+        if(foundIdx !== -1) {
+            selectedItem = items[foundIdx]; items.splice(foundIdx, 1); items.push(selectedItem);
+            startX = worldP.x - selectedItem.x; startY = worldP.y - selectedItem.y; dragStart = null;
+        } else { selectedItem = null; dragStart = p1; lastCamera = { ...camera }; }
         draw();
     }, {passive: false});
-    canvas.addEventListener('touchmove', e => {
-        if(!selectedItem) return; e.preventDefault(); const p = getPos(e); const s = document.getElementById('useHalfGrid').checked ? 16 : 32;
-        if(isResizing) { selectedItem.w = Math.max(16, Math.round((p.x - selectedItem.x)/s)*s); selectedItem.h = Math.max(16, Math.round((p.y - selectedItem.y)/s)*s); }
-        else { selectedItem.x = Math.round((p.x - startX)/s)*s; selectedItem.y = Math.round((p.y - startY)/s)*s; }
-        draw();
-    }, {passive: false});
-    canvas.addEventListener('touchend', () => isResizing = false);
 
-    // 初期化
-    resizeCanvas();
-    addFunc('外枠', 6, 6, '#f8f8f8', 'frame');
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length === 2 && pinchStartDist) {
+            const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            camera.zoom *= (dist / pinchStartDist); pinchStartDist = dist; draw(); return;
+        }
+        const worldP = screenToWorld(getPos(e));
+        if (isResizing && selectedItem) {
+            selectedItem.w = Math.max(16, Math.round(worldP.x - selectedItem.x));
+            selectedItem.h = Math.max(16, Math.round(worldP.y - selectedItem.y));
+        } else if (selectedItem) {
+            selectedItem.x = Math.round(worldP.x - startX);
+            selectedItem.y = Math.round(worldP.y - startY);
+        } else if (dragStart) {
+            camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x);
+            camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y);
+        }
+        draw();
+    }, {passive: false});
+
+    canvas.addEventListener('touchend', () => { isResizing = false; dragStart = null; pinchStartDist = null; });
+    
+    document.getElementById('saveBtn').onclick = async () => { 
+        const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+        document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
+        document.getElementById('saveModal').style.display = 'flex';
+    };
+    document.getElementById('copyUrlBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
+    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
+
+    init();
 </script>
 </body>
 </html>
