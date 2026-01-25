@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.2</title>
+    <title>間取りシミュレーター v4.4 - 安定版</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
@@ -22,10 +22,10 @@
         .btn-save { background: #FF9500; }
         .color-control { display: flex; align-items: center; gap: 4px; background: #eee; padding: 5px; border-radius: 8px; }
         input[type="color"] { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
-        .summary-bar { background: #222; color: #fff; padding: 8px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0;}
-        .total-highlight { color: #FFD60A; font-size: 1.2em; font-weight: bold; }
-        .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 12px; border-bottom: 1px solid #ccc; flex-shrink: 0; }
-        .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .summary-bar { background: #1a1a1a; color: #fff; padding: 10px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0;}
+        .total-highlight { color: #FFD60A; font-size: 1.25em; font-weight: bold; }
+        .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 11px; border-bottom: 1px solid #ccc; flex-shrink: 0; }
+        .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); white-space: nowrap; }
         #canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
         canvas { display: block; touch-action: none; }
         #nudge-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 50; }
@@ -76,7 +76,7 @@
             <button onclick="renameItem()">名前</button>
             <button class="btn-delete" onclick="deleteItem()">削除</button>
             <button class="btn-save" onclick="saveLayout()">共有</button>
-            <button style="background:#8E8E93;" onclick="resetCanvas()">全消去</button>
+            <button style="background:#8E8E93;" onclick="resetCanvas()">消去</button>
         </div>
     </div>
 
@@ -87,12 +87,11 @@
     </div>
 
     <div class="config">
-        <label><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス移動</label>
+        <label><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス</label>
         <label><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
         <label><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
         <label><input type="checkbox" id="showHeibe" onchange="draw()">㎡</label>
         <label><input type="checkbox" id="showTsubo" checked onchange="draw()">坪</label>
-        <label><input type="checkbox" id="showMeter" onchange="draw()">m</label>
     </div>
 
     <div id="canvas-container"><canvas id="canvas"></canvas></div>
@@ -153,6 +152,8 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // グリッド
         ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
@@ -163,13 +164,13 @@
             drawNormalLayout();
         }
 
+        // 選択表示
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; 
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
             ctx.fillStyle = "#FF3B30"; ctx.beginPath(); 
             ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); 
             ctx.fill();
-            // 選択中のみ個別の「マス×マス」をマウス横に表示
             drawSizeTooltip(selectedItem);
         }
         updateSummary();
@@ -184,53 +185,58 @@
             ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#444";
             ctx.lineWidth = 1;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
-            drawItemText(item, true); // 通常時は詳細を出す
+            drawItemText(item, true); 
         });
     }
 
     function drawMergedLayout() {
-        const map = {};
+        const roomMap = {};
         const frameMap = {};
-        const groups = {}; // 名前ごとの合計計算用
+        const groups = {}; 
 
+        // マップ登録（外枠と部屋を分離して管理）
         items.forEach(item => {
-            if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, minX: 9999, minY: 9999, maxX: 0, maxY: 0, type: item.type };
-            groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-            groups[item.label].minX = Math.min(groups[item.label].minX, item.x);
-            groups[item.label].minY = Math.min(groups[item.label].minY, item.y);
-            groups[item.label].maxX = Math.max(groups[item.label].maxX, item.x + item.w);
-            groups[item.label].maxY = Math.max(groups[item.label].maxY, item.y + item.h);
+            if (item.type !== 'frame') {
+                if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, sumX: 0, sumY: 0, count: 0, type: item.type };
+                groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+            }
 
             for (let x = item.x; x < item.x + item.w; x += SUB_GRID) {
                 for (let y = item.y; y < item.y + item.h; y += SUB_GRID) {
                     const pos = `${x},${y}`;
-                    if (item.type === 'frame') frameMap[pos] = item.label;
-                    if (!map[pos] || item.type !== 'frame') map[pos] = { label: item.label, color: item.color, type: item.type };
+                    if (item.type === 'frame') {
+                        frameMap[pos] = item.label;
+                    } else {
+                        roomMap[pos] = { label: item.label, color: item.color };
+                        groups[item.label].sumX += x + SUB_GRID/2;
+                        groups[item.label].sumY += y + SUB_GRID/2;
+                        groups[item.label].count++;
+                    }
                 }
             }
         });
 
-        // 塗りつぶし
+        // 描画：塗りつぶし
         items.forEach(item => {
             ctx.fillStyle = item.type === 'frame' ? "#f4f4f4" : item.color;
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 境界線（部屋）
-        for (const pos in map) {
+        // 描画：部屋の境界線
+        ctx.lineWidth = 2; ctx.strokeStyle = "#444";
+        for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number);
-            const current = map[pos];
-            ctx.lineWidth = 2; ctx.strokeStyle = "#444";
+            const current = roomMap[pos];
             const checks = [{dx:0, dy:-SUB_GRID, x1:x, y1:y, x2:x+SUB_GRID, y2:y}, {dx:0, dy:SUB_GRID, x1:x, y1:y+SUB_GRID, x2:x+SUB_GRID, y2:y+SUB_GRID}, {dx:-SUB_GRID, dy:0, x1:x, y1:y, x2:x, y2:y+SUB_GRID}, {dx:SUB_GRID, dy:0, x1:x+SUB_GRID, y1:y, x2:x+SUB_GRID, y2:y+SUB_GRID}];
             checks.forEach(d => {
-                const neighbor = map[`${x+d.dx},${y+d.dy}`];
+                const neighbor = roomMap[`${x+d.dx},${y+d.dy}`];
                 if (!neighbor || neighbor.label !== current.label) {
                     ctx.beginPath(); ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
                 }
             });
         }
 
-        // 境界線（外壁太線）
+        // 描画：外枠の太線（最優先上書き）
         ctx.lineWidth = 4; ctx.strokeStyle = "#1a1a1a";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -244,70 +250,47 @@
             });
         }
 
-        // 合計テキストの表示（グループの中央付近）
+        // 合計テキスト
         for (const key in groups) {
             const g = groups[key];
-            if (g.type === 'frame') continue;
-            drawMergedGroupText(g);
+            if (g.count === 0) continue;
+            drawMergedGroupText(g, g.sumX / g.count, g.sumY / g.count);
         }
     }
 
-    // 結合されたグループの合計値を表示
-    function drawMergedGroupText(g) {
-        const centerX = g.minX + (g.maxX - g.minX) / 2;
-        const centerY = g.minY + (g.maxY - g.minY) / 2;
-        ctx.fillStyle = "#000";
-        ctx.textAlign = "center";
-        
+    function drawMergedGroupText(g, x, y) {
+        ctx.fillStyle = "#000"; ctx.textAlign = "center";
         ctx.font = "bold 13px sans-serif";
-        ctx.fillText(g.label, centerX, centerY - 5);
-        
+        ctx.fillText(g.label, x, y - 5);
         ctx.font = "10px sans-serif";
         let subText = "";
         if (document.getElementById('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
         if (document.getElementById('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-        ctx.fillText(subText, centerX, centerY + 10);
-        ctx.textAlign = "left"; // 元に戻す
+        ctx.fillText(subText, x, y + 10);
+        ctx.textAlign = "left";
     }
 
-    // アイテムごとのテキスト（通常時）
     function drawItemText(item, forceDetails = false) {
-        if (item.w < 16 || item.h < 16) return;
-        const config = { masu: document.getElementById('showMasu').checked, jou: document.getElementById('showJou').checked, heibe: document.getElementById('showHeibe').checked, tsubo: document.getElementById('showTsubo').checked, meter: document.getElementById('showMeter').checked };
-        const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
-        const areaMasu = gw * gh;
+        if (item.w < 16 || item.h < 16 || item.type === 'frame') return;
+        const config = { jou: document.getElementById('showJou').checked, tsubo: document.getElementById('showTsubo').checked };
+        const areaMasu = (item.w/GRID_SIZE) * (item.h/GRID_SIZE);
         ctx.fillStyle = "#000";
-
-        if (areaMasu <= 1.0) {
-            ctx.font = "bold 10px sans-serif";
-            ctx.fillText(item.label, item.x + 2, item.y + 14);
-            return;
-        }
-
         ctx.font = "bold 12px sans-serif";
         let ty = item.y + 16;
         ctx.fillText(item.label, item.x + 4, ty);
-        
-        // 結合時は個別テキストは出さない（forceDetailsがtrueの通常時のみ出す）
         if (!forceDetails) return;
-
         ctx.font = "9px sans-serif";
-        if (config.meter) { ty += 11; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
         if (config.jou) { ty += 11; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
-        if (config.tsubo) { ty += 11; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
+        if (config.tsubo) { ty += 11; ctx.fillText(`${(areaMasu/4).toFixed(2)}坪`, item.x+4, ty); }
     }
 
-    // 選択中・リサイズ中のみ出るサイズ表示
     function drawSizeTooltip(item) {
-        const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
-        const text = `${gw} × ${gh} マス`;
+        const text = `${item.w/GRID_SIZE}×${item.h/GRID_SIZE}マス`;
         ctx.font = "bold 12px sans-serif";
         const tw = ctx.measureText(text).width;
-        
-        ctx.fillStyle = "rgba(0,0,0,0.7)";
-        ctx.fillRect(item.x, item.y - 25, tw + 10, 20);
-        ctx.fillStyle = "#fff";
-        ctx.fillText(text, item.x + 5, item.y - 11);
+        ctx.fillStyle = "rgba(0,122,255,0.9)";
+        ctx.beginPath(); ctx.roundRect(item.x, item.y - 28, tw + 10, 22, 5); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillText(text, item.x + 5, item.y - 12);
     }
 
     function updateSummary() {
@@ -319,7 +302,9 @@
     }
 
     function updateMergeButtonUI() {
-        document.getElementById('mergeBtn').style.background = isMerged ? "#8e8e93" : "#5856d6";
+        const btn = document.getElementById('mergeBtn');
+        btn.innerText = isMerged ? "編集モード" : "結合切替";
+        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
     }
 
     window.addRoom = (label, w, h, color) => {
@@ -335,33 +320,23 @@
         items.push(newItem); selectedItem = newItem; draw();
     };
     window.toggleMerge = () => { isMerged = !isMerged; updateMergeButtonUI(); draw(); };
-    window.renameItem = () => {
-        if(!selectedItem) return;
-        const newLabel = prompt("名前を同じにすると結合されます", selectedItem.label);
-        if(newLabel) { selectedItem.label = newLabel; draw(); }
-    };
+    window.duplicateItem = () => { if(!selectedItem || (isMerged && selectedItem.type==='frame')) return; const newItem = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(newItem); selectedItem = newItem; draw(); };
+    window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前変更", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
+    window.deleteItem = () => { if(isMerged && selectedItem?.type==='frame') return; items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
+    window.changeColor = () => { if(selectedItem) { selectedItem.color = colorPicker.value; draw(); } };
+    window.resetCanvas = () => { if(confirm("全消去しますか？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
     window.saveLayout = async () => {
         document.getElementById('loading').style.display = 'flex';
         try {
             const docRef = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
-            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
-            document.getElementById('shareUrlInput').value = shareUrl;
+            document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
             document.getElementById('saveModal').style.display = 'flex';
         } catch (e) { alert(e); }
         document.getElementById('loading').style.display = 'none';
     };
-    window.nudgeItem = (dx, dy) => {
-        if(!selectedItem || (isMerged && selectedItem.type==='frame')) return;
-        const step = document.getElementById('useHalfGrid').checked ? 16 : 32;
-        selectedItem.x += dx * step; selectedItem.y += dy * step; draw();
-    };
-    window.deleteItem = () => { if(isMerged && selectedItem?.type==='frame') return; items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
-    window.duplicateItem = () => { if(!selectedItem || (isMerged && selectedItem.type==='frame')) return; items.push({...selectedItem, x: selectedItem.x+32, y: selectedItem.y+32}); draw(); };
-    window.changeColor = () => { if(selectedItem) { selectedItem.color = colorPicker.value; draw(); } };
-    window.resetCanvas = () => { if(confirm("全消去？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
     window.closeModal = () => document.getElementById('saveModal').style.display = 'none';
     window.copyToClipboard = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
-    window.draw = draw;
+    window.nudgeItem = (dx, dy) => { if(!selectedItem) return; const step = document.getElementById('useHalfGrid').checked ? 16 : 32; selectedItem.x += dx * step; selectedItem.y += dy * step; draw(); };
 
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
