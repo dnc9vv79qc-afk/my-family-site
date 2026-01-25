@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.7</title>
+    <title>間取りシミュレーター v4.7.1</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .ver-label { position: fixed; top: 5px; right: 10px; font-size: 10px; color: #8e8e93; z-index: 100; pointer-events: none; font-weight: bold; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
-        .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; align-items: center; }
+        .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; align-items: center; padding-bottom: 2px; }
         .toolbar-row::-webkit-scrollbar { display: none; }
         button { padding: 10px 14px; font-size: 13px; border: none; border-radius: 8px; background: #007AFF; color: white; font-weight: bold; cursor: pointer; flex-shrink: 0; }
         .btn-frame { background: #333; }
@@ -26,10 +26,13 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
         .modal-box { background: #fff; padding: 24px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center; }
         .url-input { width: 100%; padding: 12px; margin: 15px 0; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        /* カラーピッカーのスタイル調整 */
+        .color-wrapper { display: flex; align-items: center; background: #eee; padding: 4px 8px; border-radius: 8px; gap: 5px; }
+        input[type="color"] { width: 30px; height: 30px; border: none; background: none; padding: 0; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 4.7</div>
+    <div class="ver-label">ver 4.7.1</div>
     <div id="loading" class="modal-overlay" style="z-index: 101;"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
     <div id="saveModal" class="modal-overlay"><div class="modal-box"><h3>共有URL作成完了</h3><input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()"><div style="display:flex; gap:10px; justify-content: center;"><button onclick="copyToClipboard()">コピー</button><button style="background:#8E8E93" onclick="closeModal()">閉じる</button></div></div></div>
 
@@ -42,10 +45,12 @@
             <button style="background: #007AFF;" onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
             <button style="background: #0288D1;" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
             <button style="background: #FF7043;" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+K</button>
-            <button style="background: #616161;" onclick="addWall()">+壁</button>
+            <div class="color-wrapper">
+                <span style="font-size:10px; font-weight:bold;">色</span>
+                <input type="color" id="colorPicker" value="#ffffff" oninput="changeColor()">
+            </div>
         </div>
         <div class="toolbar-row">
-            <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()" style="width:34px;height:34px;border:none;background:none;padding:0;cursor:pointer;">
             <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合モード</button>
             <button style="background: #34c759;" onclick="duplicateItem()">複製</button>
             <button onclick="renameItem()">名前</button>
@@ -58,7 +63,7 @@
     <div class="summary-bar">
         <span>延床: <span id="totalTsubo" class="total-highlight">0.00</span> 坪</span>
         <span>(<span id="totalHeibe">0.00</span> ㎡)</span>
-        <span><span id="totalJou">0.0</span> 畳</span>
+        <span><span id="totalJou" style="color:#FFD60A; font-weight:bold;">0.0</span> 畳</span>
     </div>
 
     <div class="config">
@@ -102,9 +107,8 @@
 
     function resizeCanvas() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; draw(); }
 
-    function draw() {
+    window.draw = function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // グリッド
         ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
@@ -137,7 +141,6 @@
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIndex: -1 };
                 groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-                // 最後に登録・選択されたパーツの位置を優先する
                 if (index > groups[item.label].lastIndex) {
                     groups[item.label].textX = item.x + item.w / 2;
                     groups[item.label].textY = item.y + item.h / 2;
@@ -153,13 +156,11 @@
             }
         });
 
-        // 塗りつぶし
         items.forEach(item => {
             ctx.fillStyle = item.type === 'frame' ? "#f4f4f4" : item.color;
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 境界線
         ctx.lineWidth = 2; ctx.strokeStyle = "#444";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -232,7 +233,6 @@
     window.toggleMerge = () => { isMerged = !isMerged; updateMergeButtonUI(); draw(); };
     window.addRoom = (label, w, h, color) => { const newItem = { type: 'room', x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color }; items.push(newItem); selectedItem = newItem; draw(); };
     window.addFrame = () => { const newItem = { type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' }; items.unshift(newItem); selectedItem = newItem; draw(); };
-    window.addWall = () => { const newItem = { type: 'wall', x: 96, y: 96, w: 8, h: 64, label: '壁', color: '#555' }; items.push(newItem); selectedItem = newItem; draw(); };
     window.duplicateItem = () => { if(!selectedItem) return; const newItem = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(newItem); selectedItem = newItem; draw(); };
     window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前変更", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
     window.deleteItem = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
@@ -259,10 +259,10 @@
         }
         if(foundIdx !== -1) {
             selectedItem = items[foundIdx];
-            // 選択したアイテムを配列の最後に持っていく（テキスト表示位置の優先度を上げる）
             items.splice(foundIdx, 1); items.push(selectedItem);
             startX = p.x - selectedItem.x; startY = p.y - selectedItem.y;
             document.getElementById('nudge-controls').style.display = 'flex';
+            document.getElementById('colorPicker').value = selectedItem.color;
         } else { selectedItem = null; document.getElementById('nudge-controls').style.display = 'none'; }
         draw();
     }, {passive: false});
