@@ -3,77 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.7.1</title>
+    <title>間取りシミュレーター v4.8</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .ver-label { position: fixed; top: 5px; right: 10px; font-size: 10px; color: #8e8e93; z-index: 100; pointer-events: none; font-weight: bold; }
-        .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
-        .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; align-items: center; padding-bottom: 2px; }
+        :root {
+            --primary: #007AFF;
+            --success: #34c759;
+            --danger: #ff3b30;
+            --warning: #FF9500;
+            --bg: #f2f2f7;
+            --card: #ffffff;
+            --text: #1c1c1e;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .ver-label { position: fixed; top: 8px; right: 12px; font-size: 10px; color: #8e8e93; z-index: 100; pointer-events: none; font-weight: bold; }
+
+        /* ツールバー */
+        .toolbar { padding: 12px; background: var(--card); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; border-bottom: 1px solid #d1d1d6; }
+        .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; align-items: center; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
         .toolbar-row::-webkit-scrollbar { display: none; }
-        button { padding: 10px 14px; font-size: 13px; border: none; border-radius: 8px; background: #007AFF; color: white; font-weight: bold; cursor: pointer; flex-shrink: 0; }
-        .btn-frame { background: #333; }
-        .btn-merge { background: #5856d6; }
-        .btn-delete { background: #ff3b30; }
-        .btn-save { background: #FF9500; }
-        .summary-bar { background: #1a1a1a; color: #fff; padding: 10px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0;}
-        .total-highlight { color: #FFD60A; font-size: 1.25em; font-weight: bold; }
-        .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 11px; border-bottom: 1px solid #ccc; flex-shrink: 0; }
-        .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
-        #canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
+        
+        button { 
+            height: 44px; padding: 0 16px; font-size: 14px; border: none; border-radius: 12px; 
+            background: var(--primary); color: white; font-weight: 600; cursor: pointer; flex-shrink: 0;
+            transition: transform 0.1s, opacity 0.1s; display: flex; align-items: center; justify-content: center;
+        }
+        button:active { transform: scale(0.96); opacity: 0.8; }
+        .btn-frame { background: #3a3a3c; }
+        .btn-merge { background: #5856d6; width: 100px; }
+        .btn-delete { background: var(--danger); }
+        .btn-save { background: var(--warning); }
+        .btn-secondary { background: #8e8e93; }
+
+        /* 設定パネル（スマホ最適化） */
+        .config-panel { 
+            padding: 10px 12px; background: #e5e5ea; display: flex; overflow-x: auto; gap: 8px; 
+            border-bottom: 1px solid #c6c6c8; align-items: center;
+        }
+        .toggle-btn {
+            background: #fff; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;
+        }
+        .toggle-btn input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
+
+        /* カラーピッカー */
+        .color-selector {
+            display: flex; align-items: center; background: #f2f2f7; padding: 2px 10px; border-radius: 12px; 
+            height: 40px; border: 1px solid #d1d1d6; gap: 8px;
+        }
+        input[type="color"] { width: 32px; height: 32px; border: none; background: none; cursor: pointer; padding: 0; }
+
+        /* サマリーバー */
+        .summary { 
+            background: #1c1c1e; color: #fff; padding: 12px; display: flex; justify-content: space-around; 
+            font-size: 13px; font-weight: 500; border-bottom: 2px solid var(--warning);
+        }
+        .summary b { color: var(--warning); font-size: 1.2em; }
+
+        /* キャンバス領域 */
+        #canvas-container { flex: 1; position: relative; background: #fff; }
         canvas { display: block; touch-action: none; }
-        #nudge-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 50%; z-index: 50; }
-        .nudge-btn { width: 44px; height: 44px; border-radius: 50%; background: #007AFF; color: #fff; border: none; font-size: 20px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; padding: 24px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center; }
-        .url-input { width: 100%; padding: 12px; margin: 15px 0; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        /* カラーピッカーのスタイル調整 */
-        .color-wrapper { display: flex; align-items: center; background: #eee; padding: 4px 8px; border-radius: 8px; gap: 5px; }
-        input[type="color"] { width: 30px; height: 30px; border: none; background: none; padding: 0; cursor: pointer; }
+
+        /* 微調整コントロール（フローティング） */
+        #nudge-controls { 
+            position: absolute; bottom: 30px; right: 20px; display: none; flex-direction: column; 
+            align-items: center; gap: 8px; background: rgba(255,255,255,0.75); backdrop-filter: blur(10px);
+            padding: 12px; border-radius: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 50;
+        }
+        .nudge-btn { width: 50px; height: 50px; border-radius: 25px; background: var(--primary); font-size: 22px; }
+
+        /* モーダル */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal { background: #fff; padding: 24px; border-radius: 20px; width: 100%; max-width: 360px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 4.7.1</div>
-    <div id="loading" class="modal-overlay" style="z-index: 101;"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
-    <div id="saveModal" class="modal-overlay"><div class="modal-box"><h3>共有URL作成完了</h3><input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()"><div style="display:flex; gap:10px; justify-content: center;"><button onclick="copyToClipboard()">コピー</button><button style="background:#8E8E93" onclick="closeModal()">閉じる</button></div></div></div>
-
-    <div id="nudge-controls"><button class="nudge-btn" onclick="nudgeItem(0, -1)">▲</button><div style="display:flex; gap:5px;"><button class="nudge-btn" onclick="nudgeItem(-1, 0)">◀</button><button class="nudge-btn" onclick="nudgeItem(1, 0)">▶</button></div><button class="nudge-btn" onclick="nudgeItem(0, 1)">▼</button></div>
-
+    <div class="ver-label">ver 4.8</div>
+    
     <div class="toolbar">
         <div class="toolbar-row">
-            <button class="btn-frame" onclick="addFrame()">+外枠</button>
-            <button style="background: #4FC3F7; color: #004D40;" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+LDK</button>
-            <button style="background: #007AFF;" onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
-            <button style="background: #0288D1;" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
-            <button style="background: #FF7043;" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+K</button>
-            <div class="color-wrapper">
-                <span style="font-size:10px; font-weight:bold;">色</span>
+            <button class="btn-frame" onclick="addFrame()">+ 外枠</button>
+            <button style="background: #4FC3F7; color: #004D40;" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+ LDK</button>
+            <button style="background: #007AFF;" onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+ 洋室</button>
+            <button style="background: #0288D1;" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+ 浴室</button>
+            <button style="background: #FF7043;" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+ K</button>
+            <div class="color-selector">
                 <input type="color" id="colorPicker" value="#ffffff" oninput="changeColor()">
             </div>
         </div>
         <div class="toolbar-row">
             <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合モード</button>
-            <button style="background: #34c759;" onclick="duplicateItem()">複製</button>
+            <button style="background: var(--success);" onclick="duplicateItem()">複製</button>
             <button onclick="renameItem()">名前</button>
             <button class="btn-delete" onclick="deleteItem()">削除</button>
             <button class="btn-save" onclick="saveLayout()">共有</button>
-            <button style="background:#8E8E93;" onclick="resetCanvas()">消去</button>
+            <button class="btn-secondary" onclick="resetCanvas()">消去</button>
         </div>
     </div>
 
-    <div class="summary-bar">
-        <span>延床: <span id="totalTsubo" class="total-highlight">0.00</span> 坪</span>
+    <div class="summary">
+        <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
         <span>(<span id="totalHeibe">0.00</span> ㎡)</span>
-        <span><span id="totalJou" style="color:#FFD60A; font-weight:bold;">0.0</span> 畳</span>
+        <span><b id="totalJou">0.0</b> 畳</span>
     </div>
 
-    <div class="config">
-        <label><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス</label>
-        <label><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
-        <label><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
-        <label><input type="checkbox" id="showTsubo" onchange="draw()">坪</label>
+    <div class="config-panel">
+        <label class="toggle-btn"><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス</label>
+        <label class="toggle-btn"><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
+        <label class="toggle-btn"><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
+        <label class="toggle-btn"><input type="checkbox" id="showTsubo" onchange="draw()">坪</label>
     </div>
 
-    <div id="canvas-container"><canvas id="canvas"></canvas></div>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div id="nudge-controls">
+            <button class="nudge-btn" onclick="nudgeItem(0, -1)">▲</button>
+            <div style="display:flex; gap:8px;">
+                <button class="nudge-btn" onclick="nudgeItem(-1, 0)">◀</button>
+                <button class="nudge-btn" onclick="nudgeItem(1, 0)">▶</button>
+            </div>
+            <button class="nudge-btn" onclick="nudgeItem(0, 1)">▼</button>
+        </div>
+    </div>
+
+    <div id="saveModal" class="modal-overlay">
+        <div class="modal">
+            <h3>共有URLを作成しました</h3>
+            <input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()">
+            <div style="display:flex; gap:12px; margin-top:20px;">
+                <button style="flex:1;" onclick="copyToClipboard()">URLをコピー</button>
+                <button style="flex:1; background:#8e8e93;" onclick="closeModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -95,13 +157,11 @@
         const params = new URLSearchParams(window.location.search);
         const planId = params.get('id');
         if (planId) {
-            document.getElementById('loading').style.display = 'flex';
             try {
                 const docSnap = await getDoc(doc(db, "layouts", planId));
                 if (docSnap.exists()) { items = docSnap.data().items; isMerged = docSnap.data().isMerged || false; updateMergeButtonUI(); draw(); }
                 else { addFrame(); }
             } catch (e) { addFrame(); }
-            document.getElementById('loading').style.display = 'none';
         } else { addFrame(); }
     }
 
@@ -109,15 +169,15 @@
 
     window.draw = function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
+        ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
 
         if (isMerged) { drawMergedLayout(); } else { drawNormalLayout(); }
 
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-            ctx.fillStyle = "#FF3B30"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+            ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 18, 0, Math.PI*2); ctx.fill(); ctx.stroke();
             drawSizeTooltip(selectedItem);
         }
         updateSummary();
@@ -127,7 +187,7 @@
         items.forEach(item => {
             ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
             ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
-            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#444"; ctx.lineWidth = 1; ctx.strokeRect(item.x, item.y, item.w, item.h);
+            ctx.strokeStyle = item.type === 'frame' ? "#c7c7cc" : "#3a3a3c"; ctx.lineWidth = 1; ctx.strokeRect(item.x, item.y, item.w, item.h);
             drawItemText(item, true);
         });
     }
@@ -141,11 +201,7 @@
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIndex: -1 };
                 groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-                if (index > groups[item.label].lastIndex) {
-                    groups[item.label].textX = item.x + item.w / 2;
-                    groups[item.label].textY = item.y + item.h / 2;
-                    groups[item.label].lastIndex = index;
-                }
+                if (index > groups[item.label].lastIndex) { groups[item.label].textX = item.x + item.w / 2; groups[item.label].textY = item.y + item.h / 2; groups[item.label].lastIndex = index; }
             }
             for (let x = item.x; x < item.x + item.w; x += SUB_GRID) {
                 for (let y = item.y; y < item.y + item.h; y += SUB_GRID) {
@@ -157,11 +213,11 @@
         });
 
         items.forEach(item => {
-            ctx.fillStyle = item.type === 'frame' ? "#f4f4f4" : item.color;
+            ctx.fillStyle = item.type === 'frame' ? "#f2f2f7" : item.color;
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        ctx.lineWidth = 2; ctx.strokeStyle = "#444";
+        ctx.lineWidth = 2; ctx.strokeStyle = "#3a3a3c";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number);
             const current = roomMap[pos];
@@ -172,7 +228,7 @@
             });
         }
 
-        ctx.lineWidth = 4; ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = 4; ctx.strokeStyle = "#1c1c1e";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number);
             const currentLabel = frameMap[pos];
@@ -185,36 +241,36 @@
 
         for (const key in groups) { 
             const g = groups[key];
-            ctx.fillStyle = "#000"; ctx.textAlign = "center"; ctx.font = "bold 13px sans-serif";
+            ctx.fillStyle = "#1c1c1e"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
             ctx.fillText(g.label, g.textX, g.textY - 5);
-            ctx.font = "10px sans-serif";
+            ctx.font = "11px sans-serif";
             let subText = "";
             if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
             if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-            ctx.fillText(subText, g.textX, g.textY + 10);
+            ctx.fillText(subText, g.textX, g.textY + 12);
             ctx.textAlign = "left";
         }
     }
 
-    function drawItemText(item, forceDetails = false) {
+    function drawItemText(item, forceDetails) {
         if (item.w < 16 || item.h < 16 || item.type === 'frame') return;
         const showJou = document.getElementById('showJou').checked;
         const showTsubo = document.getElementById('showTsubo').checked;
         const areaMasu = (item.w/GRID_SIZE) * (item.h/GRID_SIZE);
-        ctx.fillStyle = "#000"; ctx.font = "bold 12px sans-serif";
-        let ty = item.y + 16; ctx.fillText(item.label, item.x + 4, ty);
+        ctx.fillStyle = "#1c1c1e"; ctx.font = "bold 13px sans-serif";
+        let ty = item.y + 16; ctx.fillText(item.label, item.x + 6, ty);
         if (!forceDetails) return;
-        ctx.font = "9px sans-serif";
-        if (showJou) { ty += 11; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
-        if (showTsubo) { ty += 11; ctx.fillText(`${(areaMasu/4).toFixed(2)}坪`, item.x+4, ty); }
+        ctx.font = "10px sans-serif";
+        if (showJou) { ty += 13; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+6, ty); }
+        if (showTsubo) { ty += 13; ctx.fillText(`${(areaMasu/4).toFixed(2)}坪`, item.x+6, ty); }
     }
 
     function drawSizeTooltip(item) {
         if (!document.getElementById('showMasu').checked) return;
-        const text = `${item.w/GRID_SIZE}×${item.h/GRID_SIZE}マ`;
+        const text = `${item.w/GRID_SIZE} × ${item.h/GRID_SIZE}`;
         ctx.font = "bold 12px sans-serif"; const tw = ctx.measureText(text).width;
-        ctx.fillStyle = "rgba(0,122,255,0.9)"; ctx.beginPath(); ctx.roundRect(item.x, item.y - 32, tw + 10, 24, 6); ctx.fill();
-        ctx.fillStyle = "#fff"; ctx.fillText(text, item.x + 5, item.y - 15);
+        ctx.fillStyle = "rgba(0,122,255,0.95)"; ctx.beginPath(); ctx.roundRect(item.x, item.y - 36, tw + 16, 28, 8); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillText(text, item.x + 8, item.y - 17);
     }
 
     function updateSummary() {
@@ -232,7 +288,7 @@
 
     window.toggleMerge = () => { isMerged = !isMerged; updateMergeButtonUI(); draw(); };
     window.addRoom = (label, w, h, color) => { const newItem = { type: 'room', x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color }; items.push(newItem); selectedItem = newItem; draw(); };
-    window.addFrame = () => { const newItem = { type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' }; items.unshift(newItem); selectedItem = newItem; draw(); };
+    window.addFrame = () => { const newItem = { type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f2f2f7' }; items.unshift(newItem); selectedItem = newItem; draw(); };
     window.duplicateItem = () => { if(!selectedItem) return; const newItem = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(newItem); selectedItem = newItem; draw(); };
     window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前変更", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
     window.deleteItem = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
@@ -240,9 +296,7 @@
     window.resetCanvas = () => { if(confirm("消去しますか？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
     window.nudgeItem = (dx, dy) => { if(!selectedItem) return; const step = document.getElementById('useHalfGrid').checked ? 16 : 32; selectedItem.x += dx * step; selectedItem.y += dy * step; draw(); };
     window.saveLayout = async () => {
-        document.getElementById('loading').style.display = 'flex';
-        try { const docRef = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() }); document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`; document.getElementById('saveModal').style.display = 'flex'; } catch (e) { alert(e); }
-        document.getElementById('loading').style.display = 'none';
+        try { const docRef = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() }); document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`; document.getElementById('saveModal').style.display = 'flex'; } catch (e) { alert("エラーが発生しました"); }
     };
     window.closeModal = () => document.getElementById('saveModal').style.display = 'none';
     window.copyToClipboard = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
@@ -252,14 +306,9 @@
         const p = getPos(e);
         if(selectedItem && !(isMerged && selectedItem.type==='frame')) { if(Math.abs(p.x - (selectedItem.x+selectedItem.w)) < 30 && Math.abs(p.y - (selectedItem.y+selectedItem.h)) < 30) { isResizing = true; return; } }
         let foundIdx = -1;
-        for (let i = items.length - 1; i >= 0; i--) {
-            const it = items[i];
-            if (isMerged && it.type === 'frame') continue;
-            if (p.x >= it.x && p.x <= it.x+it.w && p.y >= it.y && p.y <= it.y+it.h) { foundIdx = i; break; }
-        }
+        for (let i = items.length - 1; i >= 0; i--) { if (isMerged && items[i].type === 'frame') continue; if (p.x >= items[i].x && p.x <= items[i].x+items[i].w && p.y >= items[i].y && p.y <= items[i].y+items[i].h) { foundIdx = i; break; } }
         if(foundIdx !== -1) {
-            selectedItem = items[foundIdx];
-            items.splice(foundIdx, 1); items.push(selectedItem);
+            selectedItem = items[foundIdx]; items.splice(foundIdx, 1); items.push(selectedItem);
             startX = p.x - selectedItem.x; startY = p.y - selectedItem.y;
             document.getElementById('nudge-controls').style.display = 'flex';
             document.getElementById('colorPicker').value = selectedItem.color;
