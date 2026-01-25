@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.1</title>
+    <title>間取りシミュレーター v4.2</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
@@ -133,7 +133,6 @@
         window.addEventListener('resize', resizeCanvas);
         const params = new URLSearchParams(window.location.search);
         const planId = params.get('id');
-
         if (planId) {
             document.getElementById('loading').style.display = 'flex';
             try {
@@ -170,6 +169,8 @@
             ctx.fillStyle = "#FF3B30"; ctx.beginPath(); 
             ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); 
             ctx.fill();
+            // 選択中のみ個別の「マス×マス」をマウス横に表示
+            drawSizeTooltip(selectedItem);
         }
         updateSummary();
     }
@@ -183,26 +184,28 @@
             ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#444";
             ctx.lineWidth = 1;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
-            drawItemText(item);
+            drawItemText(item, true); // 通常時は詳細を出す
         });
     }
 
     function drawMergedLayout() {
-        // マップ作成
         const map = {};
-        const frameMap = {}; // 外枠専用マップ
-        
+        const frameMap = {};
+        const groups = {}; // 名前ごとの合計計算用
+
         items.forEach(item => {
+            if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, minX: 9999, minY: 9999, maxX: 0, maxY: 0, type: item.type };
+            groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+            groups[item.label].minX = Math.min(groups[item.label].minX, item.x);
+            groups[item.label].minY = Math.min(groups[item.label].minY, item.y);
+            groups[item.label].maxX = Math.max(groups[item.label].maxX, item.x + item.w);
+            groups[item.label].maxY = Math.max(groups[item.label].maxY, item.y + item.h);
+
             for (let x = item.x; x < item.x + item.w; x += SUB_GRID) {
                 for (let y = item.y; y < item.y + item.h; y += SUB_GRID) {
                     const pos = `${x},${y}`;
-                    if (item.type === 'frame') {
-                        frameMap[pos] = item.label;
-                    }
-                    // 部屋情報を優先的にマップに登録
-                    if (!map[pos] || item.type !== 'frame') {
-                        map[pos] = { label: item.label, color: item.color, type: item.type };
-                    }
+                    if (item.type === 'frame') frameMap[pos] = item.label;
+                    if (!map[pos] || item.type !== 'frame') map[pos] = { label: item.label, color: item.color, type: item.type };
                 }
             }
         });
@@ -213,70 +216,64 @@
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 境界線描画
+        // 境界線（部屋）
         for (const pos in map) {
             const [x, y] = pos.split(',').map(Number);
             const current = map[pos];
-            const isFrame = frameMap[pos];
-
-            // 1. まずは各要素(部屋)の境界線を引く
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "#444";
-            
-            const directions = [
-                { dx: 0, dy: -SUB_GRID, x1: x, y1: y, x2: x + SUB_GRID, y2: y }, // 上
-                { dx: 0, dy: SUB_GRID, x1: x, y1: y + SUB_GRID, x2: x + SUB_GRID, y2: y + SUB_GRID }, // 下
-                { dx: -SUB_GRID, dy: 0, x1: x, y1: y, x2: x, y2: y + SUB_GRID }, // 左
-                { dx: SUB_GRID, dy: 0, x1: x + SUB_GRID, y1: y, x2: x + SUB_GRID, y2: y + SUB_GRID } // 右
-            ];
-
-            directions.forEach(d => {
-                const neighbor = map[`${x + d.dx},${y + d.dy}`];
-                // 隣が違うラベルなら線を引く
+            ctx.lineWidth = 2; ctx.strokeStyle = "#444";
+            const checks = [{dx:0, dy:-SUB_GRID, x1:x, y1:y, x2:x+SUB_GRID, y2:y}, {dx:0, dy:SUB_GRID, x1:x, y1:y+SUB_GRID, x2:x+SUB_GRID, y2:y+SUB_GRID}, {dx:-SUB_GRID, dy:0, x1:x, y1:y, x2:x, y2:y+SUB_GRID}, {dx:SUB_GRID, dy:0, x1:x+SUB_GRID, y1:y, x2:x+SUB_GRID, y2:y+SUB_GRID}];
+            checks.forEach(d => {
+                const neighbor = map[`${x+d.dx},${y+d.dy}`];
                 if (!neighbor || neighbor.label !== current.label) {
-                    // ただし、もしここが「外枠の境界線」でもあるなら後で太く引くのでここでは細くするか無視
                     ctx.beginPath(); ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
                 }
             });
         }
 
-        // 2. 外枠(建物の外周)だけを最優先で太く上書き描画
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#1a1a1a";
+        // 境界線（外壁太線）
+        ctx.lineWidth = 4; ctx.strokeStyle = "#1a1a1a";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number);
             const currentLabel = frameMap[pos];
-            
-            const checks = [
-                { dx: 0, dy: -SUB_GRID, x1: x, y1: y, x2: x + SUB_GRID, y2: y },
-                { dx: 0, dy: SUB_GRID, x1: x, y1: y + SUB_GRID, x2: x + SUB_GRID, y2: y + SUB_GRID },
-                { dx: -SUB_GRID, dy: 0, x1: x, y1: y, x2: x, y2: y + SUB_GRID },
-                { dx: SUB_GRID, dy: 0, x1: x + SUB_GRID, y1: y, x2: x + SUB_GRID, y2: y + SUB_GRID }
-            ];
-
+            const checks = [{dx:0, dy:-SUB_GRID, x1:x, y1:y, x2:x+SUB_GRID, y2:y}, {dx:0, dy:SUB_GRID, x1:x, y1:y+SUB_GRID, x2:x+SUB_GRID, y2:y+SUB_GRID}, {dx:-SUB_GRID, dy:0, x1:x, y1:y, x2:x, y2:y+SUB_GRID}, {dx:SUB_GRID, dy:0, x1:x+SUB_GRID, y1:y, x2:x+SUB_GRID, y2:y+SUB_GRID}];
             checks.forEach(c => {
-                const neighborLabel = frameMap[`${x + c.dx},${y + c.dy}`];
-                // 隣に外枠がない（＝建物の外）なら太線を引く
+                const neighborLabel = frameMap[`${x+c.dx},${y+c.dy}`];
                 if (!neighborLabel || neighborLabel !== currentLabel) {
                     ctx.beginPath(); ctx.moveTo(c.x1, c.y1); ctx.lineTo(c.x2, c.y2); ctx.stroke();
                 }
             });
         }
 
-        items.forEach(item => {
-            if (item.type !== 'frame') drawItemText(item);
-        });
+        // 合計テキストの表示（グループの中央付近）
+        for (const key in groups) {
+            const g = groups[key];
+            if (g.type === 'frame') continue;
+            drawMergedGroupText(g);
+        }
     }
 
-    function drawItemText(item) {
+    // 結合されたグループの合計値を表示
+    function drawMergedGroupText(g) {
+        const centerX = g.minX + (g.maxX - g.minX) / 2;
+        const centerY = g.minY + (g.maxY - g.minY) / 2;
+        ctx.fillStyle = "#000";
+        ctx.textAlign = "center";
+        
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(g.label, centerX, centerY - 5);
+        
+        ctx.font = "10px sans-serif";
+        let subText = "";
+        if (document.getElementById('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
+        if (document.getElementById('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+        ctx.fillText(subText, centerX, centerY + 10);
+        ctx.textAlign = "left"; // 元に戻す
+    }
+
+    // アイテムごとのテキスト（通常時）
+    function drawItemText(item, forceDetails = false) {
         if (item.w < 16 || item.h < 16) return;
-        const config = {
-            masu: document.getElementById('showMasu').checked,
-            jou: document.getElementById('showJou').checked,
-            heibe: document.getElementById('showHeibe').checked,
-            tsubo: document.getElementById('showTsubo').checked,
-            meter: document.getElementById('showMeter').checked
-        };
+        const config = { masu: document.getElementById('showMasu').checked, jou: document.getElementById('showJou').checked, heibe: document.getElementById('showHeibe').checked, tsubo: document.getElementById('showTsubo').checked, meter: document.getElementById('showMeter').checked };
         const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
         const areaMasu = gw * gh;
         ctx.fillStyle = "#000";
@@ -291,19 +288,33 @@
         let ty = item.y + 16;
         ctx.fillText(item.label, item.x + 4, ty);
         
-        ctx.font = "10px sans-serif";
-        if (config.meter) { ty += 12; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
-        if (config.masu) { ty += 12; ctx.fillText(`${gw}x${gh}マ`, item.x+4, ty); }
-        if (config.jou) { ty += 12; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
-        if (config.heibe) { ty += 12; ctx.fillText(`${(areaMasu * MODULE * MODULE).toFixed(2)}㎡`, item.x+4, ty); }
-        if (config.tsubo) { ty += 12; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
+        // 結合時は個別テキストは出さない（forceDetailsがtrueの通常時のみ出す）
+        if (!forceDetails) return;
+
+        ctx.font = "9px sans-serif";
+        if (config.meter) { ty += 11; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
+        if (config.jou) { ty += 11; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
+        if (config.tsubo) { ty += 11; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
+    }
+
+    // 選択中・リサイズ中のみ出るサイズ表示
+    function drawSizeTooltip(item) {
+        const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
+        const text = `${gw} × ${gh} マス`;
+        ctx.font = "bold 12px sans-serif";
+        const tw = ctx.measureText(text).width;
+        
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(item.x, item.y - 25, tw + 10, 20);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(text, item.x + 5, item.y - 11);
     }
 
     function updateSummary() {
         let totalMasu = 0;
         items.forEach(item => { if(item.type === 'frame') totalMasu += (item.w/GRID_SIZE)*(item.h/GRID_SIZE); });
         document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
-        document.getElementById('totalHeibe').innerText = (totalHeibe = totalMasu * MODULE * MODULE).toFixed(2);
+        document.getElementById('totalHeibe').innerText = (totalMasu * MODULE * MODULE).toFixed(2);
         document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
     }
 
