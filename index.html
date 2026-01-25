@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.8</title>
+    <title>間取りシミュレーター v5.9</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -29,13 +29,10 @@
         .summary b { color: var(--warning); }
         #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
         canvas { display: block; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
-        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.8</div>
+    <div class="ver-label">ver 5.9 (Zoomless)</div>
     <div class="toolbar">
         <div class="grid-layout">
             <button class="btn-frame" id="addFrameBtn">+ 外枠</button>
@@ -48,7 +45,7 @@
             <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
         </div>
         <div class="grid-layout" style="grid-template-columns: 1fr 1fr;">
-            <button class="btn-save" id="saveBtn">共有URL作成</button>
+            <button class="btn-save" id="saveBtn">URL保存</button>
             <button class="btn-reset" id="resetBtn">削除 / 消去</button>
         </div>
     </div>
@@ -65,9 +62,9 @@
         <span><b id="totalJou">0.0</b> 畳</span>
     </div>
     <div id="canvas-container"><canvas id="canvas"></canvas></div>
-    <div id="saveModal" class="modal-overlay"><div class="modal"><h3>共有URL</h3><input type="text" id="shareUrlInput" readonly onclick="this.select()"><div style="display:flex; gap:12px;"><button style="flex:1; background:var(--primary); height:48px;" id="copyUrlBtn">コピー</button><button style="flex:1; background:#8e8e93; height:48px;" id="closeModalBtn">閉じる</button></div></div></div>
 
 <script type="module">
+    // Firebase初期設定（省略なし）
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
@@ -75,8 +72,8 @@
     const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
     const GRID_SIZE = 32;
     let items = []; let selectedItem = null; let isResizing = false; let isDragging = false; let isMerged = false;
-    let camera = { x: 0, y: 0, zoom: 1 };
-    let dragStart = null; let pinchStartDist = null; let lastCamera = { x: 0, y: 0 };
+    let camera = { x: 0, y: 0 }; // ズームなし
+    let dragStart = null; let lastCamera = { x: 0, y: 0 };
     let startX, startY;
     let lastTapTime = 0;
 
@@ -99,34 +96,33 @@
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
-        ctx.scale(camera.zoom, camera.zoom);
         
-        ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5 / camera.zoom;
-        const range = 3000;
+        // グリッド線
+        ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5;
+        const range = 2000;
         for (let x = -range; x <= range; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke(); }
         for (let y = -range; y <= range; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke(); }
         
         if (isMerged) drawMerged(); else drawNormal();
 
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3 / camera.zoom;
+            ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3;
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
             
-            // ★編集中（移動・リサイズ中）にマス目を表示
+            // 操作中の「何マス × 何マス」表示
             if (isDragging || isResizing) {
                 const mw = (selectedItem.w / GRID_SIZE).toFixed(1).replace('.0','');
                 const mh = (selectedItem.h / GRID_SIZE).toFixed(1).replace('.0','');
                 ctx.fillStyle = "rgba(0, 122, 255, 0.9)";
-                ctx.fillRect(selectedItem.x, selectedItem.y - (25/camera.zoom), 60/camera.zoom, 20/camera.zoom);
+                ctx.fillRect(selectedItem.x, selectedItem.y - 30, 70, 24);
                 ctx.fillStyle = "#fff";
-                ctx.font = `bold ${14/camera.zoom}px sans-serif`;
-                ctx.textAlign = "center";
-                ctx.fillText(`${mw} × ${mh}`, selectedItem.x + (30/camera.zoom), selectedItem.y - (10/camera.zoom));
-                ctx.textAlign = "left";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5, selectedItem.y - 12);
             }
 
+            // リサイズハンドル
             ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath();
-            ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16 / camera.zoom, 0, Math.PI*2);
+            ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16, 0, Math.PI*2);
             ctx.fill(); ctx.stroke();
         }
         ctx.restore();
@@ -137,8 +133,10 @@
         items.forEach(item => {
             ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
             ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
-            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1 / camera.zoom;
-            ctx.strokeRect(item.x, item.y, item.w, item.h); drawText(item, true);
+            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1;
+            ctx.strokeRect(item.x, item.y, item.w, item.h);
+            ctx.fillStyle = "#111"; ctx.font = "bold 13px sans-serif";
+            ctx.fillText(item.label, item.x + 6, item.y + 18);
         });
     }
 
@@ -157,7 +155,7 @@
             }}
         });
         items.forEach(item => { ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-        ctx.lineWidth = 2 / camera.zoom; ctx.strokeStyle = "#333";
+        ctx.lineWidth = 2; ctx.strokeStyle = "#333";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number); const current = roomMap[pos];
             [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
@@ -166,27 +164,12 @@
                 }
             });
         }
-        ctx.lineWidth = 4 / camera.zoom; ctx.strokeStyle = "#111";
-        for (const pos in frameMap) {
-            const [x, y] = pos.split(',').map(Number); const current = frameMap[pos];
-            [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-                const neighbor = frameMap[`${x+d.dx},${y+d.dy}`]; if (!neighbor || neighbor !== current) { 
-                    ctx.beginPath(); if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); } ctx.stroke();
-                }
-            });
-        }
         for (const key in groups) { 
-            const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = `bold ${14/camera.zoom}px sans-serif`;
-            ctx.fillText(g.label, g.textX, g.textY - (5/camera.zoom));
-            ctx.font = `${11/camera.zoom}px sans-serif`; let subText = ""; if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-            ctx.fillText(subText, g.textX, g.textY + (12/camera.zoom)); ctx.textAlign = "left";
+            const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
+            ctx.fillText(g.label, g.textX, g.textY - 4);
+            ctx.font = "11px sans-serif"; let subText = ""; if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+            ctx.fillText(subText, g.textX, g.textY + 12); ctx.textAlign = "left";
         }
-    }
-
-    function drawText(item, force) {
-        if (item.w < 16 || item.h < 16 || item.type === 'frame') return;
-        ctx.fillStyle = "#111"; ctx.font = `bold ${13/camera.zoom}px sans-serif`;
-        ctx.fillText(item.label, item.x + 6, item.y + (16/camera.zoom));
     }
 
     function updateSummary() {
@@ -195,13 +178,13 @@
     }
 
     const addFunc = (l, w, h, c, t='room') => { 
-        const targetX = getSnapped(-camera.x / camera.zoom, GRID_SIZE);
-        const targetY = getSnapped(-camera.y / camera.zoom, GRID_SIZE);
+        const targetX = getSnapped(-camera.x, GRID_SIZE);
+        const targetY = getSnapped(-camera.y, GRID_SIZE);
         const i = { type: t, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
         if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); 
     };
 
-    function editRoomLabel() {
+    function editLabel() {
         if (selectedItem && !isMerged) {
             const n = prompt("名前変更", selectedItem.label);
             if (n) { selectedItem.label = n; draw(); }
@@ -215,21 +198,22 @@
     document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+GRID_SIZE, y: selectedItem.y+GRID_SIZE}; items.push(i); selectedItem = i; draw(); } };
     document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("消去？")) { items = []; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
     document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); } };
-    document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0, zoom: 1 }; draw(); };
+    document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; draw(); };
     document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
-    function getPos(e) { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; }
-    function screenToWorld(p) { return { x: (p.x - canvas.width/2 - camera.x) / camera.zoom, y: (p.y - canvas.height/2 - camera.y) / camera.zoom }; }
+    function screenToWorld(p) { return { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y }; }
 
     canvas.addEventListener('touchstart', e => {
         const now = Date.now();
-        const worldP = screenToWorld(getPos(e));
-        if (now - lastTapTime < 300) { editRoomLabel(); return; }
+        const rect = canvas.getBoundingClientRect();
+        const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+        const worldP = screenToWorld(p);
+        
+        if (now - lastTapTime < 300) { editLabel(); return; }
         lastTapTime = now;
-        if (e.touches.length === 2) { pinchStartDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY); return; }
+
         if(selectedItem && !(isMerged && selectedItem.type==='frame')) {
-            const hs = 30/camera.zoom;
-            if(Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<hs && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<hs) { isResizing = true; return; }
+            if(Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30 && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30) { isResizing = true; return; }
         }
         let found = null;
         for (let i = items.length-1; i >= 0; i--) {
@@ -244,12 +228,11 @@
 
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
-        const worldP = screenToWorld(getPos(e));
+        const rect = canvas.getBoundingClientRect();
+        const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+        const worldP = screenToWorld(p);
         const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
-        if (e.touches.length === 2 && pinchStartDist) {
-            const dist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
-            camera.zoom *= (dist / pinchStartDist); pinchStartDist = dist; draw(); return;
-        }
+
         if (isResizing && selectedItem) {
             selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap));
             selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap));
@@ -263,7 +246,12 @@
         draw();
     });
 
-    canvas.addEventListener('touchend', () => { isResizing = false; isDragging = false; dragStart = null; pinchStartDist = null; draw(); });
+    canvas.addEventListener('touchend', () => { isResizing = false; isDragging = false; dragStart = null; draw(); });
+    
+    document.getElementById('saveBtn').onclick = async () => { 
+        const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+        prompt("共有URL（コピーして保存してください）", `${window.location.origin}${window.location.pathname}?id=${r.id}`);
+    };
     init();
 </script>
 </body>
