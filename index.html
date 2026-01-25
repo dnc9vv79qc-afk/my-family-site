@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.92</title>
+    <title>間取りシミュレーター v5.93</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -29,10 +29,17 @@
         .summary b { color: var(--warning); }
         #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
         canvas { display: block; }
+
+        /* モーダル表示の不具合を修正 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+        .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal h3 { margin: 0 0 15px; }
+        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; background: #f9f9f9; }
+        .modal-btns { display: flex; gap: 10px; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.92</div>
+    <div class="ver-label">ver 5.93</div>
     <div class="toolbar">
         <div class="grid-layout">
             <button class="btn-frame" id="addFrameBtn">+ 外枠</button>
@@ -45,29 +52,47 @@
             <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
         </div>
         <div class="grid-layout" style="grid-template-columns: 1fr 1fr;">
-            <button class="btn-save" id="saveBtn">URL保存</button>
+            <button class="btn-save" id="saveBtn">共有URL作成</button>
             <button class="btn-reset" id="resetBtn">削除 / 消去</button>
         </div>
     </div>
+    
     <div class="config-bar">
         <div class="chip-group">
             <label class="chip"><input type="checkbox" id="showJou" checked>畳</label>
             <label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
             <label class="chip" style="background:#d1d1d6;"><input type="checkbox" id="useHalfGrid">半ます</label>
         </div>
-        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">リセット表示</button>
+        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示戻す</button>
     </div>
+
     <div class="summary">
         <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
         <span><b id="totalJou">0.0</b> 畳</span>
     </div>
+
     <div id="canvas-container"><canvas id="canvas"></canvas></div>
+
+    <div id="saveModal" class="modal-overlay">
+        <div class="modal">
+            <h3>共有URL作成完了</h3>
+            <p style="font-size:12px; color:#666;">以下のURLを保存・共有してください</p>
+            <input type="text" id="shareUrlInput" readonly onclick="this.select()">
+            <div class="modal-btns">
+                <button style="flex:1; background:var(--primary);" id="copyUrlBtn">コピー</button>
+                <button style="flex:1; background:#8e8e93;" id="closeModalBtn">閉じる</button>
+            </div>
+        </div>
+    </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
     const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
-    const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig); 
+    const db = getFirestore(app);
+    
     const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
     const GRID_SIZE = 32;
     let items = []; let selectedItem = null; let isResizing = false; let isDragging = false; let isMerged = false;
@@ -79,10 +104,19 @@
     function init() {
         resizeCanvas(); window.addEventListener('resize', resizeCanvas);
         const params = new URLSearchParams(window.location.search);
-        if (params.get('id')) {
-            getDoc(doc(db, "layouts", params.get('id'))).then(snap => {
-                if (snap.exists()) { items = snap.data().items; isMerged = snap.data().isMerged || false; draw(); }
+        const id = params.get('id');
+        if (id) {
+            getDoc(doc(db, "layouts", id)).then(snap => {
+                if (snap.exists()) { 
+                    items = snap.data().items; 
+                    isMerged = snap.data().isMerged || false; 
+                    document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合モード";
+                    draw(); 
+                }
                 else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
+            }).catch(e => {
+                console.error(e);
+                addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
             });
         } else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
     }
@@ -96,23 +130,19 @@
         ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
         
         ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5;
-        const range = 2000;
-        for (let x = -range; x <= range; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke(); }
-        for (let y = -range; y <= range; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke(); }
+        for (let x = -1600; x <= 1600; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -1600); ctx.lineTo(x, 1600); ctx.stroke(); }
+        for (let y = -1600; y <= 1600; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-1600, y); ctx.lineTo(1600, y); ctx.stroke(); }
         
         if (isMerged) drawMerged(); else drawNormal();
 
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3;
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-            
             if (isDragging || isResizing) {
                 const mw = (selectedItem.w / GRID_SIZE).toFixed(1).replace('.0','');
                 const mh = (selectedItem.h / GRID_SIZE).toFixed(1).replace('.0','');
-                ctx.fillStyle = "rgba(0, 122, 255, 0.9)";
-                ctx.fillRect(selectedItem.x, selectedItem.y - 30, 70, 24);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif";
-                ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5, selectedItem.y - 12);
+                ctx.fillStyle = "rgba(0, 122, 255, 0.9)"; ctx.fillRect(selectedItem.x, selectedItem.y - 30, 70, 24);
+                ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5, selectedItem.y - 12);
             }
             ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath();
             ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16, 0, Math.PI*2);
@@ -128,8 +158,7 @@
             ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
             ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
-            ctx.fillStyle = "#111"; ctx.font = "bold 13px sans-serif";
-            ctx.fillText(item.label, item.x + 6, item.y + 18);
+            ctx.fillStyle = "#111"; ctx.font = "bold 13px sans-serif"; ctx.fillText(item.label, item.x + 6, item.y + 18);
         });
     }
 
@@ -141,37 +170,25 @@
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
                 groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-                if (index > groups[item.label].lastIdx) { groups[item.label].textX = item.x + item.w/2; groups[item.label].textY = item.y + item.h/2; groups[item.label].lastIdx = index; }
+                if (index > groups[item.label].lastIdx) { groups[item.label].textX = item.x + item.w/2; groups[item.label].lastIdx = index; groups[item.label].textY = item.y + item.h/2; }
             }
             for (let x = item.x; x < item.x + item.w; x += sub) { for (let y = item.y; y < item.y + item.h; y += sub) {
                 const pos = `${x},${y}`; if (item.type === 'frame') frameMap[pos] = item.label; else roomMap[pos] = { label: item.label, color: item.color };
             }}
         });
-
-        // 背景塗り
         items.forEach(item => { ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-
-        // ★結合後の境界線描画 (外枠をより太く描画するように修正)
-        const drawEdge = (map, color, width, isFrame) => {
+        const drawEdge = (map, color, width) => {
             ctx.strokeStyle = color; ctx.lineWidth = width;
             for (const pos in map) {
                 const [x, y] = pos.split(',').map(Number); const label = map[pos].label || map[pos];
                 [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-                    const neighborPos = `${x+d.dx},${y+d.dy}`;
-                    const neighborLabel = map[neighborPos]?.label || map[neighborPos];
-                    if (neighborLabel !== label) {
-                        ctx.beginPath();
-                        if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
-                        else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
-                        ctx.stroke();
+                    if ((map[`${x+d.dx},${y+d.dy}`]?.label || map[`${x+d.dx},${y+d.dy}`]) !== label) {
+                        ctx.beginPath(); if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); } ctx.stroke();
                     }
                 });
             }
         };
-
-        drawEdge(roomMap, "#333", 2, false); // 部屋の境界
-        drawEdge(frameMap, "#111", 6, true);  // ★外枠の境界を「6」に太く設定
-
+        drawEdge(roomMap, "#333", 2); drawEdge(frameMap, "#111", 6);
         for (const key in groups) { 
             const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
             ctx.fillText(g.label, g.textX, g.textY - 4);
@@ -186,79 +203,78 @@
     }
 
     const addFunc = (l, w, h, c, t='room') => { 
-        const targetX = getSnapped(-camera.x, GRID_SIZE);
-        const targetY = getSnapped(-camera.y, GRID_SIZE);
+        const targetX = getSnapped(-camera.x, GRID_SIZE); const targetY = getSnapped(-camera.y, GRID_SIZE);
         const i = { type: t, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
         if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); 
     };
 
-    function editLabel() {
-        if (selectedItem && !isMerged) {
-            const n = prompt("名前を変更", selectedItem.label);
-            if (n !== null && n !== "") { selectedItem.label = n; draw(); }
-        }
-    }
-
-    document.getElementById('addGenericRoomBtn').onclick = () => {
-        const n = prompt("部屋の名前を入力", "洋室");
-        if (n) addFunc(n, 4, 4, '#FFF3E0');
-    };
+    document.getElementById('addGenericRoomBtn').onclick = () => { const n = prompt("部屋名", "洋室"); if (n) addFunc(n, 4, 4, '#FFF3E0'); };
     document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
     document.getElementById('addWallBtn').onclick = () => addFunc('壁', 1, 4, '#616161', 'wall');
-    document.getElementById('mergeBtn').onclick = () => { isMerged = !isMerged; document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合"; draw(); };
+    document.getElementById('mergeBtn').onclick = () => { isMerged = !isMerged; document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合モード"; draw(); };
     document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+GRID_SIZE, y: selectedItem.y+GRID_SIZE}; items.push(i); selectedItem = i; draw(); } };
-    document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("消去？")) { items = []; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
+    document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("全消去しますか？")) { items = []; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
     document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); } };
     document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; draw(); };
     document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
+    // 保存・共有機能の修正
+    document.getElementById('saveBtn').onclick = async () => { 
+        const btn = document.getElementById('saveBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "保存中...";
+        btn.disabled = true;
+
+        try {
+            const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
+            document.getElementById('shareUrlInput').value = shareUrl;
+            document.getElementById('saveModal').style.display = 'flex';
+        } catch (e) {
+            console.error(e);
+            alert("保存に失敗しました。Firebaseの権限設定を確認してください。");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById('copyUrlBtn').onclick = () => {
+        const input = document.getElementById('shareUrlInput');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        alert("コピーしました");
+    };
+    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
+
     canvas.addEventListener('touchstart', e => {
-        const now = Date.now();
-        const rect = canvas.getBoundingClientRect();
+        const now = Date.now(); const rect = canvas.getBoundingClientRect();
         const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
         const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
-        if (now - lastTapTime < 300) { editLabel(); return; }
+        if (now - lastTapTime < 300 && selectedItem && !isMerged) { const n = prompt("名前変更", selectedItem.label); if(n) { selectedItem.label = n; draw(); } return; }
         lastTapTime = now;
-        if(selectedItem && !(isMerged && selectedItem.type==='frame')) {
-            if(Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30 && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30) { isResizing = true; return; }
-        }
+        if(selectedItem && !(isMerged && selectedItem.type==='frame') && Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30 && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30) { isResizing = true; return; }
         let found = null;
-        for (let i = items.length-1; i >= 0; i--) {
-            if (isMerged && items[i].type === 'frame') continue;
-            const it = items[i];
-            if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) { found = it; break; }
-        }
+        for (let i = items.length-1; i >= 0; i--) { if (!isMerged || items[i].type !== 'frame') {
+            const it = items[i]; if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) { found = it; break; }
+        }}
         if(found) { selectedItem = found; items.splice(items.indexOf(found), 1); items.push(found); startX = worldP.x - found.x; startY = worldP.y - found.y; isDragging = true; }
         else { selectedItem = null; dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; lastCamera = { ...camera }; }
         draw();
     });
 
     canvas.addEventListener('touchmove', e => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
+        e.preventDefault(); const rect = canvas.getBoundingClientRect();
         const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
         const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
         const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
-        if (isResizing && selectedItem) {
-            selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap));
-            selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap));
-        } else if (isDragging && selectedItem) {
-            selectedItem.x = getSnapped(worldP.x - startX, snap);
-            selectedItem.y = getSnapped(worldP.y - startY, snap);
-        } else if (dragStart) {
-            camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x);
-            camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y);
-        }
+        if (isResizing && selectedItem) { selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap)); selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap)); }
+        else if (isDragging && selectedItem) { selectedItem.x = getSnapped(worldP.x - startX, snap); selectedItem.y = getSnapped(worldP.y - startY, snap); }
+        else if (dragStart) { camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x); camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y); }
         draw();
     });
 
     canvas.addEventListener('touchend', () => { isResizing = false; isDragging = false; dragStart = null; draw(); });
-    canvas.addEventListener('dblclick', editLabel);
-
-    document.getElementById('saveBtn').onclick = async () => { 
-        const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
-        prompt("共有URL:", `${window.location.origin}${window.location.pathname}?id=${r.id}`);
-    };
     init();
 </script>
 </body>
