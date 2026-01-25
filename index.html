@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.4</title>
+    <title>間取りシミュレーター v5.5</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.4</div>
+    <div class="ver-label">ver 5.5</div>
 
     <div class="toolbar">
         <div class="grid-layout">
@@ -91,6 +91,7 @@
     let camera = { x: 0, y: 0, zoom: 1 };
     let dragStart = null; let pinchStartDist = null; let lastCamera = { x: 0, y: 0 };
     let startX, startY;
+    let lastTapTime = 0; // ダブルタップ判定用
 
     function init() {
         resizeCanvas(); window.addEventListener('resize', resizeCanvas);
@@ -111,7 +112,6 @@
         ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
         ctx.scale(camera.zoom, camera.zoom);
         
-        // 背景グリッド
         ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5 / camera.zoom;
         const range = 2000;
         for (let x = -range; x <= range; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke(); }
@@ -142,7 +142,7 @@
     function drawMerged() {
         const roomMap = {}; const frameMap = {}; const groups = {};
         const showJou = document.getElementById('showJou').checked; const showTsubo = document.getElementById('showTsubo').checked;
-        const sub = 16; // 判定は半マス単位
+        const sub = 16;
         items.forEach((item, index) => {
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
@@ -193,15 +193,27 @@
         document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2); document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
     }
 
+    // ★修正：図形生成を端寄せに変更
     const addFunc = (l, w, h, c, t='room') => { 
         const worldCenterX = - camera.x / camera.zoom;
         const worldCenterY = - camera.y / camera.zoom;
-        // 線の端（GRID_SIZE）にスナップさせて追加
-        const snapX = Math.round(worldCenterX / GRID_SIZE) * GRID_SIZE - (w*GRID_SIZE)/2;
-        const snapY = Math.round(worldCenterY / GRID_SIZE) * GRID_SIZE - (h*GRID_SIZE)/2;
+        // 左上基準でスナップ
+        const snapX = Math.round(worldCenterX / GRID_SIZE) * GRID_SIZE;
+        const snapY = Math.round(worldCenterY / GRID_SIZE) * GRID_SIZE;
         const i = { type: t, x: snapX, y: snapY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c }; 
         if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw(); 
     };
+
+    // ★追加：部屋名の編集ダイアログ
+    function editRoomLabel() {
+        if (selectedItem && !isMerged) {
+            const newName = prompt("部屋名を変更", selectedItem.label);
+            if (newName !== null && newName !== "") {
+                selectedItem.label = newName;
+                draw();
+            }
+        }
+    }
 
     document.getElementById('addGenericRoomBtn').onclick = () => { const name = prompt("部屋名", "洋室"); if(name) addFunc(name, 4, 4, '#FFF3E0'); };
     document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
@@ -217,7 +229,16 @@
     function screenToWorld(p) { return { x: (p.x - canvas.width/2 - camera.x) / camera.zoom, y: (p.y - canvas.height/2 - camera.y) / camera.zoom }; }
 
     canvas.addEventListener('touchstart', e => {
+        const now = Date.now();
         const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        
+        // ★追加：モバイル向けダブルタップ判定
+        if (now - lastTapTime < 300) {
+            editRoomLabel();
+            return;
+        }
+        lastTapTime = now;
+
         if (e.touches.length === 2) { pinchStartDist = Math.hypot(e.touches[1].clientX - p1.x, e.touches[1].clientY - p1.y); return; }
         const worldP = screenToWorld(getPos(e));
         if(selectedItem && !(isMerged && selectedItem.type==='frame')) {
@@ -234,6 +255,9 @@
         draw();
     }, {passive: false});
 
+    // デスクトップ用ダブルクリック
+    canvas.addEventListener('dblclick', editRoomLabel);
+
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
         if (e.touches.length === 2 && pinchStartDist) {
@@ -241,7 +265,6 @@
             camera.zoom *= (dist / pinchStartDist); pinchStartDist = dist; draw(); return;
         }
         const worldP = screenToWorld(getPos(e));
-        // スナップ設定：通常は32px、半ますモード時は16px
         const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
         if (isResizing && selectedItem) {
             selectedItem.w = Math.max(snap, Math.round((worldP.x - selectedItem.x) / snap) * snap);
