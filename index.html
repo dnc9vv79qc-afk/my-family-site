@@ -3,26 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.1 (表示修正版)</title>
+    <title>間取りシミュレーター DB版</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* ツールバー */
-        .toolbar { 
-            padding: 10px; background: #fff; display: flex; gap: 10px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; align-items: center; 
-            overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; 
-        }
-        .toolbar::-webkit-scrollbar { display: none; }
+        /* 2段ツールバー */
+        .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
+        .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; align-items: center; }
+        .toolbar-row::-webkit-scrollbar { display: none; }
         
-        button { 
-            padding: 10px 14px; font-size: 13px; border: none; border-radius: 8px; 
-            background: #007AFF; color: white; font-weight: bold; cursor: pointer; 
-            white-space: nowrap; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        button { padding: 10px 14px; font-size: 13px; border: none; border-radius: 8px; background: #007AFF; color: white; font-weight: bold; cursor: pointer; flex-shrink: 0; }
         button:active { transform: scale(0.95); }
         
-        /* ボタン色分け */
         .btn-frame { background: #333; }
         .btn-merge { background: #5856d6; }
         .btn-room-ldk { background: #4FC3F7; color: #004D40; }
@@ -33,58 +25,39 @@
         .btn-delete { background: #ff3b30; }
         .btn-save { background: #FF9500; }
 
-        /* カラーピッカー */
-        .color-control { 
-            display: flex; align-items: center; gap: 4px; 
-            background: #eee; padding: 6px 10px; border-radius: 8px; 
-            border: 1px solid #ccc; flex-shrink: 0;
-        }
+        .color-control { display: flex; align-items: center; gap: 4px; background: #eee; padding: 5px; border-radius: 8px; }
         input[type="color"] { border: none; width: 30px; height: 30px; cursor: pointer; background: none; padding: 0; }
 
-        .summary-bar { background: #222; color: #fff; padding: 8px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #444; flex-shrink: 0;}
+        .summary-bar { background: #222; color: #fff; padding: 8px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0;}
         .total-highlight { color: #FFD60A; font-size: 1.2em; font-weight: bold; }
         
-        /* 設定バー */
-        .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 12px; border-bottom: 1px solid #ccc; white-space: nowrap; -webkit-overflow-scrolling: touch; flex-shrink: 0; }
+        .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 12px; border-bottom: 1px solid #ccc; flex-shrink: 0; }
         .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        input[type="checkbox"] { transform: scale(1.2); }
 
         #canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
         canvas { display: block; touch-action: none; }
         
-        /* 微調整コントローラー */
-        #nudge-controls {
-            position: absolute; bottom: 20px; right: 20px;
-            display: none; flex-direction: column; align-items: center; gap: 5px;
-            background: rgba(255,255,255,0.9); padding: 10px; border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 50;
-        }
-        .nudge-row { display: flex; gap: 5px; }
-        .nudge-btn {
-            width: 40px; height: 40px; border-radius: 50%; background: #007AFF; color: #fff;
-            border: none; font-size: 18px; display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
-        }
-        .nudge-btn:active { background: #005bb5; transform: scale(0.9); }
+        /* 微調整 */
+        #nudge-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 50; }
+        .nudge-btn { width: 40px; height: 40px; border-radius: 50%; background: #007AFF; color: #fff; border: none; font-size: 18px; display: flex; justify-content: center; align-items: center; }
 
         /* モーダル */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; padding: 24px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .url-input { width: 100%; padding: 10px; margin: 15px 0; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; box-sizing: border-box;}
+        .modal-box { background: #fff; padding: 24px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center; }
+        .url-input { width: 100%; padding: 10px; margin: 15px 0; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; }
     </style>
 </head>
 <body>
 
-    <div id="loading" class="modal-overlay" style="z-index: 101;"><div style="color:#fff; font-weight:bold;">読み込み中...</div></div>
+    <div id="loading" class="modal-overlay" style="z-index: 101;"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
 
     <div id="saveModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="margin-top:0;">完了</h3>
-            <p style="font-size:13px; color:#666;">URLをコピーまたは画像を保存</p>
+            <h3 style="margin-top:0;">共有URL作成完了</h3>
+            <p style="font-size:12px; color:#666;">このURLでいつでも間取りを復元できます</p>
             <input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()">
-            <div style="display:flex; gap:10px; justify-content: center; flex-wrap: wrap;">
+            <div style="display:flex; gap:10px; justify-content: center;">
                 <button onclick="copyToClipboard()">URLコピー</button>
-                <button style="background:#34c759" onclick="downloadImage()">画像保存</button>
                 <button style="background:#8E8E93" onclick="closeModal()">閉じる</button>
             </div>
         </div>
@@ -92,7 +65,7 @@
 
     <div id="nudge-controls">
         <button class="nudge-btn" onclick="nudgeItem(0, -1)">▲</button>
-        <div class="nudge-row">
+        <div style="display:flex; gap:5px;">
             <button class="nudge-btn" onclick="nudgeItem(-1, 0)">◀</button>
             <button class="nudge-btn" onclick="nudgeItem(1, 0)">▶</button>
         </div>
@@ -100,24 +73,23 @@
     </div>
 
     <div class="toolbar">
-        <button class="btn-frame" onclick="addFrame()">+外枠</button>
-        <button class="btn-room-ldk" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+LDK</button>
-        <button onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
-        <button class="btn-room-bath" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
-        <button class="btn-kitchen" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+K</button>
-        <button class="btn-wall" onclick="addWall()">+壁</button>
-        
-        <div class="color-control">
-            <span style="font-size:12px; font-weight:bold; color:#555;">色</span>
-            <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()">
+        <div class="toolbar-row">
+            <button class="btn-frame" onclick="addFrame()">+外枠</button>
+            <button class="btn-room-ldk" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+LDK</button>
+            <button onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
+            <button class="btn-room-bath" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
+            <button class="btn-kitchen" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+K</button>
+            <button class="btn-wall" onclick="addWall()">+壁</button>
         </div>
-
-        <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合</button>
-        <button class="btn-copy" onclick="duplicateItem()">複製</button>
-        <button onclick="renameItem()">名前</button>
-        <button class="btn-delete" onclick="deleteItem()">削除</button>
-        <button style="background:#8E8E93;" onclick="resetCanvas()">全消去</button>
-        <button class="btn-save" onclick="saveLayout()">共有</button>
+        <div class="toolbar-row">
+            <div class="color-control"><input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()"></div>
+            <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合</button>
+            <button class="btn-copy" onclick="duplicateItem()">複製</button>
+            <button onclick="renameItem()">名前</button>
+            <button class="btn-delete" onclick="deleteItem()">削除</button>
+            <button class="btn-save" onclick="saveLayout()">共有</button>
+            <button style="background:#8E8E93;" onclick="resetCanvas()">全消去</button>
+        </div>
     </div>
 
     <div class="summary-bar">
@@ -127,254 +99,90 @@
     </div>
 
     <div class="config">
-        <label style="border:2px solid #007AFF; background:#E3F2FD;"><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス移動</label>
-        
+        <label><input type="checkbox" id="useHalfGrid" onchange="draw()">半マス移動</label>
         <label><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
         <label><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
         <label><input type="checkbox" id="showMeter" checked onchange="draw()">m</label>
-        <label><input type="checkbox" id="showHeibe" onchange="draw()">㎡</label>
-        <label><input type="checkbox" id="showTsubo" onchange="draw()">坪</label>
     </div>
 
-    <div id="canvas-container">
-        <canvas id="canvas"></canvas>
-    </div>
+    <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
-<script>
+<script type="module">
+    // Firebaseの導入
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
+        authDomain: "test-55430.firebaseapp.com",
+        projectId: "test-55430",
+        storageBucket: "test-55430.firebasestorage.app",
+        messagingSenderId: "742726212885",
+        appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
+        measurementId: "G-PW24JY2LBP"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('canvas-container');
     const colorPicker = document.getElementById('colorPicker');
     
-    // 設定
-    const GRID_SIZE = 32;       
-    const HANDLE_SIZE = 30; 
-    const MODULE = 0.91;        
+    const GRID_SIZE = 32; const MODULE = 0.91; let items = []; let selectedItem = null;
+    let isResizing = false; let isMerged = false; let startX, startY, touchOffsetY = 0;
 
-    let items = [];
-    let selectedItem = null;
-    let isResizing = false;
-    let isMerged = false;
-    let startX, startY;
-    
-    // スマホ用：タッチオフセット
-    let touchOffsetY = 0; 
-
-    function init() {
+    async function init() {
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        
         const params = new URLSearchParams(window.location.search);
-        const dataStr = params.get('data');
+        const planId = params.get('id');
 
-        if (dataStr) {
+        if (planId) {
             document.getElementById('loading').style.display = 'flex';
-            setTimeout(() => {
-                try {
-                    const jsonStr = decodeURIComponent(escape(atob(dataStr)));
-                    const data = JSON.parse(jsonStr);
-                    if (data.items) items = data.items;
-                    if (typeof data.isMerged !== 'undefined') {
-                        isMerged = data.isMerged;
-                        const btn = document.getElementById('mergeBtn');
-                        btn.innerText = isMerged ? "結合解除" : "結合";
-                        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
-                    }
+            try {
+                const docSnap = await getDoc(doc(db, "layouts", planId));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    items = data.items;
+                    isMerged = data.isMerged || false;
+                    const btn = document.getElementById('mergeBtn');
+                    btn.innerText = isMerged ? "結合解除" : "結合";
+                    btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
                     draw();
-                } catch (e) {
-                    console.error(e);
-                    addFrame();
-                } finally {
-                    document.getElementById('loading').style.display = 'none';
-                }
-            }, 100);
-        } else {
-            addFrame();
-        }
+                } else { addFrame(); }
+            } catch (e) { console.error(e); addFrame(); }
+            document.getElementById('loading').style.display = 'none';
+        } else { addFrame(); }
     }
 
-    function resizeCanvas() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        draw();
-    }
-
-    function addRoom(label, w, h, color) {
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
-        const newItem = { type: 'room', x: cx, y: cy, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
-        items.push(newItem);
-        selectItem(newItem);
-        updateColorPicker(color);
-        draw();
-    }
-    function addFrame() {
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
-        items.unshift({ type: 'frame', x: cx, y: cy, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' });
-        selectItem(items[0]); 
-        updateColorPicker('#f8f8f8');
-        draw();
-    }
-    function addWall() {
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
-        const newItem = { type: 'wall', x: cx, y: cy, w: 1*GRID_SIZE, h: 2*GRID_SIZE, label: '壁', color: '#555555' };
-        items.push(newItem);
-        selectItem(newItem);
-        updateColorPicker('#555555');
-        draw();
-    }
-
-    function selectItem(item) {
-        selectedItem = item;
-        document.getElementById('nudge-controls').style.display = 'flex';
-    }
-    function deselectItem() {
-        selectedItem = null;
-        document.getElementById('nudge-controls').style.display = 'none';
-    }
-
-    function changeColor() {
-        if (selectedItem) {
-            selectedItem.color = colorPicker.value;
-            draw();
-        }
-    }
-    function updateColorPicker(color) { colorPicker.value = color; }
-
-    function duplicateItem() {
-        if (!selectedItem) return alert("選択してください");
-        const newItem = { ...selectedItem, x: selectedItem.x + GRID_SIZE, y: selectedItem.y + GRID_SIZE };
-        items.push(newItem); selectItem(newItem); draw();
-    }
-    function renameItem() {
-        if (!selectedItem) return alert("選択してください");
-        const newName = prompt("名前を変更", selectedItem.label);
-        if (newName !== null) { selectedItem.label = newName; draw(); }
-    }
-    function deleteItem() {
-        if (selectedItem) { items = items.filter(i => i !== selectedItem); deselectItem(); draw(); }
-    }
-    function resetCanvas() {
-        if(!confirm("すべて消去しますか？")) return;
-        items = []; isMerged = false;
-        document.getElementById('mergeBtn').innerText = "結合";
-        document.getElementById('mergeBtn').style.background = "#5856d6";
-        deselectItem();
-        addFrame(); draw();
-    }
-    function toggleMerge() {
-        isMerged = !isMerged;
-        const btn = document.getElementById('mergeBtn');
-        btn.innerText = isMerged ? "結合解除" : "結合";
-        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
-        deselectItem(); draw();
-    }
-
-    function nudgeItem(dx, dy) {
-        if(!selectedItem) return;
-        const useHalf = document.getElementById('useHalfGrid').checked;
-        const step = useHalf ? GRID_SIZE/2 : GRID_SIZE;
-        
-        selectedItem.x += dx * step;
-        selectedItem.y += dy * step;
-        
-        if (navigator.vibrate) navigator.vibrate(5);
-        draw();
-    }
+    function resizeCanvas() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; draw(); }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         const showJou = document.getElementById('showJou').checked;
-        const showTsubo = document.getElementById('showTsubo').checked;
-        const showHeibe = document.getElementById('showHeibe').checked;
         const showMeter = document.getElementById('showMeter').checked;
         const showMasu = document.getElementById('showMasu').checked;
 
-        // グリッド
         ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
 
         let totalMasu = 0;
-        let roomMap = new Map();
-        let frameMap = new Set();
-        let groupedRooms = {};
-
         items.forEach(item => {
-            const gw = item.w/GRID_SIZE;
-            const gh = item.h/GRID_SIZE;
-            const gx = item.x/GRID_SIZE; 
-            const gy = item.y/GRID_SIZE;
-
-            if (item.type === 'frame') {
-                totalMasu += gw*gh;
-                for(let x=0; x<Math.round(gw); x++) for(let y=0; y<Math.round(gh); y++) frameMap.add(`${Math.round(gx)+x},${Math.round(gy)+y}`);
-            } else if (item.type === 'room') {
-                if (!groupedRooms[item.label]) groupedRooms[item.label] = { totalMasu: 0, largestItem: item, maxArea: 0 };
-                const area = gw*gh;
-                groupedRooms[item.label].totalMasu += area;
-                if (area > groupedRooms[item.label].maxArea) {
-                    groupedRooms[item.label].largestItem = item;
-                    groupedRooms[item.label].maxArea = area;
-                }
-                for(let x=0; x<gw; x++) for(let y=0; y<gh; y++) roomMap.set(`${Math.floor(gx+x)},${Math.floor(gy+y)}`, item);
-            }
-        });
-
-        if (isMerged) {
-            ctx.fillStyle = "#f4f4f4";
-            frameMap.forEach(key => { const [gx,gy] = key.split(',').map(Number); ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE, GRID_SIZE); });
-            
-            ctx.strokeStyle = "#333"; ctx.lineWidth = 3; ctx.beginPath();
-            frameMap.forEach(key => {
-                const [gx, gy] = key.split(',').map(Number);
-                if (!frameMap.has(`${gx},${gy-1}`)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); }
-                if (!frameMap.has(`${gx},${gy+1}`)) { ctx.moveTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
-                if (!frameMap.has(`${gx-1},${gy}`)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); }
-                if (!frameMap.has(`${gx+1},${gy}`)) { ctx.moveTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
-            });
-            ctx.stroke();
-        } else {
-            items.filter(i => i.type === 'frame').forEach(item => { ctx.fillStyle = item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-        }
-
-        items.forEach(item => {
-            if(item.type === 'frame') return;
+            if (item.type === 'frame') totalMasu += (item.w/GRID_SIZE)*(item.h/GRID_SIZE);
             ctx.fillStyle = item.color;
-            if(item.type==='room') ctx.globalAlpha = 0.85;
+            ctx.globalAlpha = item.type==='room' ? 0.85 : 1.0;
             ctx.fillRect(item.x, item.y, item.w, item.h);
             ctx.globalAlpha = 1.0;
-            if(item.type==='room') {
-                ctx.strokeStyle = "#444"; ctx.lineWidth = 1.5;
-                ctx.strokeRect(item.x, item.y, item.w, item.h);
-            }
+            if(item.type==='room') { ctx.strokeStyle = "#444"; ctx.lineWidth = 1.5; ctx.strokeRect(item.x, item.y, item.w, item.h); }
+            drawItemText(item, showMeter, showJou, showMasu);
         });
 
         if (selectedItem) {
-            const item = selectedItem;
-            if (!(isMerged && item.type === 'frame')) {
-                ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; 
-                ctx.strokeRect(item.x, item.y, item.w, item.h);
-                ctx.fillStyle = "#FF3B30"; ctx.beginPath(); 
-                ctx.arc(item.x + item.w, item.y + item.h, HANDLE_SIZE/2, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-
-        Object.values(groupedRooms).forEach(group => {
-            drawItemText(ctx, group.largestItem, group.totalMasu, false, showMeter, showJou, showTsubo, showHeibe, showMasu);
-        });
-        
-        items.filter(i => i.type === 'wall' && (i.w>=GRID_SIZE/2 || i.h>=GRID_SIZE/2)).forEach(item => {
-             ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText(item.label, item.x+2, item.y+12);
-        });
-        
-        if(!isMerged) {
-            items.filter(i => i.type === 'frame').forEach(item => {
-                 drawItemText(ctx, item, (item.w/GRID_SIZE)*(item.h/GRID_SIZE), true, showMeter, showJou, showTsubo, showHeibe, showMasu);
-            });
+            ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+            ctx.fillStyle = "#FF3B30"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); ctx.fill();
         }
 
         document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
@@ -382,155 +190,77 @@
         document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
     }
 
-    function drawItemText(ctx, item, totalM, isFrame, sMeter, sJou, sTsubo, sHeibe, sMasu) {
-        if (!item) return;
-        let textY = item.y + 16;
-        const c = item.color.replace('#','');
-        const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
-        const isDark = (r*0.299 + g*0.587 + b*0.114) < 140;
-
-        ctx.fillStyle = isDark ? "#fff" : (isFrame ? "#666" : "#000");
-        ctx.font = "bold 12px sans-serif";
-        ctx.fillText(item.label, item.x + 4, textY);
-        
-        if (item.h < GRID_SIZE && item.w < GRID_SIZE*2) return;
-
+    function drawItemText(item, sMeter, sJou, sMasu) {
+        ctx.fillStyle = "#000"; ctx.font = "bold 12px sans-serif";
+        let ty = item.y + 16; ctx.fillText(item.label, item.x + 4, ty);
         ctx.font = "10px sans-serif";
         const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
-        
-        if (sMeter) {
-            textY += 12; ctx.fillStyle = "#007AFF"; if(isDark) ctx.fillStyle="#81D4FA";
-            ctx.fillText(`${(gw*MODULE).toFixed(2)}×${(gh*MODULE).toFixed(2)}`, item.x + 4, textY);
-            ctx.fillStyle = isDark ? "#fff" : (isFrame ? "#666" : "#000");
-        }
-        // ここを修正：マ -> マス
-        if (sMasu) { textY += 12; ctx.fillText(`${parseFloat(gw.toFixed(1))}×${parseFloat(gh.toFixed(1))}マス`, item.x + 4, textY); }
-        if (sJou) { textY += 12; ctx.fillText(`${(totalM/2).toFixed(1)}畳`, item.x + 4, textY); }
-        if (sHeibe) { textY += 12; ctx.fillText(`${(totalM * MODULE * MODULE).toFixed(2)}㎡`, item.x + 4, textY); }
-        if (sTsubo) { textY += 12; ctx.fillText(`${(totalM / 4).toFixed(2)}坪`, item.x + 4, textY); }
+        if (sMeter) { ty += 12; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
+        if (sMasu) { ty += 12; ctx.fillText(`${gw}x${gh}マ`, item.x+4, ty); }
+        if (sJou) { ty += 12; ctx.fillText(`${(gw*gh/2).toFixed(1)}畳`, item.x+4, ty); }
     }
 
-    // --- イベント ---
-    function getPointerPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-
-    function handleStart(x, y, isTouch) {
-        if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            const hX = selectedItem.x + selectedItem.w, hY = selectedItem.y + selectedItem.h;
-            if (Math.abs(x - hX) < HANDLE_SIZE*1.5 && Math.abs(y - hY) < HANDLE_SIZE*1.5) { 
-                isResizing = true; return; 
-            }
-        }
-        
-        let found = items.slice().reverse().find(r => {
-            if (isMerged && r.type === 'frame') return false;
-            const m = (r.type==='wall')?15:0; 
-            return x >= r.x-m && x <= r.x+r.w+m && y >= r.y-m && y <= r.y+r.h+m;
-        });
-
-        if (found) { 
-            selectItem(found);
-            startX = x - found.x; 
-            startY = y - found.y;
-            touchOffsetY = isTouch ? 60 : 0; 
-            startY += touchOffsetY;
-            updateColorPicker(found.color);
-            if(found.type !== 'frame') { items = items.filter(i => i !== found); items.push(found); }
-        } else { deselectItem(); }
+    // --- 各種操作関数をwindowに登録 (type="module"対策) ---
+    window.addRoom = (label, w, h, color) => {
+        const newItem = { type: 'room', x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
+        items.push(newItem); selectedItem = newItem; draw();
+    };
+    window.addFrame = () => {
+        items.unshift({ type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' });
         draw();
-    }
-
-    function handleMove(x, y) {
-        if (!selectedItem) return;
-
-        const useHalf = document.getElementById('useHalfGrid').checked;
-        const currentSnap = useHalf ? (GRID_SIZE / 2) : GRID_SIZE;
-
-        let newX, newY;
-
-        if (isResizing) {
-            newX = Math.round((x - selectedItem.x)/currentSnap)*currentSnap;
-            newY = Math.round((y - selectedItem.y)/currentSnap)*currentSnap;
-            const minSize = GRID_SIZE / 2;
-            const w = Math.max(minSize, newX);
-            const h = Math.max(minSize, newY);
-
-            if (navigator.vibrate && (selectedItem.w !== w || selectedItem.h !== h)) {
-                 navigator.vibrate(5);
-            }
-            selectedItem.w = w; selectedItem.h = h;
-
-        } else {
-            let targetY = y - touchOffsetY;
-            newX = Math.round((x - startX)/currentSnap)*currentSnap;
-            newY = Math.round((targetY - startY)/currentSnap)*currentSnap;
-
-            if (navigator.vibrate && (selectedItem.x !== newX || selectedItem.y !== newY)) {
-                 navigator.vibrate(5);
-            }
-            selectedItem.x = newX; selectedItem.y = newY;
-        }
-        draw();
-    }
-
-    canvas.addEventListener('mousedown', e => handleStart(getPointerPos(e).x, getPointerPos(e).y, false));
-    canvas.addEventListener('mousemove', e => { if(e.buttons===1) handleMove(getPointerPos(e).x, getPointerPos(e).y); });
-    canvas.addEventListener('mouseup', () => isResizing = false);
-    
-    canvas.addEventListener('touchstart', e => handleStart(getPointerPos(e).x, getPointerPos(e).y, true), {passive:false});
-    canvas.addEventListener('touchmove', e => { 
-        e.preventDefault(); 
-        handleMove(getPointerPos(e).x, getPointerPos(e).y); 
-    }, {passive:false});
-    canvas.addEventListener('touchend', () => isResizing = false);
-
-    function saveLayout() {
-        const data = { items: items, isMerged: isMerged };
+    };
+    window.addWall = () => {
+        const newItem = { type: 'wall', x: 64, y: 64, w: 32, h: 64, label: '壁', color: '#555' };
+        items.push(newItem); selectedItem = newItem; draw();
+    };
+    window.saveLayout = async () => {
+        document.getElementById('loading').style.display = 'flex';
         try {
-            const jsonString = JSON.stringify(data);
-            const encoded = btoa(unescape(encodeURIComponent(jsonString)));
-            const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            const shareUrl = baseUrl + "?data=" + encoded;
-
+            const docRef = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${docRef.id}`;
             document.getElementById('shareUrlInput').value = shareUrl;
             document.getElementById('saveModal').style.display = 'flex';
-        } catch(e) {
-            alert("データ量が多すぎます。");
-        }
+        } catch (e) { alert(e); }
+        document.getElementById('loading').style.display = 'none';
+    };
+    window.nudgeItem = (dx, dy) => {
+        if(!selectedItem) return;
+        const step = document.getElementById('useHalfGrid').checked ? GRID_SIZE/2 : GRID_SIZE;
+        selectedItem.x += dx * step; selectedItem.y += dy * step; draw();
+    };
+    window.deleteItem = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
+    window.duplicateItem = () => { if(!selectedItem) return; items.push({...selectedItem, x: selectedItem.x+32}); draw(); };
+    window.toggleMerge = () => { isMerged = !isMerged; draw(); };
+    window.changeColor = () => { if(selectedItem) { selectedItem.color = colorPicker.value; draw(); } };
+    window.resetCanvas = () => { if(confirm("消去？")) { items = []; addFrame(); draw(); } };
+    window.closeModal = () => document.getElementById('saveModal').style.display = 'none';
+    window.copyToClipboard = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("OK"); };
+    window.draw = draw;
+
+    // タッチ・マウスイベント
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: cx - rect.left, y: cy - rect.top };
     }
-    
-    function downloadImage() {
-        const showMasuState = document.getElementById('showMasu').checked;
-        document.getElementById('showMasu').checked = false;
-        const prevSelected = selectedItem;
-        deselectItem(); 
-        draw(); 
-        const link = document.createElement('a');
-        link.download = 'madori_plan.png';
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        document.getElementById('showMasu').checked = showMasuState;
-        if(prevSelected) selectItem(prevSelected);
+    canvas.addEventListener('touchstart', e => {
+        const p = getPos(e);
+        if(selectedItem && Math.abs(p.x - (selectedItem.x+selectedItem.w)) < 30 && Math.abs(p.y - (selectedItem.y+selectedItem.h)) < 30) { isResizing = true; return; }
+        selectedItem = items.slice().reverse().find(i => p.x >= i.x && p.x <= i.x+i.w && p.y >= i.y && p.y <= i.y+i.h);
+        if(selectedItem) { startX = p.x - selectedItem.x; startY = p.y - selectedItem.y; document.getElementById('nudge-controls').style.display = 'flex'; }
+        else { document.getElementById('nudge-controls').style.display = 'none'; }
         draw();
-    }
+    });
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault(); const p = getPos(e); const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
+        if(isResizing) { selectedItem.w = Math.max(16, Math.round((p.x - selectedItem.x)/snap)*snap); selectedItem.h = Math.max(16, Math.round((p.y - selectedItem.y)/snap)*snap); }
+        else if(selectedItem) { selectedItem.x = Math.round((p.x - startX)/snap)*snap; selectedItem.y = Math.round((p.y - startY)/snap)*snap; }
+        draw();
+    });
+    canvas.addEventListener('touchend', () => isResizing = false);
 
-    function closeModal() { document.getElementById('saveModal').style.display = 'none'; }
-    function copyToClipboard() {
-        const i = document.getElementById('shareUrlInput'); i.select();
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(i.value).then(() => alert("コピーしました")).catch(() => {
-                document.execCommand("copy"); alert("コピーしました");
-            });
-        } else {
-            document.execCommand("copy"); alert("コピーしました");
-        }
-    }
-
-    window.onload = init;
+    init();
 </script>
 </body>
 </html>
