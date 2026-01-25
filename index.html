@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.5 - テキスト位置改善版</title>
+    <title>間取りシミュレーター v4.6</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
@@ -17,7 +17,7 @@
         .summary-bar { background: #1a1a1a; color: #fff; padding: 10px 12px; font-size: 12px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0;}
         .total-highlight { color: #FFD60A; font-size: 1.25em; font-weight: bold; }
         .config { padding: 8px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 12px; font-size: 11px; border-bottom: 1px solid #ccc; flex-shrink: 0; }
-        .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .config label { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
         #canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
         canvas { display: block; touch-action: none; }
         #nudge-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 5px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 50%; z-index: 50; }
@@ -44,7 +44,7 @@
             <button style="background: #616161;" onclick="addWall()">+壁</button>
         </div>
         <div class="toolbar-row">
-            <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()" style="width:30px;height:30px;border:none;">
+            <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()" style="width:34px;height:34px;border:none;background:none;padding:0;">
             <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合モード</button>
             <button style="background: #34c759;" onclick="duplicateItem()">複製</button>
             <button onclick="renameItem()">名前</button>
@@ -128,13 +128,11 @@
 
     function drawMergedLayout() {
         const roomMap = {}; const frameMap = {}; const groups = {};
-        
-        // アイテムは「後にあるもの（新しいもの）」ほどテキスト表示の優先度を高くする
         items.forEach(item => {
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: item.x + item.w/2, textY: item.y + item.h/2 };
                 groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-                // 最後に登録（上書き）されたアイテムの中心をテキスト位置にする
+                // 最後に登録されたアイテムを中心にする
                 groups[item.label].textX = item.x + item.w/2;
                 groups[item.label].textY = item.y + item.h/2;
             }
@@ -152,7 +150,7 @@
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 境界線（部屋）
+        // 境界線描画
         ctx.lineWidth = 2; ctx.strokeStyle = "#444";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -164,7 +162,6 @@
             });
         }
 
-        // 境界線（外枠）
         ctx.lineWidth = 4; ctx.strokeStyle = "#1a1a1a";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -198,10 +195,12 @@
         if (!forceDetails) return;
         ctx.font = "9px sans-serif";
         if (document.getElementById('showJou').checked) { ty += 11; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
+        if (document.getElementById('showTsubo').checked) { ty += 11; ctx.fillText(`${(areaMasu/4).toFixed(2)}坪`, item.x+4, ty); }
     }
 
     function drawSizeTooltip(item) {
-        const text = `${item.w/GRID_SIZE}×${item.h/GRID_SIZE}マス`;
+        if (!document.getElementById('showMasu').checked) return;
+        const text = `${item.w/GRID_SIZE}×${item.h/GRID_SIZE}マ`;
         ctx.font = "bold 12px sans-serif"; const tw = ctx.measureText(text).width;
         ctx.fillStyle = "rgba(0,122,255,0.9)"; ctx.beginPath(); ctx.roundRect(item.x, item.y - 28, tw + 10, 22, 5); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.fillText(text, item.x + 5, item.y - 12);
@@ -225,10 +224,10 @@
     window.addFrame = () => { const newItem = { type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' }; items.unshift(newItem); selectedItem = newItem; draw(); };
     window.addWall = () => { const newItem = { type: 'wall', x: 96, y: 96, w: 8, h: 64, label: '壁', color: '#555' }; items.push(newItem); selectedItem = newItem; draw(); };
     window.duplicateItem = () => { if(!selectedItem) return; const newItem = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(newItem); selectedItem = newItem; draw(); };
-    window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前変更", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
+    window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前を入力してください（同じ名前は結合されます）", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
     window.deleteItem = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
     window.changeColor = () => { if(selectedItem) { selectedItem.color = document.getElementById('colorPicker').value; draw(); } };
-    window.resetCanvas = () => { if(confirm("全消去？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
+    window.resetCanvas = () => { if(confirm("全消去しますか？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
     window.nudgeItem = (dx, dy) => { if(!selectedItem) return; const step = document.getElementById('useHalfGrid').checked ? 16 : 32; selectedItem.x += dx * step; selectedItem.y += dy * step; draw(); };
     window.saveLayout = async () => {
         document.getElementById('loading').style.display = 'flex';
