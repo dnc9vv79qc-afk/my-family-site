@@ -124,10 +124,8 @@
 
         if (dataStr) {
             document.getElementById('loading').style.display = 'flex';
-            // 少し遅延させてレンダリング安定後に処理（見た目の問題）
             setTimeout(() => {
                 try {
-                    // 日本語(UTF-8)対応のBase64デコード
                     const jsonStr = decodeURIComponent(escape(atob(dataStr)));
                     const data = JSON.parse(jsonStr);
                     
@@ -148,7 +146,7 @@
                 }
             }, 100);
         } else {
-            addFrame(); // データがない場合は初期状態
+            addFrame();
         }
     }
 
@@ -158,9 +156,9 @@
         draw();
     }
 
-    // --- 追加ロジック ---
+    // --- 追加ロジック（結合中チェックを削除） ---
     function addRoom(label, w, h, color) {
-        if(isMerged) return alert("結合中は追加できません");
+        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
         const newItem = { type: 'room', x: cx, y: cy, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
@@ -170,7 +168,7 @@
         draw();
     }
     function addFrame() {
-        if(isMerged) return alert("結合中は追加できません");
+        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
         items.unshift({ type: 'frame', x: cx, y: cy, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' });
@@ -179,7 +177,7 @@
         draw();
     }
     function addWall() {
-        if(isMerged) return alert("結合中は追加できません");
+        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
         const newItem = { type: 'wall', x: cx, y: cy, w: 1*GRID_SIZE, h: 2*GRID_SIZE, label: '壁', color: '#555555' };
@@ -388,26 +386,19 @@
     canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(getPointerPos(e).x, getPointerPos(e).y); }, {passive:false});
     canvas.addEventListener('touchend', () => isResizing = false);
 
-    // --- 保存機能（URL埋め込み型） ---
+    // --- 保存機能 ---
     function saveLayout() {
-        const data = {
-            items: items,
-            isMerged: isMerged
-        };
-        
+        const data = { items: items, isMerged: isMerged };
         try {
-            // 日本語を扱えるようにエスケープしてからBase64エンコード
             const jsonString = JSON.stringify(data);
             const encoded = btoa(unescape(encodeURIComponent(jsonString)));
-            
-            // 現在のURLのクエリパラメータを除いた部分を取得
             const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             const shareUrl = baseUrl + "?data=" + encoded;
 
             document.getElementById('shareUrlInput').value = shareUrl;
             document.getElementById('saveModal').style.display = 'flex';
         } catch(e) {
-            console.error("保存URLの生成に失敗しました", e);
+            console.error(e);
             alert("データ量が多すぎてURL化できませんでした。\n要素を減らして再度試してください。");
         }
     }
