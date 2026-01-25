@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v5.93</title>
+    <title>間取りシミュレーター v5.95</title>
     <style>
         :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -17,6 +17,7 @@
         .btn-wall { background: #616161; }
         .btn-merge { background: #5856d6; }
         .btn-copy { background: var(--success); }
+        .btn-help { background: #8e8e93; font-size: 18px; } /* ヘルプボタン */
         .btn-reset { background: #8e8e93; }
         .btn-save { background: var(--warning); }
         .color-circle { background: #fff; border: 2px solid #d1d1d6; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; }
@@ -30,16 +31,19 @@
         #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
         canvas { display: block; }
 
-        /* モーダル表示の不具合を修正 */
+        /* モーダル共通スタイル */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
         .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .modal h3 { margin: 0 0 15px; }
-        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; background: #f9f9f9; }
-        .modal-btns { display: flex; gap: 10px; }
+        .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
+
+        /* ヘルプ専用スタイル */
+        #helpModal .modal { max-width: 400px; text-align: left; max-height: 80vh; overflow-y: auto; }
+        #helpModal ul { padding-left: 20px; font-size: 13px; line-height: 1.6; }
+        #helpModal h3 { text-align: center; margin-top: 0; }
     </style>
 </head>
 <body>
-    <div class="ver-label">ver 5.93</div>
+    <div class="ver-label">ver 5.95</div>
     <div class="toolbar">
         <div class="grid-layout">
             <button class="btn-frame" id="addFrameBtn">+ 外枠</button>
@@ -49,11 +53,12 @@
         <div class="grid-layout" style="grid-template-columns: 2fr 1fr 1fr;">
             <button id="mergeBtn" class="btn-merge">結合モード</button>
             <button class="btn-copy" id="copyBtn">複製</button>
-            <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
+            <button class="btn-help" id="openHelpBtn">？</button>
         </div>
-        <div class="grid-layout" style="grid-template-columns: 1fr 1fr;">
-            <button class="btn-save" id="saveBtn">共有URL作成</button>
-            <button class="btn-reset" id="resetBtn">削除 / 消去</button>
+        <div class="grid-layout" style="grid-template-columns: 1fr 1fr 1fr;">
+            <button class="btn-save" id="saveBtn">共有URL</button>
+            <button class="btn-reset" id="resetBtn">消去</button>
+            <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
         </div>
     </div>
     
@@ -63,7 +68,7 @@
             <label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
             <label class="chip" style="background:#d1d1d6;"><input type="checkbox" id="useHalfGrid">半ます</label>
         </div>
-        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示戻す</button>
+        <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示リセット</button>
     </div>
 
     <div class="summary">
@@ -76,23 +81,34 @@
     <div id="saveModal" class="modal-overlay">
         <div class="modal">
             <h3>共有URL作成完了</h3>
-            <p style="font-size:12px; color:#666;">以下のURLを保存・共有してください</p>
             <input type="text" id="shareUrlInput" readonly onclick="this.select()">
-            <div class="modal-btns">
+            <div style="display:flex; gap:10px;">
                 <button style="flex:1; background:var(--primary);" id="copyUrlBtn">コピー</button>
-                <button style="flex:1; background:#8e8e93;" id="closeModalBtn">閉じる</button>
+                <button style="flex:1; background:#8e8e93;" id="closeSaveModalBtn">閉じる</button>
             </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal-overlay">
+        <div class="modal">
+            <h3>🏠 操作マニュアル</h3>
+            <ul>
+                <li><b>基本:</b> ボタンでパーツを追加し、ドラッグで移動。</li>
+                <li><b>サイズ変更:</b> パーツ右下の丸いハンドルをドラッグ。</li>
+                <li><b>画面移動:</b> 背景部分をドラッグしてスライド。</li>
+                <li><b>名前編集:</b> パーツを素早く2回タップ。</li>
+                <li><b>結合モード:</b> 外枠を太くし、同じ名前の部屋を合体。</li>
+                <li><b>保存:</b> 共有URLを発行して続きを編集可能。</li>
+            </ul>
+            <p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    
     const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
-    const app = initializeApp(firebaseConfig); 
-    const db = getFirestore(app);
-    
+    const app = initializeApp(firebaseConfig); const db = getFirestore(app);
     const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
     const GRID_SIZE = 32;
     let items = []; let selectedItem = null; let isResizing = false; let isDragging = false; let isMerged = false;
@@ -104,19 +120,10 @@
     function init() {
         resizeCanvas(); window.addEventListener('resize', resizeCanvas);
         const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
-        if (id) {
-            getDoc(doc(db, "layouts", id)).then(snap => {
-                if (snap.exists()) { 
-                    items = snap.data().items; 
-                    isMerged = snap.data().isMerged || false; 
-                    document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合モード";
-                    draw(); 
-                }
+        if (params.get('id')) {
+            getDoc(doc(db, "layouts", params.get('id'))).then(snap => {
+                if (snap.exists()) { items = snap.data().items; isMerged = snap.data().isMerged || false; draw(); }
                 else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
-            }).catch(e => {
-                console.error(e);
-                addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
             });
         } else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
     }
@@ -128,13 +135,10 @@
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
-        
         ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5;
         for (let x = -1600; x <= 1600; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -1600); ctx.lineTo(x, 1600); ctx.stroke(); }
         for (let y = -1600; y <= 1600; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-1600, y); ctx.lineTo(1600, y); ctx.stroke(); }
-        
         if (isMerged) drawMerged(); else drawNormal();
-
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3;
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
@@ -164,7 +168,6 @@
 
     function drawMerged() {
         const roomMap = {}; const frameMap = {}; const groups = {};
-        const showJou = document.getElementById('showJou').checked; const showTsubo = document.getElementById('showTsubo').checked;
         const sub = 16;
         items.forEach((item, index) => {
             if (item.type !== 'frame') {
@@ -192,8 +195,8 @@
         for (const key in groups) { 
             const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
             ctx.fillText(g.label, g.textX, g.textY - 4);
-            ctx.font = "11px sans-serif"; let subText = ""; if (showJou) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (showTsubo) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-            ctx.fillText(subText, g.textX, g.textY + 12); ctx.textAlign = "left";
+            let subText = ""; if (document.getElementById('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (document.getElementById('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+            ctx.font = "11px sans-serif"; ctx.fillText(subText, g.textX, g.textY + 12); ctx.textAlign = "left";
         }
     }
 
@@ -218,34 +221,16 @@
     document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; draw(); };
     document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
-    // 保存・共有機能の修正
+    // モーダル操作
+    document.getElementById('openHelpBtn').onclick = () => document.getElementById('helpModal').style.display = 'flex';
+    document.getElementById('helpModal').onclick = () => document.getElementById('helpModal').style.display = 'none';
     document.getElementById('saveBtn').onclick = async () => { 
-        const btn = document.getElementById('saveBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "保存中...";
-        btn.disabled = true;
-
-        try {
-            const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
-            const shareUrl = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
-            document.getElementById('shareUrlInput').value = shareUrl;
-            document.getElementById('saveModal').style.display = 'flex';
-        } catch (e) {
-            console.error(e);
-            alert("保存に失敗しました。Firebaseの権限設定を確認してください。");
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
+        const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+        document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
+        document.getElementById('saveModal').style.display = 'flex';
     };
-
-    document.getElementById('copyUrlBtn').onclick = () => {
-        const input = document.getElementById('shareUrlInput');
-        input.select();
-        navigator.clipboard.writeText(input.value);
-        alert("コピーしました");
-    };
-    document.getElementById('closeModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
+    document.getElementById('copyUrlBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
+    document.getElementById('closeSaveModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
 
     canvas.addEventListener('touchstart', e => {
         const now = Date.now(); const rect = canvas.getBoundingClientRect();
