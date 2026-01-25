@@ -1,408 +1,351 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v3</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* ツールバー */
-        .toolbar { padding: 8px 12px; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; align-items: center; justify-content: center; }
-        
-        button { padding: 6px 10px; font-size: 12px; border: none; border-radius: 6px; background: #007AFF; color: white; font-weight: bold; cursor: pointer; white-space: nowrap; transition: transform 0.1s; }
-        button:active { transform: scale(0.96); }
-        
-        /* ボタン色分け */
-        .btn-frame { background: #333; }
-        .btn-merge { background: #5856d6; }
-        .btn-room-ldk { background: #4FC3F7; color: #004D40; }
-        .btn-room-bath { background: #0288D1; color: #fff; }
-        .btn-kitchen { background: #FF7043; color: #fff; } /* キッチン用 */
-        .btn-wall { background: #616161; color: #fff; }
-        .btn-copy { background: #34c759; }
-        .btn-delete { background: #ff3b30; }
-        .btn-save { background: #FF9500; }
-
-        /* カラーピッカー周り */
-        .color-control { display: flex; align-items: center; gap: 4px; background: #eee; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; }
-        input[type="color"] { border: none; width: 24px; height: 24px; cursor: pointer; background: none; padding: 0; }
-
-        .summary-bar { background: #222; color: #fff; padding: 6px 12px; font-size: 11px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #444; }
-        .total-highlight { color: #FFD60A; font-size: 1.1em; font-weight: bold; }
-        
-        .config { padding: 6px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 10px; font-size: 11px; border-bottom: 1px solid #ccc; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .config label { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        
-        #canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
-        canvas { display: block; touch-action: none; }
-        
-        /* モーダル */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; padding: 20px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; }
-        .url-input { width: 100%; padding: 8px; margin: 10px 0; font-size: 14px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>間取りシミュレーター v3 (URL保存+短縮)</title>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.toolbar { padding: 8px 12px; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; align-items: center; justify-content: center; }
+button { padding: 6px 10px; font-size: 12px; border: none; border-radius: 6px; background: #007AFF; color: white; font-weight: bold; cursor: pointer; white-space: nowrap; transition: transform 0.1s; }
+button:active { transform: scale(0.96); }
+.btn-frame { background: #333; }
+.btn-merge { background: #5856d6; }
+.btn-room-ldk { background: #4FC3F7; color: #004D40; }
+.btn-room-bath { background: #0288D1; color: #fff; }
+.btn-kitchen { background: #FF7043; color: #fff; }
+.btn-wall { background: #616161; color: #fff; }
+.btn-copy { background: #34c759; }
+.btn-delete { background: #ff3b30; }
+.btn-save { background: #FF9500; }
+.color-control { display: flex; align-items: center; gap: 4px; background: #eee; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; }
+input[type="color"] { border: none; width: 24px; height: 24px; cursor: pointer; background: none; padding: 0; }
+.summary-bar { background: #222; color: #fff; padding: 6px 12px; font-size: 11px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #444; }
+.total-highlight { color: #FFD60A; font-size: 1.1em; font-weight: bold; }
+.config { padding: 6px 12px; background: #E5E5EA; display: flex; overflow-x: auto; align-items: center; gap: 10px; font-size: 11px; border-bottom: 1px solid #ccc; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+.config label { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+#canvas-container { flex: 1; position: relative; overflow: hidden; background: #fff; width: 100%; }
+canvas { display: block; touch-action: none; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+.modal-box { background: #fff; padding: 20px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; }
+.url-input { width: 100%; padding: 8px; margin: 10px 0; font-size: 14px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+</style>
 </head>
 <body>
-
-    <div id="loading" class="modal-overlay"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
-    <div id="saveModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 style="margin-top:0;">保存完了</h3>
-            <input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()">
-            <div style="display:flex; gap:10px; justify-content: center;">
-                <button onclick="copyToClipboard()">コピー</button>
-                <button style="background:#8E8E93" onclick="closeModal()">閉じる</button>
-            </div>
-        </div>
+<div id="loading" class="modal-overlay"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
+<div id="saveModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 style="margin-top:0;">保存完了</h3>
+    <input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()">
+    <div style="display:flex; gap:10px; justify-content: center;">
+      <button onclick="copyToClipboard()">コピー</button>
+      <button style="background:#8E8E93" onclick="closeModal()">閉じる</button>
     </div>
+  </div>
+</div>
 
-    <div class="toolbar">
-        <button class="btn-frame" onclick="addFrame()">+外枠</button>
-        <button class="btn-room-ldk" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+LDK</button>
-        <button onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
-        <button class="btn-room-bath" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
-        <button class="btn-kitchen" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+キッチン</button>
-        <button class="btn-wall" onclick="addWall()">+壁/PS</button>
-        
-        <div class="color-control">
-            <span style="font-size:11px; font-weight:bold; color:#555;">色:</span>
-            <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()" title="選択中のアイテムの色を変更">
-        </div>
+<div class="toolbar">
+  <button class="btn-frame" onclick="addFrame()">+外枠</button>
+  <button class="btn-room-ldk" onclick="addRoom('LDK', 6, 6, '#E1F5FE')">+LDK</button>
+  <button onclick="addRoom('洋室', 4, 4, '#FFF3E0')">+洋室</button>
+  <button class="btn-room-bath" onclick="addRoom('浴室', 2, 2, '#B3E5FC')">+浴室</button>
+  <button class="btn-kitchen" onclick="addRoom('キッチン', 3, 1, '#FFCCBC')">+キッチン</button>
+  <button class="btn-wall" onclick="addWall()">+壁/PS</button>
+  <div class="color-control">
+    <span style="font-size:11px; font-weight:bold; color:#555;">色:</span>
+    <input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()">
+  </div>
+  <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合</button>
+  <button class="btn-copy" onclick="duplicateItem()">複製</button>
+  <button onclick="renameItem()">名前</button>
+  <button class="btn-delete" onclick="deleteItem()">削除</button>
+  <button class="btn-save" onclick="saveLayout()">保存</button>
+</div>
 
-        <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合</button>
-        <button class="btn-copy" onclick="duplicateItem()">複製</button>
-        <button onclick="renameItem()">名前</button>
-        <button class="btn-delete" onclick="deleteItem()">削除</button>
-        <button class="btn-save" onclick="saveLayout()">保存</button>
-    </div>
+<div class="summary-bar">
+  <span>延床: <span id="totalTsubo" class="total-highlight">0.00</span> 坪</span>
+  <span>(<span id="totalHeibe">0.00</span> ㎡)</span>
+  <span><span id="totalJou">0.0</span> 畳</span>
+</div>
 
-    <div class="summary-bar">
-        <span>延床: <span id="totalTsubo" class="total-highlight">0.00</span> 坪</span>
-        <span>(<span id="totalHeibe">0.00</span> ㎡)</span>
-        <span><span id="totalJou">0.0</span> 畳</span>
-    </div>
+<div class="config">
+  <label><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
+  <label><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
+  <label><input type="checkbox" id="showMeter" checked onchange="draw()">m</label>
+  <label><input type="checkbox" id="showHeibe" onchange="draw()">㎡</label>
+  <label><input type="checkbox" id="showTsubo" onchange="draw()">坪</label>
+</div>
 
-    <div class="config">
-        <label><input type="checkbox" id="showMasu" checked onchange="draw()">マス</label>
-        <label><input type="checkbox" id="showJou" checked onchange="draw()">畳</label>
-        <label><input type="checkbox" id="showMeter" checked onchange="draw()">m</label>
-        <label><input type="checkbox" id="showHeibe" onchange="draw()">㎡</label>
-        <label><input type="checkbox" id="showTsubo" onchange="draw()">坪</label>
-    </div>
-
-    <div id="canvas-container">
-        <canvas id="canvas"></canvas>
-    </div>
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <script>
-    let SERVER_ID = "";
-    try { SERVER_ID = "<?= savedId ?>"; } catch(e) { console.log("Local mode"); }
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('canvas-container');
+const colorPicker = document.getElementById('colorPicker');
+const GRID_SIZE = 32;
+const HANDLE_SIZE = 20;
+const MODULE = 0.91;
 
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const container = document.getElementById('canvas-container');
-    const colorPicker = document.getElementById('colorPicker');
-    
-    // 設定
-    const GRID_SIZE = 32;       
-    const HANDLE_SIZE = 20;     
-    const MODULE = 0.91;        
+let items = [];
+let selectedItem = null;
+let isResizing = false;
+let isMerged = false;
+let startX, startY;
 
-    let items = [];
-    let selectedItem = null;
-    let isResizing = false;
-    let isMerged = false;
-    let startX, startY;
+function init() {
+  // URL復元
+  const params = new URLSearchParams(location.search);
+  if (params.has('data')) {
+    try {
+      const compressed = params.get('data');
+      const json = LZString.decompressFromEncodedURIComponent(compressed);
+      const data = JSON.parse(json);
+      items = data.items || [];
+      isMerged = !!data.isMerged;
+    } catch(e){ console.error(e); }
+  } else {
+    addFrame();
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
 
-    function init() {
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        if (SERVER_ID && SERVER_ID !== "" && !SERVER_ID.includes("savedId")) {
-            loadPlanFromServer(SERVER_ID);
-        } else {
-            addFrame(); 
-        }
+function resizeCanvas() {
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  draw();
+}
+
+function addRoom(label, w, h, color) {
+  if(isMerged) return alert('結合中は追加できません');
+  const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
+  const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
+  const newItem = { type: 'room', x: cx, y: cy, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
+  items.push(newItem);
+  selectedItem = newItem;
+  updateColorPicker(color);
+  draw();
+}
+function addFrame() {
+  if(isMerged) return alert('結合中は追加できません');
+  const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
+  const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
+  const frame = { type: 'frame', x: cx, y: cy, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' };
+  items.unshift(frame);
+  selectedItem = frame;
+  updateColorPicker(frame.color);
+  draw();
+}
+function addWall() {
+  if(isMerged) return alert('結合中は追加できません');
+  const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
+  const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
+  const newItem = { type: 'wall', x: cx, y: cy, w: GRID_SIZE, h: 2*GRID_SIZE, label: '壁', color: '#555555' };
+  items.push(newItem);
+  selectedItem = newItem;
+  updateColorPicker(newItem.color);
+  draw();
+}
+function changeColor(){ if(selectedItem){ selectedItem.color = colorPicker.value; draw(); } }
+function updateColorPicker(color){ colorPicker.value = color; }
+function duplicateItem(){
+  if(!selectedItem) return alert('選択してください');
+  const n = { ...selectedItem, x: selectedItem.x+GRID_SIZE, y: selectedItem.y+GRID_SIZE };
+  items.push(n); selectedItem = n; draw();
+}
+function renameItem(){
+  if(!selectedItem) return alert('選択してください');
+  const n = prompt('名前を変更', selectedItem.label);
+  if(n!==null){ selectedItem.label = n; draw(); }
+}
+function deleteItem(){ if(selectedItem){ items = items.filter(i=>i!==selectedItem); selectedItem=null; draw(); } }
+function toggleMerge(){
+  isMerged = !isMerged;
+  const btn = document.getElementById('mergeBtn');
+  btn.innerText = isMerged ? '結合解除' : '結合';
+  btn.style.background = isMerged ? '#8e8e93' : '#5856d6';
+  selectedItem = null; draw();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const showJou = document.getElementById('showJou').checked;
+  const showTsubo = document.getElementById('showTsubo').checked;
+  const showHeibe = document.getElementById('showHeibe').checked;
+  const showMeter = document.getElementById('showMeter').checked;
+  const showMasu = document.getElementById('showMasu').checked;
+
+  ctx.strokeStyle = '#eef0f2'; ctx.lineWidth = 1;
+  for(let x=0;x<=canvas.width;x+=GRID_SIZE){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for(let y=0;y<=canvas.height;y+=GRID_SIZE){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+  let totalMasu = 0;
+  let roomMap = new Map();
+  let frameMap = new Set();
+  let groupedRooms = {};
+
+  items.forEach(item=>{
+    const gw = Math.round(item.w/GRID_SIZE), gh = Math.round(item.h/GRID_SIZE);
+    const gx = Math.round(item.x/GRID_SIZE), gy = Math.round(item.y/GRID_SIZE);
+    if(item.type==='frame'){
+      totalMasu += gw*gh;
+      for(let x=0;x<gw;x++) for(let y=0;y<gh;y++) frameMap.add(`${gx+x},${gy+y}`);
+    } else if(item.type==='room'){
+      if(!groupedRooms[item.label]) groupedRooms[item.label]={ totalMasu:0, largestItem:item, maxArea:0 };
+      const area = gw*gh;
+      groupedRooms[item.label].totalMasu += area;
+      if(area>groupedRooms[item.label].maxArea){
+        groupedRooms[item.label].largestItem=item; groupedRooms[item.label].maxArea=area;
+      }
+      for(let x=0;x<gw;x++) for(let y=0;y<gh;y++) roomMap.set(`${gx+x},${gy+y}`, item);
     }
-    function resizeCanvas() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        draw();
-    }
+  });
 
-    // --- 追加ロジック ---
-    function addRoom(label, w, h, color) {
-        if(isMerged) return alert("結合中は追加できません");
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
-        const newItem = { type: 'room', x: cx, y: cy, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
-        items.push(newItem);
-        selectedItem = newItem; 
-        updateColorPicker(color); // ピッカーの色を更新
-        draw();
-    }
-    function addFrame() {
-        if(isMerged) return alert("結合中は追加できません");
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
-        items.unshift({ type: 'frame', x: cx, y: cy, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' });
-        selectedItem = items[0]; 
-        updateColorPicker('#f8f8f8');
-        draw();
-    }
-    function addWall() {
-        if(isMerged) return alert("結合中は追加できません");
-        const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
-        const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
-        const newItem = { type: 'wall', x: cx, y: cy, w: 1*GRID_SIZE, h: 2*GRID_SIZE, label: '壁', color: '#555555' };
-        items.push(newItem);
-        selectedItem = newItem;
-        updateColorPicker('#555555');
-        draw();
-    }
+  if(isMerged){
+    ctx.fillStyle = '#f4f4f4';
+    frameMap.forEach(k=>{ const [gx,gy]=k.split(',').map(Number); ctx.fillRect(gx*GRID_SIZE,gy*GRID_SIZE,GRID_SIZE,GRID_SIZE); });
+  } else {
+    items.filter(i=>i.type==='frame').forEach(item=>{ ctx.fillStyle=item.color; ctx.fillRect(item.x,item.y,item.w,item.h); });
+  }
 
-    // --- 編集ロジック ---
-    function changeColor() {
-        if (selectedItem) {
-            selectedItem.color = colorPicker.value;
-            draw();
-        }
-    }
-    function updateColorPicker(color) {
-        // カラーコードが短縮形や名前の場合は正しく表示されないことがあるが、今回はHEX前提
-        colorPicker.value = color;
-    }
+  roomMap.forEach((item,key)=>{
+    const [gx,gy]=key.split(',').map(Number);
+    ctx.fillStyle=item.color; ctx.globalAlpha=0.85;
+    ctx.fillRect(gx*GRID_SIZE,gy*GRID_SIZE,GRID_SIZE,GRID_SIZE);
+    ctx.globalAlpha=1.0;
+  });
 
-    function duplicateItem() {
-        if (!selectedItem) return alert("選択してください");
-        const newItem = { ...selectedItem, x: selectedItem.x + GRID_SIZE, y: selectedItem.y + GRID_SIZE };
-        items.push(newItem); selectedItem = newItem; draw();
-    }
-    function renameItem() {
-        if (!selectedItem) return alert("選択してください");
-        const newName = prompt("名前を変更", selectedItem.label);
-        if (newName !== null) { selectedItem.label = newName; draw(); }
-    }
-    function deleteItem() {
-        if (selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); }
-    }
-    function toggleMerge() {
-        isMerged = !isMerged;
-        const btn = document.getElementById('mergeBtn');
-        btn.innerText = isMerged ? "結合解除" : "結合";
-        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
-        selectedItem = null; draw();
-    }
+  items.filter(i=>i.type==='wall').forEach(item=>{ ctx.fillStyle=item.color; ctx.fillRect(item.x,item.y,item.w,item.h); });
 
-    // --- 描画 ---
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 設定値取得
-        const showJou = document.getElementById('showJou').checked;
-        const showTsubo = document.getElementById('showTsubo').checked;
-        const showHeibe = document.getElementById('showHeibe').checked;
-        const showMeter = document.getElementById('showMeter').checked;
-        const showMasu = document.getElementById('showMasu').checked;
+  if(!isMerged){
+    items.filter(i=>i.type==='frame').forEach(item=>{
+      ctx.strokeStyle = (selectedItem===item)?'#007AFF':'#bbb';
+      ctx.lineWidth=1; ctx.setLineDash([4,2]);
+      ctx.strokeRect(item.x,item.y,item.w,item.h); ctx.setLineDash([]);
+      drawItemText(ctx,item,Math.round(item.w/GRID_SIZE)*Math.round(item.h/GRID_SIZE),true,showMeter,showJou,showTsubo,showHeibe,showMasu);
+    });
+  }
 
-        // グリッド
-        ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
-        for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
-        for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  ctx.lineWidth=1.5; ctx.strokeStyle='#444';
+  roomMap.forEach((item,key)=>{
+    const [gx,gy]=key.split(',').map(Number);
+    const check=(dx,dy)=>{ const n=roomMap.get(`${gx+dx},${gy+dy}`); return !n||n.label!==item.label; };
+    ctx.beginPath();
+    if(check(1,0)){ ctx.moveTo((gx+1)*GRID_SIZE,gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE,(gy+1)*GRID_SIZE); }
+    if(check(-1,0)){ ctx.moveTo(gx*GRID_SIZE,gy*GRID_SIZE); ctx.lineTo(gx*GRID_SIZE,(gy+1)*GRID_SIZE); }
+    if(check(0,1)){ ctx.moveTo(gx*GRID_SIZE,(gy+1)*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE,(gy+1)*GRID_SIZE); }
+    if(check(0,-1)){ ctx.moveTo(gx*GRID_SIZE,gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE,gy*GRID_SIZE); }
+    ctx.stroke();
+  });
 
-        let totalMasu = 0;
-        let roomMap = new Map();
-        let frameMap = new Set();
-        let groupedRooms = {};
+  if(selectedItem && !(isMerged && selectedItem.type==='frame')){
+    const item=selectedItem;
+    ctx.strokeStyle='#FF3B30'; ctx.lineWidth=2; ctx.strokeRect(item.x,item.y,item.w,item.h);
+    ctx.fillStyle='#FF3B30'; ctx.beginPath(); ctx.arc(item.x+item.w,item.y+item.h,HANDLE_SIZE/2,0,Math.PI*2); ctx.fill();
+  }
 
-        // 集計
-        items.forEach(item => {
-            const gw = Math.round(item.w/GRID_SIZE), gh = Math.round(item.h/GRID_SIZE);
-            const gx = Math.round(item.x/GRID_SIZE), gy = Math.round(item.y/GRID_SIZE);
+  Object.values(groupedRooms).forEach(group=>{
+    drawItemText(ctx, group.largestItem, group.totalMasu, false, showMeter, showJou, showTsubo, showHeibe, showMasu);
+  });
 
-            if (item.type === 'frame') {
-                totalMasu += gw*gh;
-                for(let x=0; x<gw; x++) for(let y=0; y<gh; y++) frameMap.add(`${gx+x},${gy+y}`);
-            } else if (item.type === 'room') {
-                if (!groupedRooms[item.label]) groupedRooms[item.label] = { totalMasu: 0, largestItem: item, maxArea: 0 };
-                const area = gw*gh;
-                groupedRooms[item.label].totalMasu += area;
-                if (area > groupedRooms[item.label].maxArea) {
-                    groupedRooms[item.label].largestItem = item;
-                    groupedRooms[item.label].maxArea = area;
-                }
-                for(let x=0; x<gw; x++) for(let y=0; y<gh; y++) roomMap.set(`${gx+x},${gy+y}`, item);
-            }
-        });
+  document.getElementById('totalTsubo').innerText=(totalMasu/4).toFixed(2);
+  document.getElementById('totalHeibe').innerText=(totalMasu*MODULE*MODULE).toFixed(2);
+  document.getElementById('totalJou').innerText=(totalMasu/2).toFixed(1);
+}
 
-        // 描画: 外枠 (結合時/非結合時)
-        if (isMerged) {
-            ctx.fillStyle = "#f4f4f4";
-            frameMap.forEach(key => { const [gx,gy] = key.split(',').map(Number); ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE, GRID_SIZE); });
-        } else {
-            items.filter(i => i.type === 'frame').forEach(item => { ctx.fillStyle = item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-        }
+function drawItemText(ctx,item,totalM,isFrame,sMeter,sJou,sTsubo,sHeibe,sMasu){
+  if(!item) return;
+  let textY=item.y+16;
+  const c=item.color.replace('#','');
+  const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  const isDark=(r*0.299+g*0.587+b*0.114)<140;
+  ctx.fillStyle=isDark?'#fff':(isFrame?'#666':'#000');
+  ctx.font='bold 12px sans-serif';
+  ctx.fillText(item.label,item.x+4,textY);
+  if(item.h<=GRID_SIZE && item.w<=GRID_SIZE*3) return;
+  ctx.font='10px sans-serif';
+  const gw=Math.round(item.w/GRID_SIZE), gh=Math.round(item.h/GRID_SIZE);
+  if(sMeter){
+    textY+=12; ctx.fillStyle=isDark?'#81D4FA':'#007AFF';
+    ctx.fillText(`${(gw*MODULE).toFixed(2)}×${(gh*MODULE).toFixed(2)}`,item.x+4,textY);
+    ctx.fillStyle=isDark?'#fff':(isFrame?'#666':'#000');
+  }
+  if(sMasu){ textY+=12; ctx.fillText(`${gw}×${gh}マ`,item.x+4,textY); }
+  if(sJou){ textY+=12; ctx.fillText(`${(totalM/2).toFixed(1)}畳`,item.x+4,textY); }
+}
 
-        // 描画: 部屋 (透明度あり)
-        roomMap.forEach((item, key) => {
-            const [gx, gy] = key.split(',').map(Number);
-            ctx.fillStyle = item.color; 
-            ctx.globalAlpha = 0.85; 
-            ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE, GRID_SIZE); 
-            ctx.globalAlpha = 1.0;
-        });
+function getPointerPos(e){
+  const rect=canvas.getBoundingClientRect();
+  const clientX=e.touches?e.touches[0].clientX:e.clientX;
+  const clientY=e.touches?e.touches[0].clientY:e.clientY;
+  return { x: clientX-rect.left, y: clientY-rect.top };
+}
+function handleStart(x,y){
+  if(selectedItem && !(isMerged && selectedItem.type==='frame')){
+    const hX=selectedItem.x+selectedItem.w, hY=selectedItem.y+selectedItem.h;
+    if(Math.abs(x-hX)<HANDLE_SIZE*1.5 && Math.abs(y-hY)<HANDLE_SIZE*1.5){ isResizing=true; return; }
+  }
+  let found=items.slice().reverse().find(r=>{
+    if(isMerged && r.type==='frame') return false;
+    const m=(r.type==='wall')?10:0;
+    return x>=r.x-m && x<=r.x+r.w+m && y>=r.y-m && y<=r.y+r.h+m;
+  });
+  if(found){
+    selectedItem=found; startX=x-found.x; startY=y-found.y;
+    updateColorPicker(found.color);
+    if(found.type!=='frame'){ items=items.filter(i=>i!==found); items.push(found); }
+  } else { selectedItem=null; }
+  draw();
+}
+function handleMove(x,y){
+  if(!selectedItem) return;
+  if(isResizing){
+    let nw=Math.round((x-selectedItem.x)/GRID_SIZE)*GRID_SIZE;
+    let nh=Math.round((y-selectedItem.y)/GRID_SIZE)*GRID_SIZE;
+    selectedItem.w=Math.max(GRID_SIZE,nw); selectedItem.h=Math.max(GRID_SIZE,nh);
+  } else {
+    selectedItem.x=Math.round((x-startX)/GRID_SIZE)*GRID_SIZE;
+    selectedItem.y=Math.round((y-startY)/GRID_SIZE)*GRID_SIZE;
+  }
+  draw();
+}
 
-        // 描画: 壁 (不透明・最前面)
-        items.filter(i => i.type === 'wall').forEach(item => {
-            ctx.fillStyle = item.color;
-            ctx.fillRect(item.x, item.y, item.w, item.h);
-        });
+canvas.addEventListener('mousedown', e=>handleStart(getPointerPos(e).x,getPointerPos(e).y));
+canvas.addEventListener('mousemove', e=>{ if(e.buttons===1) handleMove(getPointerPos(e).x,getPointerPos(e).y); });
+canvas.addEventListener('mouseup', ()=>isResizing=false);
+canvas.addEventListener('touchstart', e=>handleStart(getPointerPos(e).x,getPointerPos(e).y), {passive:false});
+canvas.addEventListener('touchmove', e=>{ e.preventDefault(); handleMove(getPointerPos(e).x,getPointerPos(e).y); }, {passive:false});
+canvas.addEventListener('touchend', ()=>isResizing=false);
 
-        // 境界線など
-        if (!isMerged) {
-            items.filter(i => i.type === 'frame').forEach(item => {
-                ctx.strokeStyle = (selectedItem === item) ? "#007AFF" : "#bbb";
-                ctx.lineWidth = 1; ctx.setLineDash([4, 2]); ctx.strokeRect(item.x, item.y, item.w, item.h); ctx.setLineDash([]);
-                drawItemText(ctx, item, Math.round(item.w/GRID_SIZE)*Math.round(item.h/GRID_SIZE), true, showMeter, showJou, showTsubo, showHeibe, showMasu);
-            });
-        }
-        ctx.lineWidth = 1.5; ctx.strokeStyle = "#444";
-        roomMap.forEach((item, key) => {
-            const [gx, gy] = key.split(',').map(Number);
-            const check = (dx, dy) => { const n = roomMap.get(`${gx+dx},${gy+dy}`); return !n || n.label !== item.label; };
-            ctx.beginPath();
-            if (check(1,0)) { ctx.moveTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
-            if (check(-1,0)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); }
-            if (check(0,1)) { ctx.moveTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
-            if (check(0,-1)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); }
-            ctx.stroke();
-        });
+// is.gd 短縮
+async function shortenUrl(longUrl){
+  const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
+  return await res.text();
+}
 
-        // 選択枠
-        if (selectedItem) {
-            const item = selectedItem;
-            if (!(isMerged && item.type === 'frame')) {
-                ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 2; ctx.strokeRect(item.x, item.y, item.w, item.h);
-                ctx.fillStyle = "#FF3B30"; ctx.beginPath(); ctx.arc(item.x + item.w, item.y + item.h, HANDLE_SIZE/2, 0, Math.PI * 2); ctx.fill();
-            }
-        }
+async function saveLayout(){
+  const json = JSON.stringify({ items, isMerged });
+  const compressed = LZString.compressToEncodedURIComponent(json);
+  const longUrl = `${location.origin}${location.pathname}?data=${compressed}`;
+  loading.style.display='flex';
+  try{
+    const shortUrl = await shortenUrl(longUrl);
+    document.getElementById('shareUrlInput').value = shortUrl;
+  }catch(e){
+    document.getElementById('shareUrlInput').value = longUrl;
+  }
+  loading.style.display='none';
+  document.getElementById('saveModal').style.display='flex';
+}
+function closeModal(){ document.getElementById('saveModal').style.display='none'; }
+function copyToClipboard(){
+  const i=document.getElementById('shareUrlInput'); i.select();
+  navigator.clipboard.writeText(i.value).then(()=>alert('コピーしました')).catch(()=>alert('手動でコピーしてください'));
+}
 
-        // テキスト (部屋のみ)
-        Object.values(groupedRooms).forEach(group => {
-            drawItemText(ctx, group.largestItem, group.totalMasu, false, showMeter, showJou, showTsubo, showHeibe, showMasu);
-        });
-        // 壁のテキスト
-        items.filter(i => i.type === 'wall' && (i.w>GRID_SIZE || i.h>GRID_SIZE)).forEach(item => {
-             ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText(item.label, item.x+2, item.y+12);
-        });
-
-        document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
-        document.getElementById('totalHeibe').innerText = (totalMasu * MODULE * MODULE).toFixed(2);
-        document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
-    }
-
-    function drawItemText(ctx, item, totalM, isFrame, sMeter, sJou, sTsubo, sHeibe, sMasu) {
-        if (!item) return;
-        let textY = item.y + 16;
-        
-        // 文字色調整（背景が暗いかどうか簡易判定）
-        const c = item.color.replace('#','');
-        const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
-        const isDark = (r*0.299 + g*0.587 + b*0.114) < 140;
-
-        ctx.fillStyle = isDark ? "#fff" : (isFrame ? "#666" : "#000");
-        ctx.font = "bold 12px sans-serif";
-        ctx.fillText(item.label, item.x + 4, textY);
-        
-        // 狭いパーツ(キッチン等)は詳細表示を省略
-        if (item.h <= GRID_SIZE && item.w <= GRID_SIZE*3) return;
-
-        ctx.font = "10px sans-serif";
-        const gw = Math.round(item.w/GRID_SIZE), gh = Math.round(item.h/GRID_SIZE);
-        if (sMeter) {
-            textY += 12; ctx.fillStyle = "#007AFF"; if(isDark) ctx.fillStyle="#81D4FA";
-            ctx.fillText(`${(gw*MODULE).toFixed(2)}×${(gh*MODULE).toFixed(2)}`, item.x + 4, textY);
-            ctx.fillStyle = isDark ? "#fff" : (isFrame ? "#666" : "#000");
-        }
-        if (sMasu) { textY += 12; ctx.fillText(`${gw}×${gh}マ`, item.x + 4, textY); }
-        if (sJou) { textY += 12; ctx.fillText(`${(totalM/2).toFixed(1)}畳`, item.x + 4, textY); }
-    }
-
-    // --- イベント ---
-    function getPointerPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-    function handleStart(x, y) {
-        if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            const hX = selectedItem.x + selectedItem.w, hY = selectedItem.y + selectedItem.h;
-            if (Math.abs(x - hX) < HANDLE_SIZE*1.5 && Math.abs(y - hY) < HANDLE_SIZE*1.5) { isResizing = true; return; }
-        }
-        let found = items.slice().reverse().find(r => {
-            if (isMerged && r.type === 'frame') return false;
-            const m = (r.type==='wall')?10:0;
-            return x >= r.x-m && x <= r.x+r.w+m && y >= r.y-m && y <= r.y+r.h+m;
-        });
-        if (found) { 
-            selectedItem = found; startX = x - found.x; startY = y - found.y;
-            // カラーピッカーに色を反映
-            updateColorPicker(found.color);
-            if(found.type !== 'frame') { items = items.filter(i => i !== found); items.push(found); }
-        } else { selectedItem = null; }
-        draw();
-    }
-    function handleMove(x, y) {
-        if (!selectedItem) return;
-        if (isResizing) {
-            let nw = Math.round((x - selectedItem.x)/GRID_SIZE)*GRID_SIZE;
-            let nh = Math.round((y - selectedItem.y)/GRID_SIZE)*GRID_SIZE;
-            selectedItem.w = Math.max(GRID_SIZE, nw); selectedItem.h = Math.max(GRID_SIZE, nh);
-        } else {
-            selectedItem.x = Math.round((x - startX)/GRID_SIZE)*GRID_SIZE;
-            selectedItem.y = Math.round((y - startY)/GRID_SIZE)*GRID_SIZE;
-        }
-        draw();
-    }
-
-    canvas.addEventListener('mousedown', e => handleStart(getPointerPos(e).x, getPointerPos(e).y));
-    canvas.addEventListener('mousemove', e => { if(e.buttons===1) handleMove(getPointerPos(e).x, getPointerPos(e).y); });
-    canvas.addEventListener('mouseup', () => isResizing = false);
-    canvas.addEventListener('touchstart', e => handleStart(getPointerPos(e).x, getPointerPos(e).y), {passive:false});
-    canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(getPointerPos(e).x, getPointerPos(e).y); }, {passive:false});
-    canvas.addEventListener('touchend', () => isResizing = false);
-
-    // GAS保存用 (モック)
-    function saveLayout() {
-        loading.style.display = 'flex';
-        const data = JSON.stringify({ items: items, isMerged: isMerged });
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run.withSuccessHandler(r => {
-                loading.style.display = 'none';
-                document.getElementById('shareUrlInput').value = r.url + "?id=" + r.id;
-                document.getElementById('saveModal').style.display = 'flex';
-            }).withFailureHandler(e => { loading.style.display='none'; alert(e); }).savePlan(data);
-        } else {
-            loading.style.display = 'none';
-            document.getElementById('shareUrlInput').value = window.location.href + "?mockId=" + Date.now();
-            document.getElementById('saveModal').style.display = 'flex';
-        }
-    }
-    function closeModal() { document.getElementById('saveModal').style.display = 'none'; }
-    function copyToClipboard() {
-        const i = document.getElementById('shareUrlInput'); i.select();
-        navigator.clipboard.writeText(i.value).then(()=>alert("コピーしました")).catch(()=>alert("手動でコピーしてください"));
-    }
-    function loadPlanFromServer(id) {
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run.withSuccessHandler(j => {
-                if(j){ const d=JSON.parse(j); items=d.items; isMerged=d.isMerged; draw(); }
-            }).loadPlan(id);
-        }
-    }
-
-    window.onload = init;
+window.onload = init;
 </script>
 </body>
 </html>
