@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.0 - 自動結合版</title>
+    <title>間取りシミュレーター v4.1</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
@@ -120,7 +120,7 @@
     const colorPicker = document.getElementById('colorPicker');
     
     const GRID_SIZE = 32; 
-    const SUB_GRID = 16; // 半マス単位で判定
+    const SUB_GRID = 16; 
     const MODULE = 0.91; 
     let items = []; 
     let selectedItem = null;
@@ -154,8 +154,6 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // グリッド描画
         ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
@@ -166,7 +164,6 @@
             drawNormalLayout();
         }
 
-        // 選択ハイライト
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; 
             ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
@@ -174,11 +171,9 @@
             ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); 
             ctx.fill();
         }
-
         updateSummary();
     }
 
-    // 通常時の描画
     function drawNormalLayout() {
         items.forEach(item => {
             ctx.fillStyle = item.color;
@@ -192,67 +187,96 @@
         });
     }
 
-    // 結合時の描画（アルゴリズムによる外周判定）
     function drawMergedLayout() {
-        // 1. 各半マスがどのグループ（名前）に属するかをマップ化
+        // マップ作成
         const map = {};
+        const frameMap = {}; // 外枠専用マップ
+        
         items.forEach(item => {
-            const key = item.label;
             for (let x = item.x; x < item.x + item.w; x += SUB_GRID) {
                 for (let y = item.y; y < item.y + item.h; y += SUB_GRID) {
-                    map[`${x},${y}`] = { label: item.label, color: item.color, type: item.type };
+                    const pos = `${x},${y}`;
+                    if (item.type === 'frame') {
+                        frameMap[pos] = item.label;
+                    }
+                    // 部屋情報を優先的にマップに登録
+                    if (!map[pos] || item.type !== 'frame') {
+                        map[pos] = { label: item.label, color: item.color, type: item.type };
+                    }
                 }
             }
         });
 
-        // 2. 塗りつぶし
+        // 塗りつぶし
         items.forEach(item => {
             ctx.fillStyle = item.type === 'frame' ? "#f4f4f4" : item.color;
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 3. 外周判定（上下左右に自分と同じ名前がなければ線を引く）
-        ctx.lineCap = "round";
+        // 境界線描画
         for (const pos in map) {
             const [x, y] = pos.split(',').map(Number);
             const current = map[pos];
-            
-            ctx.strokeStyle = current.type === 'frame' ? "#1a1a1a" : "#444";
-            ctx.lineWidth = current.type === 'frame' ? 4 : 2;
+            const isFrame = frameMap[pos];
 
-            // 上辺
-            if (!map[`${x},${y - SUB_GRID}`] || map[`${x},${y - SUB_GRID}`].label !== current.label) {
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + SUB_GRID, y); ctx.stroke();
-            }
-            // 下辺
-            if (!map[`${x},${y + SUB_GRID}`] || map[`${x},${y + SUB_GRID}`].label !== current.label) {
-                ctx.beginPath(); ctx.moveTo(x, y + SUB_GRID); ctx.lineTo(x + SUB_GRID, y + SUB_GRID); ctx.stroke();
-            }
-            // 左辺
-            if (!map[`${x - SUB_GRID},${y}`] || map[`${x - SUB_GRID},${y}`].label !== current.label) {
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + SUB_GRID); ctx.stroke();
-            }
-            // 右辺
-            if (!map[`${x + SUB_GRID},${y}`] || map[`${x + SUB_GRID},${y}`].label !== current.label) {
-                ctx.beginPath(); ctx.moveTo(x + SUB_GRID, y); ctx.lineTo(x + SUB_GRID, y + SUB_GRID); ctx.stroke();
-            }
+            // 1. まずは各要素(部屋)の境界線を引く
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#444";
+            
+            const directions = [
+                { dx: 0, dy: -SUB_GRID, x1: x, y1: y, x2: x + SUB_GRID, y2: y }, // 上
+                { dx: 0, dy: SUB_GRID, x1: x, y1: y + SUB_GRID, x2: x + SUB_GRID, y2: y + SUB_GRID }, // 下
+                { dx: -SUB_GRID, dy: 0, x1: x, y1: y, x2: x, y2: y + SUB_GRID }, // 左
+                { dx: SUB_GRID, dy: 0, x1: x + SUB_GRID, y1: y, x2: x + SUB_GRID, y2: y + SUB_GRID } // 右
+            ];
+
+            directions.forEach(d => {
+                const neighbor = map[`${x + d.dx},${y + d.dy}`];
+                // 隣が違うラベルなら線を引く
+                if (!neighbor || neighbor.label !== current.label) {
+                    // ただし、もしここが「外枠の境界線」でもあるなら後で太く引くのでここでは細くするか無視
+                    ctx.beginPath(); ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
+                }
+            });
         }
 
-        // 4. 文字描画（各グループの代表的な位置に一つだけ出すなどの工夫も可能だが、現状は各要素に描画）
+        // 2. 外枠(建物の外周)だけを最優先で太く上書き描画
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#1a1a1a";
+        for (const pos in frameMap) {
+            const [x, y] = pos.split(',').map(Number);
+            const currentLabel = frameMap[pos];
+            
+            const checks = [
+                { dx: 0, dy: -SUB_GRID, x1: x, y1: y, x2: x + SUB_GRID, y2: y },
+                { dx: 0, dy: SUB_GRID, x1: x, y1: y + SUB_GRID, x2: x + SUB_GRID, y2: y + SUB_GRID },
+                { dx: -SUB_GRID, dy: 0, x1: x, y1: y, x2: x, y2: y + SUB_GRID },
+                { dx: SUB_GRID, dy: 0, x1: x + SUB_GRID, y1: y, x2: x + SUB_GRID, y2: y + SUB_GRID }
+            ];
+
+            checks.forEach(c => {
+                const neighborLabel = frameMap[`${x + c.dx},${y + c.dy}`];
+                // 隣に外枠がない（＝建物の外）なら太線を引く
+                if (!neighborLabel || neighborLabel !== currentLabel) {
+                    ctx.beginPath(); ctx.moveTo(c.x1, c.y1); ctx.lineTo(c.x2, c.y2); ctx.stroke();
+                }
+            });
+        }
+
         items.forEach(item => {
-            if (item.type === 'frame') return; // 結合時は外枠の文字を消す
-            drawItemText(item);
+            if (item.type !== 'frame') drawItemText(item);
         });
     }
 
     function drawItemText(item) {
         if (item.w < 16 || item.h < 16) return;
-        const sJou = document.getElementById('showJou').checked;
-        const sHeibe = document.getElementById('showHeibe').checked;
-        const sTsubo = document.getElementById('showTsubo').checked;
-        const sMeter = document.getElementById('showMeter').checked;
-        const sMasu = document.getElementById('showMasu').checked;
-
+        const config = {
+            masu: document.getElementById('showMasu').checked,
+            jou: document.getElementById('showJou').checked,
+            heibe: document.getElementById('showHeibe').checked,
+            tsubo: document.getElementById('showTsubo').checked,
+            meter: document.getElementById('showMeter').checked
+        };
         const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
         const areaMasu = gw * gh;
         ctx.fillStyle = "#000";
@@ -268,27 +292,25 @@
         ctx.fillText(item.label, item.x + 4, ty);
         
         ctx.font = "10px sans-serif";
-        if (sMeter) { ty += 12; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
-        if (sMasu) { ty += 12; ctx.fillText(`${gw}x${gh}マ`, item.x+4, ty); }
-        if (sJou) { ty += 12; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
-        if (sHeibe) { ty += 12; ctx.fillText(`${(areaMasu * MODULE * MODULE).toFixed(2)}㎡`, item.x+4, ty); }
-        if (sTsubo) { ty += 12; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
+        if (config.meter) { ty += 12; ctx.fillText(`${(gw*MODULE).toFixed(2)}x${(gh*MODULE).toFixed(2)}m`, item.x+4, ty); }
+        if (config.masu) { ty += 12; ctx.fillText(`${gw}x${gh}マ`, item.x+4, ty); }
+        if (config.jou) { ty += 12; ctx.fillText(`${(areaMasu/2).toFixed(1)}畳`, item.x+4, ty); }
+        if (config.heibe) { ty += 12; ctx.fillText(`${(areaMasu * MODULE * MODULE).toFixed(2)}㎡`, item.x+4, ty); }
+        if (config.tsubo) { ty += 12; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
     }
 
     function updateSummary() {
         let totalMasu = 0;
         items.forEach(item => { if(item.type === 'frame') totalMasu += (item.w/GRID_SIZE)*(item.h/GRID_SIZE); });
         document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
-        document.getElementById('totalHeibe').innerText = (totalMasu * MODULE * MODULE).toFixed(2);
+        document.getElementById('totalHeibe').innerText = (totalHeibe = totalMasu * MODULE * MODULE).toFixed(2);
         document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
     }
 
     function updateMergeButtonUI() {
-        const btn = document.getElementById('mergeBtn');
-        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
+        document.getElementById('mergeBtn').style.background = isMerged ? "#8e8e93" : "#5856d6";
     }
 
-    // 操作系
     window.addRoom = (label, w, h, color) => {
         const newItem = { type: 'room', x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
         items.push(newItem); selectedItem = newItem; draw();
