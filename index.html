@@ -1,1229 +1,263 @@
 <!DOCTYPE html>
-
 <html lang="ja">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>間取りシミュレーター v5.96</title>
-
+<title>間取りシミュレーター v5.95</title>
 <style>
-
 :root { --primary: #007AFF; --success: #34c759; --danger: #ff3b30; --warning: #FF9500; --bg: #f2f2f7; --card: #ffffff; }
-
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
 .ver-label { position: fixed; top: 4px; right: 8px; font-size: 10px; color: #8e8e93; z-index: 100; pointer-events: none; font-weight: bold; text-align: right; }
-
 .toolbar { padding: 12px; background: var(--card); border-bottom: 1px solid #d1d1d6; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-
 .grid-layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-
 button { height: 48px; font-size: 14px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; -webkit-tap-highlight-color: transparent; }
-
 button:active { opacity: 0.7; transform: scale(0.95); }
-
 .btn-frame { background: #3a3a3c; }
-
 .btn-room { background: var(--primary); }
-
 .btn-wall { background: #616161; }
-
 .btn-merge { background: #5856d6; }
-
 .btn-copy { background: var(--success); }
-
 .btn-help { background: #8e8e93; font-size: 18px; }
-
 .btn-reset { background: #8e8e93; }
-
 .btn-save { background: var(--warning); }
-
 .color-circle { background: #fff; border: 2px solid #d1d1d6; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto; }
-
 input[type="color"] { width: 60px; height: 60px; border: none; background: none; cursor: pointer; padding: 0; }
-
 .config-bar { background: #e5e5ea; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #c6c6c8; }
-
 .chip-group { display: flex; gap: 6px; }
-
 .chip { background: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
-
 .chip input { margin: 0; width: 18px; height: 18px; }
-
 .summary { background: #1c1c1e; color: #fff; padding: 12px 16px; display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; }
-
 .summary b { color: var(--warning); }
-
 #canvas-container { flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none; }
-
 canvas { display: block; }
 
- 
-
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-
 .modal { background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-
 .modal input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
 
- 
-
 #helpModal .modal { max-width: 400px; text-align: left; max-height: 80vh; overflow-y: auto; }
-
 #helpModal ul { padding-left: 20px; font-size: 13px; line-height: 1.6; }
-
 #helpModal h3 { text-align: center; margin-top: 0; }
-
- 
-
-/* ★追加：保存完了トースト */
-
-#toast {
-
-  position: fixed;
-
-  left: 50%;
-
-  bottom: 22px;
-
-  transform: translateX(-50%);
-
-  background: rgba(28,28,30,0.92);
-
-  color: #fff;
-
-  padding: 10px 14px;
-
-  border-radius: 14px;
-
-  font-size: 13px;
-
-  font-weight: 700;
-
-  z-index: 2000;
-
-  display: none;
-
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-
-  pointer-events: none;
-
-  max-width: 90vw;
-
-  text-align: center;
-
-  line-height: 1.3;
-
-}
-
 </style>
-
 </head>
-
 <body>
-
-<div class="ver-label">ver 5.96<br>by yuchi🐔</div>
-
- 
-
+<div class="ver-label">ver 5.95<br>by yuchi🐔</div>
 <div class="toolbar">
-
-  <div class="grid-layout">
-
-    <button class="btn-frame" id="addFrameBtn">+ 外枠</button>
-
-    <button class="btn-room" id="addGenericRoomBtn">+ 部屋追加</button>
-
-    <button class="btn-wall" id="addWallBtn">+ 壁</button>
-
-  </div>
-
-  <div class="grid-layout" style="grid-template-columns: 2fr 1fr 1fr;">
-
-    <button id="mergeBtn" class="btn-merge">結合モード</button>
-
-    <button class="btn-copy" id="copyBtn">複製</button>
-
-    <button class="btn-help" id="openHelpBtn">？</button>
-
-  </div>
-
-  <div class="grid-layout" style="grid-template-columns: 1fr 1fr 1fr;">
-
-    <button class="btn-save" id="saveBtn">共有URL</button>
-
-    <button class="btn-reset" id="resetBtn">消去</button>
-
-    <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
-
-  </div>
-
+<div class="grid-layout">
+<button class="btn-frame" id="addFrameBtn">+ 外枠</button>
+<button class="btn-room" id="addGenericRoomBtn">+ 部屋追加</button>
+<button class="btn-wall" id="addWallBtn">+ 壁</button>
 </div>
-
- 
+<div class="grid-layout" style="grid-template-columns: 2fr 1fr 1fr;">
+<button id="mergeBtn" class="btn-merge">結合モード</button>
+<button class="btn-copy" id="copyBtn">複製</button>
+<button class="btn-help" id="openHelpBtn">？</button>
+</div>
+<div class="grid-layout" style="grid-template-columns: 1fr 1fr 1fr;">
+<button class="btn-save" id="saveBtn">共有URL</button>
+<button class="btn-reset" id="resetBtn">消去</button>
+<div class="color-circle"><input type="color" id="colorPicker" value="#ffffff"></div>
+</div>
+</div>
 
 <div class="config-bar">
-
-  <div class="chip-group">
-
-    <label class="chip"><input type="checkbox" id="showJou" checked>畳</label>
-
-    <label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
-
-    <label class="chip" style="background:#d1d1d6;"><input type="checkbox" id="useHalfGrid">半ます</label>
-
-  </div>
-
-  <button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示リセット</button>
-
+<div class="chip-group">
+<label class="chip"><input type="checkbox" id="showJou" checked>畳</label>
+<label class="chip"><input type="checkbox" id="showTsubo" checked>坪</label>
+<label class="chip" style="background:#d1d1d6;"><input type="checkbox" id="useHalfGrid">半ます</label>
 </div>
-
- 
+<button id="centerBtn" style="width:auto; height:34px; padding:0 12px; background:var(--primary); font-size:12px;">表示リセット</button>
+</div>
 
 <div class="summary">
-
-  <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
-
-  <span><b id="totalJou">0.0</b> 畳</span>
-
+<span>延床: <b id="totalTsubo">0.00</b> 坪</span>
+<span><b id="totalJou">0.0</b> 畳</span>
 </div>
-
- 
 
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
- 
-
 <div id="saveModal" class="modal-overlay">
-
-  <div class="modal">
-
-    <h3>共有URL作成完了</h3>
-
-    <input type="text" id="shareUrlInput" readonly onclick="this.select()">
-
-    <div style="display:flex; gap:10px;">
-
-      <button style="flex:1; background:var(--primary);" id="copyUrlBtn">コピー</button>
-
-      <button style="flex:1; background:#8e8e93;" id="closeSaveModalBtn">閉じる</button>
-
-    </div>
-
-  </div>
-
+<div class="modal">
+<h3>共有URL作成完了</h3>
+<input type="text" id="shareUrlInput" readonly onclick="this.select()">
+<div style="display:flex; gap:10px;">
+<button style="flex:1; background:var(--primary);" id="copyUrlBtn">コピー</button>
+<button style="flex:1; background:#8e8e93;" id="closeSaveModalBtn">閉じる</button>
 </div>
-
- 
+</div>
+</div>
 
 <div id="helpModal" class="modal-overlay">
-
-  <div class="modal">
-
-    <h3>🏠 操作マニュアル</h3>
-
-    <ul>
-
-      <li><b>基本:</b> ボタンでパーツを追加し、ドラッグで移動。</li>
-
-      <li><b>サイズ変更:</b> パーツ右下の丸いハンドルをドラッグ。</li>
-
-      <li><b>画面移動:</b> 背景部分をドラッグしてスライド。</li>
-
-      <li><b>名前編集:</b> パーツを素早く2回タップ。</li>
-
-      <li><b>結合モード:</b> 外枠を太くし、同じ名前の部屋を合体。</li>
-
-      <li><b>保存:</b> 共有URLを発行して続きを編集可能。</li>
-
-    </ul>
-
-    <p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
-
-  </div>
-
+<div class="modal">
+<h3>🏠 操作マニュアル</h3>
+<ul>
+<li><b>基本:</b> ボタンでパーツを追加し、ドラッグで移動。</li>
+<li><b>サイズ変更:</b> パーツ右下の丸いハンドルをドラッグ。</li>
+<li><b>画面移動:</b> 背景部分をドラッグしてスライド。</li>
+<li><b>名前編集:</b> パーツを素早く2回タップ。</li>
+<li><b>結合モード:</b> 外枠を太くし、同じ名前の部屋を合体。</li>
+<li><b>保存:</b> 共有URLを発行して続きを編集可能。</li>
+</ul>
+<p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
+</div>
 </div>
 
- 
-
-<!-- ★追加：トースト -->
-
-<div id="toast"></div>
-
- 
-
 <script type="module">
-
-import { initializeApp } from https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js;
-
-import {
-
-  getFirestore, collection, addDoc, getDoc, doc,
-
-  updateDoc, serverTimestamp
-
-} from https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js;
-
- 
-
-const firebaseConfig = {
-
-  apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
-
-  authDomain: "test-55430.firebaseapp.com",
-
-  projectId: "test-55430",
-
-  storageBucket: "test-55430.firebasestorage.app",
-
-  messagingSenderId: "742726212885",
-
-  appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
-
-  measurementId: "G-PW24JY2LBP"
-
-};
-
- 
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-
- 
-
-const canvas = document.getElementById('canvas');
-
-const ctx = canvas.getContext('2d');
-
-const container = document.getElementById('canvas-container');
-
- 
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c", measurementId: "G-PW24JY2LBP" };
+const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const container = document.getElementById('canvas-container');
 const GRID_SIZE = 32;
-
- 
-
-let items = [];
-
-let selectedItem = null;
-
-let isResizing = false;
-
-let isDragging = false;
-
-let isMerged = false;
-
- 
-
+let items = []; let selectedItem = null; let isResizing = false; let isDragging = false; let isMerged = false;
 let camera = { x: 0, y: 0 };
-
-let dragStart = null;
-
-let lastCamera = { x: 0, y: 0 };
-
+let dragStart = null; let lastCamera = { x: 0, y: 0 };
 let startX, startY;
-
 let lastTapTime = 0;
 
- 
-
-// ★共有URLの「上書き保存」用
-
-let currentDocId = null;
-
- 
-
-// ★自動バックアップ（セーブ対象整理）
-
-let autosaveTimer = null;
-
-const AUTOSAVE_NS = "madori_sim_v596";
-
-const getAutosaveKey = (id) => `${AUTOSAVE_NS}:${id ? "doc:" + id : "draft"}`;
-
- 
-
-// ★トースト
-
-let toastTimer = null;
-
-function showToast(msg, ms = 1300) {
-
-  const el = document.getElementById('toast');
-
-  el.textContent = msg;
-
-  el.style.display = 'block';
-
-  clearTimeout(toastTimer);
-
-  toastTimer = setTimeout(() => {
-
-    el.style.display = 'none';
-
-  }, ms);
-
-}
-
- 
-
-// ★UI状態を保存対象に含める
-
-function getUIState() {
-
-  return {
-
-    showJou: document.getElementById('showJou').checked,
-
-    showTsubo: document.getElementById('showTsubo').checked,
-
-    useHalfGrid: document.getElementById('useHalfGrid').checked
-
-  };
-
-}
-
-function applyUIState(ui) {
-
-  if (!ui) return;
-
-  if (typeof ui.showJou === 'boolean') document.getElementById('showJou').checked = ui.showJou;
-
-  if (typeof ui.showTsubo === 'boolean') document.getElementById('showTsubo').checked = ui.showTsubo;
-
-  if (typeof ui.useHalfGrid === 'boolean') document.getElementById('useHalfGrid').checked = ui.useHalfGrid;
-
-}
-
- 
-
-function scheduleAutosave() {
-
-  clearTimeout(autosaveTimer);
-
-  autosaveTimer = setTimeout(() => {
-
-    try {
-
-      const key = getAutosaveKey(currentDocId);
-
-      const payload = {
-
-        v: "5.96",
-
-        savedAt: Date.now(),     // ローカル最終編集時刻（比較用）
-
-        docId: currentDocId,
-
-        items,
-
-        isMerged,
-
-        camera,
-
-        ui: getUIState()
-
-      };
-
-      localStorage.setItem(key, JSON.stringify(payload));
-
-    } catch (e) {
-
-      console.warn("autosave failed:", e);
-
-    }
-
-  }, 250);
-
-}
-
- 
-
-function readLocalAutosave(id) {
-
-  const key = getAutosaveKey(id);
-
-  const raw = localStorage.getItem(key);
-
-  if (!raw) return null;
-
-  try {
-
-    const data = JSON.parse(raw);
-
-    if (!data || !Array.isArray(data.items)) return null;
-
-    return data;
-
-  } catch {
-
-    return null;
-
-  }
-
-}
-
- 
-
-function applyStateFromData(data) {
-
-  items = data.items || [];
-
-  isMerged = !!data.isMerged;
-
-  camera = data.camera || { x: 0, y: 0 };
-
-  applyUIState(data.ui);
-
-  selectedItem = null;
-
-  draw();
-
-}
-
- 
-
 function init() {
-
-  resizeCanvas();
-
-  window.addEventListener('resize', resizeCanvas);
-
- 
-
-  const params = new URLSearchParams(window.location.search);
-
-  const id = params.get('id');
-
- 
-
-  if (id) {
-
-    currentDocId = id;
-
- 
-
-    // Firestore読み込み → ローカル（同じdoc）のほうが新しければ復元提案
-
-    getDoc(doc(db, "layouts", id)).then(snap => {
-
-      const local = readLocalAutosave(currentDocId);
-
- 
-
-      if (snap.exists()) {
-
-        const d = snap.data() || {};
-
-        const firestoreUpdatedMs =
-
-          d.updatedAt && typeof d.updatedAt.toMillis === "function"
-
-            ? d.updatedAt.toMillis()
-
-            : 0;
-
- 
-
-        const firestoreData = {
-
-          items: d.items || [],
-
-          isMerged: d.isMerged || false,
-
-          camera: d.camera || { x: 0, y: 0 },
-
-          ui: d.ui || null
-
-        };
-
- 
-
-        // ローカルのほうが新しい（少し余裕を見て 2秒差）なら提案
-
-        const localMs = local?.savedAt || 0;
-
-        const isLocalNewer = local && (localMs > firestoreUpdatedMs + 2000);
-
- 
-
-        if (isLocalNewer) {
-
-          const ok = confirm("この端末に、より新しい編集データがあります。復元しますか？");
-
-          if (ok) {
-
-            applyStateFromData(local);
-
-            showToast("ローカルの最新データを復元しました");
-
-            // 復元後、ローカルを保護
-
-            scheduleAutosave();
-
-            return;
-
-          }
-
-        }
-
- 
-
-        // Firestore採用
-
-        applyStateFromData(firestoreData);
-
- 
-
-        // Firestore採用時は、ローカルも更新しておく（次回の復元を気持ちよく）
-
-        scheduleAutosave();
-
-      } else {
-
-        // docが無い → ローカルがあれば復元、なければ新規
-
-        if (local && confirm("保存データが見つかりません。端末のバックアップから復元しますか？")) {
-
-          applyStateFromData(local);
-
-          showToast("バックアップから復元しました");
-
-          scheduleAutosave();
-
-        } else {
-
-          currentDocId = null;
-
-          addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
-
-        }
-
-      }
-
-    });
-
- 
-
-  } else {
-
-    // 下書き復元（draft）
-
-    const draft = readLocalAutosave(null);
-
-    if (draft && confirm("前回の下書きデータが見つかりました。復元しますか？")) {
-
-      applyStateFromData(draft);
-
-      showToast("下書きを復元しました");
-
-      scheduleAutosave();
-
-    } else {
-
-      addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
-
-    }
-
-  }
-
+resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+const params = new URLSearchParams(window.location.search);
+if (params.get('id')) {
+getDoc(doc(db, "layouts", params.get('id'))).then(snap => {
+if (snap.exists()) { items = snap.data().items; isMerged = snap.data().isMerged || false; draw(); }
+else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
+});
+} else { addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); }
 }
 
- 
-
-function resizeCanvas() {
-
-  canvas.width = container.clientWidth;
-
-  canvas.height = container.clientHeight;
-
-  draw();
-
-}
-
- 
-
+function resizeCanvas() { canvas.width = container.clientWidth; canvas.height = container.clientHeight; draw(); }
 const getSnapped = (val, step) => Math.round(val / step) * step;
 
- 
-
 window.draw = function() {
-
-  ctx.save();
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
-
- 
-
-  ctx.strokeStyle = "#e5e5ea";
-
-  ctx.lineWidth = 0.5;
-
-  for (let x = -1600; x <= 1600; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -1600); ctx.lineTo(x, 1600); ctx.stroke(); }
-
-  for (let y = -1600; y <= 1600; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-1600, y); ctx.lineTo(1600, y); ctx.stroke(); }
-
- 
-
-  if (isMerged) drawMerged();
-
-  else drawNormal();
-
- 
-
-  if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-
-    ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3;
-
-    ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-
- 
-
-    if (isDragging || isResizing) {
-
-      const mw = (selectedItem.w / GRID_SIZE).toFixed(1).replace('.0','');
-
-      const mh = (selectedItem.h / GRID_SIZE).toFixed(1).replace('.0','');
-
-      ctx.fillStyle = "rgba(0, 122, 255, 0.9)"; ctx.fillRect(selectedItem.x, selectedItem.y - 30, 70, 24);
-
-      ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5, selectedItem.y - 12);
-
-    }
-
- 
-
-    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath();
-
-    ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16, 0, Math.PI*2);
-
-    ctx.fill(); ctx.stroke();
-
-  }
-
- 
-
-  ctx.restore();
-
-  updateSummary();
-
+ctx.save();
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+ctx.strokeStyle = "#e5e5ea"; ctx.lineWidth = 0.5;
+for (let x = -1600; x <= 1600; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, -1600); ctx.lineTo(x, 1600); ctx.stroke(); }
+for (let y = -1600; y <= 1600; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(-1600, y); ctx.lineTo(1600, y); ctx.stroke(); }
+if (isMerged) drawMerged(); else drawNormal();
+if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
+ctx.strokeStyle = "#007AFF"; ctx.lineWidth = 3;
+ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+if (isDragging || isResizing) {
+const mw = (selectedItem.w / GRID_SIZE).toFixed(1).replace('.0','');
+const mh = (selectedItem.h / GRID_SIZE).toFixed(1).replace('.0','');
+ctx.fillStyle = "rgba(0, 122, 255, 0.9)"; ctx.fillRect(selectedItem.x, selectedItem.y - 30, 70, 24);
+ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5, selectedItem.y - 12);
+}
+ctx.fillStyle = "#fff"; ctx.strokeStyle = "#007AFF"; ctx.beginPath();
+ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16, 0, Math.PI*2);
+ctx.fill(); ctx.stroke();
+}
+ctx.restore();
+updateSummary();
 };
-
- 
 
 function drawNormal() {
-
-  items.forEach(item => {
-
-    ctx.fillStyle = item.color;
-
-    ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
-
-    ctx.fillRect(item.x, item.y, item.w, item.h);
-
-    ctx.globalAlpha = 1.0;
-
- 
-
-    ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333";
-
-    ctx.lineWidth = 1;
-
-    ctx.strokeRect(item.x, item.y, item.w, item.h);
-
- 
-
-    ctx.fillStyle = "#111";
-
-    ctx.font = "bold 13px sans-serif";
-
-    ctx.fillText(item.label, item.x + 6, item.y + 18);
-
-  });
-
+items.forEach(item => {
+ctx.fillStyle = item.color; ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
+ctx.fillRect(item.x, item.y, item.w, item.h); ctx.globalAlpha = 1.0;
+ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#333"; ctx.lineWidth = 1;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+ctx.fillStyle = "#111"; ctx.font = "bold 13px sans-serif"; ctx.fillText(item.label, item.x + 6, item.y + 18);
+});
 }
-
- 
 
 function drawMerged() {
-
-  const roomMap = {}; const frameMap = {}; const groups = {};
-
-  const sub = 16;
-
- 
-
-  items.forEach((item, index) => {
-
-    if (item.type !== 'frame') {
-
-      if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
-
-      groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-
-      if (index > groups[item.label].lastIdx) { groups[item.label].textX = item.x + item.w/2; groups[item.label].lastIdx = index; groups[item.label].textY = item.y + item.h/2; }
-
-    }
-
-    for (let x = item.x; x < item.x + item.w; x += sub) {
-
-      for (let y = item.y; y < item.y + item.h; y += sub) {
-
-        const pos = `${x},${y}`;
-
-        if (item.type === 'frame') frameMap[pos] = item.label;
-
-        else roomMap[pos] = { label: item.label, color: item.color };
-
-      }
-
-    }
-
-  });
-
- 
-
-  items.forEach(item => { ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
-
- 
-
-  const drawEdge = (map, color, width) => {
-
-    ctx.strokeStyle = color; ctx.lineWidth = width;
-
-    for (const pos in map) {
-
-      const [x, y] = pos.split(',').map(Number);
-
-      const label = map[pos].label || map[pos];
-
-      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-
-        if ((map[`${x+d.dx},${y+d.dy}`]?.label || map[`${x+d.dx},${y+d.dy}`]) !== label) {
-
-          ctx.beginPath();
-
-          if (d.dy !== 0) { ctx.moveTo(x, y + (d.dy > 0 ? sub : 0)); ctx.lineTo(x + sub, y + (d.dy > 0 ? sub : 0)); }
-
-          else { ctx.moveTo(x + (d.dx > 0 ? sub : 0), y); ctx.lineTo(x + (d.dx > 0 ? sub : 0), y + sub); }
-
-          ctx.stroke();
-
-        }
-
-      });
-
-    }
-
-  };
-
- 
-
-  drawEdge(roomMap, "#333", 2);
-
-  drawEdge(frameMap, "#111", 6);
-
- 
-
-  for (const key in groups) {
-
-    const g = groups[key];
-
-    ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
-
-    ctx.fillText(g.label, g.textX, g.textY - 4);
-
- 
-
-    let subText = "";
-
-    if (document.getElementById('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
-
-    if (document.getElementById('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
-
- 
-
-    ctx.font = "11px sans-serif";
-
-    ctx.fillText(subText, g.textX, g.textY + 12);
-
-    ctx.textAlign = "left";
-
-  }
-
+const roomMap = {}; const frameMap = {}; const groups = {};
+const sub = 16;
+items.forEach((item, index) => {
+if (item.type !== 'frame') {
+if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
+groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+if (index > groups[item.label].lastIdx) { groups[item.label].textX = item.x + item.w/2; groups[item.label].lastIdx = index; groups[item.label].textY = item.y + item.h/2; }
 }
-
- 
+for (let x = item.x; x < item.x + item.w; x += sub) { for (let y = item.y; y < item.y + item.h; y += sub) {
+const pos = `${x},${y}`; if (item.type === 'frame') frameMap[pos] = item.label; else roomMap[pos] = { label: item.label, color: item.color };
+}}
+});
+items.forEach(item => { ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
+const drawEdge = (map, color, width) => {
+ctx.strokeStyle = color; ctx.lineWidth = width;
+for (const pos in map) {
+const [x, y] = pos.split(',').map(Number); const label = map[pos].label || map[pos];
+[{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+if ((map[`${x+d.dx},${y+d.dy}`]?.label || map[`${x+d.dx},${y+d.dy}`]) !== label) {
+ctx.beginPath(); if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); } ctx.stroke();
+}
+});
+}
+};
+drawEdge(roomMap, "#333", 2); drawEdge(frameMap, "#111", 6);
+for (const key in groups) {
+const g = groups[key]; ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 14px sans-serif";
+ctx.fillText(g.label, g.textX, g.textY - 4);
+let subText = ""; if (document.getElementById('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `; if (document.getElementById('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+ctx.font = "11px sans-serif"; ctx.fillText(subText, g.textX, g.textY + 12); ctx.textAlign = "left";
+}
+}
 
 function updateSummary() {
-
-  let tm = 0;
-
-  items.forEach(i => { if(i.type === 'frame') tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE); });
-
-  document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2);
-
-  document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
-
+let tm = 0; items.forEach(i => { if(i.type === 'frame') tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE); });
+document.getElementById('totalTsubo').innerText = (tm/4).toFixed(2); document.getElementById('totalJou').innerText = (tm/2).toFixed(1);
 }
 
- 
-
 const addFunc = (l, w, h, c, t='room') => {
-
-  const targetX = getSnapped(-camera.x, GRID_SIZE);
-
-  const targetY = getSnapped(-camera.y, GRID_SIZE);
-
-  const i = { type: t, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c };
-
-  if(t==='frame') items.unshift(i); else items.push(i);
-
-  selectedItem = i;
-
-  draw();
-
-  scheduleAutosave();
-
+const targetX = getSnapped(-camera.x, GRID_SIZE); const targetY = getSnapped(-camera.y, GRID_SIZE);
+const i = { type: t, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label: l, color: c };
+if(t==='frame') items.unshift(i); else items.push(i); selectedItem = i; draw();
 };
-
- 
 
 document.getElementById('addGenericRoomBtn').onclick = () => { const n = prompt("部屋名", "洋室"); if (n) addFunc(n, 4, 4, '#FFF3E0'); };
-
 document.getElementById('addFrameBtn').onclick = () => addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
-
 document.getElementById('addWallBtn').onclick = () => addFunc('壁', 1, 4, '#616161', 'wall');
-
- 
-
-document.getElementById('mergeBtn').onclick = () => {
-
-  isMerged = !isMerged;
-
-  document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合モード";
-
-  draw();
-
-  scheduleAutosave();
-
-};
-
- 
-
-document.getElementById('copyBtn').onclick = () => {
-
-  if(selectedItem) {
-
-    const i = {...selectedItem, x: selectedItem.x+GRID_SIZE, y: selectedItem.y+GRID_SIZE};
-
-    items.push(i); selectedItem = i; draw();
-
-    scheduleAutosave();
-
-  }
-
-};
-
- 
-
-document.getElementById('resetBtn').onclick = () => {
-
-  if(selectedItem) {
-
-    items = items.filter(i => i !== selectedItem);
-
-    selectedItem = null;
-
-    draw();
-
-    scheduleAutosave();
-
-  } else if(confirm("全消去しますか？")) {
-
-    items = [];
-
-    addFunc('外枠', 10, 10, '#f8f8f8', 'frame');
-
-    scheduleAutosave();
-
-  } else {
-
-    draw();
-
-  }
-
-};
-
- 
-
-document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); scheduleAutosave(); } };
-
- 
-
-document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; draw(); scheduleAutosave(); };
-
- 
-
-// ★変更：チェックボックス変更も保存対象に
-
-document.querySelectorAll('input[type="checkbox"]').forEach(el => {
-
-  el.onchange = () => { draw(); scheduleAutosave(); };
-
-});
-
- 
+document.getElementById('mergeBtn').onclick = () => { isMerged = !isMerged; document.getElementById('mergeBtn').innerText = isMerged ? "編集" : "結合モード"; draw(); };
+document.getElementById('copyBtn').onclick = () => { if(selectedItem) { const i = {...selectedItem, x: selectedItem.x+GRID_SIZE, y: selectedItem.y+GRID_SIZE}; items.push(i); selectedItem = i; draw(); } };
+document.getElementById('resetBtn').onclick = () => { if(selectedItem) { items = items.filter(i => i !== selectedItem); selectedItem = null; } else if(confirm("全消去しますか？")) { items = []; addFunc('外枠', 10, 10, '#f8f8f8', 'frame'); } draw(); };
+document.getElementById('colorPicker').oninput = (e) => { if(selectedItem) { selectedItem.color = e.target.value; draw(); } };
+document.getElementById('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; draw(); };
+document.querySelectorAll('input[type="checkbox"]').forEach(el => el.onchange = draw);
 
 document.getElementById('openHelpBtn').onclick = () => document.getElementById('helpModal').style.display = 'flex';
-
 document.getElementById('helpModal').onclick = () => document.getElementById('helpModal').style.display = 'none';
-
- 
-
-// ★変更：初回はモーダル（URL発行）、上書きはトーストだけ
-
 document.getElementById('saveBtn').onclick = async () => {
-
-  try {
-
-    const payload = {
-
-      items,
-
-      isMerged,
-
-      camera,
-
-      ui: getUIState(),
-
-      updatedAt: serverTimestamp()
-
-    };
-
- 
-
-    if (currentDocId) {
-
-      await updateDoc(doc(db, "layouts", currentDocId), payload);
-
-      showToast("保存しました");
-
-      scheduleAutosave();
-
-      return;
-
-    }
-
- 
-
-    const r = await addDoc(collection(db, "layouts"), payload);
-
-    currentDocId = r.id;
-
- 
-
-    const newUrl = `${window.location.origin}${window.location.pathname}?id=${currentDocId}`;
-
-    history.replaceState(null, "", newUrl);
-
- 
-
-    // draftのautosaveをdoc用キーへ移す（あるなら）
-
-    try {
-
-      const draftKey = getAutosaveKey(null);
-
-      const docKey = getAutosaveKey(currentDocId);
-
-      const raw = localStorage.getItem(draftKey);
-
-      if (raw) localStorage.setItem(docKey, raw);
-
-      localStorage.removeItem(draftKey);
-
-    } catch {}
-
- 
-
-    document.getElementById('shareUrlInput').value = newUrl;
-
-    document.getElementById('saveModal').style.display = 'flex';
-
-    scheduleAutosave();
-
- 
-
-  } catch (e) {
-
-    alert("保存に失敗しました。通信状況を確認してください。");
-
-    console.error(e);
-
-  }
-
+const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${r.id}`;
+document.getElementById('saveModal').style.display = 'flex';
 };
-
- 
-
 document.getElementById('copyUrlBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert("コピーしました"); };
-
 document.getElementById('closeSaveModalBtn').onclick = () => document.getElementById('saveModal').style.display = 'none';
 
- 
-
 canvas.addEventListener('touchstart', e => {
-
-  const now = Date.now();
-
-  const rect = canvas.getBoundingClientRect();
-
-  const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-
-  const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
-
- 
-
-  if (now - lastTapTime < 300 && selectedItem && !isMerged) {
-
-    const n = prompt("名前変更", selectedItem.label);
-
-    if(n) { selectedItem.label = n; draw(); scheduleAutosave(); }
-
-    return;
-
-  }
-
-  lastTapTime = now;
-
- 
-
-  if(selectedItem && !(isMerged && selectedItem.type==='frame')
-
-    && Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30
-
-    && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30) {
-
-    isResizing = true; return;
-
-  }
-
- 
-
-  let found = null;
-
-  for (let i = items.length-1; i >= 0; i--) {
-
-    if (!isMerged || items[i].type !== 'frame') {
-
-      const it = items[i];
-
-      if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) { found = it; break; }
-
-    }
-
-  }
-
- 
-
-  if(found) {
-
-    selectedItem = found;
-
-    items.splice(items.indexOf(found), 1);
-
-    items.push(found);
-
-    startX = worldP.x - found.x; startY = worldP.y - found.y;
-
-    isDragging = true;
-
-  } else {
-
-    selectedItem = null;
-
-    dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-
-    lastCamera = { ...camera };
-
-  }
-
-  draw();
-
+const now = Date.now(); const rect = canvas.getBoundingClientRect();
+const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
+if (now - lastTapTime < 300 && selectedItem && !isMerged) { const n = prompt("名前変更", selectedItem.label); if(n) { selectedItem.label = n; draw(); } return; }
+lastTapTime = now;
+if(selectedItem && !(isMerged && selectedItem.type==='frame') && Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30 && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30) { isResizing = true; return; }
+let found = null;
+for (let i = items.length-1; i >= 0; i--) { if (!isMerged || items[i].type !== 'frame') {
+const it = items[i]; if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) { found = it; break; }
+}}
+if(found) { selectedItem = found; items.splice(items.indexOf(found), 1); items.push(found); startX = worldP.x - found.x; startY = worldP.y - found.y; isDragging = true; }
+else { selectedItem = null; dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; lastCamera = { ...camera }; }
+draw();
 });
-
- 
 
 canvas.addEventListener('touchmove', e => {
-
-  e.preventDefault();
-
-  const rect = canvas.getBoundingClientRect();
-
-  const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-
-  const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
-
- 
-
-  const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
-
- 
-
-  if (isResizing && selectedItem) {
-
-    selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap));
-
-    selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap));
-
-  } else if (isDragging && selectedItem) {
-
-    selectedItem.x = getSnapped(worldP.x - startX, snap);
-
-    selectedItem.y = getSnapped(worldP.y - startY, snap);
-
-  } else if (dragStart) {
-
-    camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x);
-
-    camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y);
-
-  }
-
-  draw();
-
+e.preventDefault(); const rect = canvas.getBoundingClientRect();
+const p = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+const worldP = { x: p.x - canvas.width/2 - camera.x, y: p.y - canvas.height/2 - camera.y };
+const snap = document.getElementById('useHalfGrid').checked ? 16 : 32;
+if (isResizing && selectedItem) { selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap)); selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap)); }
+else if (isDragging && selectedItem) { selectedItem.x = getSnapped(worldP.x - startX, snap); selectedItem.y = getSnapped(worldP.y - startY, snap); }
+else if (dragStart) { camera.x = lastCamera.x + (e.touches[0].clientX - dragStart.x); camera.y = lastCamera.y + (e.touches[0].clientY - dragStart.y); }
+draw();
 });
 
- 
-
-canvas.addEventListener('touchend', () => {
-
-  isResizing = false;
-
-  isDragging = false;
-
-  dragStart = null;
-
-  draw();
-
-  scheduleAutosave();
-
-});
-
- 
-
+canvas.addEventListener('touchend', () => { isResizing = false; isDragging = false; dragStart = null; draw(); });
 init();
-
 </script>
-
 </body>
-
 </html>
