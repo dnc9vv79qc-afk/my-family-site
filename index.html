@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v4.6</title>
+    <title>間取りシミュレーター v4.6.1</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        /* バージョンラベル */
+        .ver-label { position: fixed; top: 5px; right: 10px; font-size: 10px; color: #8e8e93; z-index: 100; pointer-events: none; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
         .toolbar-row { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; align-items: center; }
         .toolbar-row::-webkit-scrollbar { display: none; }
@@ -28,7 +30,7 @@
     </style>
 </head>
 <body>
-
+    <div class="ver-label">ver 4.6.1</div>
     <div id="loading" class="modal-overlay" style="z-index: 101;"><div style="color:#fff; font-weight:bold;">通信中...</div></div>
     <div id="saveModal" class="modal-overlay"><div class="modal-box"><h3>共有URL作成完了</h3><input type="text" id="shareUrlInput" class="url-input" readonly onclick="this.select()"><div style="display:flex; gap:10px; justify-content: center;"><button onclick="copyToClipboard()">コピー</button><button style="background:#8E8E93" onclick="closeModal()">閉じる</button></div></div></div>
 
@@ -103,12 +105,14 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 背景グリッド
         ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
         for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
         for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
 
         if (isMerged) { drawMergedLayout(); } else { drawNormalLayout(); }
 
+        // 選択中ハイライト
         if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
             ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
             ctx.fillStyle = "#FF3B30"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); ctx.fill();
@@ -132,7 +136,7 @@
             if (item.type !== 'frame') {
                 if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: item.x + item.w/2, textY: item.y + item.h/2 };
                 groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-                // 最後に登録されたアイテムを中心にする
+                // テキスト位置を更新（最後に触られたパーツの中心へ）
                 groups[item.label].textX = item.x + item.w/2;
                 groups[item.label].textY = item.y + item.h/2;
             }
@@ -150,7 +154,7 @@
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
-        // 境界線描画
+        // 境界線（部屋）
         ctx.lineWidth = 2; ctx.strokeStyle = "#444";
         for (const pos in roomMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -162,6 +166,7 @@
             });
         }
 
+        // 境界線（太い外壁）
         ctx.lineWidth = 4; ctx.strokeStyle = "#1a1a1a";
         for (const pos in frameMap) {
             const [x, y] = pos.split(',').map(Number);
@@ -224,10 +229,10 @@
     window.addFrame = () => { const newItem = { type: 'frame', x: 32, y: 32, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' }; items.unshift(newItem); selectedItem = newItem; draw(); };
     window.addWall = () => { const newItem = { type: 'wall', x: 96, y: 96, w: 8, h: 64, label: '壁', color: '#555' }; items.push(newItem); selectedItem = newItem; draw(); };
     window.duplicateItem = () => { if(!selectedItem) return; const newItem = {...selectedItem, x: selectedItem.x+16, y: selectedItem.y+16}; items.push(newItem); selectedItem = newItem; draw(); };
-    window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前を入力してください（同じ名前は結合されます）", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
+    window.renameItem = () => { if(!selectedItem) return; const newLabel = prompt("名前変更（同名は結合）", selectedItem.label); if(newLabel) { selectedItem.label = newLabel; draw(); } };
     window.deleteItem = () => { items = items.filter(i => i !== selectedItem); selectedItem = null; draw(); };
     window.changeColor = () => { if(selectedItem) { selectedItem.color = document.getElementById('colorPicker').value; draw(); } };
-    window.resetCanvas = () => { if(confirm("全消去しますか？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
+    window.resetCanvas = () => { if(confirm("消去しますか？")) { items = []; isMerged = false; updateMergeButtonUI(); addFrame(); draw(); } };
     window.nudgeItem = (dx, dy) => { if(!selectedItem) return; const step = document.getElementById('useHalfGrid').checked ? 16 : 32; selectedItem.x += dx * step; selectedItem.y += dy * step; draw(); };
     window.saveLayout = async () => {
         document.getElementById('loading').style.display = 'flex';
