@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター DB版 v3.1</title>
+    <title>間取りシミュレーター v4.0 - 自動結合版</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .toolbar { padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10; }
@@ -71,7 +71,7 @@
         </div>
         <div class="toolbar-row">
             <div class="color-control"><input type="color" id="colorPicker" value="#ffffff" onchange="changeColor()"></div>
-            <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合</button>
+            <button id="mergeBtn" class="btn-merge" onclick="toggleMerge()">結合切替</button>
             <button class="btn-copy" onclick="duplicateItem()">複製</button>
             <button onclick="renameItem()">名前</button>
             <button class="btn-delete" onclick="deleteItem()">削除</button>
@@ -119,8 +119,14 @@
     const container = document.getElementById('canvas-container');
     const colorPicker = document.getElementById('colorPicker');
     
-    const GRID_SIZE = 32; const MODULE = 0.91; let items = []; let selectedItem = null;
-    let isResizing = false; let isMerged = false; let startX, startY;
+    const GRID_SIZE = 32; 
+    const SUB_GRID = 16; // 半マス単位で判定
+    const MODULE = 0.91; 
+    let items = []; 
+    let selectedItem = null;
+    let isResizing = false; 
+    let isMerged = false; 
+    let startX, startY;
 
     async function init() {
         resizeCanvas();
@@ -148,77 +154,109 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // グリッド描画
+        ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
+        for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+        for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+        if (isMerged) {
+            drawMergedLayout();
+        } else {
+            drawNormalLayout();
+        }
+
+        // 選択ハイライト
+        if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
+            ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; 
+            ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+            ctx.fillStyle = "#FF3B30"; ctx.beginPath(); 
+            ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); 
+            ctx.fill();
+        }
+
+        updateSummary();
+    }
+
+    // 通常時の描画
+    function drawNormalLayout() {
+        items.forEach(item => {
+            ctx.fillStyle = item.color;
+            ctx.globalAlpha = item.type==='room' ? 0.8 : 1.0;
+            ctx.fillRect(item.x, item.y, item.w, item.h);
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = item.type === 'frame' ? "#ccc" : "#444";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(item.x, item.y, item.w, item.h);
+            drawItemText(item);
+        });
+    }
+
+    // 結合時の描画（アルゴリズムによる外周判定）
+    function drawMergedLayout() {
+        // 1. 各半マスがどのグループ（名前）に属するかをマップ化
+        const map = {};
+        items.forEach(item => {
+            const key = item.label;
+            for (let x = item.x; x < item.x + item.w; x += SUB_GRID) {
+                for (let y = item.y; y < item.y + item.h; y += SUB_GRID) {
+                    map[`${x},${y}`] = { label: item.label, color: item.color, type: item.type };
+                }
+            }
+        });
+
+        // 2. 塗りつぶし
+        items.forEach(item => {
+            ctx.fillStyle = item.type === 'frame' ? "#f4f4f4" : item.color;
+            ctx.fillRect(item.x, item.y, item.w, item.h);
+        });
+
+        // 3. 外周判定（上下左右に自分と同じ名前がなければ線を引く）
+        ctx.lineCap = "round";
+        for (const pos in map) {
+            const [x, y] = pos.split(',').map(Number);
+            const current = map[pos];
+            
+            ctx.strokeStyle = current.type === 'frame' ? "#1a1a1a" : "#444";
+            ctx.lineWidth = current.type === 'frame' ? 4 : 2;
+
+            // 上辺
+            if (!map[`${x},${y - SUB_GRID}`] || map[`${x},${y - SUB_GRID}`].label !== current.label) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + SUB_GRID, y); ctx.stroke();
+            }
+            // 下辺
+            if (!map[`${x},${y + SUB_GRID}`] || map[`${x},${y + SUB_GRID}`].label !== current.label) {
+                ctx.beginPath(); ctx.moveTo(x, y + SUB_GRID); ctx.lineTo(x + SUB_GRID, y + SUB_GRID); ctx.stroke();
+            }
+            // 左辺
+            if (!map[`${x - SUB_GRID},${y}`] || map[`${x - SUB_GRID},${y}`].label !== current.label) {
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + SUB_GRID); ctx.stroke();
+            }
+            // 右辺
+            if (!map[`${x + SUB_GRID},${y}`] || map[`${x + SUB_GRID},${y}`].label !== current.label) {
+                ctx.beginPath(); ctx.moveTo(x + SUB_GRID, y); ctx.lineTo(x + SUB_GRID, y + SUB_GRID); ctx.stroke();
+            }
+        }
+
+        // 4. 文字描画（各グループの代表的な位置に一つだけ出すなどの工夫も可能だが、現状は各要素に描画）
+        items.forEach(item => {
+            if (item.type === 'frame') return; // 結合時は外枠の文字を消す
+            drawItemText(item);
+        });
+    }
+
+    function drawItemText(item) {
+        if (item.w < 16 || item.h < 16) return;
         const sJou = document.getElementById('showJou').checked;
         const sHeibe = document.getElementById('showHeibe').checked;
         const sTsubo = document.getElementById('showTsubo').checked;
         const sMeter = document.getElementById('showMeter').checked;
         const sMasu = document.getElementById('showMasu').checked;
 
-        // グリッド
-        ctx.strokeStyle = "#eef0f2"; ctx.lineWidth = 1;
-        for (let x=0; x<=canvas.width; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
-        for (let y=0; y<=canvas.height; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
-
-        let totalMasu = 0;
-
-        // 1. 外枠を先に描画（レイヤー最背面）
-        items.forEach(item => {
-            if (item.type !== 'frame') return;
-            totalMasu += (item.w/GRID_SIZE)*(item.h/GRID_SIZE);
-            
-            if (isMerged) {
-                ctx.fillStyle = "#f4f4f4";
-                ctx.fillRect(item.x, item.y, item.w, item.h);
-                // 結合時は外壁を太く強調
-                ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 4; 
-                ctx.strokeRect(item.x, item.y, item.w, item.h);
-            } else {
-                ctx.fillStyle = item.color;
-                ctx.fillRect(item.x, item.y, item.w, item.h);
-                ctx.strokeStyle = "#ccc"; ctx.lineWidth = 1;
-                ctx.strokeRect(item.x, item.y, item.w, item.h);
-            }
-            // 結合時は「外枠」ラベルを表示しない
-            if (!isMerged) {
-                drawItemText(item, sMeter, sJou, sMasu, sHeibe, sTsubo);
-            }
-        });
-
-        // 2. 部屋と壁を描画
-        items.forEach(item => {
-            if (item.type === 'frame') return;
-
-            ctx.fillStyle = item.color;
-            ctx.globalAlpha = item.type==='room' ? 0.85 : 1.0;
-            ctx.fillRect(item.x, item.y, item.w, item.h);
-            ctx.globalAlpha = 1.0;
-
-            ctx.strokeStyle = "#444"; 
-            ctx.lineWidth = item.type === 'wall' ? 1 : 1.5;
-            ctx.strokeRect(item.x, item.y, item.w, item.h);
-            
-            drawItemText(item, sMeter, sJou, sMasu, sHeibe, sTsubo);
-        });
-
-        // 選択表示
-        if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
-            ctx.strokeStyle = "#FF3B30"; ctx.lineWidth = 3; ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-            ctx.fillStyle = "#FF3B30"; ctx.beginPath(); ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 15, 0, Math.PI*2); ctx.fill();
-        }
-
-        document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
-        document.getElementById('totalHeibe').innerText = (totalMasu * MODULE * MODULE).toFixed(2);
-        document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
-    }
-
-    function drawItemText(item, sMeter, sJou, sMasu, sHeibe, sTsubo) {
-        if (item.w < 16 || item.h < 16) return;
-        
         const gw = item.w/GRID_SIZE, gh = item.h/GRID_SIZE;
         const areaMasu = gw * gh;
         ctx.fillStyle = "#000";
 
-        // 1マスの場合は簡略表示
         if (areaMasu <= 1.0) {
             ctx.font = "bold 10px sans-serif";
             ctx.fillText(item.label, item.x + 2, item.y + 14);
@@ -237,12 +275,20 @@
         if (sTsubo) { ty += 12; ctx.fillText(`${(areaMasu / 4).toFixed(2)}坪`, item.x+4, ty); }
     }
 
-    function updateMergeButtonUI() {
-        const btn = document.getElementById('mergeBtn');
-        if (isMerged) { btn.innerText = "結合解除"; btn.style.background = "#8e8e93"; }
-        else { btn.innerText = "結合"; btn.style.background = "#5856d6"; }
+    function updateSummary() {
+        let totalMasu = 0;
+        items.forEach(item => { if(item.type === 'frame') totalMasu += (item.w/GRID_SIZE)*(item.h/GRID_SIZE); });
+        document.getElementById('totalTsubo').innerText = (totalMasu / 4).toFixed(2);
+        document.getElementById('totalHeibe').innerText = (totalMasu * MODULE * MODULE).toFixed(2);
+        document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
     }
 
+    function updateMergeButtonUI() {
+        const btn = document.getElementById('mergeBtn');
+        btn.style.background = isMerged ? "#8e8e93" : "#5856d6";
+    }
+
+    // 操作系
     window.addRoom = (label, w, h, color) => {
         const newItem = { type: 'room', x: 64, y: 64, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
         items.push(newItem); selectedItem = newItem; draw();
@@ -258,7 +304,7 @@
     window.toggleMerge = () => { isMerged = !isMerged; updateMergeButtonUI(); draw(); };
     window.renameItem = () => {
         if(!selectedItem) return;
-        const newLabel = prompt("名前を入力", selectedItem.label);
+        const newLabel = prompt("名前を同じにすると結合されます", selectedItem.label);
         if(newLabel) { selectedItem.label = newLabel; draw(); }
     };
     window.saveLayout = async () => {
