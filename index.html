@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>間取りシミュレーター v3 (GitHub Pages版)</title>
+    <title>間取りシミュレーター v3.1</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f0f2f5; touch-action: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
@@ -118,7 +118,6 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
-        // URLパラメータの確認とデータの読み込み
         const params = new URLSearchParams(window.location.search);
         const dataStr = params.get('data');
 
@@ -139,7 +138,6 @@
                     draw();
                 } catch (e) {
                     console.error("データ読み込みエラー:", e);
-                    alert("データの読み込みに失敗しました。URLが不完全な可能性があります。");
                     addFrame();
                 } finally {
                     document.getElementById('loading').style.display = 'none';
@@ -156,9 +154,7 @@
         draw();
     }
 
-    // --- 追加ロジック（結合中チェックを削除） ---
     function addRoom(label, w, h, color) {
-        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
         const newItem = { type: 'room', x: cx, y: cy, w: w*GRID_SIZE, h: h*GRID_SIZE, label: label, color: color };
@@ -168,7 +164,6 @@
         draw();
     }
     function addFrame() {
-        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE - GRID_SIZE*2;
         items.unshift({ type: 'frame', x: cx, y: cy, w: 6*GRID_SIZE, h: 6*GRID_SIZE, label: '外枠', color: '#f8f8f8' });
@@ -177,7 +172,6 @@
         draw();
     }
     function addWall() {
-        // if(isMerged) return alert("結合中は追加できません"); // 制限を削除
         const cx = Math.floor((canvas.width/2)/GRID_SIZE)*GRID_SIZE;
         const cy = Math.floor((canvas.height/2)/GRID_SIZE)*GRID_SIZE;
         const newItem = { type: 'wall', x: cx, y: cy, w: 1*GRID_SIZE, h: 2*GRID_SIZE, label: '壁', color: '#555555' };
@@ -187,7 +181,6 @@
         draw();
     }
 
-    // --- 編集ロジック ---
     function changeColor() {
         if (selectedItem) {
             selectedItem.color = colorPicker.value;
@@ -219,7 +212,6 @@
         selectedItem = null; draw();
     }
 
-    // --- 描画 ---
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
@@ -259,12 +251,33 @@
         });
 
         if (isMerged) {
+            // 結合時の塗りつぶし
             ctx.fillStyle = "#f4f4f4";
             frameMap.forEach(key => { const [gx,gy] = key.split(',').map(Number); ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE, GRID_SIZE); });
+
+            // 結合時の太枠描画（外壁線）
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            frameMap.forEach(key => {
+                const [gx, gy] = key.split(',').map(Number);
+                // 上
+                if (!frameMap.has(`${gx},${gy-1}`)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); }
+                // 下
+                if (!frameMap.has(`${gx},${gy+1}`)) { ctx.moveTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
+                // 左
+                if (!frameMap.has(`${gx-1},${gy}`)) { ctx.moveTo(gx*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo(gx*GRID_SIZE, (gy+1)*GRID_SIZE); }
+                // 右
+                if (!frameMap.has(`${gx+1},${gy}`)) { ctx.moveTo((gx+1)*GRID_SIZE, gy*GRID_SIZE); ctx.lineTo((gx+1)*GRID_SIZE, (gy+1)*GRID_SIZE); }
+            });
+            ctx.stroke();
+
         } else {
+            // 通常時の外枠
             items.filter(i => i.type === 'frame').forEach(item => { ctx.fillStyle = item.color; ctx.fillRect(item.x, item.y, item.w, item.h); });
         }
 
+        // 部屋
         roomMap.forEach((item, key) => {
             const [gx, gy] = key.split(',').map(Number);
             ctx.fillStyle = item.color; 
@@ -273,11 +286,13 @@
             ctx.globalAlpha = 1.0;
         });
 
+        // 壁
         items.filter(i => i.type === 'wall').forEach(item => {
             ctx.fillStyle = item.color;
             ctx.fillRect(item.x, item.y, item.w, item.h);
         });
 
+        // 未結合時の点線枠
         if (!isMerged) {
             items.filter(i => i.type === 'frame').forEach(item => {
                 ctx.strokeStyle = (selectedItem === item) ? "#007AFF" : "#bbb";
@@ -285,6 +300,8 @@
                 drawItemText(ctx, item, Math.round(item.w/GRID_SIZE)*Math.round(item.h/GRID_SIZE), true, showMeter, showJou, showTsubo, showHeibe, showMasu);
             });
         }
+        
+        // 部屋の境界線
         ctx.lineWidth = 1.5; ctx.strokeStyle = "#444";
         roomMap.forEach((item, key) => {
             const [gx, gy] = key.split(',').map(Number);
@@ -297,6 +314,7 @@
             ctx.stroke();
         });
 
+        // 選択ハンドルの描画
         if (selectedItem) {
             const item = selectedItem;
             if (!(isMerged && item.type === 'frame')) {
@@ -305,10 +323,12 @@
             }
         }
 
+        // テキスト描画
         Object.values(groupedRooms).forEach(group => {
             drawItemText(ctx, group.largestItem, group.totalMasu, false, showMeter, showJou, showTsubo, showHeibe, showMasu);
         });
         
+        // 壁のラベル
         items.filter(i => i.type === 'wall' && (i.w>GRID_SIZE || i.h>GRID_SIZE)).forEach(item => {
              ctx.fillStyle = "#fff"; ctx.font = "bold 11px sans-serif"; ctx.fillText(item.label, item.x+2, item.y+12);
         });
@@ -318,6 +338,7 @@
         document.getElementById('totalJou').innerText = (totalMasu / 2).toFixed(1);
     }
 
+    // テキスト描画関数（㎡・坪の処理を追加）
     function drawItemText(ctx, item, totalM, isFrame, sMeter, sJou, sTsubo, sHeibe, sMasu) {
         if (!item) return;
         let textY = item.y + 16;
@@ -333,6 +354,7 @@
 
         ctx.font = "10px sans-serif";
         const gw = Math.round(item.w/GRID_SIZE), gh = Math.round(item.h/GRID_SIZE);
+        
         if (sMeter) {
             textY += 12; ctx.fillStyle = "#007AFF"; if(isDark) ctx.fillStyle="#81D4FA";
             ctx.fillText(`${(gw*MODULE).toFixed(2)}×${(gh*MODULE).toFixed(2)}`, item.x + 4, textY);
@@ -340,9 +362,20 @@
         }
         if (sMasu) { textY += 12; ctx.fillText(`${gw}×${gh}マ`, item.x + 4, textY); }
         if (sJou) { textY += 12; ctx.fillText(`${(totalM/2).toFixed(1)}畳`, item.x + 4, textY); }
+        
+        // ここを追加：㎡と坪の描画処理
+        if (sHeibe) {
+            textY += 12;
+            const m2 = totalM * MODULE * MODULE;
+            ctx.fillText(`${m2.toFixed(2)}㎡`, item.x + 4, textY);
+        }
+        if (sTsubo) {
+            textY += 12;
+            const tsubo = totalM / 4;
+            ctx.fillText(`${tsubo.toFixed(2)}坪`, item.x + 4, textY);
+        }
     }
 
-    // --- イベント ---
     function getPointerPos(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -386,7 +419,6 @@
     canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(getPointerPos(e).x, getPointerPos(e).y); }, {passive:false});
     canvas.addEventListener('touchend', () => isResizing = false);
 
-    // --- 保存機能 ---
     function saveLayout() {
         const data = { items: items, isMerged: isMerged };
         try {
