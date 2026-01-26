@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>間取りシミュレーター v5.95 (Fix)</title>
+<title>間取りシミュレーター v5.95</title>
 
 <style>
 :root{
@@ -11,6 +11,7 @@
   --success:#34c759;
   --danger:#ff3b30;
   --warning:#FF9500;
+
   --bg:#f2f2f7;
   --card: rgba(255,255,255,.72);
   --stroke: rgba(60,60,67,.18);
@@ -19,6 +20,7 @@
   --shadow: 0 10px 30px rgba(0,0,0,.10);
   --radius2: 26px;
 }
+
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#000;
@@ -29,80 +31,506 @@
     --shadow: 0 16px 50px rgba(0,0,0,.45);
   }
 }
+
 *{ box-sizing: border-box; }
+
 body{
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont,
+    "SF Pro Display", "SF Pro Text",
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP",
+    "Yu Gothic", "YuGothic",
+    "Meiryo",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
-  margin: 0; background: var(--bg); color: var(--text); touch-action: none;
-  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  text-rendering: optimizeLegibility;
+
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
-.ver-label{ position: fixed; top: 6px; right: 10px; font-size: 10px; color: var(--muted); z-index: 100; font-weight: 800; opacity: .85; }
-.toolbar{ margin: 12px; border-radius: var(--radius2); background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px; display:flex; align-items:center; justify-content: space-between; z-index: 10; }
-.top-title{ font-weight: 900; font-size: 13px; user-select:none; }
-button{ height: 44px; font-size: 13px; border: none; border-radius: 16px; color: white; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; transition: transform .08s ease; -webkit-tap-highlight-color: transparent; }
+
+.ver-label{
+  position: fixed;
+  top: 6px;
+  right: 10px;
+  font-size: 10px;
+  color: var(--muted);
+  z-index: 100;
+  pointer-events: none;
+  font-weight: 800;
+  text-align: right;
+  opacity: .85;
+}
+
+/* ===== Top bar: 共有URL・色・？だけ ===== */
+.toolbar{
+  margin: 12px;
+  border-radius: var(--radius2);
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  padding: 10px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+
+  z-index: 10;
+}
+
+.top-left, .top-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.top-title{
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .3px;
+  opacity: .9;
+  user-select:none;
+}
+
+/* ===== Buttons ===== */
+button{
+  height: 44px;
+  font-size: 13px;
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0 14px;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: .2px;
+  transition: transform .08s ease, filter .08s ease, opacity .08s ease;
+}
 button:active { opacity: 0.85; transform: scale(0.98); }
-.btn-primary{ background: rgba(255,149,0,.95); }
-.btn-help{ background: rgba(120,120,128,.18); color: var(--text); width: 44px; padding: 0; font-size: 18px; }
-.color-circle{ background: rgba(120,120,128,.18); border: 1px solid var(--stroke); border-radius: 16px; width: 44px; height: 44px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-input[type="color"]{ width: 70px; height: 70px; border: none; background: none; cursor: pointer; }
-.config-bar{ margin: 0 12px 12px; border-radius: var(--radius2); background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px; display:flex; justify-content: space-between; align-items:center; gap: 10px; }
-.chip{ background: rgba(255,255,255,.55); border: 1px solid var(--stroke); padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 900; display:flex; align-items:center; gap: 6px; color: var(--text); }
-.segment{ display:flex; border: 1px solid var(--stroke); border-radius: 14px; background: rgba(120,120,128,.12); padding: 2px; }
-.seg-btn{ height: 32px; min-width: 56px; border-radius: 12px; background: transparent; color: var(--text); font-size: 12px; }
-.seg-btn.active{ background: var(--accent); color: #fff; }
-.small-btn{ height: 34px; border-radius: 999px; padding: 0 12px; background: var(--accent); color:#fff; font-size: 12px; font-weight: 900; }
-.small-btn.gray{ background: rgba(120,120,128,.25); color: var(--text); }
-.summary{ margin: 0 12px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px 14px; display:flex; justify-content: space-around; font-size: 14px; font-weight: 900; }
+
+.btn-primary{ background: rgba(255,149,0,.95); } /* 共有URL */
+.btn-help{
+  background: rgba(120,120,128,.18);
+  color: var(--text);
+  font-size: 18px;
+  width: 44px;
+  padding: 0;
+}
+
+.color-circle{
+  background: rgba(120,120,128,.18);
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+input[type="color"]{
+  width: 70px;
+  height: 70px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ===== Config bar ===== */
+.config-bar{
+  margin: 0 12px 12px;
+  border-radius: var(--radius2);
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  padding: 10px;
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap: 10px;
+}
+
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip{
+  background: rgba(255,255,255,.55);
+  border: 1px solid var(--stroke);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  cursor: pointer;
+  color: var(--text);
+}
+@media (prefers-color-scheme: dark){
+  .chip{ background: rgba(44,44,46,.65); }
+}
+.chip input { margin: 0; width: 18px; height: 18px; }
+
+/* right */
+.right-actions{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ===== Segmented control ===== */
+.segment{
+  display:flex;
+  align-items: center;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  overflow: visible;
+  background: rgba(120,120,128,.12);
+  padding: 2px;
+  height: 36px;
+}
+.seg-btn{
+  height: 32px;
+  min-width: 56px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow:none;
+  white-space: nowrap;
+}
+.seg-btn.active{
+  background: var(--accent);
+  color: #fff;
+}
+.seg-btn:active{ transform: none; }
+
+/* small buttons */
+.small-btn{
+  height: 34px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--accent);
+  color:#fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.small-btn.gray{
+  background: rgba(120,120,128,.25);
+  color: var(--text);
+  border: 1px solid var(--stroke);
+}
+.small-btn:disabled{
+  opacity: .4;
+  transform: none !important;
+  cursor: default;
+}
+
+/* ===== Summary ===== */
+.summary{
+  margin: 0 12px 12px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  padding: 10px 14px;
+  display:flex;
+  justify-content: space-around;
+  align-items:center;
+
+  font-size: 14px;
+  font-weight: 900;
+}
 .summary b{ color: var(--accent); }
-#canvas-container{ flex: 1; position: relative; margin: 0 12px 96px; border-radius: 24px; overflow: hidden; border: 1px solid var(--stroke); box-shadow: var(--shadow); background: #fff; }
+
+/* ===== Canvas ===== */
+#canvas-container{
+  flex: 1;
+  position: relative;
+  margin: 0 12px 12px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  background: #fff;
+  touch-action: none;
+
+  margin-bottom: 96px; /* bottom-bar分 */
+}
 canvas{ display:block; }
-.bottom-bar{ position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 10px; border-radius: 24px; background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); z-index: 60; }
-.pill{ height: 48px; border-radius: 18px; background: rgba(120,120,128,.16); color: var(--text); font-weight: 900; font-size: 13px; display:flex; align-items:center; justify-content:center; flex-direction: column; }
-.pill::after{ content: attr(data-sub); font-size: 10px; color: var(--muted); }
+
+/* ===== Bottom Bar ===== */
+.bottom-bar{
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 24px;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 60;
+}
+
+.pill{
+  height: 48px;
+  border-radius: 18px;
+  background: rgba(120,120,128,.16);
+  color: var(--text);
+  box-shadow: none;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .2px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+}
+.pill::after{
+  content: attr(data-sub);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: .1px;
+}
 .pill.primary{ background: var(--accent); color:#fff; }
-.pill.primary::after{ color: rgba(255,255,255,.8); }
-.pill.danger{ background: rgba(255,59,48,.14); color: #ff3b30; }
-.modal-overlay{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-.modal{ background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 360px; text-align: center; }
-.modal.sheet{ width: 92%; max-width: 420px; text-align: left; border-radius: 22px; }
-.chip-grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
-.name-chip{ height: 38px; border-radius: 14px; border: 1px solid var(--stroke); background: rgba(120,120,128,.14); color: var(--text); font-weight: 900; font-size: 11px; display:flex; align-items: center; justify-content: center; gap: 4px; }
-.name-chip .dot{ width: 10px; height: 10px; border-radius: 50%; }
-.menu-list{ display:flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-.menu-btn{ height: 42px; border-radius: 16px; border: 1px solid var(--stroke); background: rgba(120,120,128,.14); color: var(--text); font-weight: 900; }
+.pill.primary::after{ color: rgba(255,255,255,.85); }
+.pill.danger{
+  background: rgba(255,59,48,.14);
+  color: #ff3b30;
+}
+.pill:disabled{
+  opacity: .35;
+  filter: grayscale(1);
+  transform: none !important;
+  cursor: default;
+}
+@media (prefers-color-scheme: dark){
+  .pill{ background: rgba(118,118,128,.24); }
+  .pill.danger{ background: rgba(255,69,58,.18); color:#ff453a; }
+}
+
+/* ===== Modals ===== */
+.modal-overlay{
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal{
+  background: #fff;
+  padding: 25px;
+  border-radius: 20px;
+  width: 85%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.modal input{
+  width: 100%;
+  padding: 12px;
+  margin: 15px 0;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+#helpModal .modal{
+  max-width: 420px;
+  text-align: left;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+#helpModal ul{ padding-left: 20px; font-size: 13px; line-height: 1.6; }
+#helpModal h3{ text-align: center; margin-top: 0; }
+
+.toolbar, .config-bar, .summary{
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+/* ===== Label Edit Sheet ===== */
+.modal.sheet{
+  width: 92%;
+  max-width: 420px;
+  text-align: left;
+  border-radius: 22px;
+}
+#labelInput{
+  width: 100%;
+  padding: 12px 12px;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+}
+.chip-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.name-chip{
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(120,120,128,.14);
+  color: var(--text);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .2px;
+  padding: 0 8px;
+  width: 100%;
+  justify-content: center;
+  box-shadow: none;
+  gap: 8px;
+  display:flex;
+}
+.name-chip .dot{
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+}
+.name-chip:active{ transform: scale(.98); opacity: .9; }
+
+@media (prefers-color-scheme: dark){
+  #labelInput{ border-color: rgba(255,255,255,.15); background: rgba(44,44,46,.65); color: var(--text); }
+  .name-chip{ background: rgba(118,118,128,.22); }
+  .name-chip .dot{ border-color: rgba(255,255,255,.12); }
+}
+
+/* ===== Context Menu Sheet ===== */
+.menu-list{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.menu-btn{
+  height: 42px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(120,120,128,.14);
+  color: var(--text);
+  font-weight: 900;
+  justify-content: center;
+}
+.menu-btn.danger{
+  background: rgba(255,59,48,.14);
+  color: #ff3b30;
+}
+
+/* ===== Preset Manager ===== */
+.preset-list{ display:flex; flex-direction:column; gap:10px; margin-top: 10px; }
+.preset-row{
+  display:grid;
+  grid-template-columns: 1fr 54px 54px;
+  gap: 8px;
+  align-items:center;
+}
+.preset-row input[type="text"]{
+  margin: 0;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  font-weight: 800;
+}
+.preset-row input[type="color"]{
+  width: 54px;
+  height: 42px;
+  border-radius: 14px;
+  padding: 0;
+  border: 1px solid var(--stroke);
+  background: transparent;
+}
+.preset-del{
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(255,59,48,.14);
+  color:#ff3b30;
+  border: 1px solid rgba(255,59,48,.25);
+  font-weight: 900;
+}
 </style>
 </head>
 
 <body>
 <div class="ver-label">ver 5.95<br>by yuchi🐔</div>
 
+<!-- Top -->
 <div class="toolbar">
-  <div style="display:flex;gap:10px;align-items:center;">
-    <button class="btn-help" id="openHelpBtn">？</button>
+  <div class="top-left">
+    <button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
     <div class="top-title">間取りシミュレーター</div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;">
+  <div class="top-right">
     <button class="btn-primary" id="saveBtn">共有URL</button>
-    <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff" /></div>
+    <div class="color-circle" title="選択中パーツの色">
+      <input type="color" id="colorPicker" value="#ffffff" />
+    </div>
   </div>
 </div>
 
+<!-- Config -->
 <div class="config-bar">
-  <div style="display:flex;gap:6px;">
+  <div class="chip-group">
     <label class="chip"><input type="checkbox" id="showJou" checked />畳</label>
     <label class="chip"><input type="checkbox" id="showTsubo" checked />坪</label>
-    <label class="chip"><input type="checkbox" id="useHalfGrid" />半</label>
+    <label class="chip" style="background:rgba(120,120,128,.20);"><input type="checkbox" id="useHalfGrid" />半ます</label>
   </div>
-  <div style="display:flex;gap:8px;">
-    <div class="segment">
-      <button class="seg-btn active" id="segEdit">編集</button>
-      <button class="seg-btn" id="segMerge">結合</button>
+
+  <div class="right-actions">
+    <div class="segment" role="tablist" aria-label="表示モード">
+      <button class="seg-btn active" id="segEdit" type="button">編集</button>
+      <button class="seg-btn" id="segMerge" type="button">結合</button>
     </div>
-    <button id="undoBtn" class="small-btn gray">戻る</button>
-    <button id="redoBtn" class="small-btn gray">進む</button>
+
+    <button id="undoBtn" class="small-btn gray" type="button">戻る</button>
+    <button id="redoBtn" class="small-btn gray" type="button">進む</button>
+
+    <button id="fitBtn" class="small-btn" type="button">外枠にフィット</button>
+    <button id="centerBtn" class="small-btn" type="button">表示リセット</button>
   </div>
 </div>
 
+<!-- Summary -->
 <div class="summary">
   <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
   <span><b id="totalJou">0.0</b> 畳</span>
@@ -110,151 +538,1310 @@ canvas{ display:block; }
 
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
-<div class="bottom-bar">
-  <button class="pill" id="addFrameBtn2" data-sub="枠追加">外枠</button>
-  <button class="pill primary" id="addGenericRoomBtn2" data-sub="部屋追加">部屋</button>
-  <button class="pill" id="addWallBtn2" data-sub="壁追加">壁</button>
-  <button class="pill" id="copyBtn2" data-sub="複製">複製</button>
-  <button class="pill danger" id="resetBtn2" data-sub="削除">削除</button>
+<!-- Bottom bar -->
+<div class="bottom-bar" id="bottomBar">
+  <button class="pill" id="addFrameBtn2" data-sub="枠を追加">外枠</button>
+  <button class="pill primary" id="addGenericRoomBtn2" data-sub="部屋を追加">部屋</button>
+  <button class="pill" id="addWallBtn2" data-sub="壁(線)" title="線の壁を追加" data-sub="線分壁を追加">壁</button>
+  <button class="pill" id="copyBtn2" data-sub="選択を複製">複製</button>
+  <button class="pill danger" id="resetBtn2" data-sub="選択/全消去">削除</button>
 </div>
 
-<div id="labelModal" class="modal-overlay"><div class="modal sheet"><h3>部屋名変更</h3><input type="text" id="labelInput" style="width:100%;padding:12px;border-radius:10px;border:1px solid #ddd;" /><div class="chip-grid" id="labelChips"></div><div style="display:flex;gap:10px;margin-top:14px;"><button style="flex:1;background:#ccc;" id="labelCancelBtn">閉じる</button><button style="flex:1;background:var(--accent);color:#fff;" id="labelOkBtn">OK</button></div></div></div>
-<div id="menuModal" class="modal-overlay"><div class="modal sheet"><h3 id="menuTitle">メニュー</h3><div class="menu-list"><button class="menu-btn" id="menuEditBtn">名前変更</button><button class="menu-btn" id="menuDupBtn">複製</button><button class="menu-btn" id="menuLockBtn">ロック切替</button><button class="menu-btn" style="color:red;" id="menuDelBtn">削除</button></div><button style="width:100%;margin-top:14px;" id="menuCloseBtn">閉じる</button></div></div>
+<!-- Save Modal -->
+<div id="saveModal" class="modal-overlay">
+  <div class="modal">
+    <h3>共有URL</h3>
+    <div style="font-size:12px;color:#666;margin-top:-6px;">（同じURLに上書き保存されます）</div>
+    <input type="text" id="shareUrlInput" readonly onclick="this.select()" />
+    <div style="display:flex; gap:10px;">
+      <button style="flex:1; background:var(--accent);" id="copyUrlBtn">コピー</button>
+      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="closeSaveModalBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal-overlay">
+  <div class="modal">
+    <h3>🏠 操作マニュアル</h3>
+    <ul>
+      <li><b>基本:</b> 下のボタンでパーツを追加し、ドラッグで移動。</li>
+      <li><b>サイズ変更:</b> 部屋/外枠は右下の丸いハンドル（ロック中は不可）。</li>
+      <li><b>壁(線):</b> 端点ドラッグで長さ変更。線をドラッグで移動。</li>
+      <li><b>直角スナップ:</b> 端点編集時、ほぼ水平/垂直で自動で直角に吸着。</li>
+      <li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
+      <li><b>名前編集:</b> パーツを素早く2回タップ（編集モードのみ）。</li>
+      <li><b>長押し:</b> メニュー（編集/複製/削除/前後/ロック）。</li>
+      <li><b>結合表示:</b> 「結合」で同じ名前の部屋を合体表示。</li>
+      <li><b>保存:</b> 共有URLを発行して続きを編集可能（発行後は自動上書き保存）。</li>
+    </ul>
+    <p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
+  </div>
+</div>
+
+<!-- Label Edit Modal -->
+<div id="labelModal" class="modal-overlay">
+  <div class="modal sheet">
+    <h3 style="margin:0 0 6px;">部屋名を変更</h3>
+    <div style="font-size:12px;color:#666;margin-bottom:10px;">候補をタップ（名前＋色） / 入力してOK</div>
+
+    <input type="text" id="labelInput" placeholder="部屋名" maxlength="12" />
+
+    <div style="display:flex; gap:10px; margin:12px 0 6px;">
+      <button class="small-btn gray" id="openPresetBtn" type="button" style="height:36px;">プリセット編集</button>
+      <div style="font-size:12px;color:#666;align-self:center;">※この端末に保存</div>
+    </div>
+
+    <div class="chip-grid" id="labelChips"></div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="labelCancelBtn" type="button">キャンセル</button>
+      <button style="flex:1; background:var(--accent);" id="labelOkBtn" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="menuModal" class="modal-overlay">
+  <div class="modal sheet">
+    <h3 style="margin:0 0 6px;">メニュー</h3>
+    <div id="menuTitle" style="font-size:12px;color:#666;margin-bottom:8px;">選択中</div>
+
+    <div class="menu-list">
+      <button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
+      <button class="menu-btn" id="menuDupBtn" type="button">複製</button>
+      <button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
+      <button class="menu-btn" id="menuFrontBtn" type="button">最前面</button>
+      <button class="menu-btn" id="menuBackBtn" type="button">最背面</button>
+      <button class="menu-btn" id="menuLockBtn" type="button">ロック/解除</button>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="menuCloseBtn" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- Preset Manager -->
+<div id="presetModal" class="modal-overlay">
+  <div class="modal sheet">
+    <h3 style="margin:0 0 6px;">プリセット編集</h3>
+    <div style="font-size:12px;color:#666;margin-bottom:10px;">部屋名と色を追加/変更できます</div>
+
+    <div class="preset-list" id="presetList"></div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="small-btn gray" id="presetAddBtn" type="button" style="height:42px;">＋追加</button>
+      <button class="small-btn" id="presetSaveBtn" type="button" style="height:42px;">保存</button>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="presetCloseBtn" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c" };
+const firebaseConfig = {
+  apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
+  authDomain: "test-55430.firebaseapp.com",
+  projectId: "test-55430",
+  storageBucket: "test-55430.firebasestorage.app",
+  messagingSenderId: "742726212885",
+  appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
+  measurementId: "G-PW24JY2LBP"
+};
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const el = (id) => document.getElementById(id);
+
 const canvas = el('canvas');
 const ctx = canvas.getContext('2d');
 const container = el('canvas-container');
 
+const GRID_SIZE = 32;
+const HISTORY_MAX = 50;
+const PRESET_KEY = "floorplan_presets_v1";
+
+const WALL_DEFAULT_THICK = 12;
+const WALL_HANDLE_R = 18;      // screen px（world変換でscale考慮）
+const WALL_HIT_PAD = 12;       // screen px
+const SNAP_ANGLE_DEG = 15;     // 直角スナップ許容
+const AUTOSAVE_DELAY = 1500;   // 1.5s
+
 let items = [];
 let selectedItem = null;
+let isResizing = false;
 let isDragging = false;
 let isMerged = false;
-let camera = { x: 0, y: 0 };
-let scale = 1.0;
+
+let camera = { x: 0, y: 0 };   // screen px
+let scale = 1.0;               // zoom
+
 let dragStart = null;
 let lastCamera = { x: 0, y: 0 };
 let startX, startY;
 let lastTapTime = 0;
+
+let layoutId = null;
+
+let editingItem = null;     // label editor target
+let menuItem = null;        // context menu target
+
+// Wall specific drag state
+let wallDragMode = null;    // "p1" | "p2" | "move"
+let wallDragOffset = null;  // for move: {dx,dy} in world
+
+// Undo/Redo stacks store snapshots
 let undoStack = [];
 let redoStack = [];
+let gestureSnapshot = null;
+
+// Long press menu
 let longPressTimer = null;
 let pressStartClient = null;
-let menuItem = null;
 
-const GRID_SIZE = 32;
+let presets = []; // [{name,color}]
 
-function uid(){ return Math.random().toString(36).slice(2, 10); }
-function getSnapStep(){ return el('useHalfGrid').checked ? 16 : 32; }
-function getSnapped(val, step){ return Math.round(val / step) * step; }
-function screenToWorld(sx, sy){
-  const r = canvas.getBoundingClientRect();
-  return { x: (sx - r.left - canvas.width/2 - camera.x) / scale, y: (sy - r.top - canvas.height/2 - camera.y) / scale };
+// Auto-save
+let autosaveTimer = null;
+
+function uid(){
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
-function snapshot(){ return JSON.stringify({ items, isMerged, camera, scale }); }
-function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>50) undoStack.shift(); redoStack=[]; }
-function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); const s=JSON.parse(undoStack.pop()); items=s.items; isMerged=s.isMerged; camera=s.camera; scale=s.scale; draw(); }
+function ensureIds(){
+  items.forEach(it => {
+    if(!it.id) it.id = uid();
+    if(typeof it.locked !== "boolean") it.locked = false;
+    // wall line backward/forward compatibility: if old "wall" rect exists, keep it.
+    if(it.type === 'wallLine'){
+      if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
+    }
+  });
+}
 
+function normalizeZ(){
+  const frames = items.filter(i => i.type === 'frame');
+  const others = items.filter(i => i.type !== 'frame');
+  items = [...frames, ...others];
+}
+
+function getSnapStep(){
+  return el('useHalfGrid').checked ? 16 : 32;
+}
+
+function getSnapped(val, step){
+  return Math.round(val / step) * step;
+}
+
+/* ====== Coordinate helpers (screen <-> world) ======
+Draw transform: translate(center + camera), then scale(scale), then draw in world coords.
+screen = center + camera + world * scale
+world = (screen - center - camera) / scale
+*/
+function screenToWorld(screenX, screenY){
+  const rect = canvas.getBoundingClientRect();
+  const cx = canvas.width/2;
+  const cy = canvas.height/2;
+  const x = (screenX - rect.left - cx - camera.x) / scale;
+  const y = (screenY - rect.top  - cy - camera.y) / scale;
+  return {x,y};
+}
+
+function worldToScreen(wx, wy){
+  const rect = canvas.getBoundingClientRect();
+  const cx = canvas.width/2;
+  const cy = canvas.height/2;
+  const sx = rect.left + cx + camera.x + wx * scale;
+  const sy = rect.top  + cy + camera.y + wy * scale;
+  return {x:sx,y:sy};
+}
+
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+/* ====== Autosave ====== */
+function scheduleAutoSave(){
+  // 共有URLが未発行なら自動保存しない（仕様：初回だけ発行ボタン）
+  if(!layoutId) return;
+
+  if(autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    try{
+      await setDoc(doc(db, "layouts", layoutId), { items, isMerged, updatedAt: new Date() }, { merge: true });
+    }catch(e){
+      // 失敗してもUIは止めない（必要ならトースト追加）
+      console.warn("autosave failed", e);
+    }
+  }, AUTOSAVE_DELAY);
+}
+
+/* ====== History ====== */
+function snapshot(){
+  ensureIds();
+  return {
+    items: items.map(i => ({...i})),
+    selectedId: selectedItem?.id || null,
+    isMerged,
+    camera: {...camera},
+    scale,
+    layoutId
+  };
+}
+
+function restore(s){
+  items = (s.items || []).map(i => ({...i}));
+  ensureIds();
+  normalizeZ();
+  isMerged = !!s.isMerged;
+  camera = s.camera ? {...s.camera} : {x:0,y:0};
+  scale = typeof s.scale === "number" ? s.scale : 1.0;
+  layoutId = s.layoutId ?? layoutId;
+  selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
+  updateSegmentUI();
+  draw();
+}
+
+function pushHistory(){
+  undoStack.push(snapshot());
+  if (undoStack.length > HISTORY_MAX) undoStack.shift();
+  redoStack = [];
+  syncHistoryButtons();
+}
+
+function undo(){
+  if (!undoStack.length) return;
+  redoStack.push(snapshot());
+  const prev = undoStack.pop();
+  restore(prev);
+  syncHistoryButtons();
+  scheduleAutoSave();
+}
+
+function redo(){
+  if (!redoStack.length) return;
+  undoStack.push(snapshot());
+  const next = redoStack.pop();
+  restore(next);
+  syncHistoryButtons();
+  scheduleAutoSave();
+}
+
+function syncHistoryButtons(){
+  el('undoBtn').disabled = undoStack.length === 0;
+  el('redoBtn').disabled = redoStack.length === 0;
+}
+
+/* ===== Presets ===== */
+function defaultPresets(){
+  return [
+    { name: "LDK", color: "#FFF3E0" },
+    { name: "洋室", color: "#E3F2FD" },
+    { name: "寝室", color: "#E8F5E9" },
+    { name: "土間", color: "#ECEFF1" },
+    { name: "収納", color: "#F3E5F5" },
+    { name: "洗面", color: "#E0F7FA" },
+    { name: "トイレ", color: "#FFFDE7" },
+    { name: "玄関", color: "#FBE9E7" },
+  ];
+}
+
+function loadPresets(){
+  try{
+    const raw = localStorage.getItem(PRESET_KEY);
+    if(raw){
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length){
+        return arr.map(p => ({
+          name: String(p.name||"").trim() || "部屋",
+          color: String(p.color||"#FFF3E0")
+        }));
+      }
+    }
+  }catch(_){}
+  return defaultPresets();
+}
+
+function savePresets(){
+  localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+}
+
+function renderPresetChips(){
+  const box = el('labelChips');
+  box.innerHTML = "";
+  presets.forEach(p => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "name-chip";
+    b.dataset.name = p.name;
+    b.dataset.color = p.color;
+    b.innerHTML = `<span class="dot" style="background:${p.color}"></span><span>${p.name}</span>`;
+    b.addEventListener("click", () => {
+      el('labelInput').value = p.name;
+      applyLabel(true, p.color);
+    });
+    box.appendChild(b);
+  });
+}
+
+function openPresetEditor(){
+  el('presetModal').style.display = 'flex';
+  renderPresetEditorList();
+}
+
+function closePresetEditor(){
+  el('presetModal').style.display = 'none';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function renderPresetEditorList(){
+  const list = el('presetList');
+  list.innerHTML = "";
+  presets.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "preset-row";
+    row.innerHTML = `
+      <input type="text" value="${escapeHtml(p.name)}" maxlength="12" data-idx="${idx}" data-k="name">
+      <input type="color" value="${p.color}" data-idx="${idx}" data-k="color">
+      <button class="preset-del" type="button" data-idx="${idx}">削除</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = Number(inp.dataset.idx);
+      const k = inp.dataset.k;
+      if(!presets[i]) return;
+      if(k === 'name') presets[i].name = (inp.value || "").trim().slice(0,12) || "部屋";
+      if(k === 'color') presets[i].color = inp.value || "#FFF3E0";
+    });
+  });
+
+  list.querySelectorAll('.preset-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.idx);
+      presets.splice(i, 1);
+      renderPresetEditorList();
+    });
+  });
+}
+
+/* ===== UI helpers ===== */
+function resizeCanvas(){
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  draw();
+}
+
+function updateSegmentUI(){
+  el('segEdit').classList.toggle('active', !isMerged);
+  el('segMerge').classList.toggle('active', isMerged);
+}
+
+function setMergedMode(val){
+  isMerged = val;
+  updateSegmentUI();
+  draw();
+}
+
+function updateSummary(){
+  let tm = 0;
+  items.forEach(i => {
+    if(i.type === 'frame'){
+      tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE);
+    }
+  });
+  el('totalTsubo').innerText = (tm/4).toFixed(2);
+  el('totalJou').innerText = (tm/2).toFixed(1);
+}
+
+function syncBottomBarState(){
+  el('copyBtn2').disabled = !selectedItem;
+}
+
+/* ====== Add items ====== */
 function addRect(label, w, h, color, type='room'){
   pushHistory();
-  const tx = getSnapped((-camera.x)/scale, 32), ty = getSnapped((-camera.y)/scale, 32);
-  const i = { id: uid(), type, x: tx, y: ty, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color, locked: false };
-  if(type==='frame') items.unshift(i); else items.push(i);
-  selectedItem = i; draw();
+  const step = GRID_SIZE;
+  const targetX = getSnapped((-camera.x)/scale, step);
+  const targetY = getSnapped((-camera.y)/scale, step);
+
+  const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
+  if(type === 'frame') items.unshift(i); else items.push(i);
+  ensureIds();
+  normalizeZ();
+  selectedItem = i;
+  draw();
+  scheduleAutoSave();
 }
 
 function addWallLine(){
   pushHistory();
-  const tx = getSnapped((-camera.x)/scale, 32), ty = getSnapped((-camera.y)/scale, 32);
-  const w = { id: uid(), type: 'wallLine', x1: tx, y1: ty, x2: tx+128, y2: ty, label: '壁', color: '#666', thick: 12, locked: false };
-  items.push(w); selectedItem = w; draw();
+  const step = GRID_SIZE;
+  const targetX = getSnapped((-camera.x)/scale, step);
+  const targetY = getSnapped((-camera.y)/scale, step);
+
+  const len = 4 * GRID_SIZE;
+  const wall = {
+    id: uid(),
+    locked:false,
+    type: 'wallLine',
+    label: '壁',
+    color: '#616161',
+    thick: WALL_DEFAULT_THICK,
+    x1: targetX,
+    y1: targetY,
+    x2: targetX + len,
+    y2: targetY
+  };
+  items.push(wall);
+  ensureIds();
+  normalizeZ();
+  selectedItem = wall;
+  draw();
+  scheduleAutoSave();
+}
+
+/* ====== Fit/Center ====== */
+function fitToFrame(){
+  const frames = items.filter(i => i.type === 'frame');
+  const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine'); // wallだけだと厳しいので除外
+  if (!targets.length) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  targets.forEach(it => {
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + it.w);
+    maxY = Math.max(maxY, it.y + it.h);
+  });
+
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+
+  camera = { x: -cx * scale, y: -cy * scale };
+  draw();
+}
+
+/* ===== Label editor ===== */
+function openLabelEditor(item){
+  if (!item) return;
+  editingItem = item;
+
+  el('labelInput').value = item.label || "";
+  el('labelModal').style.display = 'flex';
+  setTimeout(() => el('labelInput').focus(), 50);
+}
+
+function closeLabelEditor(){
+  el('labelModal').style.display = 'none';
+  editingItem = null;
+}
+
+function applyLabel(applyColor=false, colorValue=null){
+  if (!editingItem) return;
+  const v = el('labelInput').value.trim();
+  if (!v) return;
+
+  pushHistory();
+
+  editingItem.label = v;
+  if(applyColor && colorValue){
+    editingItem.color = colorValue;
+  }
+
+  closeLabelEditor();
+  draw();
+  scheduleAutoSave();
+}
+
+/* ===== Context menu ===== */
+function openMenu(item){
+  if(!item) return;
+  menuItem = item;
+  const lockedText = item.locked ? "（ロック）" : "";
+  el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
+  el('menuModal').style.display = 'flex';
+}
+
+function closeMenu(){
+  el('menuModal').style.display = 'none';
+  menuItem = null;
+}
+
+function duplicateItem(it){
+  if(!it) return;
+  pushHistory();
+
+  let n;
+  if(it.type === 'wallLine'){
+    n = { ...it, id: uid(), x1: it.x1 + GRID_SIZE, y1: it.y1 + GRID_SIZE, x2: it.x2 + GRID_SIZE, y2: it.y2 + GRID_SIZE };
+  }else{
+    n = { ...it, id: uid(), x: it.x + GRID_SIZE, y: it.y + GRID_SIZE };
+  }
+
+  items.push(n);
+  normalizeZ();
+  selectedItem = n;
+  draw();
+  scheduleAutoSave();
+}
+
+function deleteItem(it){
+  if(!it) return;
+  pushHistory();
+  items = items.filter(x => x !== it);
+  selectedItem = null;
+  normalizeZ();
+  draw();
+  scheduleAutoSave();
+}
+
+function bringFront(it){
+  if(!it) return;
+  pushHistory();
+  items = items.filter(x => x !== it);
+  items.push(it);
+  normalizeZ();
+  draw();
+  scheduleAutoSave();
+}
+
+function bringBack(it){
+  if(!it) return;
+  pushHistory();
+  const frames = items.filter(i => i.type === 'frame');
+  const others = items.filter(i => i.type !== 'frame' && i !== it);
+  items = [...frames, it, ...others];
+  normalizeZ();
+  draw();
+  scheduleAutoSave();
+}
+
+function toggleLock(it){
+  if(!it) return;
+  pushHistory();
+  it.locked = !it.locked;
+  draw();
+  scheduleAutoSave();
+}
+
+/* ====== Wall helpers ====== */
+function distPointToSegment(px, py, x1, y1, x2, y2){
+  // returns distance in world units
+  const vx = x2 - x1, vy = y2 - y1;
+  const wx = px - x1, wy = py - y1;
+  const c1 = vx*wx + vy*wy;
+  if (c1 <= 0) return Math.hypot(px - x1, py - y1);
+  const c2 = vx*vx + vy*vy;
+  if (c2 <= c1) return Math.hypot(px - x2, py - y2);
+  const t = c1 / c2;
+  const bx = x1 + t*vx;
+  const by = y1 + t*vy;
+  return Math.hypot(px - bx, py - by);
+}
+
+function wallHitTest(worldP, wall){
+  // return {hit: boolean, handle: "p1"|"p2"|null}
+  const handleRWorld = WALL_HANDLE_R / scale;
+  const padWorld = WALL_HIT_PAD / scale;
+
+  const d1 = Math.hypot(worldP.x - wall.x1, worldP.y - wall.y1);
+  if(d1 <= handleRWorld) return {hit:true, handle:"p1"};
+
+  const d2 = Math.hypot(worldP.x - wall.x2, worldP.y - wall.y2);
+  if(d2 <= handleRWorld) return {hit:true, handle:"p2"};
+
+  const dSeg = distPointToSegment(worldP.x, worldP.y, wall.x1, wall.y1, wall.x2, wall.y2);
+  const thickWorld = (wall.thick || WALL_DEFAULT_THICK) / scale;
+  if(dSeg <= (thickWorld/2 + padWorld)) return {hit:true, handle:null};
+
+  return {hit:false, handle:null};
+}
+
+function applyRightAngleSnap(wall, movingHandle){
+  // When moving an endpoint, snap to horizontal/vertical if nearly aligned
+  const ax = (movingHandle === "p1") ? wall.x2 : wall.x1;
+  const ay = (movingHandle === "p1") ? wall.y2 : wall.y1;
+  const bx = (movingHandle === "p1") ? wall.x1 : wall.x2;
+  const by = (movingHandle === "p1") ? wall.y1 : wall.y2;
+
+  const dx = bx - ax;
+  const dy = by - ay;
+  const adx = Math.abs(dx), ady = Math.abs(dy);
+  if(adx < 1e-6 && ady < 1e-6) return;
+
+  const tan = Math.tan(SNAP_ANGLE_DEG * Math.PI/180);
+
+  // near horizontal: |dy| < |dx|*tan
+  if(ady <= adx * tan){
+    if(movingHandle === "p1") wall.y1 = wall.y2;
+    else wall.y2 = wall.y1;
+    return;
+  }
+
+  // near vertical: |dx| < |dy|*tan
+  if(adx <= ady * tan){
+    if(movingHandle === "p1") wall.x1 = wall.x2;
+    else wall.x2 = wall.x1;
+  }
+}
+
+/* ===== Draw ===== */
+function drawGrid(){
+  // grid step in world coords: GRID_SIZE
+  ctx.strokeStyle = "#e5e5ea";
+  ctx.lineWidth = 0.5 / scale;
+
+  const range = 1600;
+  for (let x = -range; x <= range; x += GRID_SIZE) {
+    ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+  }
+  for (let y = -range; y <= range; y += GRID_SIZE) {
+    ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+  }
+}
+
+function drawRectItems(){
+  items.forEach(item => {
+    if(item.type === 'wallLine') return;
+
+    ctx.fillStyle = item.color;
+    ctx.globalAlpha = item.type==='room' ? 0.82 : 1.0;
+    ctx.fillRect(item.x, item.y, item.w, item.h);
+    ctx.globalAlpha = 1.0;
+
+    ctx.strokeStyle = item.type === 'frame' ? "#cfcfd6" : "#333";
+    ctx.lineWidth = 1 / scale;
+    ctx.strokeRect(item.x, item.y, item.w, item.h);
+
+    if(item.locked){
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
+      ctx.fillRect(item.x, item.y, item.w, item.h);
+    }
+
+    ctx.fillStyle = "#111";
+    ctx.font = `bold ${13/scale}px sans-serif`;
+    const label = item.locked ? `${item.label} 🔒` : item.label;
+    ctx.fillText(label, item.x + 6/scale, item.y + 18/scale);
+  });
+}
+
+function drawWallLine(wall){
+  const thick = wall.thick || WALL_DEFAULT_THICK;
+
+  // base
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.strokeStyle = wall.color || "#616161";
+  ctx.lineWidth = thick / scale;
+  ctx.beginPath();
+  ctx.moveTo(wall.x1, wall.y1);
+  ctx.lineTo(wall.x2, wall.y2);
+  ctx.stroke();
+
+  // locked overlay hint
+  if(wall.locked){
+    ctx.strokeStyle = "rgba(0,0,0,0.20)";
+    ctx.lineWidth = (thick + 4) / scale;
+    ctx.beginPath();
+    ctx.moveTo(wall.x1, wall.y1);
+    ctx.lineTo(wall.x2, wall.y2);
+    ctx.stroke();
+  }
+
+  // label near midpoint
+  const mx = (wall.x1 + wall.x2)/2;
+  const my = (wall.y1 + wall.y2)/2;
+  ctx.fillStyle = "#111";
+  ctx.font = `bold ${12/scale}px sans-serif`;
+  const text = wall.locked ? `${wall.label} 🔒` : wall.label;
+  ctx.fillText(text, mx + 8/scale, my - 8/scale);
+
+  ctx.restore();
+}
+
+function drawWallSelection(wall){
+  // selection highlight + endpoint handles
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#007AFF";
+  ctx.lineWidth = (wall.thick ? wall.thick + 4 : WALL_DEFAULT_THICK + 4) / scale;
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.moveTo(wall.x1, wall.y1);
+  ctx.lineTo(wall.x2, wall.y2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  if(!wall.locked){
+    const r = WALL_HANDLE_R / scale;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#007AFF";
+    ctx.lineWidth = 2/scale;
+
+    ctx.beginPath(); ctx.arc(wall.x1, wall.y1, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(wall.x2, wall.y2, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawMerged(){
+  // 既存の結合描画は「矩形部屋」前提（壁線は無視）
+  const roomMap = {};
+  const frameMap = {};
+  const groups = {};
+  const sub = 16;
+
+  items.forEach((item, index) => {
+    if(item.type === 'wallLine') return;
+
+    if (item.type !== 'frame') {
+      if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
+      groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+      if (index > groups[item.label].lastIdx) {
+        groups[item.label].textX = item.x + item.w/2;
+        groups[item.label].textY = item.y + item.h/2;
+        groups[item.label].lastIdx = index;
+      }
+    }
+
+    for (let x = item.x; x < item.x + item.w; x += sub) {
+      for (let y = item.y; y < item.y + item.h; y += sub) {
+        const pos = `${x},${y}`;
+        if (item.type === 'frame') frameMap[pos] = item.label;
+        else roomMap[pos] = { label: item.label, color: item.color };
+      }
+    }
+  });
+
+  items.forEach(item => {
+    if(item.type === 'wallLine') return;
+    ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color;
+    ctx.fillRect(item.x, item.y, item.w, item.h);
+  });
+
+  const drawEdge = (map, color, width) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width / scale;
+    for (const pos in map) {
+      const [x, y] = pos.split(',').map(Number);
+      const label = map[pos].label || map[pos];
+      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+        if ((map[`${x+d.dx},${y+d.dy}`]?.label || map[`${x+d.dx},${y+d.dy}`]) !== label) {
+          ctx.beginPath();
+          if(d.dy!==0){
+            ctx.moveTo(x, y+(d.dy>0?sub:0));
+            ctx.lineTo(x+sub, y+(d.dy>0?sub:0));
+          } else {
+            ctx.moveTo(x+(d.dx>0?sub:0), y);
+            ctx.lineTo(x+(d.dx>0?sub:0), y+sub);
+          }
+          ctx.stroke();
+        }
+      });
+    }
+  };
+
+  drawEdge(roomMap, "#333", 2);
+  drawEdge(frameMap, "#111", 6);
+
+  for (const key in groups) {
+    const g = groups[key];
+    ctx.fillStyle = "#111";
+    ctx.textAlign = "center";
+    ctx.font = `bold ${14/scale}px sans-serif`;
+    ctx.fillText(g.label, g.textX, g.textY - 4/scale);
+
+    let subText = "";
+    if (el('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
+    if (el('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+
+    ctx.font = `${11/scale}px sans-serif`;
+    ctx.fillText(subText, g.textX, g.textY + 12/scale);
+    ctx.textAlign = "left";
+  }
+
+  // walls on top (mergedでも壁は表示)
+  items.forEach(it => {
+    if(it.type === 'wallLine') drawWallLine(it);
+  });
 }
 
 window.draw = function(){
-  ctx.save(); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.translate(canvas.width/2+camera.x, canvas.height/2+camera.y); ctx.scale(scale,scale);
-  // Grid
-  ctx.strokeStyle="#eee"; ctx.lineWidth=1/scale;
-  for(let x=-1000;x<=1000;x+=32){ ctx.beginPath(); ctx.moveTo(x,-1000); ctx.lineTo(x,1000); ctx.stroke(); }
-  for(let y=-1000;y<=1000;y+=32){ ctx.beginPath(); ctx.moveTo(-1000,y); ctx.lineTo(1000,y); ctx.stroke(); }
-  
-  items.forEach(it => {
-    if(it.type==='wallLine'){
-      ctx.strokeStyle=it.color; ctx.lineWidth=it.thick/scale; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(it.x1,it.y1); ctx.lineTo(it.x2,it.y2); ctx.stroke();
-    } else {
-      ctx.fillStyle=it.color; ctx.globalAlpha=it.type==='room'?0.7:1; ctx.fillRect(it.x,it.y,it.w,it.h); ctx.globalAlpha=1;
-      ctx.strokeStyle="#333"; ctx.lineWidth=1/scale; ctx.strokeRect(it.x,it.y,it.w,it.h);
-      ctx.fillStyle="#000"; ctx.font=`bold ${12/scale}px sans-serif`; ctx.fillText(it.label, it.x+4/scale, it.y+14/scale);
-    }
-  });
-  if(selectedItem && !isMerged){
-    ctx.strokeStyle="#007AFF"; ctx.lineWidth=3/scale;
-    if(selectedItem.type==='wallLine'){ ctx.beginPath(); ctx.moveTo(selectedItem.x1,selectedItem.y1); ctx.lineTo(selectedItem.x2,selectedItem.y2); ctx.stroke(); }
-    else{ ctx.strokeRect(selectedItem.x,selectedItem.y,selectedItem.w,selectedItem.h); }
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // transform: translate center+camera then scale
+  ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+  ctx.scale(scale, scale);
+
+  drawGrid();
+
+  if (isMerged) {
+    drawMerged();
+  } else {
+    drawRectItems();
+    items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
   }
+
+  // selection
+  if (selectedItem && !(isMerged && selectedItem.type === 'frame')) {
+    if(selectedItem.type === 'wallLine'){
+      drawWallSelection(selectedItem);
+    }else{
+      ctx.strokeStyle = "#007AFF";
+      ctx.lineWidth = 3 / scale;
+      ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+
+      if ((isDragging || isResizing) && !selectedItem.locked) {
+        const mw = (selectedItem.w / GRID_SIZE).toFixed(1).replace('.0','');
+        const mh = (selectedItem.h / GRID_SIZE).toFixed(1).replace('.0','');
+        ctx.fillStyle = "rgba(0, 122, 255, 0.9)";
+        ctx.fillRect(selectedItem.x, selectedItem.y - 30/scale, 70/scale, 24/scale);
+        ctx.fillStyle = "#fff";
+        ctx.font = `bold ${14/scale}px sans-serif`;
+        ctx.fillText(`${mw} × ${mh}`, selectedItem.x + 5/scale, selectedItem.y - 12/scale);
+      }
+
+      // resize handle
+      if(!selectedItem.locked){
+        ctx.fillStyle = "#fff";
+        ctx.strokeStyle = "#007AFF";
+        ctx.lineWidth = 2/scale;
+        ctx.beginPath();
+        ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16/scale, 0, Math.PI*2);
+        ctx.fill(); ctx.stroke();
+      }
+    }
+  }
+
   ctx.restore();
-  // Summary
-  let tm=0; items.filter(i=>i.type==='frame').forEach(i=>tm+=(i.w/32)*(i.h/32));
-  el('totalTsubo').innerText=(tm/4).toFixed(2); el('totalJou').innerText=(tm/2).toFixed(1);
+
+  updateSummary();
+  syncBottomBarState();
+  syncHistoryButtons();
 };
 
-function clearLongPress(){ if(longPressTimer) clearTimeout(longPressTimer); longPressTimer=null; pressStartClient=null; }
-function startLongPress(item){ clearLongPress(); longPressTimer=setTimeout(() => { if(!isDragging){ menuItem=item; el('menuTitle').innerText=item.label; el('menuModal').style.display='flex'; } }, 500); }
+/* ===== Init ===== */
+function init(){
+  presets = loadPresets();
+  renderPresetChips();
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  el('segEdit').onclick = () => setMergedMode(false);
+  el('segMerge').onclick = () => setMergedMode(true);
+
+  el('undoBtn').onclick = undo;
+  el('redoBtn').onclick = redo;
+  syncHistoryButtons();
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  layoutId = id || null;
+
+  if (layoutId) {
+    getDoc(doc(db, "layouts", layoutId)).then(snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        items = (data.items || []).map(i => ({...i}));
+        ensureIds();
+        normalizeZ();
+        isMerged = !!data.isMerged;
+        updateSegmentUI();
+        draw();
+      } else {
+        addRect('外枠', 10, 10, '#f8f8f8', 'frame');
+        updateSegmentUI();
+      }
+    });
+  } else {
+    addRect('外枠', 10, 10, '#f8f8f8', 'frame');
+    updateSegmentUI();
+  }
+}
+
+/* ===== Top actions ===== */
+el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
+el('helpModal').onclick = () => el('helpModal').style.display = 'none';
+
+el('saveBtn').onclick = async () => {
+  // 初回発行 or 手動保存
+  if (!layoutId) {
+    const r = await addDoc(collection(db, "layouts"), { items, isMerged, updatedAt: new Date() });
+    layoutId = r.id;
+    const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+    history.replaceState(null, "", newUrl);
+  }
+  await setDoc(doc(db, "layouts", layoutId), { items, isMerged, updatedAt: new Date() }, { merge: true });
+
+  el('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+  el('saveModal').style.display = 'flex';
+};
+
+el('copyUrlBtn').onclick = () => {
+  navigator.clipboard.writeText(el('shareUrlInput').value);
+  alert("コピーしました");
+};
+el('closeSaveModalBtn').onclick = () => el('saveModal').style.display = 'none';
+
+el('colorPicker').oninput = (e) => {
+  if(selectedItem){
+    pushHistory();
+    selectedItem.color = e.target.value;
+    draw();
+    scheduleAutoSave();
+  }
+};
+
+el('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; scale = 1.0; draw(); };
+el('fitBtn').onclick = fitToFrame;
+
+document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = draw);
+
+/* ===== Label Modal events ===== */
+el('labelCancelBtn').onclick = closeLabelEditor;
+el('labelOkBtn').onclick = () => applyLabel(false, null);
+el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabelEditor(); };
+el('labelInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyLabel(false, null); });
+el('openPresetBtn').onclick = openPresetEditor;
+
+/* ===== Menu Modal events ===== */
+el('menuCloseBtn').onclick = closeMenu;
+el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu(); };
+
+el('menuEditBtn').onclick = () => { if(menuItem){ closeMenu(); openLabelEditor(menuItem); } };
+el('menuDupBtn').onclick  = () => { if(menuItem){ closeMenu(); duplicateItem(menuItem); } };
+el('menuDelBtn').onclick  = () => { if(menuItem){ closeMenu(); deleteItem(menuItem); } };
+el('menuFrontBtn').onclick= () => { if(menuItem){ closeMenu(); bringFront(menuItem); } };
+el('menuBackBtn').onclick = () => { if(menuItem){ closeMenu(); bringBack(menuItem); } };
+el('menuLockBtn').onclick = () => { if(menuItem){ closeMenu(); toggleLock(menuItem); } };
+
+/* ===== Preset Modal events ===== */
+el('presetCloseBtn').onclick = closePresetEditor;
+el('presetModal').onclick = (e) => { if (e.target.id === 'presetModal') closePresetEditor(); };
+el('presetAddBtn').onclick = () => {
+  presets.push({ name: "部屋", color: "#FFF3E0" });
+  renderPresetEditorList();
+};
+el('presetSaveBtn').onclick = () => {
+  presets = presets
+    .map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
+    .filter(p => p.name.length > 0);
+  savePresets();
+  renderPresetChips();
+  closePresetEditor();
+};
+
+/* ===== Bottom actions ===== */
+el('addGenericRoomBtn2').onclick = () => {
+  const n = prompt("部屋名", "洋室");
+  if (n) addRect(n, 4, 4, '#FFF3E0', 'room');
+};
+el('addFrameBtn2').onclick = () => addRect('外枠', 10, 10, '#f8f8f8', 'frame');
+el('addWallBtn2').onclick = addWallLine;
+
+el('copyBtn2').onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
+
+el('resetBtn2').onclick = () => {
+  if(selectedItem){
+    deleteItem(selectedItem);
+  } else if(confirm("全消去しますか？")) {
+    pushHistory();
+    items = [];
+    selectedItem = null;
+    addRect('外枠', 10, 10, '#f8f8f8', 'frame');
+  }
+  draw();
+  scheduleAutoSave();
+};
+
+/* ===== Touch interactions ===== */
+function clearLongPress(){
+  if(longPressTimer) clearTimeout(longPressTimer);
+  longPressTimer = null;
+  pressStartClient = null;
+}
+
+function startLongPress(item){
+  clearLongPress();
+  const delay = 450;
+  longPressTimer = setTimeout(() => {
+    // 発火時点でドラッグ等を無効化
+    isDragging = false;
+    isResizing = false;
+    dragStart = null;
+    wallDragMode = null;
+    openMenu(item);
+  }, delay);
+}
+
+function getPinchInfo(touches){
+  const a = touches[0], b = touches[1];
+  const dx = b.clientX - a.clientX;
+  const dy = b.clientY - a.clientY;
+  const dist = Math.hypot(dx, dy);
+  const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
+  return { dist, mid };
+}
+
+let pinchActive = false;
+let pinchStartDist = 0;
+let pinchStartScale = 1;
+let pinchWorldMid = null;
 
 canvas.addEventListener('touchstart', e => {
-  if(e.touches.length!==1) return;
-  const t=e.touches[0]; pressStartClient={x:t.clientX, y:t.clientY};
-  const wp=screenToWorld(t.clientX, t.clientY);
-  let found=null;
-  for(let i=items.length-1;i>=0;i--){
-    const it=items[i];
-    if(it.type==='wallLine'){ if(Math.hypot(wp.x-it.x1, wp.y-it.y1)<20 || Math.hypot(wp.x-it.x2, wp.y-it.y2)<20) found=it; }
-    else if(wp.x>=it.x && wp.x<=it.x+it.w && wp.y>=it.y && wp.y<=it.y+it.h) found=it;
-    if(found) break;
+  const now = Date.now();
+
+  // Pinch start
+  if(e.touches.length === 2){
+    pinchActive = true;
+    clearLongPress();
+    isDragging = false; isResizing = false; dragStart = null;
+    wallDragMode = null;
+    gestureSnapshot = snapshot();
+
+    const { dist, mid } = getPinchInfo(e.touches);
+    pinchStartDist = dist;
+    pinchStartScale = scale;
+    pinchWorldMid = screenToWorld(mid.x, mid.y);
+    return;
   }
-  if(found){ selectedItem=found; startLongPress(found); isDragging=true; startX=wp.x-found.x; startY=wp.y-found.y; }
-  else{ selectedItem=null; dragStart={x:t.clientX, y:t.clientY}; lastCamera={...camera}; }
+
+  // single touch
+  if(e.touches.length !== 1) return;
+
+  const t = e.touches[0];
+  pressStartClient = { x: t.clientX, y: t.clientY };
+
+  // double tap rename (edit mode only)
+  if (now - lastTapTime < 300 && selectedItem && !isMerged) {
+    openLabelEditor(selectedItem);
+    return;
+  }
+  lastTapTime = now;
+
+  const worldP = screenToWorld(t.clientX, t.clientY);
+
+  // resize handle for rect
+  if(selectedItem && !selectedItem.locked && selectedItem.type !== 'wallLine'
+     && !(isMerged && selectedItem.type==='frame')
+     && Math.abs(worldP.x-(selectedItem.x+selectedItem.w))<30/scale
+     && Math.abs(worldP.y-(selectedItem.y+selectedItem.h))<30/scale){
+    gestureSnapshot = snapshot();
+    isResizing = true;
+    return;
+  }
+
+  // hit test from top (z)
+  let found = null;
+  let foundWallHandle = null;
+
+  for (let i = items.length-1; i >= 0; i--) {
+    if (!isMerged || items[i].type !== 'frame') {
+      const it = items[i];
+
+      if(it.type === 'wallLine'){
+        const r = wallHitTest(worldP, it);
+        if(r.hit){
+          found = it;
+          foundWallHandle = r.handle;
+          break;
+        }
+      } else {
+        if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
+          found = it; break;
+        }
+      }
+    }
+  }
+
+  if(found){
+    selectedItem = found;
+
+    // long press menu
+    startLongPress(found);
+
+    // locked → select only
+    if(found.locked){
+      isDragging = false;
+      wallDragMode = null;
+      draw();
+      return;
+    }
+
+    gestureSnapshot = snapshot();
+
+    // bring to front (rect only; wallは順序あまり重要ないので維持でもOK)
+    items.splice(items.indexOf(found), 1);
+    items.push(found);
+    normalizeZ();
+
+    if(found.type === 'wallLine'){
+      if(foundWallHandle === "p1" || foundWallHandle === "p2"){
+        wallDragMode = foundWallHandle;
+      } else {
+        wallDragMode = "move";
+        wallDragOffset = { dx: worldP.x - found.x1, dy: worldP.y - found.y1 };
+      }
+      isDragging = true;
+    } else {
+      startX = worldP.x - found.x;
+      startY = worldP.y - found.y;
+      isDragging = true;
+      wallDragMode = null;
+    }
+  } else {
+    selectedItem = null;
+    clearLongPress();
+    dragStart = { x: t.clientX, y: t.clientY };
+    lastCamera = { ...camera };
+    wallDragMode = null;
+  }
+
   draw();
 });
 
 canvas.addEventListener('touchmove', e => {
-  if(e.touches.length!==1) return; e.preventDefault();
-  const t=e.touches[0];
-  if(pressStartClient){
-    if(Math.hypot(t.clientX-pressStartClient.x, t.clientY-pressStartClient.y)>15) clearLongPress();
+  e.preventDefault();
+
+  // Pinch move
+  if(pinchActive && e.touches.length === 2){
+    const { dist, mid } = getPinchInfo(e.touches);
+
+    const factor = dist / pinchStartDist;
+    const newScale = clamp(pinchStartScale * factor, 0.5, 3.0);
+    scale = newScale;
+
+    // keep world point under midpoint stable
+    const rect = canvas.getBoundingClientRect();
+    const cx = canvas.width/2;
+    const cy = canvas.height/2;
+    const mx = mid.x - rect.left;
+    const my = mid.y - rect.top;
+
+    camera.x = mx - cx - (pinchWorldMid.x * scale);
+    camera.y = my - cy - (pinchWorldMid.y * scale);
+
+    draw();
+    return;
   }
-  const wp=screenToWorld(t.clientX, t.clientY), snap=getSnapStep();
-  if(isDragging && selectedItem && !selectedItem.locked){
-    if(selectedItem.type!=='wallLine'){ selectedItem.x=getSnapped(wp.x-startX, snap); selectedItem.y=getSnapped(wp.y-startY, snap); }
-  } else if(dragStart){ camera.x=lastCamera.x+(t.clientX-dragStart.x); camera.y=lastCamera.y+(t.clientY-dragStart.y); }
+
+  if(e.touches.length !== 1) return;
+
+  const t = e.touches[0];
+
+  // movement cancels long press if finger moved enough
+  if(pressStartClient){
+    const dx = t.clientX - pressStartClient.x;
+    const dy = t.clientY - pressStartClient.y;
+    if(Math.hypot(dx,dy) > 8){
+      clearLongPress();
+    }
+  }
+
+  const worldP = screenToWorld(t.clientX, t.clientY);
+  const snap = getSnapStep();
+
+  if (isResizing && selectedItem && selectedItem.type !== 'wallLine' && !selectedItem.locked) {
+    selectedItem.w = Math.max(snap, getSnapped(worldP.x - selectedItem.x, snap));
+    selectedItem.h = Math.max(snap, getSnapped(worldP.y - selectedItem.y, snap));
+  }
+  else if (isDragging && selectedItem && !selectedItem.locked) {
+    if(selectedItem.type === 'wallLine'){
+      const w = selectedItem;
+
+      if(wallDragMode === "p1"){
+        w.x1 = getSnapped(worldP.x, snap);
+        w.y1 = getSnapped(worldP.y, snap);
+        applyRightAngleSnap(w, "p1");
+      } else if(wallDragMode === "p2"){
+        w.x2 = getSnapped(worldP.x, snap);
+        w.y2 = getSnapped(worldP.y, snap);
+        applyRightAngleSnap(w, "p2");
+      } else if(wallDragMode === "move"){
+        // move whole wall keeping vector
+        const vx = w.x2 - w.x1;
+        const vy = w.y2 - w.y1;
+        const nx1 = getSnapped(worldP.x - (wallDragOffset?.dx ?? 0), snap);
+        const ny1 = getSnapped(worldP.y - (wallDragOffset?.dy ?? 0), snap);
+        w.x1 = nx1;
+        w.y1 = ny1;
+        w.x2 = nx1 + vx;
+        w.y2 = ny1 + vy;
+      }
+    } else {
+      selectedItem.x = getSnapped(worldP.x - startX, snap);
+      selectedItem.y = getSnapped(worldP.y - startY, snap);
+    }
+  }
+  else if (dragStart) {
+    camera.x = lastCamera.x + (t.clientX - dragStart.x);
+    camera.y = lastCamera.y + (t.clientY - dragStart.y);
+  }
+
   draw();
 });
 
-canvas.addEventListener('touchend', () => { isDragging=false; dragStart=null; clearLongPress(); draw(); });
+canvas.addEventListener('touchend', () => {
+  // pinch end
+  if(pinchActive){
+    if(canvasTouchesCount() < 2){
+      pinchActive = false;
+      // commit history for pinch if we had snapshot
+      if(gestureSnapshot){
+        undoStack.push(gestureSnapshot);
+        if (undoStack.length > HISTORY_MAX) undoStack.shift();
+        redoStack = [];
+        gestureSnapshot = null;
+        syncHistoryButtons();
+        scheduleAutoSave();
+      }
+    }
+    draw();
+    return;
+  }
 
-// UI Events
-el('addGenericRoomBtn2').onclick = () => { const n=prompt("部屋名","洋室"); if(n) addRect(n,4,4,"#FFF3E0"); };
-el('addFrameBtn2').onclick = () => addRect("外枠",10,10,"#f8f8f8","frame");
-el('addWallBtn2').onclick = () => addWallLine();
-el('undoBtn').onclick = () => undo();
-el('resetBtn2').onclick = () => { if(selectedItem){ pushHistory(); items=items.filter(i=>i!==selectedItem); selectedItem=null; draw(); } };
-el('menuEditBtn').onclick = () => { el('menuModal').style.display='none'; el('labelInput').value=menuItem.label; el('labelModal').style.display='flex'; };
-el('labelOkBtn').onclick = () => { pushHistory(); menuItem.label=el('labelInput').value; el('labelModal').style.display='none'; draw(); };
-el('labelCancelBtn').onclick = () => el('labelModal').style.display='none';
-el('menuCloseBtn').onclick = () => el('menuModal').style.display='none';
-el('segEdit').onclick = () => { isMerged=false; el('segEdit').classList.add('active'); el('segMerge').classList.remove('active'); draw(); };
-el('segMerge').onclick = () => { isMerged=true; el('segMerge').classList.add('active'); el('segEdit').classList.remove('active'); draw(); };
+  clearLongPress();
 
-function init(){ canvas.width=container.clientWidth; canvas.height=container.clientHeight; addRect("外枠",10,10,"#f8f8f8","frame"); draw(); }
-window.addEventListener('resize', () => { canvas.width=container.clientWidth; canvas.height=container.clientHeight; draw(); });
+  const wasGesture = (isResizing || isDragging);
+  isResizing = false;
+  isDragging = false;
+  dragStart = null;
+  wallDragMode = null;
+  wallDragOffset = null;
+
+  if(wasGesture && gestureSnapshot){
+    undoStack.push(gestureSnapshot);
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    gestureSnapshot = null;
+    syncHistoryButtons();
+    scheduleAutoSave();
+  } else {
+    gestureSnapshot = null;
+  }
+
+  draw();
+});
+
+function canvasTouchesCount(){
+  // note: touchend event doesn't include all touches reliably in some browsers,
+  // but for our usage it's okay.
+  return 0;
+}
+
 init();
 </script>
 </body>
