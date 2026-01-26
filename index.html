@@ -1,66 +1,261 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Family Site</title>
-    <style>
-        /* Add some basic styles for readability */
-        body { font-family: Arial, sans-serif; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; max-width: 500px; }
-        .preset-manager { max-height: 400px; overflow-y: auto; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>間取りシミュレーター v5.95 (Fix)</title>
+
+<style>
+:root{
+  --accent:#007AFF;
+  --success:#34c759;
+  --danger:#ff3b30;
+  --warning:#FF9500;
+  --bg:#f2f2f7;
+  --card: rgba(255,255,255,.72);
+  --stroke: rgba(60,60,67,.18);
+  --text:#111;
+  --muted: rgba(60,60,67,.6);
+  --shadow: 0 10px 30px rgba(0,0,0,.10);
+  --radius2: 26px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000;
+    --card: rgba(28,28,30,.68);
+    --stroke: rgba(84,84,88,.55);
+    --text:#fff;
+    --muted: rgba(235,235,245,.6);
+    --shadow: 0 16px 50px rgba(0,0,0,.45);
+  }
+}
+*{ box-sizing: border-box; }
+body{
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0; background: var(--bg); color: var(--text); touch-action: none;
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+}
+.ver-label{ position: fixed; top: 6px; right: 10px; font-size: 10px; color: var(--muted); z-index: 100; font-weight: 800; opacity: .85; }
+.toolbar{ margin: 12px; border-radius: var(--radius2); background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px; display:flex; align-items:center; justify-content: space-between; z-index: 10; }
+.top-title{ font-weight: 900; font-size: 13px; user-select:none; }
+button{ height: 44px; font-size: 13px; border: none; border-radius: 16px; color: white; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; transition: transform .08s ease; -webkit-tap-highlight-color: transparent; }
+button:active { opacity: 0.85; transform: scale(0.98); }
+.btn-primary{ background: rgba(255,149,0,.95); }
+.btn-help{ background: rgba(120,120,128,.18); color: var(--text); width: 44px; padding: 0; font-size: 18px; }
+.color-circle{ background: rgba(120,120,128,.18); border: 1px solid var(--stroke); border-radius: 16px; width: 44px; height: 44px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+input[type="color"]{ width: 70px; height: 70px; border: none; background: none; cursor: pointer; }
+.config-bar{ margin: 0 12px 12px; border-radius: var(--radius2); background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px; display:flex; justify-content: space-between; align-items:center; gap: 10px; }
+.chip{ background: rgba(255,255,255,.55); border: 1px solid var(--stroke); padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 900; display:flex; align-items:center; gap: 6px; color: var(--text); }
+.segment{ display:flex; border: 1px solid var(--stroke); border-radius: 14px; background: rgba(120,120,128,.12); padding: 2px; }
+.seg-btn{ height: 32px; min-width: 56px; border-radius: 12px; background: transparent; color: var(--text); font-size: 12px; }
+.seg-btn.active{ background: var(--accent); color: #fff; }
+.small-btn{ height: 34px; border-radius: 999px; padding: 0 12px; background: var(--accent); color:#fff; font-size: 12px; font-weight: 900; }
+.small-btn.gray{ background: rgba(120,120,128,.25); color: var(--text); }
+.summary{ margin: 0 12px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); padding: 10px 14px; display:flex; justify-content: space-around; font-size: 14px; font-weight: 900; }
+.summary b{ color: var(--accent); }
+#canvas-container{ flex: 1; position: relative; margin: 0 12px 96px; border-radius: 24px; overflow: hidden; border: 1px solid var(--stroke); box-shadow: var(--shadow); background: #fff; }
+canvas{ display:block; }
+.bottom-bar{ position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 10px; border-radius: 24px; background: var(--card); border: 1px solid var(--stroke); box-shadow: var(--shadow); backdrop-filter: blur(16px); z-index: 60; }
+.pill{ height: 48px; border-radius: 18px; background: rgba(120,120,128,.16); color: var(--text); font-weight: 900; font-size: 13px; display:flex; align-items:center; justify-content:center; flex-direction: column; }
+.pill::after{ content: attr(data-sub); font-size: 10px; color: var(--muted); }
+.pill.primary{ background: var(--accent); color:#fff; }
+.pill.primary::after{ color: rgba(255,255,255,.8); }
+.pill.danger{ background: rgba(255,59,48,.14); color: #ff3b30; }
+.modal-overlay{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+.modal{ background: #fff; padding: 25px; border-radius: 20px; width: 85%; max-width: 360px; text-align: center; }
+.modal.sheet{ width: 92%; max-width: 420px; text-align: left; border-radius: 22px; }
+.chip-grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.name-chip{ height: 38px; border-radius: 14px; border: 1px solid var(--stroke); background: rgba(120,120,128,.14); color: var(--text); font-weight: 900; font-size: 11px; display:flex; align-items: center; justify-content: center; gap: 4px; }
+.name-chip .dot{ width: 10px; height: 10px; border-radius: 50%; }
+.menu-list{ display:flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.menu-btn{ height: 42px; border-radius: 16px; border: 1px solid var(--stroke); background: rgba(120,120,128,.14); color: var(--text); font-weight: 900; }
+</style>
 </head>
+
 <body>
-    <h1>Welcome to My Family Site</h1>
-    <button id="roomButton">部屋</button>
-    <div id="presetModal" class="modal">
-        <div class="modal-content">
-            <h2>Select Room Preset</h2>
-            <div class="preset-manager">
-                <div><button class="preset-option">LDK</button></div>
-                <div><button class="preset-option">洋室</button></div>
-                <div><button class="preset-option">寝室</button></div>
-                <!-- Add more preset options as needed -->
-            </div>
-            <input type="text" id="roomName" placeholder="Edit room name" />
-            <button id="saveRoom">Save</button>
-            <button id="closeModal">Close</button>
-        </div>
+<div class="ver-label">ver 5.95<br>by yuchi🐔</div>
+
+<div class="toolbar">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="btn-help" id="openHelpBtn">？</button>
+    <div class="top-title">間取りシミュレーター</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="btn-primary" id="saveBtn">共有URL</button>
+    <div class="color-circle"><input type="color" id="colorPicker" value="#ffffff" /></div>
+  </div>
+</div>
+
+<div class="config-bar">
+  <div style="display:flex;gap:6px;">
+    <label class="chip"><input type="checkbox" id="showJou" checked />畳</label>
+    <label class="chip"><input type="checkbox" id="showTsubo" checked />坪</label>
+    <label class="chip"><input type="checkbox" id="useHalfGrid" />半</label>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <div class="segment">
+      <button class="seg-btn active" id="segEdit">編集</button>
+      <button class="seg-btn" id="segMerge">結合</button>
     </div>
+    <button id="undoBtn" class="small-btn gray">戻る</button>
+    <button id="redoBtn" class="small-btn gray">進む</button>
+  </div>
+</div>
 
-    <script>
-        // JavaScript for modal functionality and localStorage support
-        const roomButton = document.getElementById('roomButton');
-        const presetModal = document.getElementById('presetModal');
-        const closeModal = document.getElementById('closeModal');
-        const roomNameInput = document.getElementById('roomName');
+<div class="summary">
+  <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
+  <span><b id="totalJou">0.0</b> 畳</span>
+</div>
 
-        // Default room presets
-        const defaultPresets = ['LDK', '洋室', '寝室'];
-        localStorage.setItem('roomPresets', JSON.stringify(defaultPresets));
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
 
-        roomButton.onclick = () => {
-            presetModal.style.display = 'block';
-        };
+<div class="bottom-bar">
+  <button class="pill" id="addFrameBtn2" data-sub="枠追加">外枠</button>
+  <button class="pill primary" id="addGenericRoomBtn2" data-sub="部屋追加">部屋</button>
+  <button class="pill" id="addWallBtn2" data-sub="壁追加">壁</button>
+  <button class="pill" id="copyBtn2" data-sub="複製">複製</button>
+  <button class="pill danger" id="resetBtn2" data-sub="削除">削除</button>
+</div>
 
-        closeModal.onclick = () => {
-            presetModal.style.display = 'none';
-        };
+<div id="labelModal" class="modal-overlay"><div class="modal sheet"><h3>部屋名変更</h3><input type="text" id="labelInput" style="width:100%;padding:12px;border-radius:10px;border:1px solid #ddd;" /><div class="chip-grid" id="labelChips"></div><div style="display:flex;gap:10px;margin-top:14px;"><button style="flex:1;background:#ccc;" id="labelCancelBtn">閉じる</button><button style="flex:1;background:var(--accent);color:#fff;" id="labelOkBtn">OK</button></div></div></div>
+<div id="menuModal" class="modal-overlay"><div class="modal sheet"><h3 id="menuTitle">メニュー</h3><div class="menu-list"><button class="menu-btn" id="menuEditBtn">名前変更</button><button class="menu-btn" id="menuDupBtn">複製</button><button class="menu-btn" id="menuLockBtn">ロック切替</button><button class="menu-btn" style="color:red;" id="menuDelBtn">削除</button></div><button style="width:100%;margin-top:14px;" id="menuCloseBtn">閉じる</button></div></div>
 
-        document.querySelectorAll('.preset-option').forEach(button => {
-            button.onclick = () => {
-                roomNameInput.value = button.textContent; // Set room name to selected preset
-            };
-        });
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        document.getElementById('saveRoom').onclick = () => {
-            const roomName = roomNameInput.value;
-            alert(`Room saved: ${roomName}`);
-            // Here you could add additional functionality to save room information
-            presetModal.style.display = 'none';
-        };
-    </script>
+const firebaseConfig = { apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg", authDomain: "test-55430.firebaseapp.com", projectId: "test-55430", storageBucket: "test-55430.firebasestorage.app", messagingSenderId: "742726212885", appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c" };
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const el = (id) => document.getElementById(id);
+const canvas = el('canvas');
+const ctx = canvas.getContext('2d');
+const container = el('canvas-container');
+
+let items = [];
+let selectedItem = null;
+let isDragging = false;
+let isMerged = false;
+let camera = { x: 0, y: 0 };
+let scale = 1.0;
+let dragStart = null;
+let lastCamera = { x: 0, y: 0 };
+let startX, startY;
+let lastTapTime = 0;
+let undoStack = [];
+let redoStack = [];
+let longPressTimer = null;
+let pressStartClient = null;
+let menuItem = null;
+
+const GRID_SIZE = 32;
+
+function uid(){ return Math.random().toString(36).slice(2, 10); }
+function getSnapStep(){ return el('useHalfGrid').checked ? 16 : 32; }
+function getSnapped(val, step){ return Math.round(val / step) * step; }
+function screenToWorld(sx, sy){
+  const r = canvas.getBoundingClientRect();
+  return { x: (sx - r.left - canvas.width/2 - camera.x) / scale, y: (sy - r.top - canvas.height/2 - camera.y) / scale };
+}
+
+function snapshot(){ return JSON.stringify({ items, isMerged, camera, scale }); }
+function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>50) undoStack.shift(); redoStack=[]; }
+function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); const s=JSON.parse(undoStack.pop()); items=s.items; isMerged=s.isMerged; camera=s.camera; scale=s.scale; draw(); }
+
+function addRect(label, w, h, color, type='room'){
+  pushHistory();
+  const tx = getSnapped((-camera.x)/scale, 32), ty = getSnapped((-camera.y)/scale, 32);
+  const i = { id: uid(), type, x: tx, y: ty, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color, locked: false };
+  if(type==='frame') items.unshift(i); else items.push(i);
+  selectedItem = i; draw();
+}
+
+function addWallLine(){
+  pushHistory();
+  const tx = getSnapped((-camera.x)/scale, 32), ty = getSnapped((-camera.y)/scale, 32);
+  const w = { id: uid(), type: 'wallLine', x1: tx, y1: ty, x2: tx+128, y2: ty, label: '壁', color: '#666', thick: 12, locked: false };
+  items.push(w); selectedItem = w; draw();
+}
+
+window.draw = function(){
+  ctx.save(); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.translate(canvas.width/2+camera.x, canvas.height/2+camera.y); ctx.scale(scale,scale);
+  // Grid
+  ctx.strokeStyle="#eee"; ctx.lineWidth=1/scale;
+  for(let x=-1000;x<=1000;x+=32){ ctx.beginPath(); ctx.moveTo(x,-1000); ctx.lineTo(x,1000); ctx.stroke(); }
+  for(let y=-1000;y<=1000;y+=32){ ctx.beginPath(); ctx.moveTo(-1000,y); ctx.lineTo(1000,y); ctx.stroke(); }
+  
+  items.forEach(it => {
+    if(it.type==='wallLine'){
+      ctx.strokeStyle=it.color; ctx.lineWidth=it.thick/scale; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(it.x1,it.y1); ctx.lineTo(it.x2,it.y2); ctx.stroke();
+    } else {
+      ctx.fillStyle=it.color; ctx.globalAlpha=it.type==='room'?0.7:1; ctx.fillRect(it.x,it.y,it.w,it.h); ctx.globalAlpha=1;
+      ctx.strokeStyle="#333"; ctx.lineWidth=1/scale; ctx.strokeRect(it.x,it.y,it.w,it.h);
+      ctx.fillStyle="#000"; ctx.font=`bold ${12/scale}px sans-serif`; ctx.fillText(it.label, it.x+4/scale, it.y+14/scale);
+    }
+  });
+  if(selectedItem && !isMerged){
+    ctx.strokeStyle="#007AFF"; ctx.lineWidth=3/scale;
+    if(selectedItem.type==='wallLine'){ ctx.beginPath(); ctx.moveTo(selectedItem.x1,selectedItem.y1); ctx.lineTo(selectedItem.x2,selectedItem.y2); ctx.stroke(); }
+    else{ ctx.strokeRect(selectedItem.x,selectedItem.y,selectedItem.w,selectedItem.h); }
+  }
+  ctx.restore();
+  // Summary
+  let tm=0; items.filter(i=>i.type==='frame').forEach(i=>tm+=(i.w/32)*(i.h/32));
+  el('totalTsubo').innerText=(tm/4).toFixed(2); el('totalJou').innerText=(tm/2).toFixed(1);
+};
+
+function clearLongPress(){ if(longPressTimer) clearTimeout(longPressTimer); longPressTimer=null; pressStartClient=null; }
+function startLongPress(item){ clearLongPress(); longPressTimer=setTimeout(() => { if(!isDragging){ menuItem=item; el('menuTitle').innerText=item.label; el('menuModal').style.display='flex'; } }, 500); }
+
+canvas.addEventListener('touchstart', e => {
+  if(e.touches.length!==1) return;
+  const t=e.touches[0]; pressStartClient={x:t.clientX, y:t.clientY};
+  const wp=screenToWorld(t.clientX, t.clientY);
+  let found=null;
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i];
+    if(it.type==='wallLine'){ if(Math.hypot(wp.x-it.x1, wp.y-it.y1)<20 || Math.hypot(wp.x-it.x2, wp.y-it.y2)<20) found=it; }
+    else if(wp.x>=it.x && wp.x<=it.x+it.w && wp.y>=it.y && wp.y<=it.y+it.h) found=it;
+    if(found) break;
+  }
+  if(found){ selectedItem=found; startLongPress(found); isDragging=true; startX=wp.x-found.x; startY=wp.y-found.y; }
+  else{ selectedItem=null; dragStart={x:t.clientX, y:t.clientY}; lastCamera={...camera}; }
+  draw();
+});
+
+canvas.addEventListener('touchmove', e => {
+  if(e.touches.length!==1) return; e.preventDefault();
+  const t=e.touches[0];
+  if(pressStartClient){
+    if(Math.hypot(t.clientX-pressStartClient.x, t.clientY-pressStartClient.y)>15) clearLongPress();
+  }
+  const wp=screenToWorld(t.clientX, t.clientY), snap=getSnapStep();
+  if(isDragging && selectedItem && !selectedItem.locked){
+    if(selectedItem.type!=='wallLine'){ selectedItem.x=getSnapped(wp.x-startX, snap); selectedItem.y=getSnapped(wp.y-startY, snap); }
+  } else if(dragStart){ camera.x=lastCamera.x+(t.clientX-dragStart.x); camera.y=lastCamera.y+(t.clientY-dragStart.y); }
+  draw();
+});
+
+canvas.addEventListener('touchend', () => { isDragging=false; dragStart=null; clearLongPress(); draw(); });
+
+// UI Events
+el('addGenericRoomBtn2').onclick = () => { const n=prompt("部屋名","洋室"); if(n) addRect(n,4,4,"#FFF3E0"); };
+el('addFrameBtn2').onclick = () => addRect("外枠",10,10,"#f8f8f8","frame");
+el('addWallBtn2').onclick = () => addWallLine();
+el('undoBtn').onclick = () => undo();
+el('resetBtn2').onclick = () => { if(selectedItem){ pushHistory(); items=items.filter(i=>i!==selectedItem); selectedItem=null; draw(); } };
+el('menuEditBtn').onclick = () => { el('menuModal').style.display='none'; el('labelInput').value=menuItem.label; el('labelModal').style.display='flex'; };
+el('labelOkBtn').onclick = () => { pushHistory(); menuItem.label=el('labelInput').value; el('labelModal').style.display='none'; draw(); };
+el('labelCancelBtn').onclick = () => el('labelModal').style.display='none';
+el('menuCloseBtn').onclick = () => el('menuModal').style.display='none';
+el('segEdit').onclick = () => { isMerged=false; el('segEdit').classList.add('active'); el('segMerge').classList.remove('active'); draw(); };
+el('segMerge').onclick = () => { isMerged=true; el('segMerge').classList.add('active'); el('segEdit').classList.remove('active'); draw(); };
+
+function init(){ canvas.width=container.clientWidth; canvas.height=container.clientHeight; addRect("外枠",10,10,"#f8f8f8","frame"); draw(); }
+window.addEventListener('resize', () => { canvas.width=container.clientWidth; canvas.height=container.clientHeight; draw(); });
+init();
+</script>
 </body>
 </html>
