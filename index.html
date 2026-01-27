@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>間取り検討サイト（Ichijo) v6.20</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<title>間取り検討サイト（Ichijo) v7.0</title>
 
 <style>
 :root{
@@ -17,9 +17,6 @@
   --muted: rgba(60,60,67,.6);
   --shadow: 0 10px 30px rgba(0,0,0,.10);
   --radius2: 26px;
-
-  /* iOS Safariの動的vh対策（JSで上書き） */
-  --app-height: 100vh;
 }
 
 @media (prefers-color-scheme: dark){
@@ -34,6 +31,8 @@
 }
 
 *{ box-sizing: border-box; }
+
+html, body { height: 100%; }
 
 body{
   font-family:
@@ -50,11 +49,19 @@ body{
   margin: 0;
   background: var(--bg);
   color: var(--text);
+
+  /* iOS Safari 上部見切れ対策 */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+
   touch-action: none;
+
   display: flex;
   flex-direction: column;
 
-  height: var(--app-height);
+  /* 100vhより安全 */
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -71,7 +78,6 @@ body{
   opacity: .85;
 }
 
-/* ===== Top bar ===== */
 .toolbar{
   margin: 12px;
   margin-top: calc(12px + env(safe-area-inset-top));
@@ -90,18 +96,9 @@ body{
 
   z-index: 10;
 }
+
 .top-left, .top-right{ display:flex; align-items:center; gap: 10px; }
-.top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .95; user-select:none; }
-.save-status{
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--muted);
-  letter-spacing: .1px;
-  user-select:none;
-  white-space: nowrap;
-}
-.save-status.bad{ color: #ff3b30; }
-.save-status.good{ color: rgba(0,122,255,.95); }
+.top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .9; user-select:none; }
 
 button{
   height: 44px;
@@ -130,38 +127,30 @@ button:active { opacity: 0.85; transform: scale(0.98); }
   padding: 0;
 }
 
-/* ===== Read-only banner ===== */
-.banner{
+.mode-banner{
   margin: 0 12px 12px;
-  border-radius: 18px;
+  border-radius: 999px;
   background: rgba(255,149,0,.14);
-  border: 1px solid rgba(255,149,0,.25);
-  color: #ff9500;
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
-  padding: 10px 12px;
-  font-weight: 900;
+  border: 1px solid rgba(255,149,0,.30);
+  color: rgba(255,149,0,.95);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 8px 12px;
   font-size: 12px;
-  display: none;
+  font-weight: 900;
+  display:flex;
   align-items:center;
   justify-content: space-between;
   gap: 10px;
 }
-.banner .mini{
-  font-weight: 800;
-  font-size: 11px;
-  opacity: .9;
-}
-.banner button{
+.mode-banner button{
   height: 34px;
   border-radius: 999px;
   padding: 0 12px;
-  background: #ff9500;
-  color:#fff;
   font-size: 12px;
-  font-weight: 900;
 }
 
-/* ===== Config bar ===== */
 .config-bar{
   margin: 0 12px 12px;
   border-radius: var(--radius2);
@@ -176,6 +165,7 @@ button:active { opacity: 0.85; transform: scale(0.98); }
   justify-content: space-between;
   align-items:center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -197,6 +187,21 @@ button:active { opacity: 0.85; transform: scale(0.98); }
   .chip{ background: rgba(44,44,46,.65); }
 }
 .chip input { margin: 0; width: 18px; height: 18px; }
+
+
+/* range chip */
+.range-chip{
+  cursor: default;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.range-chip input[type="range"]{
+  width: 92px;
+  height: 18px;
+}
+@media (max-width: 420px){
+  .range-chip input[type="range"]{ width: 72px; }
+}
 
 .right-actions{
   display:flex;
@@ -252,7 +257,44 @@ button:active { opacity: 0.85; transform: scale(0.98); }
 }
 .small-btn:disabled{ opacity: .4; transform: none !important; cursor: default; }
 
-/* ===== Summary ===== */
+/* iOS Safariで確実に色ピッカーを開かせる: label + input(color) を透明で被せる */
+.color-label{
+  position: relative;
+  overflow: hidden;
+
+  /* ラベル内に色見本を出す */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+/* 先頭に色見本（CSS変数 --swatch を使う） */
+.color-label::before{
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--swatch, #ffffff);
+  border: 1px solid rgba(0,0,0,.12);
+}
+.color-label input[type="color"]{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;     /* display:noneはNG */
+  border: 0;
+  padding: 0;
+}
+.color-label[data-disabled="1"]{
+  opacity: .35;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* ===== Summary（延床のみ：外枠(frame)面積） ===== */
 .summary{
   margin: 0 12px 12px;
   border-radius: 999px;
@@ -284,7 +326,7 @@ button:active { opacity: 0.85; transform: scale(0.98); }
   background: #fff;
   touch-action: none;
 
-  margin-bottom: 96px;
+  margin-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 canvas{ display:block; }
 
@@ -323,6 +365,12 @@ canvas{ display:block; }
   gap: 2px;
   padding: 6px 0;
 }
+.pill.active{
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0,122,255,.25);
+}
+
 .pill::after{
   content: attr(data-sub);
   font-size: 10px;
@@ -392,10 +440,9 @@ canvas{ display:block; }
   outline: none;
 }
 
-/* ★プリセットチップ：多くても崩れにくい（auto-fit） */
 .chip-grid{
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 12px;
 }
@@ -437,13 +484,16 @@ canvas{ display:block; }
   color: var(--text);
   font-weight: 900;
   justify-content: center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .menu-btn.danger{
   background: rgba(255,59,48,.14);
   color: #ff3b30;
 }
 
-/* ===== Preset manager ===== */
+/* Preset manager */
 .preset-list{ display:flex; flex-direction:column; gap:10px; margin-top: 10px; }
 .preset-row{
   display:grid;
@@ -475,7 +525,6 @@ canvas{ display:block; }
   font-weight: 900;
 }
 
-/* preset modal */
 #presetModal .modal.sheet{
   max-height: calc(86vh - env(safe-area-inset-bottom));
   display: flex;
@@ -502,7 +551,7 @@ canvas{ display:block; }
   outline: none;
 }
 
-/* ===== Layout list ===== */
+/* Layout list */
 .layout-list{
   overflow:auto;
   -webkit-overflow-scrolling: touch;
@@ -543,78 +592,261 @@ canvas{ display:block; }
   padding: 0;
 }
 
-/* ===== Toast ===== */
+/* 作業モードヒント */
+.work-hint{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 8px 10px 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(0,0,0,.08);
+  color: #333;
+  font-size: 12px;
+  line-height: 1.35;
+  backdrop-filter: blur(8px);
+}
+.work-hint b{ font-weight: 800; }
+
+/* トースト */
 .toast{
   position: fixed;
-  left: 12px; right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom) + 86px);
-  background: rgba(0,0,0,0.72);
+  left: 50%;
+  bottom: 74px; /* bottom barの上 */
+  transform: translateX(-50%);
+  background: rgba(20,20,20,.9);
   color: #fff;
-  padding: 10px 12px;
-  border-radius: 14px;
-  font-weight: 900;
   font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 999px;
   opacity: 0;
-  transform: translateY(6px);
+  pointer-events: none;
   transition: opacity .18s ease, transform .18s ease;
-  z-index: 2000;
+  max-width: calc(100vw - 24px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show{
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+/* --- コンパクト化CSS --- */
+
+/* バー全体の余白を削減 */
+.config-bar.compact {
+  padding: 8px 10px;
+  gap: 6px;
+  flex-direction: column; /* 確実に縦2段にする */
+  align-items: stretch;
+}
+
+/* 1行ごとの設定 */
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+/* 小さいチップ（単位など） */
+.chip.tiny {
+  padding: 0 8px;
+  height: 28px;      /* 高さ削減 */
+  font-size: 11px;   /* 文字サイズ縮小 */
+  font-weight: 800;
+  gap: 4px;
+}
+.chip.tiny input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+/* グループ化 */
+.group-tiny {
+  display: flex;
+  gap: 4px;
+}
+
+/* 区切り線 */
+.v-line {
+  width: 1px;
+  height: 16px;
+  background: rgba(0,0,0,0.1);
+  margin: 0 2px;
+}
+@media (prefers-color-scheme: dark){ .v-line{ background: rgba(255,255,255,0.15); } }
+
+/* 壁スライダーの極小化 */
+.range-chip-tiny {
+  flex: 1; /* 空きスペースを埋める */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  min-width: 0; /* flex縮小用 */
+}
+.range-chip-tiny input[type="range"] {
+  width: 100%;       /* 親に合わせて伸縮 */
+  height: 14px;
+  margin: 0 6px;
+  min-width: 40px;
+}
+.range-chip-tiny .lbl { font-size:10px; opacity:0.7; }
+.range-chip-tiny .val { font-size:11px; min-width:14px; text-align:right; }
+
+/* 2段目のボタン群 */
+.small-btn.tiny {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 8px;
+}
+.segment.tiny {
+  height: 30px;
+  border-radius: 8px;
+}
+.segment.tiny .seg-btn {
+  height: 26px;
+  font-size: 11px;
+  min-width: 40px;
+  padding: 0 8px;
+}
+
+/* Undo/Redoなどの結合ボタン */
+.joined-tiny {
+  display: flex;
+  background: rgba(120,120,128,.12);
+  border-radius: 8px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.joined-tiny button {
+  background: transparent;
+  border: none;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 32px;
+  padding: 0;
+  color: var(--text);
+  font-weight: 900;
+}
+.joined-tiny button:active { background: rgba(0,0,0,0.05); }
+.joined-tiny button:disabled { opacity: 0.3; }
+
+/* 全体・リセットボタンは文字のみで省スペース */
+.joined-tiny .btn-text {
+  font-size: 10px;
+  width: auto;
+  padding: 0 6px;
+}
+
+/* 色ボタン */
+.color-label-tiny {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.color-label-tiny .color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--swatch, #fff);
+  border: 1px solid rgba(0,0,0,0.1);
   pointer-events: none;
 }
-.toast.show{ opacity: 1; transform: translateY(0); }
+.color-label-tiny input {
+  position: absolute; opacity: 0; inset: 0; width: 100%;
+}
+.color-label-tiny::before { display: none; } /* 既存スタイルの打ち消し */
+
+/* 右寄せ調整 */
+.right-edge { margin-left: auto; }
+
+
+
 </style>
 </head>
 
 <body>
-<div class="ver-label">ver 6.20<br>by yuchi🐔</div>
+<div class="ver-label">ver 7.0<br>by yuchi🐔</div>
 
 <div class="toolbar">
   <div class="top-left">
     <button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
-    <div>
-      <div class="top-title" id="topTitle">MORI</div>
-      <div class="save-status" id="saveStatus">—</div>
-    </div>
+    <div class="top-title" id="topTitle">MORI</div>
   </div>
   <div class="top-right">
-    <button class="btn-primary" id="shareBtn">共有（固定）</button>
+    <!-- 共有 / 閲覧モードではコピーして編集 -->
+    <button class="btn-primary" id="shareBtn">共有</button>
   </div>
 </div>
 
-<div class="banner" id="readonlyBanner">
-  <div>
-    <div>🔒 閲覧モード（共有された固定図面）</div>
-    <div class="mini">編集は「コピーして編集」で自分用に作ってから</div>
-  </div>
-  <button id="copyToEditBtn" type="button">コピーして編集</button>
+<div id="modeBanner" class="mode-banner" style="display:none;">
+  <div>閲覧モード（上書きされません）</div>
+  <button id="copyToEditBtn" style="background:var(--accent);">コピーして編集</button>
 </div>
 
-<div class="config-bar">
-  <div class="chip-group">
-    <label class="chip"><input type="checkbox" id="showJou" checked />畳</label>
-    <label class="chip"><input type="checkbox" id="showTsubo" checked />坪</label>
-    <label class="chip"><input type="checkbox" id="showM2" checked />m²</label>
-    <label class="chip" style="background:rgba(120,120,128,.20);"><input type="checkbox" id="useHalfGrid" />半ます</label>
+<div class="config-bar compact">
+  
+  <div class="config-row">
+    <div class="group-tiny">
+      <label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
+      <label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
+      <label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
+    </div>
+    
+    <div class="v-line"></div>
+
+    <label class="chip tiny"><input type="checkbox" id="useHalfGrid">半ます</label>
+
+    <div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
+      <span class="lbl">壁</span>
+      <input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
+      <span id="wallThickVal" class="val">12</span>
+    </div>
   </div>
 
-  <div class="right-actions">
-    <div class="segment" role="tablist" aria-label="表示モード">
-      <button class="seg-btn" id="segEdit" type="button">編集</button>
-      <button class="seg-btn active" id="segMerge" type="button">結合</button>
+  <div class="config-row">
+    <div class="segment tiny" role="tablist">
+      <button class="seg-btn" id="segEdit" type="button">外壁</button>
+      <button class="seg-btn active" id="segMerge" type="button">部屋</button>
     </div>
 
-    <button id="measureBtn" class="small-btn gray" type="button">計測</button>
+    <button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
 
-    <button id="undoBtn" class="small-btn gray" type="button">戻る</button>
-    <button id="redoBtn" class="small-btn gray" type="button">進む</button>
+    <div class="joined-tiny">
+      <button id="undoBtn" class="btn-icon" type="button">↩︎</button>
+      <button id="redoBtn" class="btn-icon" type="button" disabled>↪︎</button>
+    </div>
 
-    <button id="fitBtn" class="small-btn" type="button">外枠にフィット</button>
-    <button id="centerBtn" class="small-btn" type="button">表示リセット</button>
+    <label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1" title="色変更">
+      <span class="color-dot"></span>
+      <input type="color" id="quickColorInput" value="#ffffff" />
+    </label>
+
+    <div class="joined-tiny right-edge">
+      <button id="fitBtn" class="btn-text" type="button">全体</button>
+      <button id="centerBtn" class="btn-text" type="button">リセ</button>
+    </div>
   </div>
+
 </div>
 
+
+<!-- 作業モードヒント -->
+<div id="workHint" class="work-hint"></div>
+<!-- ✅ 延床のみ（外枠frame面積） -->
 <div class="summary">
   <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
-  <span><b id="totalJou">0.0</b> 畳</span>
+  <span id="jouWrap"><b id="totalJou">0.0</b> 畳</span>
   <span id="m2Wrap"><b id="totalM2">0.0</b> m²</span>
 </div>
 
@@ -623,23 +855,21 @@ canvas{ display:block; }
 <div class="bottom-bar" id="bottomBar">
   <button class="pill" id="addFrameBtn2" data-sub="枠を追加">外枠</button>
   <button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
-  <button class="pill" id="addWallBtn2" data-sub="線分壁を追加">壁</button>
-  <button class="pill" id="copyBtn2" data-sub="選択を複製">複製</button>
+  <button class="pill" id="addInnerWallBtn2" data-sub="2点タップで内壁を設置">内壁</button>
+  <button class="pill" id="copyBtn2" data-sub="選択を複製" disabled>複製</button>
   <button class="pill danger" id="resetBtn2" data-sub="選択/全消去">削除</button>
 </div>
 
-<!-- Share Modal -->
+<!-- 共有モーダル -->
 <div id="shareModal" class="modal-overlay">
   <div class="modal">
-    <h3>共有（固定）</h3>
+    <h3>共有</h3>
 
-    <div style="text-align:left; font-size:12px; font-weight:900; color:#666; margin-bottom:4px;">間取り名</div>
-    <input type="text" id="layoutTitleInput" value="MORI" maxlength="20" style="margin-top:0; font-weight:900;" />
+    <div style="text-align:left; font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">間取り名</div>
+    <input type="text" id="layoutTitleInput" value="MORIYASU🏠" maxlength="20" style="margin-top:0; font-weight:bold;">
 
-    <div style="font-size:12px;color:#666;margin-top:10px;">
-      共有URL（この時点の状態を固定します）
-    </div>
-    <input type="text" id="shareUrlInput" readonly onclick="this.select()" />
+    <div style="font-size:12px;color:#666;margin-top:10px;">共有URL（読み取り専用：上書きされません）</div>
+    <input type="text" id="shareUrlInput" readonly onclick="this.select()">
 
     <div style="display:flex; gap:10px;">
       <button style="flex:1; background:var(--accent);" id="copyUrlBtn">コピー</button>
@@ -651,17 +881,16 @@ canvas{ display:block; }
       <button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="saveAsBtn">別名で保存</button>
     </div>
 
-    <div style="font-size:11px;color:#999;margin-top:10px; line-height:1.4;">
-      ※この共有リンクは固定です。あとで編集しても相手の画面は変わりません。
-    </div>
+    <p style="font-size:11px;color:#666; margin-top:10px; line-height:1.5;">
+      ※共有URLは「この状態のコピー」です。自分の編集は元のまま続けられます。
+    </p>
   </div>
 </div>
 
-<!-- Layouts Modal -->
 <div id="layoutsModal" class="modal-overlay">
   <div class="modal sheet" style="max-height:calc(86vh - env(safe-area-inset-bottom)); display:flex; flex-direction:column;">
     <h3 style="margin:0 0 6px;">保存一覧</h3>
-    <div style="font-size:12px;color:#666;margin-bottom:6px;">名前を編集できます / 「新規タブ」で比較がラク</div>
+    <div style="font-size:12px;color:#666;margin-bottom:6px;">自分用の編集URLだけ表示 / 名前は編集できます</div>
 
     <div class="layout-list" id="layoutList"></div>
 
@@ -673,7 +902,6 @@ canvas{ display:block; }
   </div>
 </div>
 
-<!-- Help Modal -->
 <div id="helpModal" class="modal-overlay">
   <div class="modal">
     <h3>🏠 操作マニュアル</h3>
@@ -682,28 +910,34 @@ canvas{ display:block; }
       <li><b>サイズ:</b> 右下の丸いハンドルをドラッグ。</li>
       <li><b>選択解除:</b> 何もない所を軽くタップ。</li>
       <li><b>長押し:</b> 指を動かさず押し続けるとメニュー。</li>
+      <li><b>色変更:</b> 右上の「色」ボタン / もしくは長押しメニューの「色変更」。</li>
       <li><b>計測:</b> 「計測」ボタンでモードON、2点をタップして距離を表示。</li>
       <li><b>壁(線):</b> 端点ドラッグで長さ、線ドラッグで移動。</li>
       <li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
       <li><b>名前編集:</b> 2回タップ（編集モードのみ）。</li>
-      <li><b>共有（固定）:</b> 「共有（固定）」でその時点の図面を固定して共有。相手は閲覧モード。</li>
-      <li><b>編集したい時:</b> 共有リンクで開いたら「コピーして編集」を押す。</li>
+      <li><b>共有:</b> 共有URLは読み取り専用コピーなので上書きされません。</li>
     </ul>
     <p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
   </div>
 </div>
 
-<!-- Label / Add Modal -->
 <div id="labelModal" class="modal-overlay">
   <div class="modal sheet">
-    <h3 id="labelModalTitle" style="margin:0 0 6px;">部屋名を変更</h3>
-    <div id="labelModalSub" style="font-size:12px;color:#666;margin-bottom:10px;">候補をタップ（名前＋色） / 入力してOK</div>
+    <h3 id="labelModalTitle" style="margin:0 0 6px;">部屋を追加</h3>
+    <div id="labelModalSub" style="font-size:12px;color:#666;margin-bottom:10px;">プリセットをタップで即追加 / 入力してOKでも追加</div>
 
-    <input type="text" id="labelInput" placeholder="部屋名" maxlength="12" />
+    <input type="text" id="labelInput" placeholder="部屋名（入力追加）" maxlength="12">
 
-    <div style="display:flex; gap:10px; margin:12px 0 6px;">
+    <div style="display:flex; gap:10px; margin:12px 0 6px; align-items:center;">
       <button class="small-btn gray" id="openPresetBtn" type="button" style="height:36px;">プリセット編集</button>
-      <div id="addHint" style="font-size:12px;color:#666;align-self:center;">※チップは即追加</div>
+
+      <!-- ✅ 追加時も色を選べる（iOS対応） -->
+      <label id="addColorBtn" class="small-btn gray color-label" style="height:36px;">
+        色
+        <input type="color" id="addColorInput" value="#FFF3E0">
+      </label>
+
+      <div id="addHint" style="font-size: 12px; color: #666; align-self: center; display: block;">※チップは即追加</div>
     </div>
 
     <div class="chip-grid" id="labelChips"></div>
@@ -715,7 +949,6 @@ canvas{ display:block; }
   </div>
 </div>
 
-<!-- Context Menu -->
 <div id="menuModal" class="modal-overlay">
   <div class="modal sheet">
     <h3 style="margin:0 0 6px;">メニュー</h3>
@@ -723,6 +956,12 @@ canvas{ display:block; }
 
     <div class="menu-list">
       <button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
+
+      <!-- ✅ 色変更（iOS Safariでも確実に開く） -->
+      <label class="menu-btn color-label" id="menuColorBtn" title="色を変更">
+        色変更
+        <input type="color" id="menuColorInput" value="#FFF3E0">
+      </label>
       <button class="menu-btn" id="menuDupBtn" type="button">複製</button>
       <button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
       <button class="menu-btn" id="menuFrontBtn" type="button">最前面</button>
@@ -736,13 +975,12 @@ canvas{ display:block; }
   </div>
 </div>
 
-<!-- Preset Manager -->
 <div id="presetModal" class="modal-overlay">
   <div class="modal sheet">
     <h3 style="margin:0 0 6px;">プリセット編集</h3>
     <div style="font-size:12px;color:#666;margin-bottom:8px;">部屋名と色を追加/変更できます</div>
 
-    <input id="presetSearch" type="text" placeholder="検索（例：LDK）" />
+    <input id="presetSearch" type="text" placeholder="検索（例：LDK）">
 
     <div class="preset-list" id="presetList"></div>
 
@@ -759,18 +997,11 @@ canvas{ display:block; }
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDoc, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* =========================
-   Config
-========================= */
-const APP_VER = "6.20";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
@@ -787,69 +1018,70 @@ const db = getFirestore(app);
 
 const el = (id) => document.getElementById(id);
 
+// canvas
 const canvas = el('canvas');
 const ctx = canvas.getContext('2d');
 const container = el('canvas-container');
 
+// constants
 const GRID_SIZE = 32;
 const HISTORY_MAX = 50;
 
 const PRESET_KEY = "floorplan_presets_v1";
-const LAYOUTS_KEY = "floorplan_saved_layouts_v1";
+const LAYOUTS_KEY = "floorplan_saved_layouts_v2"; // v2: editable only list
 
-const WALL_DEFAULT_THICK = 12;
-const WALL_HANDLE_R = 18;      // screen px
-const WALL_HIT_PAD = 12;       // screen px
+const WALL_THICK_KEY = "wallThick_v1";
+let WALL_DEFAULT_THICK = 12;
+const WALL_HANDLE_R = 18;
+const WALL_HIT_PAD = 12;
 const SNAP_ANGLE_DEG = 15;
 
 const AUTOSAVE_DELAY = 1500;
 const TSUBO_TO_M2 = 3.305785;
 
-const MOVE_HANDLE_R = 14;      // screen px
-const MOVE_HANDLE_HIT = 22;    // screen px
+const MOVE_HANDLE_R = 14;
+const MOVE_HANDLE_HIT = 22;
 
 const SMALL_ROOM_MAX_MASU = 4;
 
-/* =========================
-   State
-========================= */
+// state
 let items = [];
 let selectedItem = null;
-
 let isMerged = false;
 let camera = { x: 0, y: 0 };
 let scale = 1.0;
 
 let lastTapTime = 0;
-let layoutId = null;           // 現在開いているFirestore doc id
-let isReadOnly = false;        // 共有固定図面（スナップショット）でtrue
+let layoutId = null;
+let isReadOnly = false;
 
-let currentTitle = "MORI";
+let currentTitle = "MORIYASU🏠";
+
 let editingItem = null;
 let menuItem = null;
 
 let labelModalMode = "edit";
 let addPendingColor = "#FFF3E0";
 
-/* 計測モード */
 let isMeasureMode = false;
 let measurePoints = [];
 
-/* Undo/Redo */
+let isWallPlaceMode = false;
+let wallPlaceStart = null; // {x,y} when placing wall by 2 taps
+
+// history
 let undoStack = [];
 let redoStack = [];
 let gestureSnapshot = null;
 
-/* Auto-save */
+// autosave
 let autosaveTimer = null;
-let saveState = "idle"; // idle | pending | saving | saved | error
-let saveStateTimer = null;
 
-/* Presets */
+// presets
 let presets = [];
 let presetSearchQuery = "";
 
-/* Touch */
+// touch state
 let longPressTimer = null;
 let pressStart = null;
 let pressStartWorld = null;
@@ -861,50 +1093,29 @@ let rectDragOffset = null;
 let wallMoveOffset = null;
 let emptyTapCandidate = false;
 
-/* UI feedback */
-let activeHint = null; // "moveRect"|"resizeRect"|"moveWall"|"p1"|"p2"|null
-
-/* Pinch */
+// pinch
 let pinchActive = false;
 let pinchStartDist = 0;
 let pinchStartScale = 1;
 let pinchWorldMid = null;
 
-/* =========================
-   Utils
-========================= */
-function setAppHeight(){
-  // iOS Safari対策：innerHeightをCSS変数へ
-  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+// polyfill: roundRect
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    r = Math.min(r, w/2, h/2);
+    this.beginPath();
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    this.closePath();
+    return this;
+  };
 }
-setAppHeight();
-window.addEventListener('resize', setAppHeight);
 
 function uid(){
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-}
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-function toast(msg){
-  const t = el('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => t.classList.remove('show'), 1400);
-}
-
-function setSaveStatus(text, kind=""){
-  const s = el('saveStatus');
-  s.classList.remove('good','bad');
-  if(kind) s.classList.add(kind);
-  s.textContent = text;
-}
-
-/* Escape safely */
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, (m)=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
 }
 
 function ensureIds(){
@@ -913,8 +1124,12 @@ function ensureIds(){
     if(typeof it.locked !== "boolean") it.locked = false;
     if(it.type === 'wallLine'){
       if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
-      if(!it.color) it.color = "#616161";
+      if(!it.color) it.color = "#111";
       if(!it.label) it.label = "壁";
+    }
+    if(it.type !== 'wallLine'){
+      if(!it.color) it.color = "#FFF3E0";
+      if(!it.label) it.label = "部屋";
     }
   });
 }
@@ -931,6 +1146,7 @@ function getSnapStep(){
 function getSnapped(val, step){
   return Math.round(val / step) * step;
 }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
 /* coordinate */
 function screenToWorld(screenX, screenY){
@@ -942,158 +1158,62 @@ function screenToWorld(screenX, screenY){
   return {x,y};
 }
 
-function getPinchInfo(touches){
-  const a = touches[0], b = touches[1];
-  const dx = b.clientX - a.clientX;
-  const dy = b.clientY - a.clientY;
-  const dist = Math.hypot(dx, dy);
-  const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
-  return { dist, mid };
-}
-
-/* =========================
-   Read-only control (A案)
-========================= */
-function setReadOnlyMode(on){
-  isReadOnly = !!on;
-
-  // Banner & top-right button
-  el('readonlyBanner').style.display = isReadOnly ? "flex" : "none";
-  el('shareBtn').textContent = isReadOnly ? "コピーして編集" : "共有（固定）";
-
-  // 編集系ボタンをdisable（計測/表示/フィット/リセット/パン/ズームはOK）
-  const editBtns = [
-    'addFrameBtn2','addGenericRoomBtn2','addWallBtn2','copyBtn2','resetBtn2',
-    'undoBtn','redoBtn'
-  ];
-  editBtns.forEach(id => {
-    const b = el(id);
-    if(b) b.disabled = isReadOnly;
-  });
-
-  // セグメントは閲覧でも切替できてもいいが、誤解防止でOK（そのまま）
-  // メニュー/ラベル編集はイベント側でブロック
-
-  draw();
-}
-
-function blockIfReadOnly(){
-  if(!isReadOnly) return false;
-  toast("閲覧モードです。『コピーして編集』してください");
-  return true;
-}
-
-/* =========================
-   Firestore I/O
-========================= */
+/* firestore save */
 async function saveLayoutToFirestore(){
-  if(isReadOnly) return;      // スナップショットは保存しない
-  if(!layoutId) return;
-
-  saveState = "saving";
-  setSaveStatus("保存中…");
-
+  if(!layoutId || isReadOnly) return;
   try{
     await setDoc(doc(db, "layouts", layoutId), {
       items,
       isMerged,
       title: currentTitle,
-      isSnapshot: false,
-      appVer: APP_VER,
+      readonly: false,
       updatedAt: new Date()
     }, { merge: true });
-
-    saveState = "saved";
-    setSaveStatus("保存済み", "good");
-
-    clearTimeout(saveStateTimer);
-    saveStateTimer = setTimeout(() => {
-      if(saveState === "saved") setSaveStatus("—");
-    }, 2500);
-
   }catch(e){
     console.warn("save failed", e);
-    saveState = "error";
-    setSaveStatus("保存失敗", "bad");
   }
 }
 
 function scheduleAutoSave(){
-  if(isReadOnly) return;
-  if(!layoutId) return;
+  if(!layoutId || isReadOnly) return;
   if(autosaveTimer) clearTimeout(autosaveTimer);
-
-  saveState = "pending";
-  setSaveStatus("保存待ち…");
-
   autosaveTimer = setTimeout(async () => {
     await saveLayoutToFirestore();
     touchLayoutMeta(layoutId);
   }, AUTOSAVE_DELAY);
 }
 
-/* 共有（固定）スナップショット作成 */
-async function createSnapshot(){
-  // 共有は「今の状態の固定」なので、必ず新しいdocを作る
-  try{
-    const r = await addDoc(collection(db, "layouts"), {
-      items,
-      isMerged,
-      title: currentTitle,
-      isSnapshot: true,        // ★ここで判別
-      sourceLayoutId: layoutId || null,
-      appVer: APP_VER,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    return r.id;
-  }catch(e){
-    console.warn("snapshot failed", e);
-    toast("共有リンク作成に失敗");
-    return null;
-  }
+async function ensureEditableLayoutId(){
+  if(layoutId) return layoutId;
+  const r = await addDoc(collection(db, "layouts"), {
+    items,
+    isMerged,
+    title: currentTitle,
+    readonly: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  layoutId = r.id;
+  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+  history.replaceState(null, "", newUrl);
+  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+  return layoutId;
 }
 
-/* 閲覧→コピーして編集 */
-async function copySnapshotToNewWork(){
-  if(!isReadOnly || !layoutId) return;
-
-  try{
-    const newTitle = (currentTitle || "間取り") + "（コピー）";
-    const r = await addDoc(collection(db, "layouts"), {
-      items,
-      isMerged,
-      title: newTitle,
-      isSnapshot: false,
-      copiedFromSnapshotId: layoutId,
-      appVer: APP_VER,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    // 新しい編集docへ移動
-    const newId = r.id;
-    const newUrl = `${window.location.origin}${window.location.pathname}?id=${newId}`;
-    history.replaceState(null, "", newUrl);
-
-    layoutId = newId;
-    currentTitle = newTitle;
-    el('topTitle').innerText = currentTitle;
-
-    upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
-
-    setReadOnlyMode(false);
-    toast("コピーしました。編集できます");
-    scheduleAutoSave();
-  }catch(e){
-    console.warn(e);
-    toast("コピーに失敗しました");
-  }
+async function createReadOnlyShareSnapshot(){
+  // 共有は「読み取り専用コピー」を発行
+  const r = await addDoc(collection(db, "layouts"), {
+    items,
+    isMerged,
+    title: currentTitle,
+    readonly: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  return r.id;
 }
 
-/* =========================
-   History
-========================= */
+/* history */
 function snapshot(){
   ensureIds();
   return {
@@ -1120,6 +1240,7 @@ function restore(s){
 
   selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
   updateSegmentUI();
+  updateWorkHint();
   draw();
 }
 
@@ -1150,23 +1271,22 @@ function redo(){
 }
 
 function syncHistoryButtons(){
-  el('undoBtn').disabled = isReadOnly ? true : (undoStack.length === 0);
-  el('redoBtn').disabled = isReadOnly ? true : (redoStack.length === 0);
+  el('undoBtn').disabled = isReadOnly || undoStack.length === 0;
+  el('redoBtn').disabled = isReadOnly || redoStack.length === 0;
 }
 
-/* =========================
-   Presets
-========================= */
+/* presets */
 function defaultPresets(){
+  // 図面っぽく見えるように全体的に淡い色に寄せる
   return [
-    { name: "LDK", color: "#FFF3E0" },
-    { name: "洋室", color: "#E3F2FD" },
-    { name: "寝室", color: "#E8F5E9" },
-    { name: "土間", color: "#ECEFF1" },
-    { name: "収納", color: "#F3E5F5" },
-    { name: "洗面", color: "#E0F7FA" },
-    { name: "トイレ", color: "#FFFDE7" },
-    { name: "玄関", color: "#FBE9E7" },
+    { name: "LDK",  color: "#F4EBD2" },
+    { name: "洋室", color: "#F7F3EA" },
+    { name: "寝室", color: "#F2F6EF" },
+    { name: "土間", color: "#F1F1F1" },
+    { name: "収納", color: "#F6F2F7" },
+    { name: "洗面", color: "#EFF7F7" },
+    { name: "トイレ", color: "#FFF9E6" },
+    { name: "玄関", color: "#F8EFEA" },
   ];
 }
 function loadPresets(){
@@ -1187,12 +1307,21 @@ function loadPresets(){
 function savePresets(){
   localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[m]));
+}
 
 function onPresetPicked(name, color){
-  if(blockIfReadOnly()) return;
-
+  if(isReadOnly) return;
   if(labelModalMode === "add"){
-    addPendingColor = color || "#FFF3E0";
+    addPendingColor = color || addPendingColor || "#FFF3E0";
+    el('addColorInput').value = addPendingColor;
     closeLabelModal();
     addRect(name, 4, 4, addPendingColor, 'room');
     return;
@@ -1217,7 +1346,6 @@ function renderPresetChips(){
 function renderPresetEditorList(){
   const list = el('presetList');
   list.innerHTML = "";
-
   const q = (presetSearchQuery || "").toLowerCase();
   const visible = presets
     .map((p, idx) => ({...p, idx}))
@@ -1243,7 +1371,6 @@ function renderPresetEditorList(){
       if(k === 'color') presets[i].color = inp.value || "#FFF3E0";
     });
   });
-
   list.querySelectorAll('.preset-del').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = Number(btn.dataset.idx);
@@ -1258,9 +1385,7 @@ el('presetList').addEventListener('focusin', (e) => {
   if(row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 
-/* =========================
-   Local saved list (device)
-========================= */
+/* layouts list (editable only) */
 function loadLayouts(){
   try{
     const raw = localStorage.getItem(LAYOUTS_KEY);
@@ -1281,7 +1406,7 @@ function formatDate(ts){
 function upsertLayoutMeta(id, patch){
   const list = loadLayouts();
   const idx = list.findIndex(x => x.id === id);
-  const title = patch.title || currentTitle || "間取り";
+  const title = patch.title || currentTitle || "MORIYASU🏠";
 
   if(idx >= 0){
     list[idx] = { ...list[idx], ...patch, title };
@@ -1308,7 +1433,7 @@ function renderLayoutList(){
     const row = document.createElement('div');
     row.className = 'layout-row';
     row.innerHTML = `
-      <input type="text" value="${escapeHtml(it.title || "間取り")}" maxlength="24" data-id="${it.id}">
+      <input type="text" value="${escapeHtml(it.title || "MORIYASU🏠")}" maxlength="24" data-id="${it.id}">
       <button class="layout-btn" type="button" data-act="open" data-id="${it.id}">開く</button>
       <button class="layout-btn" type="button" data-act="newtab" data-id="${it.id}">新規タブ</button>
       <button class="layout-del" type="button" data-act="del" data-id="${it.id}">×</button>
@@ -1332,14 +1457,9 @@ function renderLayoutList(){
     if(!act || !id) return;
 
     btn.addEventListener('click', () => {
-      if(act === 'open'){
-        const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
-        window.location.href = url;
-      }
-      if(act === 'newtab'){
-        const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
-        window.open(url, "_blank");
-      }
+      const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+      if(act === 'open') window.location.href = url;
+      if(act === 'newtab') window.open(url, "_blank");
       if(act === 'del'){
         const list = loadLayouts().filter(x => x.id !== id);
         saveLayouts(list);
@@ -1349,9 +1469,7 @@ function renderLayoutList(){
   });
 }
 
-/* =========================
-   UI helpers
-========================= */
+/* ui helpers */
 function resizeCanvas(){
   canvas.width = container.clientWidth;
   canvas.height = container.clientHeight;
@@ -1364,13 +1482,78 @@ function updateSegmentUI(){
 function setMergedMode(val){
   isMerged = val;
   updateSegmentUI();
+  updateModeAvailability();
+  updateWorkHint();
   draw();
 }
 
-/* Summary */
+/* --- UX helpers: mode hint + toast --- */
+let toastTimer = null;
+function showToast(msg, ms=1800){
+  const t = el('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function updateModeAvailability(){
+  // 外壁モード = 編集(!isMerged): 外枠のみを触る想定
+  const outer = !isMerged;
+  const btnRoom = el('addGenericRoomBtn2');
+  const btnWall = el('addInnerWallBtn2');
+  const btnFrame = el('addFrameBtn2');
+
+  if(btnRoom) btnRoom.disabled = outer;
+  if(btnWall) btnWall.disabled = outer;
+  if(btnFrame) btnFrame.disabled = !outer;
+
+  // 外壁モードに切り替えたら壁設置は解除
+  if(outer){
+    isWallPlaceMode = false;
+    wallPlaceStart = null;
+    updateWorkHint();
+    const wb = el('addInnerWallBtn2');
+    if(wb) wb.classList.remove('active');
+  }
+}
+
+function updateWorkHint(){
+  const h = el('workHint');
+  if(!h) return;
+
+  if(isMeasureMode){
+    h.innerHTML = "<b>計測</b>：2点をタップ（解除：計測ボタン）";
+    return;
+  }
+  if(isWallPlaceMode){
+    if(!wallPlaceStart){
+      h.innerHTML = "<b>内壁</b>：始点をタップ → 次に終点をタップ（解除：内壁ボタン）";
+    }else{
+      h.innerHTML = "<b>内壁</b>：終点をタップ（解除：内壁ボタン）";
+    }
+    return;
+  }
+
+  if(!isMerged){
+    h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
+  }else{
+    h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：2点タップで設置";
+  }
+}
+
+/* 修正版: 部屋(room)は無視し、「外枠(frame)」の面積だけを合計する（建築図面方式） */
 function updateSummary(){
   let tm = 0;
-  items.forEach(i => { if(i.type === 'frame') tm += (i.w/GRID_SIZE)*(i.h/GRID_SIZE); });
+  
+  items.forEach(i => {
+    // 外枠(frame)だけを足す
+    // ※L字の家にする場合は、「外枠」ボタンで枠を2つ追加して並べてください
+    if(i.type === 'frame') {
+      tm += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
+    }
+  });
 
   const tsubo = tm/4;
   const jou = tm/2;
@@ -1380,20 +1563,86 @@ function updateSummary(){
   el('totalJou').innerText = jou.toFixed(1);
   el('totalM2').innerText = m2.toFixed(1);
 
-  const showM2 = el('showM2')?.checked ?? true;
-  el('m2Wrap').style.display = showM2 ? "" : "none";
+  el('jouWrap').style.display = (el('showJou')?.checked ?? true) ? "" : "none";
+  el('m2Wrap').style.display = (el('showM2')?.checked ?? true) ? "" : "none";
 }
+
 
 function syncBottomBarState(){
-  el('copyBtn2').disabled = isReadOnly ? true : (!selectedItem);
+  el('copyBtn2').disabled = isReadOnly || !selectedItem;
+  el('resetBtn2').disabled = isReadOnly;
+  el('addFrameBtn2').disabled = isReadOnly;
+  el('addGenericRoomBtn2').disabled = isReadOnly;
+  el('addInnerWallBtn2').disabled = isReadOnly;
 }
 
-/* =========================
-   Mutations (edit actions)
-========================= */
-function addRect(label, w, h, color, type='room'){
-  if(blockIfReadOnly()) return;
+/* ✅ 色UI同期 */
+function syncColorUI(){
+  const btn = el('quickColorBtn');
+  const inp = el('quickColorInput');
 
+  if(!selectedItem || isReadOnly || selectedItem.locked){
+    btn.dataset.disabled = "1";
+    btn.style.setProperty('--swatch', '#ffffff');
+    return;
+  }
+
+  btn.dataset.disabled = "0";
+  const c = selectedItem.color || "#FFF3E0";
+  inp.value = c;
+  btn.style.setProperty('--swatch', c);
+}
+
+
+/* ✅ 壁太さUI同期（スライダーは「全ての内壁」に適用） */
+function syncWallThickUI(){
+  const slider = el('wallThickSlider');
+  const val = el('wallThickVal');
+  if(!slider || !val) return;
+
+  slider.disabled = isReadOnly;
+
+  // 壁を選択している時はその壁の太さをスライダーに合わせる（違う値のレイアウト読み込み対策）
+  if(selectedItem && selectedItem.type === 'wallLine'){
+    const t = Number(selectedItem.thick ?? WALL_DEFAULT_THICK);
+    if(Number.isFinite(t)){
+      slider.value = String(t);
+      val.textContent = String(t);
+      WALL_DEFAULT_THICK = t;
+    }
+  }else{
+    slider.value = String(WALL_DEFAULT_THICK);
+    val.textContent = String(WALL_DEFAULT_THICK);
+  }
+}
+
+function applyWallThicknessToAll(newThick, {respectLock=true} = {}){
+  const t = Number(newThick);
+  if(!Number.isFinite(t)) return;
+
+  WALL_DEFAULT_THICK = t;
+
+  items.forEach(it => {
+    if(it.type !== 'wallLine') return;
+    if(respectLock && it.locked) return;
+    it.thick = t;
+    if(!it.color) it.color = "#111";
+  });
+
+  // UI
+  const slider = el('wallThickSlider');
+  const val = el('wallThickVal');
+  if(slider) slider.value = String(t);
+  if(val) val.textContent = String(t);
+
+  try{ localStorage.setItem(WALL_THICK_KEY, String(t)); }catch(_){}
+  draw();
+}
+
+
+/* add items */
+function addRect(label, w, h, color, type='room'){
+  if(isReadOnly) return;
   pushHistory();
   const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
   const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
@@ -1403,40 +1652,78 @@ function addRect(label, w, h, color, type='room'){
   normalizeZ();
   selectedItem = i;
   draw();
+  if(type === 'room') showToast('ドラッグで移動 / 角ドラッグでサイズ / 色は右上');
   scheduleAutoSave();
 }
-
-function addWallLine(){
-  if(blockIfReadOnly()) return;
+function addWallBetween(p1, p2){
+  if(isReadOnly) return;
+  const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+  if(x1 === x2 && y1 === y2) return;
 
   pushHistory();
-  const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
-  const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
-  const len = 4 * GRID_SIZE;
-  const wall = {
-    id: uid(),
-    locked:false,
+  const w = {
     type: 'wallLine',
-    label: '壁',
-    color: '#616161',
+    x1, y1, x2, y2,
     thick: WALL_DEFAULT_THICK,
-    x1: targetX,
-    y1: targetY,
-    x2: targetX + len,
-    y2: targetY
+    color: '#111'
   };
-  items.push(wall);
+  items.push(w);
   ensureIds();
   normalizeZ();
-  selectedItem = wall;
+  selectedItem = w;
   draw();
   scheduleAutoSave();
 }
 
-function duplicateItem(it){
-  if(blockIfReadOnly()) return;
-  if(!it) return;
+function setWallPlaceMode(on){
+  isWallPlaceMode = !!on;
+  wallPlaceStart = null;
 
+  const btn = el('addInnerWallBtn2');
+  if(btn){
+    btn.classList.toggle('active', isWallPlaceMode);
+  }
+
+  // 壁設置中は計測と排他
+  if(isWallPlaceMode){
+    isMeasureMode = false;
+    measurePoints = [];
+    const mb = el('measureBtn');
+    if(mb){
+      mb.classList.remove('active');
+      mb.classList.add('gray');
+    }
+    selectedItem = null;
+  }
+  draw();
+}
+
+function toggleWallPlaceMode(){
+  if(isReadOnly) return;
+  setWallPlaceMode(!isWallPlaceMode);
+}
+
+/* menu actions */
+
+function openMenu(item){
+  if(!item) return;
+  menuItem = item;
+  const lockedText = item.locked ? "（ロック）" : "";
+  el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
+
+  // 色入力の初期値
+  el('menuColorInput').value = item.color || "#FFF3E0";
+  el('menuColorBtn').style.setProperty('--swatch', el('menuColorInput').value);
+
+  el('menuModal').style.display = 'flex';
+}
+function closeMenu(){
+  el('menuModal').style.display = 'none';
+  menuItem = null;
+}
+function duplicateItem(it){
+  if(isReadOnly) return;
+  if(!it) return;
   pushHistory();
   let n;
   if(it.type === 'wallLine'){
@@ -1450,11 +1737,9 @@ function duplicateItem(it){
   draw();
   scheduleAutoSave();
 }
-
 function deleteItem(it){
-  if(blockIfReadOnly()) return;
+  if(isReadOnly) return;
   if(!it) return;
-
   pushHistory();
   items = items.filter(x => x !== it);
   selectedItem = null;
@@ -1462,11 +1747,9 @@ function deleteItem(it){
   draw();
   scheduleAutoSave();
 }
-
 function bringFront(it){
-  if(blockIfReadOnly()) return;
+  if(isReadOnly) return;
   if(!it) return;
-
   pushHistory();
   items = items.filter(x => x !== it);
   items.push(it);
@@ -1474,11 +1757,9 @@ function bringFront(it){
   draw();
   scheduleAutoSave();
 }
-
 function bringBack(it){
-  if(blockIfReadOnly()) return;
+  if(isReadOnly) return;
   if(!it) return;
-
   pushHistory();
   const frames = items.filter(i => i.type === 'frame');
   const others = items.filter(i => i.type !== 'frame' && i !== it);
@@ -1487,11 +1768,9 @@ function bringBack(it){
   draw();
   scheduleAutoSave();
 }
-
 function toggleLock(it){
-  if(blockIfReadOnly()) return;
+  if(isReadOnly) return;
   if(!it) return;
-
   pushHistory();
   it.locked = !it.locked;
   draw();
@@ -1500,8 +1779,7 @@ function toggleLock(it){
 
 /* label modal */
 function openLabelModal(mode){
-  if(blockIfReadOnly()) return;
-
+  if(isReadOnly) return;
   labelModalMode = mode;
   el('labelModal').style.display = 'flex';
 
@@ -1511,11 +1789,14 @@ function openLabelModal(mode){
     el('addHint').style.display = "block";
     el('labelInput').placeholder = "部屋名（入力追加）";
     el('labelInput').value = "";
+    el('addColorInput').value = addPendingColor || "#FFF3E0";
+    el('addColorBtn').style.display = "";
   }else{
     el('labelModalTitle').innerText = "部屋名を変更";
     el('labelModalSub').innerText = "候補をタップ（名前＋色） / 入力してOK";
     el('addHint').style.display = "none";
     el('labelInput').placeholder = "部屋名";
+    el('addColorBtn').style.display = "none";
   }
 
   setTimeout(() => el('labelInput').focus(), 50);
@@ -1528,20 +1809,18 @@ function closeLabelModal(){
 }
 
 function openLabelEditor(item){
-  if(blockIfReadOnly()) return;
+  if(isReadOnly) return;
   if(!item) return;
-
   editingItem = item;
   el('labelInput').value = item.label || "";
   openLabelModal("edit");
 }
 
 function applyLabel(applyColor=false, colorValue=null){
-  if(blockIfReadOnly()) return;
-  if(!editingItem) return;
-
+  if(isReadOnly) return;
+  if (!editingItem) return;
   const v = el('labelInput').value.trim();
-  if(!v) return;
+  if (!v) return;
 
   pushHistory();
   editingItem.label = v;
@@ -1552,9 +1831,7 @@ function applyLabel(applyColor=false, colorValue=null){
   scheduleAutoSave();
 }
 
-/* =========================
-   Wall helpers
-========================= */
+/* wall helpers */
 function distPointToSegment(px, py, x1, y1, x2, y2){
   const vx = x2 - x1, vy = y2 - y1;
   const wx = px - x1, wy = py - y1;
@@ -1570,17 +1847,13 @@ function distPointToSegment(px, py, x1, y1, x2, y2){
 function wallHitTest(worldP, wall){
   const handleRWorld = WALL_HANDLE_R / scale;
   const padWorld = WALL_HIT_PAD / scale;
-
   const d1 = Math.hypot(worldP.x - wall.x1, worldP.y - wall.y1);
   if(d1 <= handleRWorld) return {hit:true, handle:"p1"};
-
   const d2 = Math.hypot(worldP.x - wall.x2, worldP.y - wall.y2);
   if(d2 <= handleRWorld) return {hit:true, handle:"p2"};
-
   const dSeg = distPointToSegment(worldP.x, worldP.y, wall.x1, wall.y1, wall.x2, wall.y2);
   const thickWorld = (wall.thick || WALL_DEFAULT_THICK) / scale;
   if(dSeg <= (thickWorld/2 + padWorld)) return {hit:true, handle:null};
-
   return {hit:false, handle:null};
 }
 function applyRightAngleSnap(wall, movingHandle){
@@ -1595,7 +1868,6 @@ function applyRightAngleSnap(wall, movingHandle){
   if(adx < 1e-6 && ady < 1e-6) return;
 
   const tan = Math.tan(SNAP_ANGLE_DEG * Math.PI/180);
-
   if(ady <= adx * tan){
     if(movingHandle === "p1") wall.y1 = wall.y2;
     else wall.y2 = wall.y1;
@@ -1607,7 +1879,7 @@ function applyRightAngleSnap(wall, movingHandle){
   }
 }
 
-/* Rect helpers */
+/* rect helpers */
 function isSmallRoom(it){
   if(!it || it.type !== 'room') return false;
   const masu = (it.w/GRID_SIZE) * (it.h/GRID_SIZE);
@@ -1622,37 +1894,28 @@ function rectMoveHandleHit(worldP, it){
   return Math.hypot(worldP.x - c.x, worldP.y - c.y) <= r;
 }
 
-/* =========================
-   Draw
-========================= */
+/* draw */
 function drawGrid(){
   ctx.strokeStyle = "#e5e5ea";
   ctx.lineWidth = 0.5 / scale;
   const range = 1600;
   for (let x = -range; x <= range; x += GRID_SIZE) {
-    ctx.beginPath(); ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
   }
   for (let y = -range; y <= range; y += GRID_SIZE) {
-    ctx.beginPath(); ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
   }
 }
 
-/* ★重なり対策強化：
-   - fillの透明度を「大きい部屋ほど少し薄く」
-   - label描画は「大→小」の順にして小部屋ラベルが上に来る
-*/
 function drawRectItems(){
   const rects = items.filter(i => i.type !== 'wallLine');
 
-  // 1) fill
+  // fill
   rects.forEach(item => {
-    const masu = (item.w/GRID_SIZE) * (item.h/GRID_SIZE);
-    const isRoom = (item.type === 'room');
-    // 大部屋は少し薄くして下の視認性UP
-    const alpha = !isRoom ? 1.0 : (masu > 12 ? 0.68 : (masu > 6 ? 0.74 : 0.84));
-
     ctx.fillStyle = item.color;
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = item.type==='room' ? 0.35 : 1.0;
     ctx.fillRect(item.x, item.y, item.w, item.h);
     ctx.globalAlpha = 1.0;
 
@@ -1662,7 +1925,7 @@ function drawRectItems(){
     }
   });
 
-  // 2) stroke (small rooms double border)
+  // stroke
   rects.forEach(item => {
     const isFrame = item.type === 'frame';
     const baseStroke = isFrame ? "#cfcfd6" : "#333";
@@ -1682,16 +1945,20 @@ function drawRectItems(){
     }
   });
 
-  // 3) labels (draw big first -> small on top)
-  const labelRects = rects.slice().sort((a,b) => (b.w*b.h) - (a.w*a.h));
-  labelRects.forEach(item => {
+  // label（見やすいように中央寄せ）
+  rects.forEach(item => {
     const label = item.locked ? `${item.label} 🔒` : (item.label || "");
     if(!label) return;
 
-    const x = item.x + 6/scale;
-    const y = item.y + 18/scale;
+    // 小さい部屋は文字が潰れやすいので少し縮小
+    const fontSize = (isSmallRoom(item) ? 11 : 13) / scale;
+    const x = item.x + item.w/2;
+    const y = item.y + item.h/2;
 
-    ctx.font = `900 ${13/scale}px sans-serif`;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${fontSize}px sans-serif`;
 
     ctx.lineJoin = "round";
     ctx.lineWidth = 4/scale;
@@ -1700,49 +1967,23 @@ function drawRectItems(){
 
     ctx.fillStyle = "#111";
     ctx.fillText(label, x, y);
+    ctx.restore();
   });
-
-  // 選択中のラベルは最後にもう一度描いて最前面に（見失い防止）
-  if(selectedItem && selectedItem.type !== 'wallLine'){
-    const it = selectedItem;
-    const label = it.locked ? `${it.label} 🔒` : (it.label || "");
-    if(label){
-      const x = it.x + 6/scale;
-      const y = it.y + 18/scale;
-      ctx.font = `900 ${13/scale}px sans-serif`;
-      ctx.lineJoin = "round";
-      ctx.lineWidth = 4/scale;
-      ctx.strokeStyle = "rgba(255,255,255,0.95)";
-      ctx.strokeText(label, x, y);
-      ctx.fillStyle = "#111";
-      ctx.fillText(label, x, y);
-    }
-  }
 }
 
 function drawWallLine(wall){
-  const thick = wall.thick || WALL_DEFAULT_THICK;
+  const thick = wall.thick ?? WALL_DEFAULT_THICK;
+
   ctx.save();
-  ctx.lineCap = "round";
-  ctx.strokeStyle = wall.color || "#616161";
+  // 図面ライク：角ばった端
+  ctx.lineCap = "butt";
+  ctx.strokeStyle = wall.color || "#111";
   ctx.lineWidth = thick / scale;
+
   ctx.beginPath();
   ctx.moveTo(wall.x1, wall.y1);
   ctx.lineTo(wall.x2, wall.y2);
   ctx.stroke();
-
-  const mx = (wall.x1 + wall.x2)/2;
-  const my = (wall.y1 + wall.y2)/2;
-  ctx.fillStyle = "#111";
-  ctx.font = `bold ${12/scale}px sans-serif`;
-
-  const text = wall.locked ? `${wall.label} 🔒` : wall.label;
-
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 4/scale;
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.strokeText(text, mx + 8/scale, my - 8/scale);
-  ctx.fillText(text, mx + 8/scale, my - 8/scale);
 
   ctx.restore();
 }
@@ -1761,34 +2002,26 @@ function drawWallSelection(wall){
 
   if(!wall.locked && !isReadOnly){
     const r = WALL_HANDLE_R / scale;
-
-    // handle highlight
-    const a1 = (activeHint === "p1");
-    const a2 = (activeHint === "p2");
-
-    ctx.lineWidth = 2/scale;
-
-    ctx.fillStyle = a1 ? "rgba(0,122,255,0.25)" : "#fff";
+    ctx.fillStyle = "#fff";
     ctx.strokeStyle = "#007AFF";
+    ctx.lineWidth = 2/scale;
     ctx.beginPath(); ctx.arc(wall.x1, wall.y1, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = a2 ? "rgba(0,122,255,0.25)" : "#fff";
     ctx.beginPath(); ctx.arc(wall.x2, wall.y2, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
   }
   ctx.restore();
 }
 
-/* Move handle (active highlight) */
-function drawMoveHandleRect(it, active=false){
+function drawMoveHandleRect(it){
   const c = rectMoveHandleCenter(it);
   const r = MOVE_HANDLE_R / scale;
 
   ctx.save();
-  ctx.fillStyle = active ? "rgba(0,122,255,0.22)" : "#fff";
+  ctx.fillStyle = "#fff";
   ctx.strokeStyle = "#007AFF";
   ctx.lineWidth = 2/scale;
 
-  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(c.x - r*0.55, c.y);
@@ -1804,20 +2037,16 @@ function drawSizeBadge(it){
   const mw = (it.w / GRID_SIZE).toFixed(1).replace('.0','');
   const mh = (it.h / GRID_SIZE).toFixed(1).replace('.0','');
   const text = (it.type === 'frame') ? `外枠: ${mw}×${mh}マス` : `${mw}×${mh}マス`;
-
   const pad = 8/scale;
   ctx.save();
   ctx.font = `900 ${12/scale}px sans-serif`;
   const w = ctx.measureText(text).width + pad*2;
   const h = 22/scale;
-
   const x = it.x;
   const y = it.y - (h + 8/scale);
 
   ctx.fillStyle = "rgba(0,122,255,0.92)";
-  ctx.beginPath();
-  const rx = 10/scale;
-  ctx.roundRect(x, y, w, h, rx);
+  ctx.roundRect(x, y, w, h, 10/scale);
   ctx.fill();
 
   ctx.fillStyle = "#fff";
@@ -1835,13 +2064,26 @@ function drawMerged(){
     if(item.type === 'wallLine') return;
 
     if (item.type !== 'frame') {
-      if (!groups[item.label]) groups[item.label] = { label: item.label, totalMasu: 0, textX: 0, textY: 0, lastIdx: -1 };
-      groups[item.label].totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-      if (index > groups[item.label].lastIdx) {
-        groups[item.label].textX = item.x + item.w/2;
-        groups[item.label].textY = item.y + item.h/2;
-        groups[item.label].lastIdx = index;
+      if (!groups[item.label]) {
+        groups[item.label] = {
+          label: item.label,
+          totalMasu: 0,
+          minX: Infinity,
+          minY: Infinity,
+          maxX: -Infinity,
+          maxY: -Infinity,
+          textX: 0,
+          textY: 0
+        };
       }
+      const g = groups[item.label];
+      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+      g.minX = Math.min(g.minX, item.x);
+      g.minY = Math.min(g.minY, item.y);
+      g.maxX = Math.max(g.maxX, item.x + item.w);
+      g.maxY = Math.max(g.maxY, item.y + item.h);
+      g.textX = (g.minX + g.maxX) / 2;
+      g.textY = (g.minY + g.maxY) / 2;
     }
 
     for (let x = item.x; x < item.x + item.w; x += sub) {
@@ -1855,9 +2097,22 @@ function drawMerged(){
 
   items.forEach(item => {
     if(item.type === 'wallLine') return;
-    ctx.fillStyle = item.type === 'frame' ? "#f8f8f8" : item.color;
+
+    if(item.type === 'frame'){
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = "#ffffff";
+    }else{
+      // 図面っぽく薄く見せる（写真のような淡い塗り）
+      ctx.globalAlpha = 0.22; // 0.15〜0.35 くらいで好みに調整
+      ctx.fillStyle = item.color;
+    }
+
     ctx.fillRect(item.x, item.y, item.w, item.h);
+    ctx.globalAlpha = 1.0;
   });
+
+  // ✅ 結合モードでもグリッドは表示（塗りの上、境界線の下）
+  drawGrid();
 
   const drawEdge = (map, color, width) => {
     ctx.strokeStyle = color;
@@ -1866,7 +2121,9 @@ function drawMerged(){
       const [x, y] = pos.split(',').map(Number);
       const label = map[pos].label || map[pos];
       [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-        if ((map[`${x+d.dx},${y+d.dy}`]?.label || map[`${x+d.dx},${y+d.dy}`]) !== label) {
+        const nb = map[`${x+d.dx},${y+d.dy}`];
+        const nbLabel = nb?.label || nb;
+        if (nbLabel !== label) {
           ctx.beginPath();
           if(d.dy!==0){
             ctx.moveTo(x, y+(d.dy>0?sub:0));
@@ -1881,8 +2138,8 @@ function drawMerged(){
     }
   };
 
-  drawEdge(roomMap, "#333", 2);
-  drawEdge(frameMap, "#111", 6);
+  drawEdge(roomMap, "#111", 2);
+  drawEdge(frameMap, "#111", 10);
 
   for (const key in groups) {
     const g = groups[key];
@@ -1910,7 +2167,23 @@ function drawMerged(){
   items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
 }
 
-/* measurement */
+function drawWallPlaceGuide(){
+  // 壁設置モード：1点目が確定している時だけマーカーを表示
+  if(!isWallPlaceMode || !wallPlaceStart) return;
+
+  ctx.save();
+  ctx.fillStyle = "#007AFF";
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = 4/scale;
+
+  const r = 6/scale;
+  ctx.beginPath();
+  ctx.arc(wallPlaceStart.x, wallPlaceStart.y, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawMeasurement(){
   if(!measurePoints.length) return;
 
@@ -1958,7 +2231,7 @@ window.draw = function(){
   ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
   ctx.scale(scale, scale);
 
-  drawGrid();
+  if(!isMerged) drawGrid();
 
   if(isMerged) drawMerged();
   else{
@@ -1975,11 +2248,9 @@ window.draw = function(){
       ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
 
       if(!selectedItem.locked && !isReadOnly){
-        drawMoveHandleRect(selectedItem, activeHint === "moveRect");
+        drawMoveHandleRect(selectedItem);
 
-        // resize handle highlight
-        const isResize = (activeHint === "resizeRect");
-        ctx.fillStyle = isResize ? "rgba(0,122,255,0.22)" : "#fff";
+        ctx.fillStyle = "#fff";
         ctx.strokeStyle = "#007AFF";
         ctx.lineWidth = 2/scale;
         ctx.beginPath();
@@ -1999,18 +2270,21 @@ window.draw = function(){
 
   if(isMeasureMode) drawMeasurement();
 
+  if(isWallPlaceMode) drawWallPlaceGuide();
+
   ctx.restore();
 
   updateSummary();
   syncBottomBarState();
   syncHistoryButtons();
+  syncColorUI();
+  syncWallThickUI();
 };
 
 function fitToFrame(){
   const frames = items.filter(i => i.type === 'frame');
   const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
   if (!targets.length) return;
-
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   targets.forEach(it => {
     if(it.type === 'wallLine') return;
@@ -2019,16 +2293,394 @@ function fitToFrame(){
     maxX = Math.max(maxX, it.x + it.w);
     maxY = Math.max(maxY, it.y + it.h);
   });
-
   const cx = (minX + maxX)/2;
   const cy = (minY + maxY)/2;
   camera = { x: -cx * scale, y: -cy * scale };
   draw();
 }
 
-/* =========================
-   Touch handling
-========================= */
+/* init */
+async function init(){
+  presets = loadPresets();
+  renderPresetChips();
+  // 色スウォッチ初期化
+  el('quickColorBtn').style.setProperty('--swatch', '#ffffff');
+  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+  el('menuColorBtn').style.setProperty('--swatch', '#FFF3E0');
+
+
+  // ✅ 壁太さ（スライダー）：全ての内壁に適用
+  try{
+    const savedThick = Number(localStorage.getItem(WALL_THICK_KEY));
+    if(Number.isFinite(savedThick)) WALL_DEFAULT_THICK = clamp(savedThick, 4, 24);
+  }catch(_){}
+
+  // 初期UI反映
+  if(el('wallThickSlider')){
+    el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+    el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+
+    let armed = false;
+    const armHistory = () => {
+      if(isReadOnly) return;
+      if(armed) return;
+      pushHistory(); // 変更前を保存（Undo対応）
+      armed = true;
+    };
+
+    // 変更開始時に一度だけ履歴を積む
+    el('wallThickSlider').addEventListener('pointerdown', armHistory);
+    el('wallThickSlider').addEventListener('mousedown', armHistory);
+    el('wallThickSlider').addEventListener('touchstart', armHistory, {passive:true});
+
+    // スライド中は即反映（履歴は積まない）
+    el('wallThickSlider').addEventListener('input', (e) => {
+      if(isReadOnly) return;
+      const v = clamp(Number(e.target.value), 4, 24);
+      el('wallThickVal').textContent = String(v);
+      applyWallThicknessToAll(v, {respectLock:true});
+    });
+
+    // 指を離したタイミングで保存
+    el('wallThickSlider').addEventListener('change', (e) => {
+      if(isReadOnly) return;
+      const v = clamp(Number(e.target.value), 4, 24);
+      el('wallThickVal').textContent = String(v);
+      applyWallThicknessToAll(v, {respectLock:true});
+      armed = false;
+      scheduleAutoSave();
+    });
+  }
+
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  el('segEdit').onclick = () => setMergedMode(false);
+  el('segMerge').onclick = () => setMergedMode(true);
+
+  updateModeAvailability();
+  updateWorkHint();
+
+  el('measureBtn').onclick = () => {
+    isMeasureMode = !isMeasureMode;
+    // 計測中は壁設置と排他
+    isWallPlaceMode = false;
+    wallPlaceStart = null;
+    updateWorkHint();
+    const wb = el('addInnerWallBtn2');
+    if(wb) wb.classList.remove('active');
+    measurePoints = [];
+    selectedItem = null;
+
+    if(isMeasureMode){
+      el('measureBtn').classList.add('active');
+      el('measureBtn').classList.remove('gray');
+    }else{
+      el('measureBtn').classList.remove('active');
+      el('measureBtn').classList.add('gray');
+    }
+    draw();
+  };
+
+  el('undoBtn').onclick = undo;
+  el('redoBtn').onclick = redo;
+  syncHistoryButtons();
+
+  const params = new URLSearchParams(window.location.search);
+  layoutId = params.get('id') || null;
+
+  if(layoutId){
+    const snap = await getDoc(doc(db, "layouts", layoutId));
+    if(snap.exists()){
+      const data = snap.data();
+      items = (data.items || []).map(i => ({...i}));
+      currentTitle = data.title || "MORIYASU🏠";
+      isReadOnly = !!data.readonly;
+
+      el('topTitle').innerText = currentTitle;
+      el('layoutTitleInput').value = currentTitle;
+
+      ensureIds();
+      normalizeZ();
+
+      // ✅ 既存レイアウトに壁がある場合は、その太さをスライダー初期値に合わせる（表示だけ）
+      const firstWall = items.find(i => i.type === 'wallLine' && typeof i.thick === 'number');
+      if(firstWall && Number.isFinite(firstWall.thick)){
+        WALL_DEFAULT_THICK = clamp(firstWall.thick, 4, 24);
+        if(el('wallThickSlider')){
+          el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+          el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+        }
+      }
+      isMerged = !!data.isMerged;
+      updateSegmentUI();
+
+      // 閲覧モードUI
+      el('modeBanner').style.display = isReadOnly ? "flex" : "none";
+      el('shareBtn').innerText = isReadOnly ? "コピーして編集" : "共有";
+
+      if(!isReadOnly){
+        upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+      }
+
+      draw();
+    }else{
+      // idが存在しない場合
+      items = [];
+      addRect('外枠', 2, 2, '#ffffff', 'frame');
+      updateSegmentUI();
+      draw();
+    }
+  }else{
+    addRect('外枠', 2, 2, '#ffffff', 'frame');
+    updateSegmentUI();
+    draw();
+  }
+}
+
+/* help */
+el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
+el('helpModal').onclick = () => el('helpModal').style.display = 'none';
+
+/* share / copy-to-edit */
+async function copyThisLayoutToEditable(){
+  // 現在の状態を新しい編集IDに複製
+  const r = await addDoc(collection(db, "layouts"), {
+    items,
+    isMerged,
+    title: currentTitle,
+    readonly: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  layoutId = r.id;
+  isReadOnly = false;
+
+  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+  history.replaceState(null, "", newUrl);
+
+  el('modeBanner').style.display = "none";
+  el('shareBtn').innerText = "共有";
+  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+
+  draw();
+  alert("コピーして編集を開始しました（新しいURLになりました）");
+}
+
+el('copyToEditBtn').onclick = async () => {
+  await copyThisLayoutToEditable();
+};
+
+el('shareBtn').onclick = async () => {
+  if(isReadOnly){
+    await copyThisLayoutToEditable();
+    return;
+  }
+
+  // 編集用IDを確保（自分の編集は自分のIDに保存）
+  await ensureEditableLayoutId();
+  await saveLayoutToFirestore();
+
+  // 共有は「読み取り専用コピー」を発行
+  const shareId = await createReadOnlyShareSnapshot();
+  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${shareId}`;
+  el('shareUrlInput').value = shareUrl;
+
+  el('layoutTitleInput').value = currentTitle;
+  el('shareModal').style.display = 'flex';
+};
+
+el('layoutTitleInput').addEventListener('input', (e) => {
+  currentTitle = e.target.value.trim() || "MORIYASU🏠";
+  el('topTitle').innerText = currentTitle;
+
+  if(layoutId && !isReadOnly){
+    scheduleAutoSave();
+    upsertLayoutMeta(layoutId, { title: currentTitle });
+  }
+});
+
+el('copyUrlBtn').onclick = () => {
+  navigator.clipboard.writeText(el('shareUrlInput').value);
+  alert("コピーしました");
+};
+el('closeShareModalBtn').onclick = () => el('shareModal').style.display = 'none';
+el('shareModal').onclick = (e) => { if(e.target.id === 'shareModal') el('shareModal').style.display = 'none'; };
+
+el('openLayoutsBtn').onclick = () => {
+  renderLayoutList();
+  el('layoutsModal').style.display = 'flex';
+};
+el('layoutsCloseBtn').onclick = () => el('layoutsModal').style.display = 'none';
+el('layoutsModal').onclick = (e) => { if(e.target.id === 'layoutsModal') el('layoutsModal').style.display = 'none'; };
+
+el('saveAsBtn').onclick = async () => {
+  if(isReadOnly){
+    await copyThisLayoutToEditable();
+    return;
+  }
+  // 別名保存（新しい編集ID）
+  const r = await addDoc(collection(db, "layouts"), {
+    items,
+    isMerged,
+    title: currentTitle,
+    readonly: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  layoutId = r.id;
+  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+  history.replaceState(null, "", newUrl);
+
+  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+  alert("別名で保存しました（新しいURLになりました）");
+};
+
+/* ✅ 色変更（クイック色 / メニュー色 / 追加色） */
+function applyColorToSelected(color){
+  if(isReadOnly) return;
+  const it = selectedItem;
+  if(!it || it.locked) return;
+  pushHistory();
+  it.color = color;
+  addPendingColor = color; // 次に追加する部屋の色にも反映
+  draw();
+  scheduleAutoSave();
+}
+
+el('quickColorInput').addEventListener('input', () => applyColorToSelected(el('quickColorInput').value));
+el('quickColorInput').addEventListener('change', () => applyColorToSelected(el('quickColorInput').value));
+
+el('menuColorInput').addEventListener('input', () => {
+  if(isReadOnly) return;
+  const it = menuItem || selectedItem;
+  if(!it || it.locked) return;
+  pushHistory();
+  it.color = el('menuColorInput').value;
+  el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
+  addPendingColor = it.color;
+  draw();
+  scheduleAutoSave();
+});
+el('menuColorInput').addEventListener('change', () => {
+  if(isReadOnly) return;
+  const it = menuItem || selectedItem;
+  if(!it || it.locked) return;
+  pushHistory();
+  it.color = el('menuColorInput').value;
+  el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
+  addPendingColor = it.color;
+  draw();
+  scheduleAutoSave();
+});
+
+el('addColorInput').addEventListener('input', () => {
+  addPendingColor = el('addColorInput').value || "#FFF3E0";
+  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+});
+el('addColorInput').addEventListener('change', () => {
+  addPendingColor = el('addColorInput').value || "#FFF3E0";
+  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+});
+
+/* fit/center */
+el('fitBtn').onclick = fitToFrame;
+el('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; scale = 1.0; draw(); };
+
+// checkboxes update
+document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = draw);
+
+/* label modal ok/cancel */
+el('labelCancelBtn').onclick = closeLabelModal;
+el('labelOkBtn').onclick = () => {
+  if(isReadOnly) return;
+  const name = el('labelInput').value.trim();
+  if(!name) return;
+
+  if(labelModalMode === "add"){
+    closeLabelModal();
+    addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
+    return;
+  }
+  applyLabel(false, null);
+};
+el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabelModal(); };
+el('labelInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') el('labelOkBtn').click();
+});
+
+/* preset editor */
+el('openPresetBtn').onclick = () => {
+  el('presetModal').style.display = 'flex';
+  presetSearchQuery = "";
+  el('presetSearch').value = "";
+  renderPresetEditorList();
+};
+el('presetSearch').addEventListener('input', (e) => {
+  presetSearchQuery = (e.target.value || "").trim();
+  renderPresetEditorList();
+});
+el('presetCloseBtn').onclick = () => el('presetModal').style.display = 'none';
+el('presetModal').onclick = (e) => { if(e.target.id === 'presetModal') el('presetModal').style.display = 'none'; };
+el('presetAddBtn').onclick = () => {
+  // 追加した行を見失わない：検索を解除し、追加行へフォーカス＆自動スクロール
+  presetSearchQuery = "";
+  el('presetSearch').value = "";
+  presets.push({ name: "部屋", color: "#FFF3E0" });
+  renderPresetEditorList();
+
+  // render後に該当inputへフォーカス（focusinでscrollIntoViewが走る）
+  const idx = presets.length - 1;
+  setTimeout(() => {
+    const inp = el('presetList')?.querySelector?.(`input[data-idx="${idx}"][data-k="name"]`);
+    if(inp){
+      inp.focus();
+      try{ inp.select(); }catch(_){}
+    }
+  }, 0);
+};
+el('presetSaveBtn').onclick = () => {
+  presets = presets
+    .map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
+    .filter(p => p.name.length > 0);
+  savePresets();
+  renderPresetChips();
+  el('presetModal').style.display = 'none';
+};
+
+/* menu modal */
+el('menuCloseBtn').onclick = closeMenu;
+el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu(); };
+el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
+el('menuDupBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
+el('menuDelBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
+el('menuFrontBtn').onclick= () => { const it = menuItem; closeMenu(); if(it) bringFront(it); };
+el('menuBackBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) bringBack(it); };
+el('menuLockBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) toggleLock(it); };
+
+/* bottom actions */
+el('addGenericRoomBtn2').onclick = () => {
+  if(isReadOnly) return;
+  editingItem = null;
+  addPendingColor = addPendingColor || "#FFF3E0";
+  openLabelModal("add");
+};
+el('addFrameBtn2').onclick = () => addRect('外枠', 2, 2, '#ffffff', 'frame');
+el('addInnerWallBtn2').onclick = () => toggleWallPlaceMode();
+el('copyBtn2').onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
+el('resetBtn2').onclick = () => {
+  if(isReadOnly) return;
+  if(selectedItem) deleteItem(selectedItem);
+  else if(confirm("全消去しますか？")) {
+    pushHistory();
+    items = [];
+    selectedItem = null;
+    addRect('外枠', 2, 2, '#ffffff', 'frame');
+  }
+};
+
+/* touch handling */
 function clearTouchState(){
   if(longPressTimer) clearTimeout(longPressTimer);
   longPressTimer = null;
@@ -2042,17 +2694,25 @@ function clearTouchState(){
   rectDragOffset = null;
   wallMoveOffset = null;
   emptyTapCandidate = false;
-  activeHint = null;
 }
 
 function startLongPress(item){
-  if(isReadOnly) return; // 閲覧モードはメニュー無し
+  if(isReadOnly) return;
   if(longPressTimer) clearTimeout(longPressTimer);
   longPressTimer = setTimeout(() => {
     if(!dragActive && pendingItem === item){
       openMenu(item);
     }
   }, 450);
+}
+
+function getPinchInfo(touches){
+  const a = touches[0], b = touches[1];
+  const dx = b.clientX - a.clientX;
+  const dy = b.clientY - a.clientY;
+  const dist = Math.hypot(dx, dy);
+  const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
+  return { dist, mid };
 }
 
 canvas.addEventListener('touchstart', (e) => {
@@ -2071,7 +2731,6 @@ canvas.addEventListener('touchstart', (e) => {
   if(e.touches.length !== 1) return;
   const t = e.touches[0];
 
-  // 閲覧モードでも「選択」はOKだが、編集/移動/リサイズはさせない（ドラッグはパン扱い）
   const now = Date.now();
   if(!isReadOnly && now - lastTapTime < 300 && selectedItem && !isMerged){
     openLabelEditor(selectedItem);
@@ -2080,55 +2739,86 @@ canvas.addEventListener('touchstart', (e) => {
   lastTapTime = now;
 
   clearTouchState();
+
   pressStart = { clientX: t.clientX, clientY: t.clientY };
   pressStartWorld = screenToWorld(t.clientX, t.clientY);
-
   const worldP = pressStartWorld;
 
-  // 計測モード：タップのみで点追加
+  // measure mode
   if(isMeasureMode){
     const snap = getSnapStep();
     const mx = getSnapped(worldP.x, snap);
     const my = getSnapped(worldP.y, snap);
+
     if(measurePoints.length >= 2) measurePoints = [];
     measurePoints.push({x:mx, y:my});
+    updateWorkHint();
     draw();
     return;
+  }
+
+  // wall place mode (2 taps like measurement)
+  if(isWallPlaceMode){
+    const snap = getSnapStep();
+    let wx = getSnapped(worldP.x, snap);
+    let wy = getSnapped(worldP.y, snap);
+
+    if(!wallPlaceStart){
+      wallPlaceStart = {x:wx, y:wy};
+      updateWorkHint();
+      draw();
+      return;
+    }else{
+      const s = wallPlaceStart;
+      let x2 = wx, y2 = wy;
+      const dx = x2 - s.x;
+      const dy = y2 - s.y;
+
+      // 直交吸着（距離が近い方を揃える）
+      const orthoThresh = snap * 0.75;
+      if(Math.abs(dx) < orthoThresh) x2 = s.x;
+      if(Math.abs(dy) < orthoThresh) y2 = s.y;
+
+      addWallBetween({x:s.x, y:s.y}, {x:x2, y:y2});
+      wallPlaceStart = null; // 次の壁はまた1点目から
+      updateWorkHint();
+      return;
+    }
   }
 
   let found = null;
   let wallHandle = null;
 
   for (let i = items.length-1; i >= 0; i--) {
-    if (!isMerged || items[i].type !== 'frame') {
-      const it = items[i];
+    const it = items[i];
+
+    // 外壁モード（編集表示）は外枠(frame)のみ選択可能
+    if(!isMerged && it.type !== 'frame') continue;
+
+    // 部屋モード（結合表示）は外枠(frame)は選択しない
+    if(isMerged && it.type === 'frame') continue;
 
       if(it.type === 'wallLine'){
         const r = wallHitTest(worldP, it);
-        if(r.hit){
-          found = it; wallHandle = r.handle; break;
-        }
+        if(r.hit){ found = it; wallHandle = r.handle; break; }
       } else {
         if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
           found = it; break;
         }
       }
-    }
   }
 
   if(found){
     selectedItem = found;
     pendingItem = found;
 
-    // 閲覧モードはここで終了：ドラッグはパン扱い（編集しない）
+    if(!isReadOnly) startLongPress(found);
+
     if(isReadOnly){
-      pendingAction = "pan";
-      emptyTapCandidate = false;
+      pendingAction = "pan"; // 閲覧モードはドラッグ=パン
       draw();
       return;
     }
-
-    startLongPress(found);
 
     if(found.locked){
       pendingAction = null;
@@ -2149,8 +2839,6 @@ canvas.addEventListener('touchstart', (e) => {
         pendingAction = nearResize ? "resizeRect" : "moveRect";
       }
     }
-
-    activeHint = pendingAction;
   }else{
     emptyTapCandidate = true;
     pendingAction = "pan";
@@ -2184,7 +2872,6 @@ canvas.addEventListener('touchmove', (e) => {
 
   if(e.touches.length !== 1) return;
   const t = e.touches[0];
-
   if(!pressStart) return;
 
   const dx = t.clientX - pressStart.clientX;
@@ -2197,13 +2884,12 @@ canvas.addEventListener('touchmove', (e) => {
   if(!dragActive && moved >= 6){
     dragActive = true;
     emptyTapCandidate = false;
-
     if(longPressTimer) clearTimeout(longPressTimer);
     longPressTimer = null;
 
     gestureSnapshot = snapshot();
 
-    if(pendingItem){
+    if(pendingItem && !isReadOnly){
       items.splice(items.indexOf(pendingItem), 1);
       items.push(pendingItem);
       normalizeZ();
@@ -2218,8 +2904,7 @@ canvas.addEventListener('touchmove', (e) => {
   }
 
   if(dragActive){
-    // 閲覧モード：常にパンだけ
-    if(isReadOnly || pendingAction === "pan"){
+    if(pendingAction === "pan"){
       camera.x += dx;
       camera.y += dy;
       pressStart = { clientX: t.clientX, clientY: t.clientY };
@@ -2227,10 +2912,14 @@ canvas.addEventListener('touchmove', (e) => {
       return;
     }
 
+    if(isReadOnly){
+      draw();
+      return;
+    }
+
     if(pendingItem && !pendingItem.locked){
       if(pendingItem.type === 'wallLine'){
         const w = pendingItem;
-
         if(pendingAction === "p1"){
           w.x1 = getSnapped(worldP.x, snap);
           w.y1 = getSnapped(worldP.y, snap);
@@ -2245,7 +2934,8 @@ canvas.addEventListener('touchmove', (e) => {
           const nx1 = getSnapped(worldP.x - (wallMoveOffset?.dx ?? 0), snap);
           const ny1 = getSnapped(worldP.y - (wallMoveOffset?.dy ?? 0), snap);
           w.x1 = nx1; w.y1 = ny1;
-          w.x2 = nx1 + vx; w.y2 = ny1 + vy;
+          w.x2 = nx1 + vx;
+          w.y2 = ny1 + vy;
         }
       }else{
         const it = pendingItem;
@@ -2312,308 +3002,10 @@ canvas.addEventListener('touchcancel', () => {
   draw();
 });
 
-/* =========================
-   Menu
-========================= */
-function openMenu(item){
-  if(isReadOnly) return;
-  if(!item) return;
-
-  menuItem = item;
-  const lockedText = item.locked ? "（ロック）" : "";
-  el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
-  el('menuModal').style.display = 'flex';
-}
-function closeMenu(){
-  el('menuModal').style.display = 'none';
-  menuItem = null;
-}
-
-/* =========================
-   Init & Wiring
-========================= */
-function seedDefaultIfEmpty(){
-  // 初期外枠（ここではaddRectを使わず、不要な履歴/保存を発生させない）
-  if(items.length) return;
-  items = [{
-    id: uid(),
-    locked:false,
-    type:'frame',
-    x: 0, y: 0,
-    w: 2*GRID_SIZE,
-    h: 2*GRID_SIZE,
-    label: '外枠',
-    color: '#f8f8f8'
-  }];
-  ensureIds();
-  normalizeZ();
-}
-
-async function loadFromId(id){
-  try{
-    const snap = await getDoc(doc(db, "layouts", id));
-    if(!snap.exists()){
-      items = [];
-      seedDefaultIfEmpty();
-      isMerged = false;
-      currentTitle = "MORI";
-      el('topTitle').innerText = currentTitle;
-      setReadOnlyMode(false);
-      updateSegmentUI();
-      draw();
-      return;
-    }
-
-    const data = snap.data();
-    items = (data.items || []).map(i => ({...i}));
-    ensureIds();
-    normalizeZ();
-
-    isMerged = !!data.isMerged;
-    currentTitle = data.title || "MORI";
-    el('topTitle').innerText = currentTitle;
-
-    // ★スナップショットなら閲覧モード
-    setReadOnlyMode(!!data.isSnapshot);
-
-    updateSegmentUI();
-    draw();
-
-    // local meta（端末内一覧）
-    upsertLayoutMeta(id, { title: currentTitle, updatedAt: Date.now() });
-
-  }catch(e){
-    console.warn(e);
-    items = [];
-    seedDefaultIfEmpty();
-    updateSegmentUI();
-    draw();
-  }
-}
-
-function init(){
-  presets = loadPresets();
-  renderPresetChips();
-
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  // segment
-  el('segEdit').onclick = () => setMergedMode(false);
-  el('segMerge').onclick = () => setMergedMode(true);
-
-  // measure
-  el('measureBtn').onclick = () => {
-    isMeasureMode = !isMeasureMode;
-    measurePoints = [];
-    selectedItem = null;
-
-    if(isMeasureMode){
-      el('measureBtn').classList.add('active');
-      el('measureBtn').classList.remove('gray');
-    }else{
-      el('measureBtn').classList.remove('active');
-      el('measureBtn').classList.add('gray');
-    }
-    draw();
-  };
-
-  // history
-  el('undoBtn').onclick = undo;
-  el('redoBtn').onclick = redo;
-  syncHistoryButtons();
-
-  // load
-  const params = new URLSearchParams(window.location.search);
-  layoutId = params.get('id') || null;
-
-  if(layoutId){
-    loadFromId(layoutId);
-  }else{
-    items = [];
-    seedDefaultIfEmpty();
-    // 初期は編集扱い（ただし未保存）
-    setReadOnlyMode(false);
-    updateSegmentUI();
-    draw();
-  }
-
-  // summary toggles
-  document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = draw);
-}
-
-/* Help */
-el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
-el('helpModal').onclick = () => el('helpModal').style.display = 'none';
-
-/* Readonly copy button */
-el('copyToEditBtn').onclick = copySnapshotToNewWork;
-
-/* Top-right button behavior */
-el('shareBtn').onclick = async () => {
-  if(isReadOnly){
-    // 閲覧ならコピーして編集
-    await copySnapshotToNewWork();
-    return;
-  }
-
-  // タイトル入力を同期（モーダル表示前に）
-  el('layoutTitleInput').value = currentTitle;
-
-  // ★固定スナップショット作成
-  const snapId = await createSnapshot();
-  if(!snapId) return;
-
-  // 共有URL表示
-  el('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?id=${snapId}`;
-  el('shareModal').style.display = 'flex';
-  toast("固定の共有リンクを作成しました");
-};
-
-/* Share modal */
-el('closeShareModalBtn').onclick = () => el('shareModal').style.display = 'none';
-el('shareModal').onclick = (e) => { if(e.target.id === 'shareModal') el('shareModal').style.display = 'none'; };
-el('copyUrlBtn').onclick = () => {
-  navigator.clipboard.writeText(el('shareUrlInput').value);
-  toast("コピーしました");
-};
-
-/* Title input */
-el('layoutTitleInput').addEventListener('input', (e) => {
-  currentTitle = e.target.value.trim() || "MORI";
-  el('topTitle').innerText = currentTitle;
-  if(!isReadOnly){
-    scheduleAutoSave();
-    if(layoutId) upsertLayoutMeta(layoutId, { title: currentTitle });
-  }
-});
-
-/* Save As (別名で保存＝編集用ドキュメント複製) */
-el('saveAsBtn').onclick = async () => {
-  if(isReadOnly){
-    await copySnapshotToNewWork();
-    return;
-  }
-
-  try{
-    const r = await addDoc(collection(db, "layouts"), {
-      items,
-      isMerged,
-      title: currentTitle,
-      isSnapshot: false,
-      appVer: APP_VER,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    layoutId = r.id;
-
-    const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
-    history.replaceState(null, "", newUrl);
-    upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
-
-    toast("別名で保存しました（新しいURL）");
-    scheduleAutoSave();
-  }catch(e){
-    console.warn(e);
-    toast("別名保存に失敗");
-  }
-};
-
-/* Layouts modal */
-el('openLayoutsBtn').onclick = () => {
-  renderLayoutList();
-  el('layoutsModal').style.display = 'flex';
-};
-el('layoutsCloseBtn').onclick = () => el('layoutsModal').style.display = 'none';
-el('layoutsModal').onclick = (e) => { if(e.target.id === 'layoutsModal') el('layoutsModal').style.display = 'none'; };
-
-/* Fit/center */
-el('fitBtn').onclick = fitToFrame;
-el('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; scale = 1.0; draw(); };
-
-/* Label modal */
-el('labelCancelBtn').onclick = closeLabelModal;
-el('labelOkBtn').onclick = () => {
-  const name = el('labelInput').value.trim();
-  if(!name) return;
-
-  if(labelModalMode === "add"){
-    closeLabelModal();
-    addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
-    return;
-  }
-  applyLabel(false, null);
-};
-el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabelModal(); };
-el('labelInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') el('labelOkBtn').click();
-});
-
-/* Preset editor */
-el('openPresetBtn').onclick = () => {
-  if(blockIfReadOnly()) return;
-  el('presetModal').style.display = 'flex';
-  presetSearchQuery = "";
-  el('presetSearch').value = "";
-  renderPresetEditorList();
-};
-el('presetSearch').addEventListener('input', (e) => {
-  presetSearchQuery = (e.target.value || "").trim();
-  renderPresetEditorList();
-});
-el('presetCloseBtn').onclick = () => el('presetModal').style.display = 'none';
-el('presetModal').onclick = (e) => { if(e.target.id === 'presetModal') el('presetModal').style.display = 'none'; };
-el('presetAddBtn').onclick = () => {
-  if(blockIfReadOnly()) return;
-  presets.push({ name: "部屋", color: "#FFF3E0" });
-  renderPresetEditorList();
-};
-el('presetSaveBtn').onclick = () => {
-  if(blockIfReadOnly()) return;
-  presets = presets
-    .map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
-    .filter(p => p.name.length > 0);
-  savePresets();
-  renderPresetChips();
-  el('presetModal').style.display = 'none';
-  toast("プリセット保存");
-};
-
-/* Menu modal */
-el('menuCloseBtn').onclick = closeMenu;
-el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu(); };
-el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
-el('menuDupBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
-el('menuDelBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
-el('menuFrontBtn').onclick= () => { const it = menuItem; closeMenu(); if(it) bringFront(it); };
-el('menuBackBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) bringBack(it); };
-el('menuLockBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) toggleLock(it); };
-
-/* Bottom bar */
-el('addGenericRoomBtn2').onclick = () => {
-  if(blockIfReadOnly()) return;
-  editingItem = null;
-  addPendingColor = addPendingColor || "#FFF3E0";
-  openLabelModal("add");
-};
-el('addFrameBtn2').onclick = () => addRect('外枠', 2, 2, '#f8f8f8', 'frame');
-el('addWallBtn2').onclick = addWallLine;
-
-el('copyBtn2').onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
-el('resetBtn2').onclick = () => {
-  if(blockIfReadOnly()) return;
-  if(selectedItem) deleteItem(selectedItem);
-  else if(confirm("全消去しますか？")) {
-    pushHistory();
-    items = [];
-    selectedItem = null;
-    seedDefaultIfEmpty();
-    draw();
-    scheduleAutoSave();
-  }
-};
-
 init();
 </script>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
 </body>
 </html>
