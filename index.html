@@ -3458,7 +3458,7 @@ async function downloadImage() {
         // 3. 高画質出力のための設定
         // 1マスのサイズを大きく設定して高解像度化（例: 1マス=64px換算など）
         // 現在のscaleに関わらず、全体が収まるサイズにキャンバスを変更
-        const exportScale = 2.0; // 通常の2倍の解像度で出力
+        const exportScale = 4.0; // 通常の4倍の解像度で出力
         
         canvas.width = (contentW * exportScale) + (margin * 2);
         canvas.height = (contentH * exportScale) + (margin * 2);
