@@ -51,7 +51,7 @@ background: var(--bg);
 color: var(--text);
 
 /* iOS Safari 上部見切れ対策 */
-padding-top: env(safe-area-inset-top);
+padding-top: 0; /* ← ここを変更 */
 padding-left: env(safe-area-inset-left);
 padding-right: env(safe-area-inset-right);
 
@@ -80,6 +80,7 @@ opacity: .85;
 
 .toolbar{
 margin: 12px;
+margin-top: calc(12px + env(safe-area-inset-top)); /* ← これを追加 */
 border-radius: var(--radius2);
 background: var(--card);
 border: 1px solid var(--stroke);
