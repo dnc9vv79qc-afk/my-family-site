@@ -819,10 +819,15 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
 <div class="top-title" id="topTitle" contenteditable="true" spellcheck="false" role="textbox" aria-label="間取り名（タップして編集）">MORI</div>
 </div>
+
+<!-- 共有 / 閲覧モードではコピーして-->
+
 <div class="top-right">
-<!-- 共有 / 閲覧モードではコピーして編集 -->
+<button class="btn-primary" id="downloadImageBtn" style="background:#34C759; margin-right:10px;">画像保存</button>
 <button class="btn-primary" id="shareBtn">共有</button>
 </div>
+
+
 </div>
 
 <div id="modeBanner" class="mode-banner" style="display:none;">
@@ -1091,7 +1096,10 @@ let lastTapTime = 0;
 let overlapPick = { key: null, idx: 0, ts: 0 };
 let layoutId = null;
 let isReadOnly = false;
+
 let isViewMode = false; // 閲覧（パン/ズーム優先）
+let isExporting = false; // ★追加: 画像出力中フラグ
+
 
 let currentTitle = "MORIYASU🏠";
 
@@ -2336,7 +2344,8 @@ drawEdge(frameMap, "#111", 10);
         // ★判定ロジックの変更
         // 「物理的に狭い」かつ「画面上でも小さく見える（高さ45px未満）」ときだけ、上詰めモードにする。
         // → つまり、ズームして部屋が画面上で45px以上の大きさになれば、自動で「真ん中・大文字」に戻ります！
-        const useTinyMode = isPhysicallyTiny && (visualHeight < 45);
+// ★変更: 出力中(!isExporting)は強制的にTinyModeを解除する
+const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
 
         // 共通設定：白フチ（文字が壁と被っても読めるように）
         ctx.fillStyle = "#111"; 
@@ -2470,7 +2479,16 @@ ctx.restore();
 
 window.draw = function(){
 ctx.save();
-ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+// ★変更: 出力中は背景を白く塗る（透過防止）
+if(isExporting) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+} else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+
 
 ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
 ctx.scale(scale, scale);
@@ -3395,6 +3413,97 @@ gestureSnapshot = null;
 clearTouchState();
 draw();
 });
+
+/* --- Image Export Feature --- */
+async function downloadImage() {
+    // 1. 保存前の状態を退避
+    const prevScale = scale;
+    const prevCamera = { ...camera };
+    const prevSelected = selectedItem;
+    const prevW = canvas.width;
+    const prevH = canvas.height;
+    
+    // 選択状態を一時解除（ハンドルなどが写らないように）
+    selectedItem = null;
+    isExporting = true; // ★TinyMode無効化フラグON
+
+    try {
+        // 2. 図面全体が収まる範囲を計算
+        const targets = items.filter(i => i.type !== 'wallLine'); // 壁以外で計算
+        if (targets.length === 0) {
+            alert("出力する部屋がありません");
+            return;
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        targets.forEach(it => {
+            minX = Math.min(minX, it.x);
+            minY = Math.min(minY, it.y);
+            maxX = Math.max(maxX, it.x + it.w);
+            maxY = Math.max(maxY, it.y + it.h);
+        });
+
+        // 壁も含める（はみ出し防止）
+        items.filter(i => i.type === 'wallLine').forEach(w => {
+            minX = Math.min(minX, w.x1, w.x2);
+            minY = Math.min(minY, w.y1, w.y2);
+            maxX = Math.max(maxX, w.x1, w.x2);
+            maxY = Math.max(maxY, w.y1, w.y2);
+        });
+
+        const margin = 60; // 余白(px)
+        const contentW = maxX - minX;
+        const contentH = maxY - minY;
+
+        // 3. 高画質出力のための設定
+        // 1マスのサイズを大きく設定して高解像度化（例: 1マス=64px換算など）
+        // 現在のscaleに関わらず、全体が収まるサイズにキャンバスを変更
+        const exportScale = 2.0; // 通常の2倍の解像度で出力
+        
+        canvas.width = (contentW * exportScale) + (margin * 2);
+        canvas.height = (contentH * exportScale) + (margin * 2);
+
+        // カメラ位置を調整（コンテンツの中央をキャンバスの中央へ）
+        scale = exportScale;
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        
+        // draw関数内の translate(canvas.width/2 + camera.x ...) に合わせる逆算
+        // targetX = (canvas.width/2) + camera.x  => camera.x = targetX - canvas.width/2
+        // コンテンツの中心をキャンバス中心に持ってくるには、World座標の(cx, cy)を(0,0)にずらす必要がある
+        camera.x = -(cx * scale);
+        camera.y = -(cy * scale);
+
+        // 4. 描画実行
+        draw();
+
+        // 5. 画像生成とダウンロード
+        const dataUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${currentTitle || "間取り"}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+    } catch (e) {
+        console.error(e);
+        alert("画像の保存に失敗しました");
+    } finally {
+        // 6. 状態復元
+        canvas.width = prevW;
+        canvas.height = prevH;
+        scale = prevScale;
+        camera = prevCamera;
+        selectedItem = prevSelected;
+        isExporting = false; // ★フラグOFF
+        draw();
+    }
+}
+
+// ボタンイベント登録
+el('downloadImageBtn').onclick = downloadImage;
+
 
 init();
 </script>
