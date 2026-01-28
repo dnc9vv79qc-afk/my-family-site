@@ -3414,92 +3414,75 @@ clearTouchState();
 draw();
 });
 
-/* --- Image Export Feature --- */
 async function downloadImage() {
-    // 1. 保存前の状態を退避
-    const prevScale = scale;
-    const prevCamera = { ...camera };
-    const prevSelected = selectedItem;
-    const prevW = canvas.width;
-    const prevH = canvas.height;
-    
-    // 選択状態を一時解除（ハンドルなどが写らないように）
-    selectedItem = null;
-    isExporting = true; // ★TinyMode無効化フラグON
+    // 1. 現在の状態を退避（後でfinallyで戻すため）
+    [span_5](start_span)const prevScale = scale;[span_5](end_span)
+    [span_6](start_span)const prevCamera = { ...camera };[span_6](end_span)
+    [span_7](start_span)const prevSelected = selectedItem;[span_7](end_span)
+    [span_8](start_span)const prevW = canvas.width;[span_8](end_span)
+    [span_9](start_span)const prevH = canvas.height;[span_9](end_span)
+
+    // 2. 書き出し用フラグON（UIを隠す）
+    [span_10](start_span)selectedItem = null;[span_10](end_span)
+    [span_11](start_span)isExporting = true;[span_11](end_span)
 
     try {
-        // 2. 図面全体が収まる範囲を計算
-        const targets = items.filter(i => i.type !== 'wallLine'); // 壁以外で計算
-        if (targets.length === 0) {
-            alert("出力する部屋がありません");
-            return;
-        }
+        // --- 高画質化のための計算 ---
+        [span_12](start_span)const targets = items.filter(i => i.type !== 'wallLine');[span_12](end_span)
+        [span_13](start_span)if (targets.length === 0) return alert("出力する部屋がありません");[span_13](end_span)
 
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        [span_14](start_span)let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;[span_14](end_span)
         targets.forEach(it => {
-            minX = Math.min(minX, it.x);
-            minY = Math.min(minY, it.y);
-            maxX = Math.max(maxX, it.x + it.w);
-            maxY = Math.max(maxY, it.y + it.h);
-        });
+            minX = Math.min(minX, it.x); minY = Math.min(minY, it.y);
+            maxX = Math.max(maxX, it.x + it.w); maxY = Math.max(maxY, it.y + it.h);
+        [span_15](start_span)});[span_15](end_span)
 
-        // 壁も含める（はみ出し防止）
-        items.filter(i => i.type === 'wallLine').forEach(w => {
-            minX = Math.min(minX, w.x1, w.x2);
-            minY = Math.min(minY, w.y1, w.y2);
-            maxX = Math.max(maxX, w.x1, w.x2);
-            maxY = Math.max(maxY, w.y1, w.y2);
-        });
-
-        const margin = 60; // 余白(px)
+        const exportScale = 4.0; // 高画質（4倍）
+        const margin = 60;
         const contentW = maxX - minX;
         const contentH = maxY - minY;
 
-        // 3. 高画質出力のための設定
-        // 1マスのサイズを大きく設定して高解像度化（例: 1マス=64px換算など）
-        // 現在のscaleに関わらず、全体が収まるサイズにキャンバスを変更
-        const exportScale = 4.0; // 通常の4倍の解像度で出力
-        
-        canvas.width = (contentW * exportScale) + (margin * 2);
-        canvas.height = (contentH * exportScale) + (margin * 2);
+        [span_16](start_span)// メインキャンバスを一時的に巨大化[span_16](end_span)
+        [span_17](start_span)canvas.width = (contentW * exportScale) + (margin * 2);[span_17](end_span)
+        [span_18](start_span)canvas.height = (contentH * exportScale) + (margin * 2);[span_18](end_span)
 
-        // カメラ位置を調整（コンテンツの中央をキャンバスの中央へ）
-        scale = exportScale;
-        const cx = (minX + maxX) / 2;
-        const cy = (minY + maxY) / 2;
-        
-        // draw関数内の translate(canvas.width/2 + camera.x ...) に合わせる逆算
-        // targetX = (canvas.width/2) + camera.x  => camera.x = targetX - canvas.width/2
-        // コンテンツの中心をキャンバス中心に持ってくるには、World座標の(cx, cy)を(0,0)にずらす必要がある
-        camera.x = -(cx * scale);
-        camera.y = -(cy * scale);
+        [span_19](start_span)scale = exportScale;[span_19](end_span)
+        [span_20](start_span)camera.x = -((minX + maxX) / 2 * scale);[span_20](end_span)
+        [span_21](start_span)camera.y = -((minY + maxY) / 2 * scale);[span_21](end_span)
 
-        // 4. 描画実行
-        draw();
+        // 描画実行
+        [span_22](start_span)draw();[span_22](end_span)
 
-        // 5. 画像生成とダウンロード
-        const dataUrl = canvas.toDataURL("image/png");
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = `${currentTitle || "間取り"}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // --- iPhone 共有メニュー処理 ---
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+        const file = new File([blob], `${currentTitle}.png`, { type: "image/png" });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: currentTitle });
+        } else {
+            // PC等のフォールバック
+            [span_23](start_span)const dataUrl = canvas.toDataURL("image/png");[span_23](end_span)
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            [span_24](start_span)a.download = `${currentTitle}.png`;[span_24](end_span)
+            a.click();
+        }
 
     } catch (e) {
-        console.error(e);
-        alert("画像の保存に失敗しました");
+        [span_25](start_span)console.error(e);[span_25](end_span)
+        [span_26](start_span)alert("画像の保存に失敗しました");[span_26](end_span)
     } finally {
-        // 6. 状態復元
-        canvas.width = prevW;
-        canvas.height = prevH;
-        scale = prevScale;
-        camera = prevCamera;
-        selectedItem = prevSelected;
-        isExporting = false; // ★フラグOFF
-        draw();
+        [span_27](start_span)// 3. 【ここが Finally】状態を完全に復元[span_27](end_span)
+        [span_28](start_span)canvas.width = prevW;[span_28](end_span)
+        [span_29](start_span)canvas.height = prevH;[span_29](end_span)
+        [span_30](start_span)scale = prevScale;[span_30](end_span)
+        [span_31](start_span)camera = prevCamera;[span_31](end_span)
+        [span_32](start_span)selectedItem = prevSelected;[span_32](end_span)
+        isExporting = false; [span_33](start_span)// フラグをOFFにしてUI（ハンドル等）を再表示[span_33](end_span)
+        draw(); [span_34](start_span)// 画面を通常表示にリフレッシュ[span_34](end_span)
     }
 }
+
 
 // ボタンイベント登録
 el('downloadImageBtn').onclick = downloadImage;
