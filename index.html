@@ -7,27 +7,27 @@
 
 <style>
 :root{
-  --accent:#007AFF;
-  --danger:#ff3b30;
-  --measure:#FF2D55;
-  --bg:#f2f2f7;
-  --card: rgba(255,255,255,.72);
-  --stroke: rgba(60,60,67,.18);
-  --text:#111;
-  --muted: rgba(60,60,67,.6);
-  --shadow: 0 10px 30px rgba(0,0,0,.10);
-  --radius2: 26px;
+--accent:#007AFF;
+--danger:#ff3b30;
+--measure:#FF2D55;
+--bg:#f2f2f7;
+--card: rgba(255,255,255,.72);
+--stroke: rgba(60,60,67,.18);
+--text:#111;
+--muted: rgba(60,60,67,.6);
+--shadow: 0 10px 30px rgba(0,0,0,.10);
+--radius2: 26px;
 }
 
 @media (prefers-color-scheme: dark){
-  :root{
-    --bg:#000;
-    --card: rgba(28,28,30,.68);
-    --stroke: rgba(84,84,88,.55);
-    --text:#fff;
-    --muted: rgba(235,235,245,.6);
-    --shadow: 0 16px 50px rgba(0,0,0,.45);
-  }
+:root{
+--bg:#000;
+--card: rgba(28,28,30,.68);
+--stroke: rgba(84,84,88,.55);
+--text:#fff;
+--muted: rgba(235,235,245,.6);
+--shadow: 0 16px 50px rgba(0,0,0,.45);
+}
 }
 
 *{ box-sizing: border-box; }
@@ -35,395 +35,396 @@
 html, body { height: 100%; }
 
 body{
-  font-family:
-    -apple-system, BlinkMacSystemFont,
-    "SF Pro Display", "SF Pro Text",
-    "Hiragino Sans", "Hiragino Kaku Gothic ProN",
-    "Noto Sans JP",
-    "Yu Gothic", "YuGothic",
-    "Meiryo",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+font-family:
+-apple-system, BlinkMacSystemFont,
+"SF Pro Display", "SF Pro Text",
+"Hiragino Sans", "Hiragino Kaku Gothic ProN",
+"Noto Sans JP",
+"Yu Gothic", "YuGothic",
+"Meiryo",
+sans-serif;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
 
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
+margin: 0;
+background: var(--bg);
+color: var(--text);
 
-  /* iOS Safari 上部見切れ対策 */
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+/* iOS Safari 上部見切れ対策 */
+padding-top: env(safe-area-inset-top);
+padding-left: env(safe-area-inset-left);
+padding-right: env(safe-area-inset-right);
 
-  touch-action: none;
+touch-action: none;
 
-  display: flex;
-  flex-direction: column;
+display: flex;
+flex-direction: column;
 
-  /* 100vhより安全 */
-  height: 100dvh;
-  overflow: hidden;
+/* 100vhより安全 */
+height: 100dvh;
+overflow: hidden;
 }
 
 .ver-label{
-  position: fixed;
-  top: calc(6px + env(safe-area-inset-top));
-  right: 10px;
-  font-size: 10px;
-  color: var(--muted);
-  z-index: 100;
-  pointer-events: none;
-  font-weight: 800;
-  text-align: right;
-  opacity: .85;
+position: fixed;
+top: calc(6px + env(safe-area-inset-top));
+right: 10px;
+font-size: 10px;
+color: var(--muted);
+z-index: 100;
+pointer-events: none;
+font-weight: 800;
+text-align: right;
+opacity: .85;
 }
 
 .toolbar{
-  margin: 12px;
-  margin-top: calc(12px + env(safe-area-inset-top));
-  border-radius: var(--radius2);
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+margin: 12px;
+margin-top: calc(12px + env(safe-area-inset-top));
+border-radius: var(--radius2);
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
 
-  padding: 10px;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
+padding: 10px;
+display:flex;
+align-items:center;
+justify-content: space-between;
+gap: 10px;
 
-  z-index: 10;
+z-index: 10;
 }
 
 .top-left, .top-right{ display:flex; align-items:center; gap: 10px; }
-.top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .9; user-select:none; }
+.top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .9; user-select:text; cursor:text; padding:4px 8px; border-radius:10px; max-width: 44vw; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-title:focus{ outline:2px solid rgba(0,122,255,.35); background: rgba(0,122,255,.08); }
 
 button{
-  height: 44px;
-  font-size: 13px;
-  border: none;
-  border-radius: 16px;
-  color: white;
-  font-weight: 900;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  -webkit-tap-highlight-color: transparent;
-  letter-spacing: .2px;
-  transition: transform .08s ease, filter .08s ease, opacity .08s ease;
+height: 44px;
+font-size: 13px;
+border: none;
+border-radius: 16px;
+color: white;
+font-weight: 900;
+cursor: pointer;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+padding: 0 14px;
+-webkit-tap-highlight-color: transparent;
+letter-spacing: .2px;
+transition: transform .08s ease, filter .08s ease, opacity .08s ease;
 }
 button:active { opacity: 0.85; transform: scale(0.98); }
 
 .btn-primary{ background: rgba(255,149,0,.95); }
 .btn-help{
-  background: rgba(120,120,128,.18);
-  color: var(--text);
-  font-size: 18px;
-  width: 44px;
-  padding: 0;
+background: rgba(120,120,128,.18);
+color: var(--text);
+font-size: 18px;
+width: 44px;
+padding: 0;
 }
 
 .mode-banner{
-  margin: 0 12px 12px;
-  border-radius: 999px;
-  background: rgba(255,149,0,.14);
-  border: 1px solid rgba(255,149,0,.30);
-  color: rgba(255,149,0,.95);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 900;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
+margin: 0 12px 12px;
+border-radius: 999px;
+background: rgba(255,149,0,.14);
+border: 1px solid rgba(255,149,0,.30);
+color: rgba(255,149,0,.95);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+padding: 8px 12px;
+font-size: 12px;
+font-weight: 900;
+display:flex;
+align-items:center;
+justify-content: space-between;
+gap: 10px;
 }
 .mode-banner button{
-  height: 34px;
-  border-radius: 999px;
-  padding: 0 12px;
-  font-size: 12px;
+height: 34px;
+border-radius: 999px;
+padding: 0 12px;
+font-size: 12px;
 }
 
 .config-bar{
-  margin: 0 12px 12px;
-  border-radius: var(--radius2);
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+margin: 0 12px 12px;
+border-radius: var(--radius2);
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
 
-  padding: 10px;
-  display:flex;
-  justify-content: space-between;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
+padding: 10px;
+display:flex;
+justify-content: space-between;
+align-items:center;
+gap: 10px;
+flex-wrap: wrap;
 }
 
 .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip{
-  background: rgba(255,255,255,.55);
-  border: 1px solid var(--stroke);
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 900;
-  display:flex;
-  align-items:center;
-  gap: 6px;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
-  cursor: pointer;
-  color: var(--text);
+background: rgba(255,255,255,.55);
+border: 1px solid var(--stroke);
+padding: 8px 12px;
+border-radius: 999px;
+font-size: 13px;
+font-weight: 900;
+display:flex;
+align-items:center;
+gap: 6px;
+box-shadow: 0 1px 6px rgba(0,0,0,.06);
+cursor: pointer;
+color: var(--text);
 }
 @media (prefers-color-scheme: dark){
-  .chip{ background: rgba(44,44,46,.65); }
+.chip{ background: rgba(44,44,46,.65); }
 }
 .chip input { margin: 0; width: 18px; height: 18px; }
 
 
 /* range chip */
 .range-chip{
-  cursor: default;
-  gap: 8px;
-  padding: 8px 10px;
+cursor: default;
+gap: 8px;
+padding: 8px 10px;
 }
 .range-chip input[type="range"]{
-  width: 92px;
-  height: 18px;
+width: 92px;
+height: 18px;
 }
 @media (max-width: 420px){
-  .range-chip input[type="range"]{ width: 72px; }
+.range-chip input[type="range"]{ width: 72px; }
 }
 
 .right-actions{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+display:flex;
+align-items:center;
+gap: 10px;
+flex-wrap: wrap;
+justify-content: flex-end;
 }
 
 .segment{
-  display:flex;
-  align-items: center;
-  border: 1px solid var(--stroke);
-  border-radius: 14px;
-  background: rgba(120,120,128,.12);
-  padding: 2px;
-  height: 36px;
+display:flex;
+align-items: center;
+border: 1px solid var(--stroke);
+border-radius: 14px;
+background: rgba(120,120,128,.12);
+padding: 2px;
+height: 36px;
 }
 .seg-btn{
-  height: 32px;
-  min-width: 56px;
-  padding: 0 12px;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
-  box-shadow:none;
-  white-space: nowrap;
+height: 32px;
+min-width: 56px;
+padding: 0 12px;
+border-radius: 12px;
+background: transparent;
+color: var(--text);
+font-size: 12px;
+font-weight: 900;
+line-height: 1;
+box-shadow:none;
+white-space: nowrap;
 }
 .seg-btn.active{ background: var(--accent); color: #fff; }
 .seg-btn:active{ transform: none; }
 
 .small-btn{
-  height: 34px;
-  border-radius: 999px;
-  padding: 0 12px;
-  background: var(--accent);
-  color:#fff;
-  font-size: 12px;
-  font-weight: 900;
+height: 34px;
+border-radius: 999px;
+padding: 0 12px;
+background: var(--accent);
+color:#fff;
+font-size: 12px;
+font-weight: 900;
 }
 .small-btn.gray{
-  background: rgba(120,120,128,.25);
-  color: var(--text);
-  border: 1px solid var(--stroke);
+background: rgba(120,120,128,.25);
+color: var(--text);
+border: 1px solid var(--stroke);
 }
 .small-btn.active{
-  background: var(--measure) !important;
-  color: #fff !important;
-  border: none !important;
+background: var(--measure) !important;
+color: #fff !important;
+border: none !important;
 }
 .small-btn:disabled{ opacity: .4; transform: none !important; cursor: default; }
 
 /* iOS Safariで確実に色ピッカーを開かせる: label + input(color) を透明で被せる */
 .color-label{
-  position: relative;
-  overflow: hidden;
+position: relative;
+overflow: hidden;
 
-  /* ラベル内に色見本を出す */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding-left: 12px;
+/* ラベル内に色見本を出す */
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding-left: 12px;
 }
 
 /* 先頭に色見本（CSS変数 --swatch を使う） */
 .color-label::before{
-  content: "";
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: var(--swatch, #ffffff);
-  border: 1px solid rgba(0,0,0,.12);
+content: "";
+width: 14px;
+height: 14px;
+border-radius: 4px;
+background: var(--swatch, #ffffff);
+border: 1px solid rgba(0,0,0,.12);
 }
 .color-label input[type="color"]{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;     /* display:noneはNG */
-  border: 0;
-  padding: 0;
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+opacity: 0; /* display:noneはNG */
+border: 0;
+padding: 0;
 }
 .color-label[data-disabled="1"]{
-  opacity: .35;
-  filter: grayscale(1);
-  pointer-events: none;
+opacity: .35;
+filter: grayscale(1);
+pointer-events: none;
 }
 
 /* ===== Summary（延床のみ：外枠(frame)面積） ===== */
 .summary{
-  margin: 0 12px 12px;
-  border-radius: 999px;
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+margin: 0 12px 12px;
+border-radius: 999px;
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
 
-  padding: 10px 14px;
-  display:flex;
-  justify-content: space-around;
-  align-items:center;
+padding: 10px 14px;
+display:flex;
+justify-content: space-around;
+align-items:center;
 
-  font-size: 14px;
-  font-weight: 900;
+font-size: 14px;
+font-weight: 900;
 }
 .summary b{ color: var(--accent); }
 
 /* ===== Canvas ===== */
 #canvas-container{
-  flex: 1;
-  position: relative;
-  margin: 0 12px 12px;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  background: #fff;
-  touch-action: none;
+flex: 1;
+position: relative;
+margin: 0 12px 12px;
+border-radius: 24px;
+overflow: hidden;
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+background: #fff;
+touch-action: none;
 
-  margin-bottom: calc(96px + env(safe-area-inset-bottom));
+margin-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 canvas{ display:block; }
 
 /* ===== Bottom Bar ===== */
 .bottom-bar{
-  position: fixed;
-  left: 12px; right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  padding: 10px;
-  border-radius: 24px;
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  z-index: 60;
+position: fixed;
+left: 12px; right: 12px;
+bottom: calc(12px + env(safe-area-inset-bottom));
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 10px;
+padding: 10px;
+border-radius: 24px;
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+z-index: 60;
 }
 
 .pill{
-  height: 48px;
-  border-radius: 18px;
-  background: rgba(120,120,128,.16);
-  color: var(--text);
-  box-shadow: none;
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: .2px;
+height: 48px;
+border-radius: 18px;
+background: rgba(120,120,128,.16);
+color: var(--text);
+box-shadow: none;
+font-weight: 900;
+font-size: 13px;
+letter-spacing: .2px;
 
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 0;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction: column;
+gap: 2px;
+padding: 6px 0;
 }
 .pill.active{
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(0,122,255,.25);
+background: var(--accent);
+color: #fff;
+box-shadow: 0 8px 18px rgba(0,122,255,.25);
 }
 
 .pill::after{
-  content: attr(data-sub);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--muted);
-  letter-spacing: .1px;
+content: attr(data-sub);
+font-size: 10px;
+font-weight: 800;
+color: var(--muted);
+letter-spacing: .1px;
 }
 .pill.primary{ background: var(--accent); color:#fff; }
 .pill.primary::after{ color: rgba(255,255,255,.85); }
 .pill.danger{
-  background: rgba(255,59,48,.14);
-  color: #ff3b30;
+background: rgba(255,59,48,.14);
+color: #ff3b30;
 }
 .pill:disabled{
-  opacity: .35;
-  filter: grayscale(1);
-  transform: none !important;
-  cursor: default;
+opacity: .35;
+filter: grayscale(1);
+transform: none !important;
+cursor: default;
 }
 
 /* ===== Modals ===== */
 .modal-overlay{
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.6);
+z-index: 1000;
+align-items: center;
+justify-content: center;
 }
 .modal{
-  background: #fff;
-  padding: 25px;
-  border-radius: 20px;
-  width: 85%;
-  max-width: 360px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+background: #fff;
+padding: 25px;
+border-radius: 20px;
+width: 85%;
+max-width: 360px;
+text-align: center;
+box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 .modal input{
-  width: 100%;
-  padding: 12px;
-  margin: 15px 0;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-size: 14px;
-  box-sizing: border-box;
+width: 100%;
+padding: 12px;
+margin: 15px 0;
+border: 1px solid #ddd;
+border-radius: 10px;
+font-size: 14px;
+box-sizing: border-box;
 }
 #helpModal .modal{
-  max-width: 420px;
-  text-align: left;
-  max-height: 80vh;
-  overflow-y: auto;
+max-width: 420px;
+text-align: left;
+max-height: 80vh;
+overflow-y: auto;
 }
 #helpModal ul{ padding-left: 20px; font-size: 13px; line-height: 1.6; }
 #helpModal h3{ text-align: center; margin-top: 0; }
@@ -431,339 +432,339 @@ canvas{ display:block; }
 .modal.sheet{ width: 92%; max-width: 420px; text-align: left; border-radius: 22px; }
 
 #labelInput{
-  width: 100%;
-  padding: 12px 12px;
-  border: 1px solid #ddd;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 800;
-  outline: none;
+width: 100%;
+padding: 12px 12px;
+border: 1px solid #ddd;
+border-radius: 14px;
+font-size: 16px;
+font-weight: 800;
+outline: none;
 }
 
 .chip-grid{
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+margin-top: 12px;
 }
 .name-chip{
-  height: 38px;
-  border-radius: 14px;
-  border: 1px solid var(--stroke);
-  background: rgba(120,120,128,.14);
-  color: var(--text);
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: .2px;
-  padding: 0 8px;
-  width: 100%;
-  justify-content: center;
-  box-shadow: none;
-  gap: 8px;
-  display:flex;
+height: 38px;
+border-radius: 14px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+font-size: 13px;
+letter-spacing: .2px;
+padding: 0 8px;
+width: 100%;
+justify-content: center;
+box-shadow: none;
+gap: 8px;
+display:flex;
 }
 .name-chip .dot{
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(0,0,0,.08);
+width: 12px;
+height: 12px;
+border-radius: 999px;
+border: 1px solid rgba(0,0,0,.08);
 }
 .name-chip:active{ transform: scale(.98); opacity: .9; }
 
 .menu-list{
-  display:flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+display:flex;
+flex-direction: column;
+gap: 10px;
+margin-top: 14px;
 }
 .menu-btn{
-  height: 42px;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: rgba(120,120,128,.14);
-  color: var(--text);
-  font-weight: 900;
-  justify-content: center;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+height: 42px;
+border-radius: 16px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+justify-content: center;
+display:flex;
+align-items:center;
+justify-content:center;
 }
 .menu-btn.danger{
-  background: rgba(255,59,48,.14);
-  color: #ff3b30;
+background: rgba(255,59,48,.14);
+color: #ff3b30;
 }
 
 /* Preset manager */
 .preset-list{ display:flex; flex-direction:column; gap:10px; margin-top: 10px; }
 .preset-row{
-  display:grid;
-  grid-template-columns: 1fr 54px 54px;
-  gap: 8px;
-  align-items:center;
+display:grid;
+grid-template-columns: 1fr 54px 54px;
+gap: 8px;
+align-items:center;
 }
 .preset-row input[type="text"]{
-  margin: 0;
-  padding: 10px 10px;
-  border-radius: 14px;
-  border: 1px solid #ddd;
-  font-weight: 800;
+margin: 0;
+padding: 10px 10px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
 }
 .preset-row input[type="color"]{
-  width: 54px;
-  height: 42px;
-  border-radius: 14px;
-  padding: 0;
-  border: 1px solid var(--stroke);
-  background: transparent;
+width: 54px;
+height: 42px;
+border-radius: 14px;
+padding: 0;
+border: 1px solid var(--stroke);
+background: transparent;
 }
 .preset-del{
-  height: 42px;
-  border-radius: 14px;
-  background: rgba(255,59,48,.14);
-  color:#ff3b30;
-  border: 1px solid rgba(255,59,48,.25);
-  font-weight: 900;
+height: 42px;
+border-radius: 14px;
+background: rgba(255,59,48,.14);
+color:#ff3b30;
+border: 1px solid rgba(255,59,48,.25);
+font-weight: 900;
 }
 
 #presetModal .modal.sheet{
-  max-height: calc(86vh - env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
+max-height: calc(86vh - env(safe-area-inset-bottom));
+display: flex;
+flex-direction: column;
 }
 #presetList{
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  flex: 1;
-  padding-right: 4px;
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+flex: 1;
+padding-right: 4px;
 }
 .preset-footer{
-  position: sticky;
-  bottom: 0;
-  padding-top: 10px;
-  background: inherit;
+position: sticky;
+bottom: 0;
+padding-top: 10px;
+background: inherit;
 }
 #presetSearch{
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid #ddd;
-  font-weight: 800;
-  outline: none;
+width: 100%;
+padding: 10px 12px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
+outline: none;
 }
 
 /* Layout list */
 .layout-list{
-  overflow:auto;
-  -webkit-overflow-scrolling: touch;
-  flex: 1;
-  padding-right: 4px;
-  margin-top: 10px;
+overflow:auto;
+-webkit-overflow-scrolling: touch;
+flex: 1;
+padding-right: 4px;
+margin-top: 10px;
 }
 .layout-row{
-  display: grid;
-  grid-template-columns: 1fr 74px 74px 44px;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
+display: grid;
+grid-template-columns: 1fr 74px 74px 44px;
+gap: 8px;
+align-items: center;
+margin-bottom: 10px;
 }
 .layout-row input[type="text"]{
-  margin: 0;
-  padding: 10px 10px;
-  border-radius: 14px;
-  border: 1px solid #ddd;
-  font-weight: 800;
+margin: 0;
+padding: 10px 10px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
 }
 .layout-btn{
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid var(--stroke);
-  background: rgba(120,120,128,.14);
-  color: var(--text);
-  font-weight: 900;
-  justify-content: center;
+height: 42px;
+border-radius: 14px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+justify-content: center;
 }
 .layout-del{
-  height: 42px;
-  border-radius: 14px;
-  background: rgba(255,59,48,.14);
-  color:#ff3b30;
-  border: 1px solid rgba(255,59,48,.25);
-  font-weight: 900;
-  padding: 0;
+height: 42px;
+border-radius: 14px;
+background: rgba(255,59,48,.14);
+color:#ff3b30;
+border: 1px solid rgba(255,59,48,.25);
+font-weight: 900;
+padding: 0;
 }
 
 /* 作業モードヒント */
 .work-hint{
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  margin: 8px 10px 0;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.9);
-  border: 1px solid rgba(0,0,0,.08);
-  color: #333;
-  font-size: 12px;
-  line-height: 1.35;
-  backdrop-filter: blur(8px);
+position: sticky;
+top: 0;
+z-index: 20;
+margin: 8px 10px 0;
+padding: 8px 10px;
+border-radius: 12px;
+background: rgba(255,255,255,.9);
+border: 1px solid rgba(0,0,0,.08);
+color: #333;
+font-size: 12px;
+line-height: 1.35;
+backdrop-filter: blur(8px);
 }
 .work-hint b{ font-weight: 800; }
 
 /* トースト */
 .toast{
-  position: fixed;
-  left: 50%;
-  bottom: 74px; /* bottom barの上 */
-  transform: translateX(-50%);
-  background: rgba(20,20,20,.9);
-  color: #fff;
-  font-size: 12px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .18s ease, transform .18s ease;
-  max-width: calc(100vw - 24px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+position: fixed;
+left: 50%;
+bottom: 74px; /* bottom barの上 */
+transform: translateX(-50%);
+background: rgba(20,20,20,.9);
+color: #fff;
+font-size: 12px;
+padding: 10px 12px;
+border-radius: 999px;
+opacity: 0;
+pointer-events: none;
+transition: opacity .18s ease, transform .18s ease;
+max-width: calc(100vw - 24px);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
 }
 .toast.show{
-  opacity: 1;
-  transform: translateX(-50%) translateY(-4px);
+opacity: 1;
+transform: translateX(-50%) translateY(-4px);
 }
 
 /* --- コンパクト化CSS --- */
 
 /* バー全体の余白を削減 */
 .config-bar.compact {
-  padding: 8px 10px;
-  gap: 6px;
-  flex-direction: column; /* 確実に縦2段にする */
-  align-items: stretch;
+padding: 8px 10px;
+gap: 6px;
+flex-direction: column; /* 確実に縦2段にする */
+align-items: stretch;
 }
 
 /* 1行ごとの設定 */
 .config-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: space-between;
+display: flex;
+align-items: center;
+gap: 6px;
+justify-content: space-between;
 }
 
 /* 小さいチップ（単位など） */
 .chip.tiny {
-  padding: 0 8px;
-  height: 28px;      /* 高さ削減 */
-  font-size: 11px;   /* 文字サイズ縮小 */
-  font-weight: 800;
-  gap: 4px;
+padding: 0 8px;
+height: 28px; /* 高さ削減 */
+font-size: 11px; /* 文字サイズ縮小 */
+font-weight: 800;
+gap: 4px;
 }
 .chip.tiny input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+width: 14px;
+height: 14px;
 }
 
 /* グループ化 */
 .group-tiny {
-  display: flex;
-  gap: 4px;
+display: flex;
+gap: 4px;
 }
 
 /* 区切り線 */
 .v-line {
-  width: 1px;
-  height: 16px;
-  background: rgba(0,0,0,0.1);
-  margin: 0 2px;
+width: 1px;
+height: 16px;
+background: rgba(0,0,0,0.1);
+margin: 0 2px;
 }
 @media (prefers-color-scheme: dark){ .v-line{ background: rgba(255,255,255,0.15); } }
 
 /* 壁スライダーの極小化 */
 .range-chip-tiny {
-  flex: 1; /* 空きスペースを埋める */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  min-width: 0; /* flex縮小用 */
+flex: 1; /* 空きスペースを埋める */
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 8px;
+min-width: 0; /* flex縮小用 */
 }
 .range-chip-tiny input[type="range"] {
-  width: 100%;       /* 親に合わせて伸縮 */
-  height: 14px;
-  margin: 0 6px;
-  min-width: 40px;
+width: 100%; /* 親に合わせて伸縮 */
+height: 14px;
+margin: 0 6px;
+min-width: 40px;
 }
 .range-chip-tiny .lbl { font-size:10px; opacity:0.7; }
 .range-chip-tiny .val { font-size:11px; min-width:14px; text-align:right; }
 
 /* 2段目のボタン群 */
 .small-btn.tiny {
-  height: 30px;
-  padding: 0 10px;
-  font-size: 11px;
-  border-radius: 8px;
+height: 30px;
+padding: 0 10px;
+font-size: 11px;
+border-radius: 8px;
 }
 .segment.tiny {
-  height: 30px;
-  border-radius: 8px;
+height: 30px;
+border-radius: 8px;
 }
 .segment.tiny .seg-btn {
-  height: 26px;
-  font-size: 11px;
-  min-width: 40px;
-  padding: 0 8px;
+height: 26px;
+font-size: 11px;
+min-width: 40px;
+padding: 0 8px;
 }
 
 /* Undo/Redoなどの結合ボタン */
 .joined-tiny {
-  display: flex;
-  background: rgba(120,120,128,.12);
-  border-radius: 8px;
-  padding: 2px;
-  flex-shrink: 0;
+display: flex;
+background: rgba(120,120,128,.12);
+border-radius: 8px;
+padding: 2px;
+flex-shrink: 0;
 }
 .joined-tiny button {
-  background: transparent;
-  border: none;
-  height: 26px;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 32px;
-  padding: 0;
-  color: var(--text);
-  font-weight: 900;
+background: transparent;
+border: none;
+height: 26px;
+border-radius: 6px;
+font-size: 14px;
+width: 32px;
+padding: 0;
+color: var(--text);
+font-weight: 900;
 }
 .joined-tiny button:active { background: rgba(0,0,0,0.05); }
 .joined-tiny button:disabled { opacity: 0.3; }
 
 /* 全体・リセットボタンは文字のみで省スペース */
 .joined-tiny .btn-text {
-  font-size: 10px;
-  width: auto;
-  padding: 0 6px;
+font-size: 10px;
+width: auto;
+padding: 0 6px;
 }
 
 /* 色ボタン */
 .color-label-tiny {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  padding: 0;
-  position: relative;
-  overflow: hidden;
+display: flex;
+align-items: center;
+justify-content: center;
+width: 36px;
+padding: 0;
+position: relative;
+overflow: hidden;
 }
 .color-label-tiny .color-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: var(--swatch, #fff);
-  border: 1px solid rgba(0,0,0,0.1);
-  pointer-events: none;
+width: 16px;
+height: 16px;
+border-radius: 4px;
+background: var(--swatch, #fff);
+border: 1px solid rgba(0,0,0,0.1);
+pointer-events: none;
 }
 .color-label-tiny input {
-  position: absolute; opacity: 0; inset: 0; width: 100%;
+position: absolute; opacity: 0; inset: 0; width: 100%;
 }
 .color-label-tiny::before { display: none; } /* 既存スタイルの打ち消し */
 
@@ -779,64 +780,64 @@ canvas{ display:block; }
 <div class="ver-label">ver 7.0<br>by yuchi🐔</div>
 
 <div class="toolbar">
-  <div class="top-left">
-    <button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
-    <div class="top-title" id="topTitle">MORI</div>
-  </div>
-  <div class="top-right">
-    <!-- 共有 / 閲覧モードではコピーして編集 -->
-    <button class="btn-primary" id="shareBtn">共有</button>
-  </div>
+<div class="top-left">
+<button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
+<div class="top-title" id="topTitle" contenteditable="true" spellcheck="false" role="textbox" aria-label="間取り名（タップして編集）">MORI</div>
+</div>
+<div class="top-right">
+<!-- 共有 / 閲覧モードではコピーして編集 -->
+<button class="btn-primary" id="shareBtn">共有</button>
+</div>
 </div>
 
 <div id="modeBanner" class="mode-banner" style="display:none;">
-  <div>閲覧モード（上書きされません）</div>
-  <button id="copyToEditBtn" style="background:var(--accent);">コピーして編集</button>
+<div>閲覧モード（上書きされません）</div>
+<button id="copyToEditBtn" style="background:var(--accent);">コピーして編集</button>
 </div>
 
 <div class="config-bar compact">
-  
-  <div class="config-row">
-    <div class="group-tiny">
-      <label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
-      <label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
-      <label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
-    </div>
-    
-    <div class="v-line"></div>
 
-    <label class="chip tiny"><input type="checkbox" id="useHalfGrid">半ます</label>
+<div class="config-row">
+<div class="group-tiny">
+<label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
+<label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
+<label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
+</div>
 
-    <div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
-      <span class="lbl">壁</span>
-      <input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
-      <span id="wallThickVal" class="val">12</span>
-    </div>
-  </div>
+<div class="v-line"></div>
 
-  <div class="config-row">
-    <div class="segment tiny" role="tablist">
-      <button class="seg-btn" id="segEdit" type="button">外壁</button>
-      <button class="seg-btn active" id="segMerge" type="button">部屋</button>
-    </div>
+<label class="chip tiny"><input type="checkbox" id="useHalfGrid">半ます</label>
 
-    <button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
+<div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
+<span class="lbl">壁</span>
+<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
+<span id="wallThickVal" class="val">12</span>
+</div>
+</div>
 
-    <div class="joined-tiny">
-      <button id="undoBtn" class="btn-icon" type="button">↩︎</button>
-      <button id="redoBtn" class="btn-icon" type="button" disabled>↪︎</button>
-    </div>
+<div class="config-row">
+<div class="segment tiny" role="tablist">
+<button class="seg-btn" id="segEdit" type="button">外壁</button>
+<button class="seg-btn active" id="segMerge" type="button">部屋</button>
+</div>
 
-    <label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1" title="色変更">
-      <span class="color-dot"></span>
-      <input type="color" id="quickColorInput" value="#ffffff" />
-    </label>
+<button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
 
-    <div class="joined-tiny right-edge">
-      <button id="fitBtn" class="btn-text" type="button">全体</button>
-      <button id="centerBtn" class="btn-text" type="button">リセ</button>
-    </div>
-  </div>
+<div class="joined-tiny">
+<button id="undoBtn" class="btn-icon" type="button">↩︎</button>
+<button id="redoBtn" class="btn-icon" type="button" disabled>↪︎</button>
+</div>
+
+<label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1" title="色変更">
+<span class="color-dot"></span>
+<input type="color" id="quickColorInput" value="#ffffff" />
+</label>
+
+<div class="joined-tiny right-edge">
+<button id="fitBtn" class="btn-text" type="button">全体</button>
+<button id="centerBtn" class="btn-text" type="button">リセ</button>
+</div>
+</div>
 
 </div>
 
@@ -845,172 +846,173 @@ canvas{ display:block; }
 <div id="workHint" class="work-hint"></div>
 <!-- ✅ 延床のみ（外枠frame面積） -->
 <div class="summary">
-  <span>延床: <b id="totalTsubo">0.00</b> 坪</span>
-  <span id="jouWrap"><b id="totalJou">0.0</b> 畳</span>
-  <span id="m2Wrap"><b id="totalM2">0.0</b> m²</span>
+<span>延床: <b id="totalTsubo">0.00</b> 坪</span>
+<span id="jouWrap"><b id="totalJou">0.0</b> 畳</span>
+<span id="m2Wrap"><b id="totalM2">0.0</b> m²</span>
 </div>
 
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <div class="bottom-bar" id="bottomBar">
-  <button class="pill" id="addFrameBtn2" data-sub="枠を追加">外枠</button>
-  <button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
-  <button class="pill" id="addInnerWallBtn2" data-sub="2点タップで内壁を設置">内壁</button>
-  <button class="pill" id="copyBtn2" data-sub="選択を複製" disabled>複製</button>
-  <button class="pill danger" id="resetBtn2" data-sub="選択/全消去">削除</button>
+<button class="pill" id="addFrameBtn2" data-sub="枠を追加">外枠</button>
+<button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
+<button class="pill" id="addInnerWallBtn2" data-sub="2点タップで内壁を設置">内壁</button>
+<button class="pill" id="copyBtn2" data-sub="選択を複製" disabled>複製</button>
+<button class="pill danger" id="resetBtn2" data-sub="選択/全消去">削除</button>
 </div>
 
 <!-- 共有モーダル -->
 <div id="shareModal" class="modal-overlay">
-  <div class="modal">
-    <h3>共有</h3>
+<div class="modal">
+<h3>共有</h3>
 
-    <div style="text-align:left; font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">間取り名</div>
-    <input type="text" id="layoutTitleInput" value="MORIYASU🏠" maxlength="20" style="margin-top:0; font-weight:bold;">
+<div style="text-align:left; font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">間取り名</div>
+<input type="text" id="layoutTitleInput" value="MORIYASU🏠" maxlength="20" style="margin-top:0; font-weight:bold;">
 
-    <div style="font-size:12px;color:#666;margin-top:10px;">共有URL（読み取り専用：上書きされません）</div>
-    <input type="text" id="shareUrlInput" readonly onclick="this.select()">
+<div style="font-size:12px;color:#666;margin-top:10px;">共有URL（読み取り専用：上書きされません）</div>
+<input type="text" id="shareUrlInput" readonly onclick="this.select()">
 
-    <div style="display:flex; gap:10px;">
-      <button style="flex:1; background:var(--accent);" id="copyUrlBtn">コピー</button>
-      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="closeShareModalBtn">閉じる</button>
-    </div>
+<div style="display:flex; gap:10px;">
+<button style="flex:1; background:var(--accent);" id="copyUrlBtn">コピー</button>
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="closeShareModalBtn">閉じる</button>
+</div>
 
-    <div style="display:flex; gap:10px; margin-top:10px;">
-      <button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="openLayoutsBtn">保存一覧</button>
-      <button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="saveAsBtn">別名で保存</button>
-    </div>
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="openLayoutsBtn">保存一覧</button>
+<button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="saveAsBtn">別名で保存</button>
+</div>
 
-    <p style="font-size:11px;color:#666; margin-top:10px; line-height:1.5;">
-      ※共有URLは「この状態のコピー」です。自分の編集は元のまま続けられます。
-    </p>
-  </div>
+<p style="font-size:11px;color:#666; margin-top:10px; line-height:1.5;">
+※共有URLは「この状態のコピー」です。自分の編集は元のまま続けられます。
+</p>
+</div>
 </div>
 
 <div id="layoutsModal" class="modal-overlay">
-  <div class="modal sheet" style="max-height:calc(86vh - env(safe-area-inset-bottom)); display:flex; flex-direction:column;">
-    <h3 style="margin:0 0 6px;">保存一覧</h3>
-    <div style="font-size:12px;color:#666;margin-bottom:6px;">自分用の編集URLだけ表示 / 名前は編集できます</div>
+<div class="modal sheet" style="max-height:calc(86vh - env(safe-area-inset-bottom)); display:flex; flex-direction:column;">
+<h3 style="margin:0 0 6px;">保存一覧</h3>
+<div style="font-size:12px;color:#666;margin-bottom:6px;">自分用の編集URLだけ表示 / 名前は編集できます</div>
+<div style="font-size:12px;color:#666;margin-bottom:10px;">※お気に入り等で空の画面になった場合は、ここで「開く」から編集を再開できます</div>
 
-    <div class="layout-list" id="layoutList"></div>
+<div class="layout-list" id="layoutList"></div>
 
-    <div class="preset-footer">
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <button class="small-btn gray" id="layoutsCloseBtn" type="button" style="height:42px; flex:1;">閉じる</button>
-      </div>
-    </div>
-  </div>
+<div class="preset-footer">
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button class="small-btn gray" id="layoutsCloseBtn" type="button" style="height:42px; flex:1;">閉じる</button>
+</div>
+</div>
+</div>
 </div>
 
 <div id="helpModal" class="modal-overlay">
-  <div class="modal">
-    <h3>🏠 操作マニュアル</h3>
-    <ul>
-      <li><b>移動:</b> パーツの“中央ハンドル”をドラッグ（誤リサイズ防止）。</li>
-      <li><b>サイズ:</b> 右下の丸いハンドルをドラッグ。</li>
-      <li><b>選択解除:</b> 何もない所を軽くタップ。</li>
-      <li><b>長押し:</b> 指を動かさず押し続けるとメニュー。</li>
-      <li><b>色変更:</b> 右上の「色」ボタン / もしくは長押しメニューの「色変更」。</li>
-      <li><b>計測:</b> 「計測」ボタンでモードON、2点をタップして距離を表示。</li>
-      <li><b>壁(線):</b> 端点ドラッグで長さ、線ドラッグで移動。</li>
-      <li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
-      <li><b>名前編集:</b> 2回タップ（編集モードのみ）。</li>
-      <li><b>共有:</b> 共有URLは読み取り専用コピーなので上書きされません。</li>
-    </ul>
-    <p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
-  </div>
+<div class="modal">
+<h3>🏠 操作マニュアル</h3>
+<ul>
+<li><b>移動:</b> パーツの“中央ハンドル”をドラッグ（誤リサイズ防止）。</li>
+<li><b>サイズ:</b> 右下の丸いハンドルをドラッグ。</li>
+<li><b>選択解除:</b> 何もない所を軽くタップ。</li>
+<li><b>長押し:</b> 指を動かさず押し続けるとメニュー。</li>
+<li><b>色変更:</b> 右上の「色」ボタン / もしくは長押しメニューの「色変更」。</li>
+<li><b>計測:</b> 「計測」ボタンでモードON、2点をタップして距離を表示。</li>
+<li><b>壁(線):</b> 端点ドラッグで長さ、線ドラッグで移動。</li>
+<li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
+<li><b>名前編集:</b> 2回タップ（編集モードのみ）。</li>
+<li><b>共有:</b> 共有URLは読み取り専用コピーなので上書きされません。</li>
+</ul>
+<p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
+</div>
 </div>
 
 <div id="labelModal" class="modal-overlay">
-  <div class="modal sheet">
-    <h3 id="labelModalTitle" style="margin:0 0 6px;">部屋を追加</h3>
-    <div id="labelModalSub" style="font-size:12px;color:#666;margin-bottom:10px;">プリセットをタップで即追加 / 入力してOKでも追加</div>
+<div class="modal sheet">
+<h3 id="labelModalTitle" style="margin:0 0 6px;">部屋を追加</h3>
+<div id="labelModalSub" style="font-size:12px;color:#666;margin-bottom:10px;">プリセットをタップで即追加 / 入力してOKでも追加</div>
 
-    <input type="text" id="labelInput" placeholder="部屋名（入力追加）" maxlength="12">
+<input type="text" id="labelInput" placeholder="部屋名（入力追加）" maxlength="12">
 
-    <div style="display:flex; gap:10px; margin:12px 0 6px; align-items:center;">
-      <button class="small-btn gray" id="openPresetBtn" type="button" style="height:36px;">プリセット編集</button>
+<div style="display:flex; gap:10px; margin:12px 0 6px; align-items:center;">
+<button class="small-btn gray" id="openPresetBtn" type="button" style="height:36px;">プリセット編集</button>
 
-      <!-- ✅ 追加時も色を選べる（iOS対応） -->
-      <label id="addColorBtn" class="small-btn gray color-label" style="height:36px;">
-        色
-        <input type="color" id="addColorInput" value="#FFF3E0">
-      </label>
+<!-- ✅ 追加時も色を選べる（iOS対応） -->
+<label id="addColorBtn" class="small-btn gray color-label" style="height:36px;">
+色
+<input type="color" id="addColorInput" value="#FFF3E0">
+</label>
 
-      <div id="addHint" style="font-size: 12px; color: #666; align-self: center; display: block;">※チップは即追加</div>
-    </div>
+<div id="addHint" style="font-size: 12px; color: #666; align-self: center; display: block;">※チップは即追加</div>
+</div>
 
-    <div class="chip-grid" id="labelChips"></div>
+<div class="chip-grid" id="labelChips"></div>
 
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="labelCancelBtn" type="button">キャンセル</button>
-      <button style="flex:1; background:var(--accent);" id="labelOkBtn" type="button">OK</button>
-    </div>
-  </div>
+<div style="display:flex; gap:10px; margin-top:14px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="labelCancelBtn" type="button">キャンセル</button>
+<button style="flex:1; background:var(--accent);" id="labelOkBtn" type="button">OK</button>
+</div>
+</div>
 </div>
 
 <div id="menuModal" class="modal-overlay">
-  <div class="modal sheet">
-    <h3 style="margin:0 0 6px;">メニュー</h3>
-    <div id="menuTitle" style="font-size:12px;color:#666;margin-bottom:8px;">選択中</div>
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">メニュー</h3>
+<div id="menuTitle" style="font-size:12px;color:#666;margin-bottom:8px;">選択中</div>
 
-    <div class="menu-list">
-      <button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
+<div class="menu-list">
+<button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
 
-      <!-- ✅ 色変更（iOS Safariでも確実に開く） -->
-      <label class="menu-btn color-label" id="menuColorBtn" title="色を変更">
-        色変更
-        <input type="color" id="menuColorInput" value="#FFF3E0">
-      </label>
-      <button class="menu-btn" id="menuDupBtn" type="button">複製</button>
-      <button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
-      <button class="menu-btn" id="menuFrontBtn" type="button">最前面</button>
-      <button class="menu-btn" id="menuBackBtn" type="button">最背面</button>
-      <button class="menu-btn" id="menuLockBtn" type="button">ロック/解除</button>
-    </div>
+<!-- ✅ 色変更（iOS Safariでも確実に開く） -->
+<label class="menu-btn color-label" id="menuColorBtn" title="色を変更">
+色変更
+<input type="color" id="menuColorInput" value="#FFF3E0">
+</label>
+<button class="menu-btn" id="menuDupBtn" type="button">複製</button>
+<button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
+<button class="menu-btn" id="menuFrontBtn" type="button">最前面</button>
+<button class="menu-btn" id="menuBackBtn" type="button">最背面</button>
+<button class="menu-btn" id="menuLockBtn" type="button">ロック/解除</button>
+</div>
 
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="menuCloseBtn" type="button">閉じる</button>
-    </div>
-  </div>
+<div style="display:flex; gap:10px; margin-top:14px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="menuCloseBtn" type="button">閉じる</button>
+</div>
+</div>
 </div>
 
 <div id="presetModal" class="modal-overlay">
-  <div class="modal sheet">
-    <h3 style="margin:0 0 6px;">プリセット編集</h3>
-    <div style="font-size:12px;color:#666;margin-bottom:8px;">部屋名と色を追加/変更できます</div>
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">プリセット編集</h3>
+<div style="font-size:12px;color:#666;margin-bottom:8px;">部屋名と色を追加/変更できます</div>
 
-    <input id="presetSearch" type="text" placeholder="検索（例：LDK）">
+<input id="presetSearch" type="text" placeholder="検索（例：LDK）">
 
-    <div class="preset-list" id="presetList"></div>
+<div class="preset-list" id="presetList"></div>
 
-    <div class="preset-footer">
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button class="small-btn gray" id="presetAddBtn" type="button" style="height:42px;">＋追加</button>
-        <button class="small-btn" id="presetSaveBtn" type="button" style="height:42px;">保存</button>
-      </div>
+<div class="preset-footer">
+<div style="display:flex; gap:10px; margin-top:12px;">
+<button class="small-btn gray" id="presetAddBtn" type="button" style="height:42px;">＋追加</button>
+<button class="small-btn" id="presetSaveBtn" type="button" style="height:42px;">保存</button>
+</div>
 
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="presetCloseBtn" type="button">閉じる</button>
-      </div>
-    </div>
-  </div>
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="presetCloseBtn" type="button">閉じる</button>
+</div>
+</div>
+</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDoc, doc, setDoc
+getFirestore, collection, addDoc, getDoc, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
-  authDomain: "test-55430.firebaseapp.com",
-  projectId: "test-55430",
-  storageBucket: "test-55430.firebasestorage.app",
-  messagingSenderId: "742726212885",
-  appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
-  measurementId: "G-PW24JY2LBP"
+apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
+authDomain: "test-55430.firebaseapp.com",
+projectId: "test-55430",
+storageBucket: "test-55430.firebasestorage.app",
+messagingSenderId: "742726212885",
+appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
+measurementId: "G-PW24JY2LBP"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -1028,7 +1030,9 @@ const GRID_SIZE = 32;
 const HISTORY_MAX = 50;
 
 const PRESET_KEY = "floorplan_presets_v1";
-const LAYOUTS_KEY = "floorplan_saved_layouts_v2"; // v2: editable only list
+const LAYOUTS_KEY = "floorplan_saved_layouts_v2";
+const DRAFT_KEY = "floorplan_draft_v1";
+const DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14日（任意） // v2: editable only list
 
 const WALL_THICK_KEY = "wallThick_v1";
 let WALL_DEFAULT_THICK = 12;
@@ -1056,6 +1060,27 @@ let layoutId = null;
 let isReadOnly = false;
 
 let currentTitle = "MORIYASU🏠";
+
+const DEFAULT_TITLE = "MORIYASU🏠";
+
+function setTitle(raw, opts={}){
+const t = String(raw ?? "").replace(/\n/g, " ").trim() || DEFAULT_TITLE;
+currentTitle = t;
+
+// UI
+try{ el('topTitle').innerText = t; }catch(_){}
+try{ el('layoutTitleInput').value = t; }catch(_){}
+
+// Readonlyでは保存しない
+if(isReadOnly) return;
+
+// ドラフト保存＆（idがあれば）Firestore保存の予約
+if(!opts.silent){
+scheduleAutoSave();
+if(layoutId) upsertLayoutMeta(layoutId, { title: currentTitle });
+}
+}
+
 
 let editingItem = null;
 let menuItem = null;
@@ -1101,1487 +1126,1632 @@ let pinchWorldMid = null;
 
 // polyfill: roundRect
 if(!CanvasRenderingContext2D.prototype.roundRect){
-  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
-    r = Math.min(r, w/2, h/2);
-    this.beginPath();
-    this.moveTo(x+r, y);
-    this.arcTo(x+w, y, x+w, y+h, r);
-    this.arcTo(x+w, y+h, x, y+h, r);
-    this.arcTo(x, y+h, x, y, r);
-    this.arcTo(x, y, x+w, y, r);
-    this.closePath();
-    return this;
-  };
+CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+r = Math.min(r, w/2, h/2);
+this.beginPath();
+this.moveTo(x+r, y);
+this.arcTo(x+w, y, x+w, y+h, r);
+this.arcTo(x+w, y+h, x, y+h, r);
+this.arcTo(x, y+h, x, y, r);
+this.arcTo(x, y, x+w, y, r);
+this.closePath();
+return this;
+};
 }
 
 function uid(){
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
 function ensureIds(){
-  items.forEach(it => {
-    if(!it.id) it.id = uid();
-    if(typeof it.locked !== "boolean") it.locked = false;
-    if(it.type === 'wallLine'){
-      if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
-      if(!it.color) it.color = "#111";
-      if(!it.label) it.label = "壁";
-    }
-    if(it.type !== 'wallLine'){
-      if(!it.color) it.color = "#FFF3E0";
-      if(!it.label) it.label = "部屋";
-    }
-  });
+items.forEach(it => {
+if(!it.id) it.id = uid();
+if(typeof it.locked !== "boolean") it.locked = false;
+if(it.type === 'wallLine'){
+if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
+if(!it.color) it.color = "#111";
+if(!it.label) it.label = "壁";
+}
+if(it.type !== 'wallLine'){
+if(!it.color) it.color = "#FFF3E0";
+if(!it.label) it.label = "部屋";
+}
+});
 }
 
 function normalizeZ(){
-  const frames = items.filter(i => i.type === 'frame');
-  const others = items.filter(i => i.type !== 'frame');
-  items = [...frames, ...others];
+const frames = items.filter(i => i.type === 'frame');
+const others = items.filter(i => i.type !== 'frame');
+items = [...frames, ...others];
 }
 
 function getSnapStep(){
-  return el('useHalfGrid').checked ? 16 : 32;
+return el('useHalfGrid').checked ? 16 : 32;
 }
 function getSnapped(val, step){
-  return Math.round(val / step) * step;
+return Math.round(val / step) * step;
 }
 function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
 /* coordinate */
 function screenToWorld(screenX, screenY){
-  const rect = canvas.getBoundingClientRect();
-  const cx = canvas.width/2;
-  const cy = canvas.height/2;
-  const x = (screenX - rect.left - cx - camera.x) / scale;
-  const y = (screenY - rect.top  - cy - camera.y) / scale;
-  return {x,y};
+const rect = canvas.getBoundingClientRect();
+const cx = canvas.width/2;
+const cy = canvas.height/2;
+const x = (screenX - rect.left - cx - camera.x) / scale;
+const y = (screenY - rect.top - cy - camera.y) / scale;
+return {x,y};
 }
 
 /* firestore save */
 async function saveLayoutToFirestore(){
-  if(!layoutId || isReadOnly) return;
-  try{
-    await setDoc(doc(db, "layouts", layoutId), {
-      items,
-      isMerged,
-      title: currentTitle,
-      readonly: false,
-      updatedAt: new Date()
-    }, { merge: true });
-  }catch(e){
-    console.warn("save failed", e);
-  }
+if(!layoutId || isReadOnly) return;
+try{
+await setDoc(doc(db, "layouts", layoutId), {
+items,
+isMerged,
+title: currentTitle,
+readonly: false,
+updatedAt: new Date()
+}, { merge: true });
+}catch(e){
+console.warn("save failed", e);
+}
 }
 
 function scheduleAutoSave(){
-  if(!layoutId || isReadOnly) return;
-  if(autosaveTimer) clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(async () => {
-    await saveLayoutToFirestore();
-    touchLayoutMeta(layoutId);
-  }, AUTOSAVE_DELAY);
+if(isReadOnly) return;
+
+// ✅ idが無くてもドラフト保存（お気に入り起動でも復元できる）
+saveDraft();
+
+// Firestore保存は編集IDがある時だけ
+if(!layoutId) return;
+
+if(autosaveTimer) clearTimeout(autosaveTimer);
+autosaveTimer = setTimeout(async () => {
+await saveLayoutToFirestore();
+touchLayoutMeta(layoutId);
+}, AUTOSAVE_DELAY);
 }
 
 async function ensureEditableLayoutId(){
-  if(layoutId) return layoutId;
-  const r = await addDoc(collection(db, "layouts"), {
-    items,
-    isMerged,
-    title: currentTitle,
-    readonly: false,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  layoutId = r.id;
-  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
-  history.replaceState(null, "", newUrl);
-  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
-  return layoutId;
+if(layoutId) return layoutId;
+const r = await addDoc(collection(db, "layouts"), {
+items,
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+return layoutId;
 }
 
 async function createReadOnlyShareSnapshot(){
-  // 共有は「読み取り専用コピー」を発行
-  const r = await addDoc(collection(db, "layouts"), {
-    items,
-    isMerged,
-    title: currentTitle,
-    readonly: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  return r.id;
+// 共有は「読み取り専用コピー」を発行
+const r = await addDoc(collection(db, "layouts"), {
+items,
+isMerged,
+title: currentTitle,
+readonly: true,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+return r.id;
 }
 
 /* history */
 function snapshot(){
-  ensureIds();
-  return {
-    items: items.map(i => ({...i})),
-    selectedId: selectedItem?.id || null,
-    isMerged,
-    camera: {...camera},
-    scale,
-    layoutId,
-    title: currentTitle
-  };
+ensureIds();
+return {
+items: items.map(i => ({...i})),
+selectedId: selectedItem?.id || null,
+isMerged,
+camera: {...camera},
+scale,
+layoutId,
+title: currentTitle
+};
 }
 
 function restore(s){
-  items = (s.items || []).map(i => ({...i}));
-  ensureIds();
-  normalizeZ();
-  isMerged = !!s.isMerged;
-  camera = s.camera ? {...s.camera} : {x:0,y:0};
-  scale = typeof s.scale === "number" ? s.scale : 1.0;
-  layoutId = s.layoutId ?? layoutId;
-  currentTitle = s.title || currentTitle;
-  el('topTitle').innerText = currentTitle;
+items = (s.items || []).map(i => ({...i}));
+ensureIds();
+normalizeZ();
+isMerged = !!s.isMerged;
+camera = s.camera ? {...s.camera} : {x:0,y:0};
+scale = typeof s.scale === "number" ? s.scale : 1.0;
+layoutId = s.layoutId ?? layoutId;
+setTitle(s.title || currentTitle, {silent:true});
 
-  selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
-  updateSegmentUI();
-  updateWorkHint();
-  draw();
+selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
+updateSegmentUI();
+updateWorkHint();
+draw();
+}
+
+/* --- Draft (お気に入り起動でも復元できる) --- */
+function saveDraft(){
+try{
+const s = snapshot();
+localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...s, ts: Date.now() }));
+}catch(_){}
+}
+function loadDraft(){
+try{
+const raw = localStorage.getItem(DRAFT_KEY);
+if(!raw) return null;
+const d = JSON.parse(raw);
+if(!d) return null;
+if(d.ts && (Date.now() - d.ts > DRAFT_TTL_MS)) return null;
+if(!Array.isArray(d.items) || d.items.length === 0) return null;
+return d;
+}catch(_){ return null; }
+}
+function clearDraft(){
+try{ localStorage.removeItem(DRAFT_KEY); }catch(_){}
+}
+async function maybeRestoreDraftOnBoot(){
+const d = loadDraft();
+if(!d) return false;
+
+const title = (d.title || "無題").slice(0, 24);
+const ok = confirm(`最後に作業していた「${title}」を復元しますか？`);
+if(!ok) return false;
+
+restore(d);
+
+// 編集URLを確保して以後の保存を安定させる
+await ensureEditableLayoutId();
+if(!isReadOnly){
+await saveLayoutToFirestore();
+touchLayoutMeta(layoutId);
+}
+return true;
 }
 
 function pushHistory(){
-  if(isReadOnly) return;
-  undoStack.push(snapshot());
-  if (undoStack.length > HISTORY_MAX) undoStack.shift();
-  redoStack = [];
-  syncHistoryButtons();
+if(isReadOnly) return;
+undoStack.push(snapshot());
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+syncHistoryButtons();
 }
 
 function undo(){
-  if (isReadOnly) return;
-  if (!undoStack.length) return;
-  redoStack.push(snapshot());
-  restore(undoStack.pop());
-  syncHistoryButtons();
-  scheduleAutoSave();
+if (isReadOnly) return;
+if (!undoStack.length) return;
+redoStack.push(snapshot());
+restore(undoStack.pop());
+syncHistoryButtons();
+scheduleAutoSave();
 }
 
 function redo(){
-  if (isReadOnly) return;
-  if (!redoStack.length) return;
-  undoStack.push(snapshot());
-  restore(redoStack.pop());
-  syncHistoryButtons();
-  scheduleAutoSave();
+if (isReadOnly) return;
+if (!redoStack.length) return;
+undoStack.push(snapshot());
+restore(redoStack.pop());
+syncHistoryButtons();
+scheduleAutoSave();
 }
 
 function syncHistoryButtons(){
-  el('undoBtn').disabled = isReadOnly || undoStack.length === 0;
-  el('redoBtn').disabled = isReadOnly || redoStack.length === 0;
+el('undoBtn').disabled = isReadOnly || undoStack.length === 0;
+el('redoBtn').disabled = isReadOnly || redoStack.length === 0;
 }
 
 /* presets */
 function defaultPresets(){
-  // 図面っぽく見えるように全体的に淡い色に寄せる
-  return [
-    { name: "LDK",  color: "#F4EBD2" },
-    { name: "洋室", color: "#F7F3EA" },
-    { name: "寝室", color: "#F2F6EF" },
-    { name: "土間", color: "#F1F1F1" },
-    { name: "収納", color: "#F6F2F7" },
-    { name: "洗面", color: "#EFF7F7" },
-    { name: "トイレ", color: "#FFF9E6" },
-    { name: "玄関", color: "#F8EFEA" },
-  ];
+// 図面っぽく見えるように全体的に淡い色に寄せる
+return [
+{ name: "LDK", color: "#F4EBD2" },
+{ name: "洋室", color: "#F7F3EA" },
+{ name: "寝室", color: "#F2F6EF" },
+{ name: "土間", color: "#F1F1F1" },
+{ name: "収納", color: "#F6F2F7" },
+{ name: "洗面", color: "#EFF7F7" },
+{ name: "トイレ", color: "#FFF9E6" },
+{ name: "玄関", color: "#F8EFEA" },
+];
 }
 function loadPresets(){
-  try{
-    const raw = localStorage.getItem(PRESET_KEY);
-    if(raw){
-      const arr = JSON.parse(raw);
-      if(Array.isArray(arr) && arr.length){
-        return arr.map(p => ({
-          name: String(p.name||"").trim() || "部屋",
-          color: String(p.color||"#FFF3E0")
-        }));
-      }
-    }
-  }catch(_){}
-  return defaultPresets();
+try{
+const raw = localStorage.getItem(PRESET_KEY);
+if(raw){
+const arr = JSON.parse(raw);
+if(Array.isArray(arr) && arr.length){
+return arr.map(p => ({
+name: String(p.name||"").trim() || "部屋",
+color: String(p.color||"#FFF3E0")
+}));
+}
+}
+}catch(_){}
+return defaultPresets();
 }
 function savePresets(){
-  localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
 }
 function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[m]));
+return String(s).replace(/[&<>"']/g, m => ({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#39;"
+}[m]));
 }
 
 function onPresetPicked(name, color){
-  if(isReadOnly) return;
-  if(labelModalMode === "add"){
-    addPendingColor = color || addPendingColor || "#FFF3E0";
-    el('addColorInput').value = addPendingColor;
-    closeLabelModal();
-    addRect(name, 4, 4, addPendingColor, 'room');
-    return;
-  }
-  el('labelInput').value = name;
-  applyLabel(true, color);
+if(isReadOnly) return;
+if(labelModalMode === "add"){
+addPendingColor = color || addPendingColor || "#FFF3E0";
+el('addColorInput').value = addPendingColor;
+closeLabelModal();
+addRect(name, 4, 4, addPendingColor, 'room');
+return;
+}
+el('labelInput').value = name;
+applyLabel(true, color);
 }
 
 function renderPresetChips(){
-  const box = el('labelChips');
-  box.innerHTML = "";
-  presets.forEach(p => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "name-chip";
-    b.innerHTML = `<span class="dot" style="background:${p.color}"></span><span>${escapeHtml(p.name)}</span>`;
-    b.addEventListener("click", () => onPresetPicked(p.name, p.color));
-    box.appendChild(b);
-  });
+const box = el('labelChips');
+box.innerHTML = "";
+presets.forEach(p => {
+const b = document.createElement("button");
+b.type = "button";
+b.className = "name-chip";
+b.innerHTML = `<span class="dot" style="background:${p.color}"></span><span>${escapeHtml(p.name)}</span>`;
+b.addEventListener("click", () => onPresetPicked(p.name, p.color));
+box.appendChild(b);
+});
 }
 
 function renderPresetEditorList(){
-  const list = el('presetList');
-  list.innerHTML = "";
-  const q = (presetSearchQuery || "").toLowerCase();
-  const visible = presets
-    .map((p, idx) => ({...p, idx}))
-    .filter(p => !q || (p.name || "").toLowerCase().includes(q));
+const list = el('presetList');
+list.innerHTML = "";
+const q = (presetSearchQuery || "").toLowerCase();
+const visible = presets
+.map((p, idx) => ({...p, idx}))
+.filter(p => !q || (p.name || "").toLowerCase().includes(q));
 
-  visible.forEach(({name, color, idx}) => {
-    const row = document.createElement("div");
-    row.className = "preset-row";
-    row.innerHTML = `
-      <input type="text" value="${escapeHtml(name)}" maxlength="12" data-idx="${idx}" data-k="name">
-      <input type="color" value="${color}" data-idx="${idx}" data-k="color">
-      <button class="preset-del" type="button" data-idx="${idx}">削除</button>
-    `;
-    list.appendChild(row);
-  });
+visible.forEach(({name, color, idx}) => {
+const row = document.createElement("div");
+row.className = "preset-row";
+row.innerHTML = `
+<input type="text" value="${escapeHtml(name)}" maxlength="12" data-idx="${idx}" data-k="name">
+<input type="color" value="${color}" data-idx="${idx}" data-k="color">
+<button class="preset-del" type="button" data-idx="${idx}">削除</button>
+`;
+list.appendChild(row);
+});
 
-  list.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const i = Number(inp.dataset.idx);
-      const k = inp.dataset.k;
-      if(!presets[i]) return;
-      if(k === 'name') presets[i].name = (inp.value || "").trim().slice(0,12) || "部屋";
-      if(k === 'color') presets[i].color = inp.value || "#FFF3E0";
-    });
-  });
-  list.querySelectorAll('.preset-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const i = Number(btn.dataset.idx);
-      presets.splice(i, 1);
-      renderPresetEditorList();
-    });
-  });
+list.querySelectorAll('input').forEach(inp => {
+inp.addEventListener('input', () => {
+const i = Number(inp.dataset.idx);
+const k = inp.dataset.k;
+if(!presets[i]) return;
+if(k === 'name') presets[i].name = (inp.value || "").trim().slice(0,12) || "部屋";
+if(k === 'color') presets[i].color = inp.value || "#FFF3E0";
+});
+});
+list.querySelectorAll('.preset-del').forEach(btn => {
+btn.addEventListener('click', () => {
+const i = Number(btn.dataset.idx);
+presets.splice(i, 1);
+renderPresetEditorList();
+});
+});
 }
 
 el('presetList').addEventListener('focusin', (e) => {
-  const row = e.target.closest?.('.preset-row');
-  if(row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+const row = e.target.closest?.('.preset-row');
+if(row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 
 /* layouts list (editable only) */
 function loadLayouts(){
-  try{
-    const raw = localStorage.getItem(LAYOUTS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    if(Array.isArray(arr)) return arr;
-  }catch(_){}
-  return [];
+try{
+const raw = localStorage.getItem(LAYOUTS_KEY);
+const arr = raw ? JSON.parse(raw) : [];
+if(Array.isArray(arr)) return arr;
+}catch(_){}
+return [];
 }
 function saveLayouts(arr){
-  localStorage.setItem(LAYOUTS_KEY, JSON.stringify(arr));
+localStorage.setItem(LAYOUTS_KEY, JSON.stringify(arr));
 }
 function formatDate(ts){
-  try{
-    const d = new Date(ts);
-    return d.toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-  }catch(_){ return ""; }
+try{
+const d = new Date(ts);
+return d.toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}catch(_){ return ""; }
 }
 function upsertLayoutMeta(id, patch){
-  const list = loadLayouts();
-  const idx = list.findIndex(x => x.id === id);
-  const title = patch.title || currentTitle || "MORIYASU🏠";
+const list = loadLayouts();
+const idx = list.findIndex(x => x.id === id);
+const title = patch.title || currentTitle || "MORIYASU🏠";
 
-  if(idx >= 0){
-    list[idx] = { ...list[idx], ...patch, title };
-  }else{
-    list.unshift({ id, title, updatedAt: patch.updatedAt || Date.now() });
-  }
-  saveLayouts(list);
+if(idx >= 0){
+list[idx] = { ...list[idx], ...patch, title };
+}else{
+list.unshift({ id, title, updatedAt: patch.updatedAt || Date.now() });
+}
+saveLayouts(list);
 }
 function touchLayoutMeta(id){
-  if(!id) return;
-  upsertLayoutMeta(id, { updatedAt: Date.now() });
+if(!id) return;
+upsertLayoutMeta(id, { updatedAt: Date.now() });
 }
 function renderLayoutList(){
-  const box = el('layoutList');
-  box.innerHTML = "";
-  const list = loadLayouts();
+const box = el('layoutList');
+box.innerHTML = "";
+const list = loadLayouts();
 
-  if(!list.length){
-    box.innerHTML = `<div style="font-size:13px;color:#666;">まだ保存がありません</div>`;
-    return;
-  }
+if(!list.length){
+box.innerHTML = `<div style="font-size:13px;color:#666;">まだ保存がありません</div>`;
+return;
+}
 
-  list.forEach((it) => {
-    const row = document.createElement('div');
-    row.className = 'layout-row';
-    row.innerHTML = `
-      <input type="text" value="${escapeHtml(it.title || "MORIYASU🏠")}" maxlength="24" data-id="${it.id}">
-      <button class="layout-btn" type="button" data-act="open" data-id="${it.id}">開く</button>
-      <button class="layout-btn" type="button" data-act="newtab" data-id="${it.id}">新規タブ</button>
-      <button class="layout-del" type="button" data-act="del" data-id="${it.id}">×</button>
-      <div style="grid-column:1 / -1; font-size:11px; color:#999; margin-top:-4px; text-align:right;">
-        ${formatDate(it.updatedAt || Date.now())}
-      </div>
-    `;
-    box.appendChild(row);
-  });
+list.forEach((it) => {
+const row = document.createElement('div');
+row.className = 'layout-row';
+row.innerHTML = `
+<input type="text" value="${escapeHtml(it.title || "MORIYASU🏠")}" maxlength="24" data-id="${it.id}">
+<button class="layout-btn" type="button" data-act="open" data-id="${it.id}">開く</button>
+<button class="layout-btn" type="button" data-act="newtab" data-id="${it.id}">新規タブ</button>
+<button class="layout-del" type="button" data-act="del" data-id="${it.id}">×</button>
+<div style="grid-column:1 / -1; font-size:11px; color:#999; margin-top:-4px; text-align:right;">
+${formatDate(it.updatedAt || Date.now())}
+</div>
+`;
+box.appendChild(row);
+});
 
-  box.querySelectorAll('input[type="text"]').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const id = inp.dataset.id;
-      upsertLayoutMeta(id, { title: (inp.value||"").trim().slice(0,24) || "間取り" });
-    });
-  });
+box.querySelectorAll('input[type="text"]').forEach(inp => {
+inp.addEventListener('input', () => {
+const id = inp.dataset.id;
+upsertLayoutMeta(id, { title: (inp.value||"").trim().slice(0,24) || "間取り" });
+});
+});
 
-  box.querySelectorAll('button').forEach(btn => {
-    const act = btn.dataset.act;
-    const id = btn.dataset.id;
-    if(!act || !id) return;
+box.querySelectorAll('button').forEach(btn => {
+const act = btn.dataset.act;
+const id = btn.dataset.id;
+if(!act || !id) return;
 
-    btn.addEventListener('click', () => {
-      const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
-      if(act === 'open') window.location.href = url;
-      if(act === 'newtab') window.open(url, "_blank");
-      if(act === 'del'){
-        const list = loadLayouts().filter(x => x.id !== id);
-        saveLayouts(list);
-        renderLayoutList();
-      }
-    });
-  });
+btn.addEventListener('click', () => {
+const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+if(act === 'open') window.location.href = url;
+if(act === 'newtab') window.open(url, "_blank");
+if(act === 'del'){
+const list = loadLayouts().filter(x => x.id !== id);
+saveLayouts(list);
+renderLayoutList();
+}
+});
+});
 }
 
 /* ui helpers */
 function resizeCanvas(){
-  canvas.width = container.clientWidth;
-  canvas.height = container.clientHeight;
-  draw();
+canvas.width = container.clientWidth;
+canvas.height = container.clientHeight;
+draw();
 }
 function updateSegmentUI(){
-  el('segEdit').classList.toggle('active', !isMerged);
-  el('segMerge').classList.toggle('active', isMerged);
+el('segEdit').classList.toggle('active', !isMerged);
+el('segMerge').classList.toggle('active', isMerged);
 }
 function setMergedMode(val){
-  isMerged = val;
-  updateSegmentUI();
-  updateModeAvailability();
-  updateWorkHint();
-  draw();
+isMerged = val;
+updateSegmentUI();
+updateModeAvailability();
+updateWorkHint();
+draw();
 }
 
 /* --- UX helpers: mode hint + toast --- */
 let toastTimer = null;
 function showToast(msg, ms=1800){
-  const t = el('toast');
-  if(!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+const t = el('toast');
+if(!t) return;
+t.textContent = msg;
+t.classList.add('show');
+clearTimeout(toastTimer);
+toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
 
 function updateModeAvailability(){
-  // 外壁モード = 編集(!isMerged): 外枠のみを触る想定
-  const outer = !isMerged;
-  const btnRoom = el('addGenericRoomBtn2');
-  const btnWall = el('addInnerWallBtn2');
-  const btnFrame = el('addFrameBtn2');
+// 外壁モード = 編集(!isMerged): 外枠のみを触る想定
+const outer = !isMerged;
+const btnRoom = el('addGenericRoomBtn2');
+const btnWall = el('addInnerWallBtn2');
+const btnFrame = el('addFrameBtn2');
 
-  if(btnRoom) btnRoom.disabled = outer;
-  if(btnWall) btnWall.disabled = outer;
-  if(btnFrame) btnFrame.disabled = !outer;
+if(btnRoom) btnRoom.disabled = outer;
+if(btnWall) btnWall.disabled = outer;
+if(btnFrame) btnFrame.disabled = !outer;
 
-  // 外壁モードに切り替えたら壁設置は解除
-  if(outer){
-    isWallPlaceMode = false;
-    wallPlaceStart = null;
-    updateWorkHint();
-    const wb = el('addInnerWallBtn2');
-    if(wb) wb.classList.remove('active');
-  }
+// 外壁モードに切り替えたら壁設置は解除
+if(outer){
+isWallPlaceMode = false;
+wallPlaceStart = null;
+updateWorkHint();
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+}
 }
 
 function updateWorkHint(){
-  const h = el('workHint');
-  if(!h) return;
+const h = el('workHint');
+if(!h) return;
 
-  if(isMeasureMode){
-    h.innerHTML = "<b>計測</b>：2点をタップ（解除：計測ボタン）";
-    return;
-  }
-  if(isWallPlaceMode){
-    if(!wallPlaceStart){
-      h.innerHTML = "<b>内壁</b>：始点をタップ → 次に終点をタップ（解除：内壁ボタン）";
-    }else{
-      h.innerHTML = "<b>内壁</b>：終点をタップ（解除：内壁ボタン）";
-    }
-    return;
-  }
+if(isMeasureMode){
+h.innerHTML = "<b>計測</b>：2点をタップ（解除：計測ボタン）";
+return;
+}
+if(isWallPlaceMode){
+if(!wallPlaceStart){
+h.innerHTML = "<b>内壁</b>：始点をタップ → 次に終点をタップ（解除：内壁ボタン）";
+}else{
+h.innerHTML = "<b>内壁</b>：終点をタップ（解除：内壁ボタン）";
+}
+return;
+}
 
-  if(!isMerged){
-    h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
-  }else{
-    h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：2点タップで設置";
-  }
+if(!isMerged){
+h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
+}else{
+h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：2点タップで設置";
+}
 }
 
 /* 修正版: 部屋(room)は無視し、「外枠(frame)」の面積だけを合計する（建築図面方式） */
 function updateSummary(){
-  let tm = 0;
-  
-  items.forEach(i => {
-    // 外枠(frame)だけを足す
-    // ※L字の家にする場合は、「外枠」ボタンで枠を2つ追加して並べてください
-    if(i.type === 'frame') {
-      tm += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
-    }
-  });
+let tm = 0;
 
-  const tsubo = tm/4;
-  const jou = tm/2;
-  const m2 = tsubo * TSUBO_TO_M2;
+items.forEach(i => {
+// 外枠(frame)だけを足す
+// ※L字の家にする場合は、「外枠」ボタンで枠を2つ追加して並べてください
+if(i.type === 'frame') {
+tm += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
+}
+});
 
-  el('totalTsubo').innerText = tsubo.toFixed(2);
-  el('totalJou').innerText = jou.toFixed(1);
-  el('totalM2').innerText = m2.toFixed(1);
+const tsubo = tm/4;
+const jou = tm/2;
+const m2 = tsubo * TSUBO_TO_M2;
 
-  el('jouWrap').style.display = (el('showJou')?.checked ?? true) ? "" : "none";
-  el('m2Wrap').style.display = (el('showM2')?.checked ?? true) ? "" : "none";
+el('totalTsubo').innerText = tsubo.toFixed(2);
+el('totalJou').innerText = jou.toFixed(1);
+el('totalM2').innerText = m2.toFixed(1);
+
+el('jouWrap').style.display = (el('showJou')?.checked ?? true) ? "" : "none";
+el('m2Wrap').style.display = (el('showM2')?.checked ?? true) ? "" : "none";
 }
 
 
 function syncBottomBarState(){
-  el('copyBtn2').disabled = isReadOnly || !selectedItem;
-  el('resetBtn2').disabled = isReadOnly;
-  el('addFrameBtn2').disabled = isReadOnly;
-  el('addGenericRoomBtn2').disabled = isReadOnly;
-  el('addInnerWallBtn2').disabled = isReadOnly;
+el('copyBtn2').disabled = isReadOnly || !selectedItem;
+el('resetBtn2').disabled = isReadOnly;
+el('addFrameBtn2').disabled = isReadOnly;
+el('addGenericRoomBtn2').disabled = isReadOnly;
+el('addInnerWallBtn2').disabled = isReadOnly;
 }
 
 /* ✅ 色UI同期 */
 function syncColorUI(){
-  const btn = el('quickColorBtn');
-  const inp = el('quickColorInput');
+const btn = el('quickColorBtn');
+const inp = el('quickColorInput');
 
-  if(!selectedItem || isReadOnly || selectedItem.locked){
-    btn.dataset.disabled = "1";
-    btn.style.setProperty('--swatch', '#ffffff');
-    return;
-  }
+if(!selectedItem || isReadOnly || selectedItem.locked){
+btn.dataset.disabled = "1";
+btn.style.setProperty('--swatch', '#ffffff');
+return;
+}
 
-  btn.dataset.disabled = "0";
-  const c = selectedItem.color || "#FFF3E0";
-  inp.value = c;
-  btn.style.setProperty('--swatch', c);
+btn.dataset.disabled = "0";
+const c = selectedItem.color || "#FFF3E0";
+inp.value = c;
+btn.style.setProperty('--swatch', c);
 }
 
 
 /* ✅ 壁太さUI同期（スライダーは「全ての内壁」に適用） */
 function syncWallThickUI(){
-  const slider = el('wallThickSlider');
-  const val = el('wallThickVal');
-  if(!slider || !val) return;
+const slider = el('wallThickSlider');
+const val = el('wallThickVal');
+if(!slider || !val) return;
 
-  slider.disabled = isReadOnly;
+slider.disabled = isReadOnly;
 
-  // 壁を選択している時はその壁の太さをスライダーに合わせる（違う値のレイアウト読み込み対策）
-  if(selectedItem && selectedItem.type === 'wallLine'){
-    const t = Number(selectedItem.thick ?? WALL_DEFAULT_THICK);
-    if(Number.isFinite(t)){
-      slider.value = String(t);
-      val.textContent = String(t);
-      WALL_DEFAULT_THICK = t;
-    }
-  }else{
-    slider.value = String(WALL_DEFAULT_THICK);
-    val.textContent = String(WALL_DEFAULT_THICK);
-  }
+// 壁を選択している時はその壁の太さをスライダーに合わせる（違う値のレイアウト読み込み対策）
+if(selectedItem && selectedItem.type === 'wallLine'){
+const t = Number(selectedItem.thick ?? WALL_DEFAULT_THICK);
+if(Number.isFinite(t)){
+slider.value = String(t);
+val.textContent = String(t);
+WALL_DEFAULT_THICK = t;
+}
+}else{
+slider.value = String(WALL_DEFAULT_THICK);
+val.textContent = String(WALL_DEFAULT_THICK);
+}
 }
 
 function applyWallThicknessToAll(newThick, {respectLock=true} = {}){
-  const t = Number(newThick);
-  if(!Number.isFinite(t)) return;
+const t = Number(newThick);
+if(!Number.isFinite(t)) return;
 
-  WALL_DEFAULT_THICK = t;
+WALL_DEFAULT_THICK = t;
 
-  items.forEach(it => {
-    if(it.type !== 'wallLine') return;
-    if(respectLock && it.locked) return;
-    it.thick = t;
-    if(!it.color) it.color = "#111";
-  });
+items.forEach(it => {
+if(it.type !== 'wallLine') return;
+if(respectLock && it.locked) return;
+it.thick = t;
+if(!it.color) it.color = "#111";
+});
 
-  // UI
-  const slider = el('wallThickSlider');
-  const val = el('wallThickVal');
-  if(slider) slider.value = String(t);
-  if(val) val.textContent = String(t);
+// UI
+const slider = el('wallThickSlider');
+const val = el('wallThickVal');
+if(slider) slider.value = String(t);
+if(val) val.textContent = String(t);
 
-  try{ localStorage.setItem(WALL_THICK_KEY, String(t)); }catch(_){}
-  draw();
+try{ localStorage.setItem(WALL_THICK_KEY, String(t)); }catch(_){}
+draw();
 }
 
 
 /* add items */
 function addRect(label, w, h, color, type='room'){
-  if(isReadOnly) return;
-  pushHistory();
-  const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
-  const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
-  const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
-  if(type === 'frame') items.unshift(i); else items.push(i);
-  ensureIds();
-  normalizeZ();
-  selectedItem = i;
-  draw();
-  if(type === 'room') showToast('ドラッグで移動 / 角ドラッグでサイズ / 色は右上');
-  scheduleAutoSave();
+if(isReadOnly) return;
+
+// frame は「重なりNG」なので、成功したら履歴に積む
+const prev = (type === 'frame') ? snapshot() : null;
+if(type !== 'frame') pushHistory();
+
+const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
+const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
+const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
+if(type === 'frame') items.unshift(i); else items.push(i);
+
+ensureIds();
+normalizeZ();
+selectedItem = i;
+
+// frame 追加直後の重なりチェック（辺接触はOK、面積の重なりはNG）
+if(type === 'frame' && frameOverlapsAny(i)){
+restore(prev);
+showToast("外枠が重なっています。場所をずらして追加してください");
+return;
+}
+
+// frame 追加が成功したので、ここで undo に積む（redo はクリア）
+if(type === 'frame'){
+undoStack.push(prev);
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+syncHistoryButtons();
+}
+
+draw();
+if(type === 'room') showToast('中央ハンドルで移動 / 右下ハンドルでサイズ / 色は右上');
+scheduleAutoSave();
 }
 function addWallBetween(p1, p2){
-  if(isReadOnly) return;
-  const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
-  if(x1 === x2 && y1 === y2) return;
+if(isReadOnly) return;
+const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+if(x1 === x2 && y1 === y2) return;
 
-  pushHistory();
-  const w = {
-    type: 'wallLine',
-    x1, y1, x2, y2,
-    thick: WALL_DEFAULT_THICK,
-    color: '#111'
-  };
-  items.push(w);
-  ensureIds();
-  normalizeZ();
-  selectedItem = w;
-  draw();
-  scheduleAutoSave();
+pushHistory();
+const w = {
+type: 'wallLine',
+x1, y1, x2, y2,
+thick: WALL_DEFAULT_THICK,
+color: '#111'
+};
+items.push(w);
+ensureIds();
+normalizeZ();
+selectedItem = w;
+draw();
+scheduleAutoSave();
 }
 
 function setWallPlaceMode(on){
-  isWallPlaceMode = !!on;
-  wallPlaceStart = null;
+isWallPlaceMode = !!on;
+wallPlaceStart = null;
 
-  const btn = el('addInnerWallBtn2');
-  if(btn){
-    btn.classList.toggle('active', isWallPlaceMode);
-  }
+const btn = el('addInnerWallBtn2');
+if(btn){
+btn.classList.toggle('active', isWallPlaceMode);
+}
 
-  // 壁設置中は計測と排他
-  if(isWallPlaceMode){
-    isMeasureMode = false;
-    measurePoints = [];
-    const mb = el('measureBtn');
-    if(mb){
-      mb.classList.remove('active');
-      mb.classList.add('gray');
-    }
-    selectedItem = null;
-  }
-  draw();
+// 壁設置中は計測と排他
+if(isWallPlaceMode){
+isMeasureMode = false;
+measurePoints = [];
+const mb = el('measureBtn');
+if(mb){
+mb.classList.remove('active');
+mb.classList.add('gray');
+}
+selectedItem = null;
+}
+draw();
 }
 
 function toggleWallPlaceMode(){
-  if(isReadOnly) return;
-  setWallPlaceMode(!isWallPlaceMode);
+if(isReadOnly) return;
+setWallPlaceMode(!isWallPlaceMode);
 }
 
 /* menu actions */
 
 function openMenu(item){
-  if(!item) return;
-  menuItem = item;
-  const lockedText = item.locked ? "（ロック）" : "";
-  el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
+if(!item) return;
+menuItem = item;
+const lockedText = item.locked ? "（ロック）" : "";
+el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
 
-  // 色入力の初期値
-  el('menuColorInput').value = item.color || "#FFF3E0";
-  el('menuColorBtn').style.setProperty('--swatch', el('menuColorInput').value);
+// 色入力の初期値
+el('menuColorInput').value = item.color || "#FFF3E0";
+el('menuColorBtn').style.setProperty('--swatch', el('menuColorInput').value);
 
-  el('menuModal').style.display = 'flex';
+el('menuModal').style.display = 'flex';
 }
 function closeMenu(){
-  el('menuModal').style.display = 'none';
-  menuItem = null;
+el('menuModal').style.display = 'none';
+menuItem = null;
 }
 function duplicateItem(it){
-  if(isReadOnly) return;
-  if(!it) return;
-  pushHistory();
-  let n;
-  if(it.type === 'wallLine'){
-    n = { ...it, id: uid(), x1: it.x1 + GRID_SIZE, y1: it.y1 + GRID_SIZE, x2: it.x2 + GRID_SIZE, y2: it.y2 + GRID_SIZE };
-  }else{
-    n = { ...it, id: uid(), x: it.x + GRID_SIZE, y: it.y + GRID_SIZE };
-  }
-  items.push(n);
-  normalizeZ();
-  selectedItem = n;
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+let n;
+if(it.type === 'wallLine'){
+n = { ...it, id: uid(), x1: it.x1 + GRID_SIZE, y1: it.y1 + GRID_SIZE, x2: it.x2 + GRID_SIZE, y2: it.y2 + GRID_SIZE };
+}else{
+n = { ...it, id: uid(), x: it.x + GRID_SIZE, y: it.y + GRID_SIZE };
+}
+items.push(n);
+normalizeZ();
+selectedItem = n;
+draw();
+scheduleAutoSave();
 }
 function deleteItem(it){
-  if(isReadOnly) return;
-  if(!it) return;
-  pushHistory();
-  items = items.filter(x => x !== it);
-  selectedItem = null;
-  normalizeZ();
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+items = items.filter(x => x !== it);
+selectedItem = null;
+normalizeZ();
+draw();
+scheduleAutoSave();
 }
 function bringFront(it){
-  if(isReadOnly) return;
-  if(!it) return;
-  pushHistory();
-  items = items.filter(x => x !== it);
-  items.push(it);
-  normalizeZ();
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+items = items.filter(x => x !== it);
+items.push(it);
+normalizeZ();
+draw();
+scheduleAutoSave();
 }
 function bringBack(it){
-  if(isReadOnly) return;
-  if(!it) return;
-  pushHistory();
-  const frames = items.filter(i => i.type === 'frame');
-  const others = items.filter(i => i.type !== 'frame' && i !== it);
-  items = [...frames, it, ...others];
-  normalizeZ();
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+const frames = items.filter(i => i.type === 'frame');
+const others = items.filter(i => i.type !== 'frame' && i !== it);
+items = [...frames, it, ...others];
+normalizeZ();
+draw();
+scheduleAutoSave();
 }
 function toggleLock(it){
-  if(isReadOnly) return;
-  if(!it) return;
-  pushHistory();
-  it.locked = !it.locked;
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+it.locked = !it.locked;
+draw();
+scheduleAutoSave();
 }
 
 /* label modal */
 function openLabelModal(mode){
-  if(isReadOnly) return;
-  labelModalMode = mode;
-  el('labelModal').style.display = 'flex';
+if(isReadOnly) return;
 
-  if(mode === "add"){
-    el('labelModalTitle').innerText = "部屋を追加";
-    el('labelModalSub').innerText = "プリセットをタップで即追加 / 入力してOKでも追加";
-    el('addHint').style.display = "block";
-    el('labelInput').placeholder = "部屋名（入力追加）";
-    el('labelInput').value = "";
-    el('addColorInput').value = addPendingColor || "#FFF3E0";
-    el('addColorBtn').style.display = "";
-  }else{
-    el('labelModalTitle').innerText = "部屋名を変更";
-    el('labelModalSub').innerText = "候補をタップ（名前＋色） / 入力してOK";
-    el('addHint').style.display = "none";
-    el('labelInput').placeholder = "部屋名";
-    el('addColorBtn').style.display = "none";
-  }
+// 外枠モードでは部屋追加しない（呼び出し経路が増えても止める）
+if(mode === "add" && !isMerged){
+showToast("外枠モードでは部屋を追加できません（「部屋」モードに切り替えてください）");
+return;
+}
 
-  setTimeout(() => el('labelInput').focus(), 50);
+labelModalMode = mode;
+el('labelModal').style.display = 'flex';
+
+if(mode === "add"){
+el('labelModalTitle').innerText = "部屋を追加";
+el('labelModalSub').innerText = "プリセットをタップで即追加 / 入力してOKでも追加";
+el('addHint').style.display = "block";
+el('labelInput').placeholder = "部屋名（入力追加）";
+el('labelInput').value = "";
+el('addColorInput').value = addPendingColor || "#FFF3E0";
+el('addColorBtn').style.display = "";
+}else{
+el('labelModalTitle').innerText = "部屋名を変更";
+el('labelModalSub').innerText = "候補をタップ（名前＋色） / 入力してOK";
+el('addHint').style.display = "none";
+el('labelInput').placeholder = "部屋名";
+el('addColorBtn').style.display = "none";
+}
+
+setTimeout(() => el('labelInput').focus(), 50);
 }
 
 function closeLabelModal(){
-  el('labelModal').style.display = 'none';
-  labelModalMode = "edit";
-  editingItem = null;
+el('labelModal').style.display = 'none';
+labelModalMode = "edit";
+editingItem = null;
 }
 
 function openLabelEditor(item){
-  if(isReadOnly) return;
-  if(!item) return;
-  editingItem = item;
-  el('labelInput').value = item.label || "";
-  openLabelModal("edit");
+if(isReadOnly) return;
+if(!item) return;
+editingItem = item;
+el('labelInput').value = item.label || "";
+openLabelModal("edit");
 }
 
 function applyLabel(applyColor=false, colorValue=null){
-  if(isReadOnly) return;
-  if (!editingItem) return;
-  const v = el('labelInput').value.trim();
-  if (!v) return;
+if(isReadOnly) return;
+if (!editingItem) return;
+const v = el('labelInput').value.trim();
+if (!v) return;
 
-  pushHistory();
-  editingItem.label = v;
-  if(applyColor && colorValue) editingItem.color = colorValue;
+pushHistory();
+editingItem.label = v;
+if(applyColor && colorValue) editingItem.color = colorValue;
 
-  closeLabelModal();
-  draw();
-  scheduleAutoSave();
+closeLabelModal();
+draw();
+scheduleAutoSave();
 }
 
 /* wall helpers */
 function distPointToSegment(px, py, x1, y1, x2, y2){
-  const vx = x2 - x1, vy = y2 - y1;
-  const wx = px - x1, wy = py - y1;
-  const c1 = vx*wx + vy*wy;
-  if (c1 <= 0) return Math.hypot(px - x1, py - y1);
-  const c2 = vx*vx + vy*vy;
-  if (c2 <= c1) return Math.hypot(px - x2, py - y2);
-  const t = c1 / c2;
-  const bx = x1 + t*vx;
-  const by = y1 + t*vy;
-  return Math.hypot(px - bx, py - by);
+const vx = x2 - x1, vy = y2 - y1;
+const wx = px - x1, wy = py - y1;
+const c1 = vx*wx + vy*wy;
+if (c1 <= 0) return Math.hypot(px - x1, py - y1);
+const c2 = vx*vx + vy*vy;
+if (c2 <= c1) return Math.hypot(px - x2, py - y2);
+const t = c1 / c2;
+const bx = x1 + t*vx;
+const by = y1 + t*vy;
+return Math.hypot(px - bx, py - by);
 }
 function wallHitTest(worldP, wall){
-  const handleRWorld = WALL_HANDLE_R / scale;
-  const padWorld = WALL_HIT_PAD / scale;
-  const d1 = Math.hypot(worldP.x - wall.x1, worldP.y - wall.y1);
-  if(d1 <= handleRWorld) return {hit:true, handle:"p1"};
-  const d2 = Math.hypot(worldP.x - wall.x2, worldP.y - wall.y2);
-  if(d2 <= handleRWorld) return {hit:true, handle:"p2"};
-  const dSeg = distPointToSegment(worldP.x, worldP.y, wall.x1, wall.y1, wall.x2, wall.y2);
-  const thickWorld = (wall.thick || WALL_DEFAULT_THICK) / scale;
-  if(dSeg <= (thickWorld/2 + padWorld)) return {hit:true, handle:null};
-  return {hit:false, handle:null};
+const handleRWorld = WALL_HANDLE_R / scale;
+const padWorld = WALL_HIT_PAD / scale;
+const d1 = Math.hypot(worldP.x - wall.x1, worldP.y - wall.y1);
+if(d1 <= handleRWorld) return {hit:true, handle:"p1"};
+const d2 = Math.hypot(worldP.x - wall.x2, worldP.y - wall.y2);
+if(d2 <= handleRWorld) return {hit:true, handle:"p2"};
+const dSeg = distPointToSegment(worldP.x, worldP.y, wall.x1, wall.y1, wall.x2, wall.y2);
+const thickWorld = (wall.thick || WALL_DEFAULT_THICK) / scale;
+if(dSeg <= (thickWorld/2 + padWorld)) return {hit:true, handle:null};
+return {hit:false, handle:null};
 }
 function applyRightAngleSnap(wall, movingHandle){
-  const ax = (movingHandle === "p1") ? wall.x2 : wall.x1;
-  const ay = (movingHandle === "p1") ? wall.y2 : wall.y1;
-  const bx = (movingHandle === "p1") ? wall.x1 : wall.x2;
-  const by = (movingHandle === "p1") ? wall.y1 : wall.y2;
+const ax = (movingHandle === "p1") ? wall.x2 : wall.x1;
+const ay = (movingHandle === "p1") ? wall.y2 : wall.y1;
+const bx = (movingHandle === "p1") ? wall.x1 : wall.x2;
+const by = (movingHandle === "p1") ? wall.y1 : wall.y2;
 
-  const dx = bx - ax;
-  const dy = by - ay;
-  const adx = Math.abs(dx), ady = Math.abs(dy);
-  if(adx < 1e-6 && ady < 1e-6) return;
+const dx = bx - ax;
+const dy = by - ay;
+const adx = Math.abs(dx), ady = Math.abs(dy);
+if(adx < 1e-6 && ady < 1e-6) return;
 
-  const tan = Math.tan(SNAP_ANGLE_DEG * Math.PI/180);
-  if(ady <= adx * tan){
-    if(movingHandle === "p1") wall.y1 = wall.y2;
-    else wall.y2 = wall.y1;
-    return;
-  }
-  if(adx <= ady * tan){
-    if(movingHandle === "p1") wall.x1 = wall.x2;
-    else wall.x2 = wall.x1;
-  }
+const tan = Math.tan(SNAP_ANGLE_DEG * Math.PI/180);
+if(ady <= adx * tan){
+if(movingHandle === "p1") wall.y1 = wall.y2;
+else wall.y2 = wall.y1;
+return;
+}
+if(adx <= ady * tan){
+if(movingHandle === "p1") wall.x1 = wall.x2;
+else wall.x2 = wall.x1;
+}
 }
 
 /* rect helpers */
 function isSmallRoom(it){
-  if(!it || it.type !== 'room') return false;
-  const masu = (it.w/GRID_SIZE) * (it.h/GRID_SIZE);
-  return masu <= SMALL_ROOM_MAX_MASU;
+if(!it || it.type !== 'room') return false;
+const masu = (it.w/GRID_SIZE) * (it.h/GRID_SIZE);
+return masu <= SMALL_ROOM_MAX_MASU;
 }
 function rectMoveHandleCenter(it){
-  return { x: it.x + it.w/2, y: it.y + it.h/2 };
+return { x: it.x + it.w/2, y: it.y + it.h/2 };
 }
 function rectMoveHandleHit(worldP, it){
-  const c = rectMoveHandleCenter(it);
-  const r = MOVE_HANDLE_HIT / scale;
-  return Math.hypot(worldP.x - c.x, worldP.y - c.y) <= r;
+const c = rectMoveHandleCenter(it);
+const r = MOVE_HANDLE_HIT / scale;
+return Math.hypot(worldP.x - c.x, worldP.y - c.y) <= r;
+}
+
+function getResizeHandleRadiusPx(it){
+if(!it) return 18;
+// 小さい部屋・外枠はタップしやすく少し大きめ
+if(it.type === 'frame') return 26;
+if(it.type === 'room' && isSmallRoom(it)) return 24;
+return 18;
+}
+function rectResizeHandleHit(worldP, it){
+if(!it || (it.type !== 'room' && it.type !== 'frame')) return false;
+const hx = it.x + it.w;
+const hy = it.y + it.h;
+const rad = getResizeHandleRadiusPx(it);
+const dx = worldP.x - hx;
+const dy = worldP.y - hy;
+return (dx*dx + dy*dy) <= (rad/scale) * (rad/scale);
+}
+
+// 矩形の重なり（面積が正に重なる時だけ true。辺が接するだけは false）
+function rectOverlap(a, b){
+return (a.x < b.x + b.w) && (a.x + a.w > b.x) &&
+       (a.y < b.y + b.h) && (a.y + a.h > b.y);
+}
+function frameOverlapsAny(target){
+if(!target || target.type !== 'frame') return false;
+for(const f of items){
+if(f.type !== 'frame') continue;
+if(f.id === target.id) continue;
+if(rectOverlap(target, f)) return true;
+}
+return false;
+}
+function anyFrameOverlap(){
+const frames = items.filter(i => i.type === 'frame');
+for(let i=0;i<frames.length;i++){
+for(let j=i+1;j<frames.length;j++){
+if(rectOverlap(frames[i], frames[j])) return true;
+}
+}
+return false;
 }
 
 /* draw */
 function drawGrid(){
-  ctx.strokeStyle = "#e5e5ea";
-  ctx.lineWidth = 0.5 / scale;
-  const range = 1600;
-  for (let x = -range; x <= range; x += GRID_SIZE) {
-    ctx.beginPath();
-    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
-  }
-  for (let y = -range; y <= range; y += GRID_SIZE) {
-    ctx.beginPath();
-    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
-  }
+ctx.strokeStyle = "#e5e5ea";
+ctx.lineWidth = 0.5 / scale;
+const range = 1600;
+for (let x = -range; x <= range; x += GRID_SIZE) {
+ctx.beginPath();
+ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+}
+for (let y = -range; y <= range; y += GRID_SIZE) {
+ctx.beginPath();
+ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+}
 }
 
 function drawRectItems(){
-  const rects = items.filter(i => i.type !== 'wallLine');
+const rects = items.filter(i => i.type !== 'wallLine');
 
-  // fill
-  rects.forEach(item => {
-    ctx.fillStyle = item.color;
-    ctx.globalAlpha = item.type==='room' ? 0.35 : 1.0;
-    ctx.fillRect(item.x, item.y, item.w, item.h);
-    ctx.globalAlpha = 1.0;
+// fill
+rects.forEach(item => {
+ctx.fillStyle = item.color;
+ctx.globalAlpha = item.type==='room' ? 0.35 : 1.0;
+ctx.fillRect(item.x, item.y, item.w, item.h);
+ctx.globalAlpha = 1.0;
 
-    if(item.locked){
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.fillRect(item.x, item.y, item.w, item.h);
-    }
-  });
+if(item.locked){
+ctx.fillStyle = "rgba(0,0,0,0.08)";
+ctx.fillRect(item.x, item.y, item.w, item.h);
+}
+});
 
-  // stroke
-  rects.forEach(item => {
-    const isFrame = item.type === 'frame';
-    const baseStroke = isFrame ? "#cfcfd6" : "#333";
+// stroke
+rects.forEach(item => {
+const isFrame = item.type === 'frame';
+const baseStroke = isFrame ? "#cfcfd6" : "#333";
 
-    if(isSmallRoom(item)){
-      ctx.strokeStyle = "rgba(255,255,255,0.95)";
-      ctx.lineWidth = 4 / scale;
-      ctx.strokeRect(item.x, item.y, item.w, item.h);
+if(isSmallRoom(item)){
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.lineWidth = 4 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
 
-      ctx.strokeStyle = baseStroke;
-      ctx.lineWidth = 2 / scale;
-      ctx.strokeRect(item.x, item.y, item.w, item.h);
-    }else{
-      ctx.strokeStyle = baseStroke;
-      ctx.lineWidth = 1 / scale;
-      ctx.strokeRect(item.x, item.y, item.w, item.h);
-    }
-  });
+ctx.strokeStyle = baseStroke;
+ctx.lineWidth = 2 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+}else{
+ctx.strokeStyle = baseStroke;
+ctx.lineWidth = 1 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+}
+});
 
-  // label（見やすいように中央寄せ）
-  rects.forEach(item => {
-    const label = item.locked ? `${item.label} 🔒` : (item.label || "");
-    if(!label) return;
+// label（見やすいように中央寄せ）
+rects.forEach(item => {
+const label = item.locked ? `${item.label} 🔒` : (item.label || "");
+if(!label) return;
 
-    // 小さい部屋は文字が潰れやすいので少し縮小
-    const fontSize = (isSmallRoom(item) ? 11 : 13) / scale;
-    const x = item.x + item.w/2;
-    const y = item.y + item.h/2;
+// 小さい部屋は文字が潰れやすいので少し縮小
+const fontSize = (isSmallRoom(item) ? 11 : 13) / scale;
+const x = item.x + item.w/2;
+const y = item.y + item.h/2;
 
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `900 ${fontSize}px sans-serif`;
+ctx.save();
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.font = `900 ${fontSize}px sans-serif`;
 
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 4/scale;
-    ctx.strokeStyle = "rgba(255,255,255,0.95)";
-    ctx.strokeText(label, x, y);
+ctx.lineJoin = "round";
+ctx.lineWidth = 4/scale;
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.strokeText(label, x, y);
 
-    ctx.fillStyle = "#111";
-    ctx.fillText(label, x, y);
-    ctx.restore();
-  });
+ctx.fillStyle = "#111";
+ctx.fillText(label, x, y);
+ctx.restore();
+});
 }
 
 function drawWallLine(wall){
-  const thick = wall.thick ?? WALL_DEFAULT_THICK;
+const thick = wall.thick ?? WALL_DEFAULT_THICK;
 
-  ctx.save();
-  // 図面ライク：角ばった端
-  ctx.lineCap = "butt";
-  ctx.strokeStyle = wall.color || "#111";
-  ctx.lineWidth = thick / scale;
+ctx.save();
+// 図面ライク：角ばった端
+ctx.lineCap = "butt";
+ctx.strokeStyle = wall.color || "#111";
+ctx.lineWidth = thick / scale;
 
-  ctx.beginPath();
-  ctx.moveTo(wall.x1, wall.y1);
-  ctx.lineTo(wall.x2, wall.y2);
-  ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(wall.x1, wall.y1);
+ctx.lineTo(wall.x2, wall.y2);
+ctx.stroke();
 
-  ctx.restore();
+ctx.restore();
 }
 
 function drawWallSelection(wall){
-  ctx.save();
-  ctx.lineCap = "round";
-  ctx.strokeStyle = "#007AFF";
-  ctx.lineWidth = ((wall.thick || WALL_DEFAULT_THICK) + 4) / scale;
-  ctx.globalAlpha = 0.25;
-  ctx.beginPath();
-  ctx.moveTo(wall.x1, wall.y1);
-  ctx.lineTo(wall.x2, wall.y2);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+ctx.save();
+ctx.lineCap = "round";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = ((wall.thick || WALL_DEFAULT_THICK) + 4) / scale;
+ctx.globalAlpha = 0.25;
+ctx.beginPath();
+ctx.moveTo(wall.x1, wall.y1);
+ctx.lineTo(wall.x2, wall.y2);
+ctx.stroke();
+ctx.globalAlpha = 1;
 
-  if(!wall.locked && !isReadOnly){
-    const r = WALL_HANDLE_R / scale;
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#007AFF";
-    ctx.lineWidth = 2/scale;
-    ctx.beginPath(); ctx.arc(wall.x1, wall.y1, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(wall.x2, wall.y2, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-  }
-  ctx.restore();
+if(!wall.locked && !isReadOnly){
+const r = WALL_HANDLE_R / scale;
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
+ctx.beginPath(); ctx.arc(wall.x1, wall.y1, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+ctx.beginPath(); ctx.arc(wall.x2, wall.y2, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+}
+ctx.restore();
 }
 
 function drawMoveHandleRect(it){
-  const c = rectMoveHandleCenter(it);
-  const r = MOVE_HANDLE_R / scale;
+const c = rectMoveHandleCenter(it);
+const r = MOVE_HANDLE_R / scale;
 
-  ctx.save();
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "#007AFF";
-  ctx.lineWidth = 2/scale;
+ctx.save();
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
 
-  ctx.beginPath();
-  ctx.arc(c.x, c.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+ctx.beginPath();
+ctx.arc(c.x, c.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(c.x - r*0.55, c.y);
-  ctx.lineTo(c.x + r*0.55, c.y);
-  ctx.moveTo(c.x, c.y - r*0.55);
-  ctx.lineTo(c.x, c.y + r*0.55);
-  ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(c.x - r*0.55, c.y);
+ctx.lineTo(c.x + r*0.55, c.y);
+ctx.moveTo(c.x, c.y - r*0.55);
+ctx.lineTo(c.x, c.y + r*0.55);
+ctx.stroke();
 
-  ctx.restore();
+ctx.restore();
 }
 
 function drawSizeBadge(it){
-  const mw = (it.w / GRID_SIZE).toFixed(1).replace('.0','');
-  const mh = (it.h / GRID_SIZE).toFixed(1).replace('.0','');
-  const text = (it.type === 'frame') ? `外枠: ${mw}×${mh}マス` : `${mw}×${mh}マス`;
-  const pad = 8/scale;
-  ctx.save();
-  ctx.font = `900 ${12/scale}px sans-serif`;
-  const w = ctx.measureText(text).width + pad*2;
-  const h = 22/scale;
-  const x = it.x;
-  const y = it.y - (h + 8/scale);
+const mw = (it.w / GRID_SIZE).toFixed(1).replace('.0','');
+const mh = (it.h / GRID_SIZE).toFixed(1).replace('.0','');
+const text = (it.type === 'frame') ? `外枠: ${mw}×${mh}マス` : `${mw}×${mh}マス`;
+const pad = 8/scale;
+ctx.save();
+ctx.font = `900 ${12/scale}px sans-serif`;
+const w = ctx.measureText(text).width + pad*2;
+const h = 22/scale;
+const x = it.x;
+const y = it.y - (h + 8/scale);
 
-  ctx.fillStyle = "rgba(0,122,255,0.92)";
-  ctx.roundRect(x, y, w, h, 10/scale);
-  ctx.fill();
+ctx.fillStyle = "rgba(0,122,255,0.92)";
+ctx.roundRect(x, y, w, h, 10/scale);
+ctx.fill();
 
-  ctx.fillStyle = "#fff";
-  ctx.fillText(text, x + pad, y + 15/scale);
-  ctx.restore();
+ctx.fillStyle = "#fff";
+ctx.fillText(text, x + pad, y + 15/scale);
+ctx.restore();
 }
 
 function drawMerged(){
-  const roomMap = {};
-  const frameMap = {};
-  const groups = {};
-  const sub = 16;
+const roomMap = {};
+const frameMap = {};
+const groups = {};
+const sub = 16;
 
-  items.forEach((item, index) => {
-    if(item.type === 'wallLine') return;
+items.forEach((item, index) => {
+if(item.type === 'wallLine') return;
 
-    if (item.type !== 'frame') {
-      if (!groups[item.label]) {
-        groups[item.label] = {
-          label: item.label,
-          totalMasu: 0,
-          minX: Infinity,
-          minY: Infinity,
-          maxX: -Infinity,
-          maxY: -Infinity,
-          textX: 0,
-          textY: 0
-        };
-      }
-      const g = groups[item.label];
-      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-      g.minX = Math.min(g.minX, item.x);
-      g.minY = Math.min(g.minY, item.y);
-      g.maxX = Math.max(g.maxX, item.x + item.w);
-      g.maxY = Math.max(g.maxY, item.y + item.h);
-      g.textX = (g.minX + g.maxX) / 2;
-      g.textY = (g.minY + g.maxY) / 2;
-    }
+if (item.type !== 'frame') {
+if (!groups[item.label]) {
+groups[item.label] = {
+label: item.label,
+totalMasu: 0,
+minX: Infinity,
+minY: Infinity,
+maxX: -Infinity,
+maxY: -Infinity,
+textX: 0,
+textY: 0
+};
+}
+const g = groups[item.label];
+g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+g.minX = Math.min(g.minX, item.x);
+g.minY = Math.min(g.minY, item.y);
+g.maxX = Math.max(g.maxX, item.x + item.w);
+g.maxY = Math.max(g.maxY, item.y + item.h);
+g.textX = (g.minX + g.maxX) / 2;
+g.textY = (g.minY + g.maxY) / 2;
+}
 
-    for (let x = item.x; x < item.x + item.w; x += sub) {
-      for (let y = item.y; y < item.y + item.h; y += sub) {
-        const pos = `${x},${y}`;
-        if (item.type === 'frame') frameMap[pos] = item.label;
-        else roomMap[pos] = { label: item.label, color: item.color };
-      }
-    }
-  });
+for (let x = item.x; x < item.x + item.w; x += sub) {
+for (let y = item.y; y < item.y + item.h; y += sub) {
+const pos = `${x},${y}`;
+if (item.type === 'frame') frameMap[pos] = item.label;
+else roomMap[pos] = { label: item.label, color: item.color };
+}
+}
+});
 
-  items.forEach(item => {
-    if(item.type === 'wallLine') return;
+items.forEach(item => {
+if(item.type === 'wallLine') return;
 
-    if(item.type === 'frame'){
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = "#ffffff";
-    }else{
-      // 図面っぽく薄く見せる（写真のような淡い塗り）
-      ctx.globalAlpha = 0.22; // 0.15〜0.35 くらいで好みに調整
-      ctx.fillStyle = item.color;
-    }
+if(item.type === 'frame'){
+ctx.globalAlpha = 1.0;
+ctx.fillStyle = "#ffffff";
+}else{
+// 図面っぽく薄く見せる（写真のような淡い塗り）
+ctx.globalAlpha = 0.22; // 0.15〜0.35 くらいで好みに調整
+ctx.fillStyle = item.color;
+}
 
-    ctx.fillRect(item.x, item.y, item.w, item.h);
-    ctx.globalAlpha = 1.0;
-  });
+ctx.fillRect(item.x, item.y, item.w, item.h);
+ctx.globalAlpha = 1.0;
+});
 
-  // ✅ 結合モードでもグリッドは表示（塗りの上、境界線の下）
-  drawGrid();
+// ✅ 結合モードでもグリッドは表示（塗りの上、境界線の下）
+drawGrid();
 
-  const drawEdge = (map, color, width) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width / scale;
-    for (const pos in map) {
-      const [x, y] = pos.split(',').map(Number);
-      const label = map[pos].label || map[pos];
-      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-        const nb = map[`${x+d.dx},${y+d.dy}`];
-        const nbLabel = nb?.label || nb;
-        if (nbLabel !== label) {
-          ctx.beginPath();
-          if(d.dy!==0){
-            ctx.moveTo(x, y+(d.dy>0?sub:0));
-            ctx.lineTo(x+sub, y+(d.dy>0?sub:0));
-          } else {
-            ctx.moveTo(x+(d.dx>0?sub:0), y);
-            ctx.lineTo(x+(d.dx>0?sub:0), y+sub);
-          }
-          ctx.stroke();
-        }
-      });
-    }
-  };
+const drawEdge = (map, color, width) => {
+ctx.strokeStyle = color;
+ctx.lineWidth = width / scale;
+for (const pos in map) {
+const [x, y] = pos.split(',').map(Number);
+const label = map[pos].label || map[pos];
+[{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+const nb = map[`${x+d.dx},${y+d.dy}`];
+const nbLabel = nb?.label || nb;
+if (nbLabel !== label) {
+ctx.beginPath();
+if(d.dy!==0){
+ctx.moveTo(x, y+(d.dy>0?sub:0));
+ctx.lineTo(x+sub, y+(d.dy>0?sub:0));
+} else {
+ctx.moveTo(x+(d.dx>0?sub:0), y);
+ctx.lineTo(x+(d.dx>0?sub:0), y+sub);
+}
+ctx.stroke();
+}
+});
+}
+};
 
-  drawEdge(roomMap, "#111", 2);
-  drawEdge(frameMap, "#111", 10);
+drawEdge(roomMap, "#111", 2);
+drawEdge(frameMap, "#111", 10);
 
-  for (const key in groups) {
-    const g = groups[key];
-    ctx.fillStyle = "#111";
-    ctx.textAlign = "center";
-    ctx.font = `bold ${14/scale}px sans-serif`;
+for (const key in groups) {
+const g = groups[key];
+ctx.fillStyle = "#111";
+ctx.textAlign = "center";
+ctx.font = `bold ${14/scale}px sans-serif`;
 
-    ctx.lineJoin="round";
-    ctx.lineWidth=4/scale;
-    ctx.strokeStyle="rgba(255,255,255,0.95)";
-    ctx.strokeText(g.label, g.textX, g.textY - 4/scale);
-    ctx.fillText(g.label, g.textX, g.textY - 4/scale);
+ctx.lineJoin="round";
+ctx.lineWidth=4/scale;
+ctx.strokeStyle="rgba(255,255,255,0.95)";
+ctx.strokeText(g.label, g.textX, g.textY - 4/scale);
+ctx.fillText(g.label, g.textX, g.textY - 4/scale);
 
-    let subText = "";
-    if (el('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
-    if (el('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+let subText = "";
+if (el('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
+if (el('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
 
-    ctx.font = `${11/scale}px sans-serif`;
-    ctx.lineWidth=4/scale;
-    ctx.strokeText(subText, g.textX, g.textY + 12/scale);
-    ctx.fillText(subText, g.textX, g.textY + 12/scale);
-    ctx.textAlign = "left";
-  }
+ctx.font = `${11/scale}px sans-serif`;
+ctx.lineWidth=4/scale;
+ctx.strokeText(subText, g.textX, g.textY + 12/scale);
+ctx.fillText(subText, g.textX, g.textY + 12/scale);
+ctx.textAlign = "left";
+}
 
-  items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
 }
 
 function drawWallPlaceGuide(){
-  // 壁設置モード：1点目が確定している時だけマーカーを表示
-  if(!isWallPlaceMode || !wallPlaceStart) return;
+// 壁設置モード：1点目が確定している時だけマーカーを表示
+if(!isWallPlaceMode || !wallPlaceStart) return;
 
-  ctx.save();
-  ctx.fillStyle = "#007AFF";
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 4/scale;
+ctx.save();
+ctx.fillStyle = "#007AFF";
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.lineWidth = 4/scale;
 
-  const r = 6/scale;
-  ctx.beginPath();
-  ctx.arc(wallPlaceStart.x, wallPlaceStart.y, r, 0, Math.PI*2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+const r = 6/scale;
+ctx.beginPath();
+ctx.arc(wallPlaceStart.x, wallPlaceStart.y, r, 0, Math.PI*2);
+ctx.fill();
+ctx.stroke();
+ctx.restore();
 }
 
 function drawMeasurement(){
-  if(!measurePoints.length) return;
+if(!measurePoints.length) return;
 
-  ctx.save();
-  ctx.fillStyle = "#FF2D55";
-  ctx.strokeStyle = "#FF2D55";
-  ctx.lineWidth = 2/scale;
+ctx.save();
+ctx.fillStyle = "#FF2D55";
+ctx.strokeStyle = "#FF2D55";
+ctx.lineWidth = 2/scale;
 
-  const r = 5/scale;
-  measurePoints.forEach(p => {
-    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
-  });
+const r = 5/scale;
+measurePoints.forEach(p => {
+ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
+});
 
-  if(measurePoints.length === 2){
-    const [p1, p2] = measurePoints;
-    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+if(measurePoints.length === 2){
+const [p1, p2] = measurePoints;
+ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
-    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-    const masVal = dist / GRID_SIZE;
-    const meters = (masVal * 0.91).toFixed(2);
+const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+const masVal = dist / GRID_SIZE;
+const meters = (masVal * 0.91).toFixed(2);
 
-    const midX = (p1.x + p2.x)/2;
-    const midY = (p1.y + p2.y)/2;
+const midX = (p1.x + p2.x)/2;
+const midY = (p1.y + p2.y)/2;
 
-    ctx.font = `bold ${16/scale}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
+ctx.font = `bold ${16/scale}px sans-serif`;
+ctx.textAlign = "center";
+ctx.textBaseline = "bottom";
 
-    const txt = `${meters}m`;
+const txt = `${meters}m`;
 
-    ctx.lineWidth = 4/scale;
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.strokeText(txt, midX, midY - 6/scale);
-    ctx.fillText(txt, midX, midY - 6/scale);
-  }
+ctx.lineWidth = 4/scale;
+ctx.lineJoin = "round";
+ctx.strokeStyle = "rgba(255,255,255,0.9)";
+ctx.strokeText(txt, midX, midY - 6/scale);
+ctx.fillText(txt, midX, midY - 6/scale);
+}
 
-  ctx.restore();
+ctx.restore();
 }
 
 window.draw = function(){
-  ctx.save();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.save();
+ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
-  ctx.scale(scale, scale);
+ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+ctx.scale(scale, scale);
 
-  if(!isMerged) drawGrid();
+if(!isMerged) drawGrid();
 
-  if(isMerged) drawMerged();
-  else{
-    drawRectItems();
-    items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
-  }
+if(isMerged) drawMerged();
+else{
+drawRectItems();
+items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+}
 
-  if(selectedItem && !(isMerged && selectedItem.type === 'frame')){
-    if(selectedItem.type === 'wallLine'){
-      drawWallSelection(selectedItem);
-    }else{
-      ctx.strokeStyle = "#007AFF";
-      ctx.lineWidth = 3 / scale;
-      ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+if(selectedItem && !(isMerged && selectedItem.type === 'frame')){
+if(selectedItem.type === 'wallLine'){
+drawWallSelection(selectedItem);
+}else{
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 3 / scale;
+ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
 
-      if(!selectedItem.locked && !isReadOnly){
-        drawMoveHandleRect(selectedItem);
+if(!selectedItem.locked && !isReadOnly){
+drawMoveHandleRect(selectedItem);
 
-        ctx.fillStyle = "#fff";
-        ctx.strokeStyle = "#007AFF";
-        ctx.lineWidth = 2/scale;
-        ctx.beginPath();
-        ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, 16/scale, 0, Math.PI*2);
-        ctx.fill(); ctx.stroke();
-      }
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
+ctx.beginPath();
+ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
+ctx.fill(); ctx.stroke();
+}
 
-      if(dragActive && pendingItem === selectedItem){
-        drawSizeBadge(selectedItem);
-      }
-    }
-  }else if(selectedItem && selectedItem.type === 'frame' && isMerged){
-    if(dragActive && pendingItem === selectedItem){
-      drawSizeBadge(selectedItem);
-    }
-  }
+if(dragActive && pendingItem === selectedItem){
+drawSizeBadge(selectedItem);
+}
+}
+}else if(selectedItem && selectedItem.type === 'frame' && isMerged){
+if(dragActive && pendingItem === selectedItem){
+drawSizeBadge(selectedItem);
+}
+}
 
-  if(isMeasureMode) drawMeasurement();
+if(isMeasureMode) drawMeasurement();
 
-  if(isWallPlaceMode) drawWallPlaceGuide();
+if(isWallPlaceMode) drawWallPlaceGuide();
 
-  ctx.restore();
+ctx.restore();
 
-  updateSummary();
-  syncBottomBarState();
-  syncHistoryButtons();
-  syncColorUI();
-  syncWallThickUI();
+updateSummary();
+syncBottomBarState();
+syncHistoryButtons();
+syncColorUI();
+syncWallThickUI();
 };
 
 function fitToFrame(){
-  const frames = items.filter(i => i.type === 'frame');
-  const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
-  if (!targets.length) return;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  targets.forEach(it => {
-    if(it.type === 'wallLine') return;
-    minX = Math.min(minX, it.x);
-    minY = Math.min(minY, it.y);
-    maxX = Math.max(maxX, it.x + it.w);
-    maxY = Math.max(maxY, it.y + it.h);
-  });
-  const cx = (minX + maxX)/2;
-  const cy = (minY + maxY)/2;
-  camera = { x: -cx * scale, y: -cy * scale };
-  draw();
+const frames = items.filter(i => i.type === 'frame');
+const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
+if (!targets.length) return;
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+targets.forEach(it => {
+if(it.type === 'wallLine') return;
+minX = Math.min(minX, it.x);
+minY = Math.min(minY, it.y);
+maxX = Math.max(maxX, it.x + it.w);
+maxY = Math.max(maxY, it.y + it.h);
+});
+const cx = (minX + maxX)/2;
+const cy = (minY + maxY)/2;
+camera = { x: -cx * scale, y: -cy * scale };
+draw();
 }
 
 /* init */
 async function init(){
-  presets = loadPresets();
-  renderPresetChips();
-  // 色スウォッチ初期化
-  el('quickColorBtn').style.setProperty('--swatch', '#ffffff');
-  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
-  el('menuColorBtn').style.setProperty('--swatch', '#FFF3E0');
+presets = loadPresets();
+renderPresetChips();
+// 色スウォッチ初期化
+el('quickColorBtn').style.setProperty('--swatch', '#ffffff');
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+el('menuColorBtn').style.setProperty('--swatch', '#FFF3E0');
 
 
-  // ✅ 壁太さ（スライダー）：全ての内壁に適用
-  try{
-    const savedThick = Number(localStorage.getItem(WALL_THICK_KEY));
-    if(Number.isFinite(savedThick)) WALL_DEFAULT_THICK = clamp(savedThick, 4, 24);
-  }catch(_){}
+// ✅ 壁太さ（スライダー）：全ての内壁に適用
+try{
+const savedThick = Number(localStorage.getItem(WALL_THICK_KEY));
+if(Number.isFinite(savedThick)) WALL_DEFAULT_THICK = clamp(savedThick, 4, 24);
+}catch(_){}
 
-  // 初期UI反映
-  if(el('wallThickSlider')){
-    el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
-    el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+// 初期UI反映
+if(el('wallThickSlider')){
+el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
 
-    let armed = false;
-    const armHistory = () => {
-      if(isReadOnly) return;
-      if(armed) return;
-      pushHistory(); // 変更前を保存（Undo対応）
-      armed = true;
-    };
+let armed = false;
+const armHistory = () => {
+if(isReadOnly) return;
+if(armed) return;
+pushHistory(); // 変更前を保存（Undo対応）
+armed = true;
+};
 
-    // 変更開始時に一度だけ履歴を積む
-    el('wallThickSlider').addEventListener('pointerdown', armHistory);
-    el('wallThickSlider').addEventListener('mousedown', armHistory);
-    el('wallThickSlider').addEventListener('touchstart', armHistory, {passive:true});
+// 変更開始時に一度だけ履歴を積む
+el('wallThickSlider').addEventListener('pointerdown', armHistory);
+el('wallThickSlider').addEventListener('mousedown', armHistory);
+el('wallThickSlider').addEventListener('touchstart', armHistory, {passive:true});
 
-    // スライド中は即反映（履歴は積まない）
-    el('wallThickSlider').addEventListener('input', (e) => {
-      if(isReadOnly) return;
-      const v = clamp(Number(e.target.value), 4, 24);
-      el('wallThickVal').textContent = String(v);
-      applyWallThicknessToAll(v, {respectLock:true});
-    });
+// スライド中は即反映（履歴は積まない）
+el('wallThickSlider').addEventListener('input', (e) => {
+if(isReadOnly) return;
+const v = clamp(Number(e.target.value), 4, 24);
+el('wallThickVal').textContent = String(v);
+applyWallThicknessToAll(v, {respectLock:true});
+});
 
-    // 指を離したタイミングで保存
-    el('wallThickSlider').addEventListener('change', (e) => {
-      if(isReadOnly) return;
-      const v = clamp(Number(e.target.value), 4, 24);
-      el('wallThickVal').textContent = String(v);
-      applyWallThicknessToAll(v, {respectLock:true});
-      armed = false;
-      scheduleAutoSave();
-    });
-  }
+// 指を離したタイミングで保存
+el('wallThickSlider').addEventListener('change', (e) => {
+if(isReadOnly) return;
+const v = clamp(Number(e.target.value), 4, 24);
+el('wallThickVal').textContent = String(v);
+applyWallThicknessToAll(v, {respectLock:true});
+armed = false;
+scheduleAutoSave();
+});
+}
 
 
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-  el('segEdit').onclick = () => setMergedMode(false);
-  el('segMerge').onclick = () => setMergedMode(true);
+el('segEdit').onclick = () => setMergedMode(false);
+el('segMerge').onclick = () => setMergedMode(true);
 
-  updateModeAvailability();
-  updateWorkHint();
+updateModeAvailability();
+updateWorkHint();
 
-  el('measureBtn').onclick = () => {
-    isMeasureMode = !isMeasureMode;
-    // 計測中は壁設置と排他
-    isWallPlaceMode = false;
-    wallPlaceStart = null;
-    updateWorkHint();
-    const wb = el('addInnerWallBtn2');
-    if(wb) wb.classList.remove('active');
-    measurePoints = [];
-    selectedItem = null;
+el('measureBtn').onclick = () => {
+isMeasureMode = !isMeasureMode;
+// 計測中は壁設置と排他
+isWallPlaceMode = false;
+wallPlaceStart = null;
+updateWorkHint();
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+measurePoints = [];
+selectedItem = null;
 
-    if(isMeasureMode){
-      el('measureBtn').classList.add('active');
-      el('measureBtn').classList.remove('gray');
-    }else{
-      el('measureBtn').classList.remove('active');
-      el('measureBtn').classList.add('gray');
-    }
-    draw();
-  };
+if(isMeasureMode){
+el('measureBtn').classList.add('active');
+el('measureBtn').classList.remove('gray');
+}else{
+el('measureBtn').classList.remove('active');
+el('measureBtn').classList.add('gray');
+}
+draw();
+};
 
-  el('undoBtn').onclick = undo;
-  el('redoBtn').onclick = redo;
-  syncHistoryButtons();
+el('undoBtn').onclick = undo;
+el('redoBtn').onclick = redo;
+syncHistoryButtons();
 
-  const params = new URLSearchParams(window.location.search);
-  layoutId = params.get('id') || null;
+const params = new URLSearchParams(window.location.search);
+layoutId = params.get('id') || null;
 
-  if(layoutId){
-    const snap = await getDoc(doc(db, "layouts", layoutId));
-    if(snap.exists()){
-      const data = snap.data();
-      items = (data.items || []).map(i => ({...i}));
-      currentTitle = data.title || "MORIYASU🏠";
-      isReadOnly = !!data.readonly;
+if(layoutId){
+const snap = await getDoc(doc(db, "layouts", layoutId));
+if(snap.exists()){
+const data = snap.data();
+items = (data.items || []).map(i => ({...i}));
+currentTitle = data.title || DEFAULT_TITLE;
+isReadOnly = !!data.readonly;
 
-      el('topTitle').innerText = currentTitle;
-      el('layoutTitleInput').value = currentTitle;
+setTitle(currentTitle, {silent:true});
 
-      ensureIds();
-      normalizeZ();
+ensureIds();
+normalizeZ();
 
-      // ✅ 既存レイアウトに壁がある場合は、その太さをスライダー初期値に合わせる（表示だけ）
-      const firstWall = items.find(i => i.type === 'wallLine' && typeof i.thick === 'number');
-      if(firstWall && Number.isFinite(firstWall.thick)){
-        WALL_DEFAULT_THICK = clamp(firstWall.thick, 4, 24);
-        if(el('wallThickSlider')){
-          el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
-          el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
-        }
-      }
-      isMerged = !!data.isMerged;
-      updateSegmentUI();
+// ✅ 既存レイアウトに壁がある場合は、その太さをスライダー初期値に合わせる（表示だけ）
+const firstWall = items.find(i => i.type === 'wallLine' && typeof i.thick === 'number');
+if(firstWall && Number.isFinite(firstWall.thick)){
+WALL_DEFAULT_THICK = clamp(firstWall.thick, 4, 24);
+if(el('wallThickSlider')){
+el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+}
+}
+isMerged = !!data.isMerged;
+updateSegmentUI();
 
-      // 閲覧モードUI
-      el('modeBanner').style.display = isReadOnly ? "flex" : "none";
-      el('shareBtn').innerText = isReadOnly ? "コピーして編集" : "共有";
+// 閲覧モードUI
+el('modeBanner').style.display = isReadOnly ? "flex" : "none";
+el('shareBtn').innerText = isReadOnly ? "コピーして編集" : "共有";
 
-      if(!isReadOnly){
-        upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
-      }
+if(!isReadOnly){
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+}
 
-      draw();
-    }else{
-      // idが存在しない場合
-      items = [];
-      addRect('外枠', 2, 2, '#ffffff', 'frame');
-      updateSegmentUI();
-      draw();
-    }
-  }else{
-    addRect('外枠', 2, 2, '#ffffff', 'frame');
-    updateSegmentUI();
-    draw();
-  }
+draw();
+}else{
+// idが存在しない/見つからない場合：ドラフト復元を試す
+const restored = await maybeRestoreDraftOnBoot();
+if(!restored){
+items = [];
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+updateSegmentUI();
+draw();
+}
+}
+}else{
+// id無し：ドラフト復元を試す
+const restored = await maybeRestoreDraftOnBoot();
+if(!restored){
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+updateSegmentUI();
+draw();
+}
+}
 }
 
 /* help */
+/* title inline edit */
+(() => {
+const tt = el('topTitle');
+if(!tt) return;
+
+const stopIfReadOnly = () => {
+if(isReadOnly){
+tt.blur();
+tt.innerText = currentTitle;
+showToast("閲覧モードでは名前は変更できません");
+return true;
+}
+return false;
+};
+
+tt.addEventListener('focus', () => { stopIfReadOnly(); });
+tt.addEventListener('keydown', (e) => {
+if(e.key === 'Enter'){
+e.preventDefault();
+tt.blur();
+}
+});
+tt.addEventListener('blur', () => {
+if(stopIfReadOnly()) return;
+const v = tt.innerText.replace(/\n/g,' ').trim();
+setTitle(v);
+});
+})();
+
+
 el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
 el('helpModal').onclick = () => el('helpModal').style.display = 'none';
 
 /* share / copy-to-edit */
 async function copyThisLayoutToEditable(){
-  // 現在の状態を新しい編集IDに複製
-  const r = await addDoc(collection(db, "layouts"), {
-    items,
-    isMerged,
-    title: currentTitle,
-    readonly: false,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  layoutId = r.id;
-  isReadOnly = false;
+// 現在の状態を新しい編集IDに複製
+const r = await addDoc(collection(db, "layouts"), {
+items,
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+isReadOnly = false;
 
-  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
-  history.replaceState(null, "", newUrl);
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
 
-  el('modeBanner').style.display = "none";
-  el('shareBtn').innerText = "共有";
-  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+el('modeBanner').style.display = "none";
+el('shareBtn').innerText = "共有";
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
 
-  draw();
-  alert("コピーして編集を開始しました（新しいURLになりました）");
+draw();
+alert("コピーして編集を開始しました（新しいURLになりました）");
 }
 
 el('copyToEditBtn').onclick = async () => {
-  await copyThisLayoutToEditable();
+await copyThisLayoutToEditable();
 };
 
 el('shareBtn').onclick = async () => {
-  if(isReadOnly){
-    await copyThisLayoutToEditable();
-    return;
-  }
+if(isReadOnly){
+await copyThisLayoutToEditable();
+return;
+}
 
-  // 編集用IDを確保（自分の編集は自分のIDに保存）
-  await ensureEditableLayoutId();
-  await saveLayoutToFirestore();
+// 編集用IDを確保（自分の編集は自分のIDに保存）
+await ensureEditableLayoutId();
+await saveLayoutToFirestore();
 
-  // 共有は「読み取り専用コピー」を発行
-  const shareId = await createReadOnlyShareSnapshot();
-  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${shareId}`;
-  el('shareUrlInput').value = shareUrl;
+// 共有は「読み取り専用コピー」を発行
+const shareId = await createReadOnlyShareSnapshot();
+const shareUrl = `${window.location.origin}${window.location.pathname}?id=${shareId}`;
+el('shareUrlInput').value = shareUrl;
 
-  el('layoutTitleInput').value = currentTitle;
-  el('shareModal').style.display = 'flex';
+el('layoutTitleInput').value = currentTitle;
+el('shareModal').style.display = 'flex';
 };
 
 el('layoutTitleInput').addEventListener('input', (e) => {
-  currentTitle = e.target.value.trim() || "MORIYASU🏠";
-  el('topTitle').innerText = currentTitle;
-
-  if(layoutId && !isReadOnly){
-    scheduleAutoSave();
-    upsertLayoutMeta(layoutId, { title: currentTitle });
-  }
+setTitle(e.target.value);
 });
 
 el('copyUrlBtn').onclick = () => {
-  navigator.clipboard.writeText(el('shareUrlInput').value);
-  alert("コピーしました");
+navigator.clipboard.writeText(el('shareUrlInput').value);
+alert("コピーしました");
 };
 el('closeShareModalBtn').onclick = () => el('shareModal').style.display = 'none';
 el('shareModal').onclick = (e) => { if(e.target.id === 'shareModal') el('shareModal').style.display = 'none'; };
 
 el('openLayoutsBtn').onclick = () => {
-  renderLayoutList();
-  el('layoutsModal').style.display = 'flex';
+renderLayoutList();
+el('layoutsModal').style.display = 'flex';
 };
 el('layoutsCloseBtn').onclick = () => el('layoutsModal').style.display = 'none';
 el('layoutsModal').onclick = (e) => { if(e.target.id === 'layoutsModal') el('layoutsModal').style.display = 'none'; };
 
 el('saveAsBtn').onclick = async () => {
-  if(isReadOnly){
-    await copyThisLayoutToEditable();
-    return;
-  }
-  // 別名保存（新しい編集ID）
-  const r = await addDoc(collection(db, "layouts"), {
-    items,
-    isMerged,
-    title: currentTitle,
-    readonly: false,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  layoutId = r.id;
-  const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
-  history.replaceState(null, "", newUrl);
+if(isReadOnly){
+await copyThisLayoutToEditable();
+return;
+}
+// 別名保存（新しい編集ID）
+const r = await addDoc(collection(db, "layouts"), {
+items,
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
 
-  upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
-  alert("別名で保存しました（新しいURLになりました）");
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+alert("別名で保存しました（新しいURLになりました）");
 };
 
 /* ✅ 色変更（クイック色 / メニュー色 / 追加色） */
 function applyColorToSelected(color){
-  if(isReadOnly) return;
-  const it = selectedItem;
-  if(!it || it.locked) return;
-  pushHistory();
-  it.color = color;
-  addPendingColor = color; // 次に追加する部屋の色にも反映
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+const it = selectedItem;
+if(!it || it.locked) return;
+pushHistory();
+it.color = color;
+addPendingColor = color; // 次に追加する部屋の色にも反映
+draw();
+scheduleAutoSave();
 }
 
 el('quickColorInput').addEventListener('input', () => applyColorToSelected(el('quickColorInput').value));
 el('quickColorInput').addEventListener('change', () => applyColorToSelected(el('quickColorInput').value));
 
 el('menuColorInput').addEventListener('input', () => {
-  if(isReadOnly) return;
-  const it = menuItem || selectedItem;
-  if(!it || it.locked) return;
-  pushHistory();
-  it.color = el('menuColorInput').value;
-  el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
-  addPendingColor = it.color;
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+const it = menuItem || selectedItem;
+if(!it || it.locked) return;
+pushHistory();
+it.color = el('menuColorInput').value;
+el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
+addPendingColor = it.color;
+draw();
+scheduleAutoSave();
 });
 el('menuColorInput').addEventListener('change', () => {
-  if(isReadOnly) return;
-  const it = menuItem || selectedItem;
-  if(!it || it.locked) return;
-  pushHistory();
-  it.color = el('menuColorInput').value;
-  el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
-  addPendingColor = it.color;
-  draw();
-  scheduleAutoSave();
+if(isReadOnly) return;
+const it = menuItem || selectedItem;
+if(!it || it.locked) return;
+pushHistory();
+it.color = el('menuColorInput').value;
+el('menuColorBtn').style.setProperty('--swatch', it.color || "#FFF3E0");
+addPendingColor = it.color;
+draw();
+scheduleAutoSave();
 });
 
 el('addColorInput').addEventListener('input', () => {
-  addPendingColor = el('addColorInput').value || "#FFF3E0";
-  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+addPendingColor = el('addColorInput').value || "#FFF3E0";
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
 });
 el('addColorInput').addEventListener('change', () => {
-  addPendingColor = el('addColorInput').value || "#FFF3E0";
-  el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+addPendingColor = el('addColorInput').value || "#FFF3E0";
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
 });
 
 /* fit/center */
@@ -2594,412 +2764,454 @@ document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = dr
 /* label modal ok/cancel */
 el('labelCancelBtn').onclick = closeLabelModal;
 el('labelOkBtn').onclick = () => {
-  if(isReadOnly) return;
-  const name = el('labelInput').value.trim();
-  if(!name) return;
+if(isReadOnly) return;
+const name = el('labelInput').value.trim();
+if(!name) return;
 
-  if(labelModalMode === "add"){
-    closeLabelModal();
-    addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
-    return;
-  }
-  applyLabel(false, null);
+if(labelModalMode === "add"){
+closeLabelModal();
+addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
+return;
+}
+applyLabel(false, null);
 };
 el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabelModal(); };
 el('labelInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') el('labelOkBtn').click();
+if (e.key === 'Enter') el('labelOkBtn').click();
 });
 
 /* preset editor */
 el('openPresetBtn').onclick = () => {
-  el('presetModal').style.display = 'flex';
-  presetSearchQuery = "";
-  el('presetSearch').value = "";
-  renderPresetEditorList();
+el('presetModal').style.display = 'flex';
+presetSearchQuery = "";
+el('presetSearch').value = "";
+renderPresetEditorList();
 };
 el('presetSearch').addEventListener('input', (e) => {
-  presetSearchQuery = (e.target.value || "").trim();
-  renderPresetEditorList();
+presetSearchQuery = (e.target.value || "").trim();
+renderPresetEditorList();
 });
 el('presetCloseBtn').onclick = () => el('presetModal').style.display = 'none';
 el('presetModal').onclick = (e) => { if(e.target.id === 'presetModal') el('presetModal').style.display = 'none'; };
 el('presetAddBtn').onclick = () => {
-  // 追加した行を見失わない：検索を解除し、追加行へフォーカス＆自動スクロール
-  presetSearchQuery = "";
-  el('presetSearch').value = "";
-  presets.push({ name: "部屋", color: "#FFF3E0" });
-  renderPresetEditorList();
+// 追加した行を見失わない：検索を解除し、追加行へフォーカス＆自動スクロール
+presetSearchQuery = "";
+el('presetSearch').value = "";
+presets.push({ name: "部屋", color: "#FFF3E0" });
+renderPresetEditorList();
 
-  // render後に該当inputへフォーカス（focusinでscrollIntoViewが走る）
-  const idx = presets.length - 1;
-  setTimeout(() => {
-    const inp = el('presetList')?.querySelector?.(`input[data-idx="${idx}"][data-k="name"]`);
-    if(inp){
-      inp.focus();
-      try{ inp.select(); }catch(_){}
-    }
-  }, 0);
+// render後に該当inputへフォーカス（focusinでscrollIntoViewが走る）
+const idx = presets.length - 1;
+setTimeout(() => {
+const inp = el('presetList')?.querySelector?.(`input[data-idx="${idx}"][data-k="name"]`);
+if(inp){
+inp.focus();
+try{ inp.select(); }catch(_){}
+}
+}, 0);
 };
 el('presetSaveBtn').onclick = () => {
-  presets = presets
-    .map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
-    .filter(p => p.name.length > 0);
-  savePresets();
-  renderPresetChips();
-  el('presetModal').style.display = 'none';
+presets = presets
+.map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
+.filter(p => p.name.length > 0);
+savePresets();
+renderPresetChips();
+el('presetModal').style.display = 'none';
 };
 
 /* menu modal */
 el('menuCloseBtn').onclick = closeMenu;
 el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu(); };
 el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
-el('menuDupBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
-el('menuDelBtn').onclick  = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
+el('menuDupBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
+el('menuDelBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
 el('menuFrontBtn').onclick= () => { const it = menuItem; closeMenu(); if(it) bringFront(it); };
 el('menuBackBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) bringBack(it); };
 el('menuLockBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) toggleLock(it); };
 
 /* bottom actions */
 el('addGenericRoomBtn2').onclick = () => {
-  if(isReadOnly) return;
-  editingItem = null;
-  addPendingColor = addPendingColor || "#FFF3E0";
-  openLabelModal("add");
+if(isReadOnly) return;
+
+// 外枠モードでは部屋追加しない
+if(!isMerged){
+showToast("外枠モードでは部屋を追加できません（「部屋」モードに切り替えてください）");
+return;
+}
+
+editingItem = null;
+addPendingColor = addPendingColor || "#FFF3E0";
+openLabelModal("add");
 };
 el('addFrameBtn2').onclick = () => addRect('外枠', 2, 2, '#ffffff', 'frame');
 el('addInnerWallBtn2').onclick = () => toggleWallPlaceMode();
 el('copyBtn2').onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
 el('resetBtn2').onclick = () => {
-  if(isReadOnly) return;
-  if(selectedItem) deleteItem(selectedItem);
-  else if(confirm("全消去しますか？")) {
-    pushHistory();
-    items = [];
-    selectedItem = null;
-    addRect('外枠', 2, 2, '#ffffff', 'frame');
-  }
+if(isReadOnly) return;
+if(selectedItem) deleteItem(selectedItem);
+else if(confirm("全消去しますか？")) {
+pushHistory();
+items = [];
+selectedItem = null;
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
 };
 
 /* touch handling */
 function clearTouchState(){
-  if(longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = null;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
 
-  pressStart = null;
-  pressStartWorld = null;
-  pendingItem = null;
-  pendingWallHandle = null;
-  pendingAction = null;
-  dragActive = false;
-  rectDragOffset = null;
-  wallMoveOffset = null;
-  emptyTapCandidate = false;
+pressStart = null;
+pressStartWorld = null;
+pendingItem = null;
+pendingWallHandle = null;
+pendingAction = null;
+dragActive = false;
+rectDragOffset = null;
+wallMoveOffset = null;
+emptyTapCandidate = false;
 }
 
 function startLongPress(item){
-  if(isReadOnly) return;
-  if(longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = setTimeout(() => {
-    if(!dragActive && pendingItem === item){
-      openMenu(item);
-    }
-  }, 450);
+if(isReadOnly) return;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = setTimeout(() => {
+if(!dragActive && pendingItem === item){
+openMenu(item);
+}
+}, 450);
 }
 
 function getPinchInfo(touches){
-  const a = touches[0], b = touches[1];
-  const dx = b.clientX - a.clientX;
-  const dy = b.clientY - a.clientY;
-  const dist = Math.hypot(dx, dy);
-  const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
-  return { dist, mid };
+const a = touches[0], b = touches[1];
+const dx = b.clientX - a.clientX;
+const dy = b.clientY - a.clientY;
+const dist = Math.hypot(dx, dy);
+const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
+return { dist, mid };
 }
 
 canvas.addEventListener('touchstart', (e) => {
-  if(e.touches.length === 2){
-    pinchActive = true;
-    clearTouchState();
-    gestureSnapshot = snapshot();
+if(e.touches.length === 2){
+pinchActive = true;
+clearTouchState();
+gestureSnapshot = snapshot();
 
-    const { dist, mid } = getPinchInfo(e.touches);
-    pinchStartDist = dist;
-    pinchStartScale = scale;
-    pinchWorldMid = screenToWorld(mid.x, mid.y);
-    return;
-  }
+const { dist, mid } = getPinchInfo(e.touches);
+pinchStartDist = dist;
+pinchStartScale = scale;
+pinchWorldMid = screenToWorld(mid.x, mid.y);
+return;
+}
 
-  if(e.touches.length !== 1) return;
-  const t = e.touches[0];
+if(e.touches.length !== 1) return;
+const t = e.touches[0];
 
-  const now = Date.now();
-  if(!isReadOnly && now - lastTapTime < 300 && selectedItem && !isMerged){
-    openLabelEditor(selectedItem);
-    return;
-  }
-  lastTapTime = now;
+const now = Date.now();
+if(!isReadOnly && now - lastTapTime < 300 && selectedItem && !isMerged){
+openLabelEditor(selectedItem);
+return;
+}
+lastTapTime = now;
 
-  clearTouchState();
+clearTouchState();
 
-  pressStart = { clientX: t.clientX, clientY: t.clientY };
-  pressStartWorld = screenToWorld(t.clientX, t.clientY);
-  const worldP = pressStartWorld;
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+pressStartWorld = screenToWorld(t.clientX, t.clientY);
+const worldP = pressStartWorld;
 
-  // measure mode
-  if(isMeasureMode){
-    const snap = getSnapStep();
-    const mx = getSnapped(worldP.x, snap);
-    const my = getSnapped(worldP.y, snap);
+// すでに選択中の要素のハンドルを掴みに行った場合は、重なっている別要素よりも優先する（誤選択防止）
+let found = null;
+let wallHandle = null;
 
-    if(measurePoints.length >= 2) measurePoints = [];
-    measurePoints.push({x:mx, y:my});
-    updateWorkHint();
-    draw();
-    return;
-  }
+if(selectedItem && !selectedItem.locked){
+const s = selectedItem;
 
-  // wall place mode (2 taps like measurement)
-  if(isWallPlaceMode){
-    const snap = getSnapStep();
-    let wx = getSnapped(worldP.x, snap);
-    let wy = getSnapped(worldP.y, snap);
+// 外壁モード（編集表示）は外枠(frame)のみ、部屋モード（結合表示）は外枠(frame)以外
+const selectable =
+(!isMerged && s.type === 'frame') ||
+(isMerged && s.type !== 'frame');
 
-    if(!wallPlaceStart){
-      wallPlaceStart = {x:wx, y:wy};
-      updateWorkHint();
-      draw();
-      return;
-    }else{
-      const s = wallPlaceStart;
-      let x2 = wx, y2 = wy;
-      const dx = x2 - s.x;
-      const dy = y2 - s.y;
+if(selectable){
+if(s.type === 'wallLine'){
+const r = wallHitTest(worldP, s);
+if(r && r.hit){ found = s; wallHandle = r.handle; }
+}else{
+if(rectMoveHandleHit(worldP, s) || rectResizeHandleHit(worldP, s)){
+found = s;
+}
+}
+}
+}
 
-      // 直交吸着（距離が近い方を揃える）
-      const orthoThresh = snap * 0.75;
-      if(Math.abs(dx) < orthoThresh) x2 = s.x;
-      if(Math.abs(dy) < orthoThresh) y2 = s.y;
+// measure mode
+if(isMeasureMode){
+const snap = getSnapStep();
+const mx = getSnapped(worldP.x, snap);
+const my = getSnapped(worldP.y, snap);
 
-      addWallBetween({x:s.x, y:s.y}, {x:x2, y:y2});
-      wallPlaceStart = null; // 次の壁はまた1点目から
-      updateWorkHint();
-      return;
-    }
-  }
+if(measurePoints.length >= 2) measurePoints = [];
+measurePoints.push({x:mx, y:my});
+updateWorkHint();
+draw();
+return;
+}
 
-  let found = null;
-  let wallHandle = null;
+// wall place mode (2 taps like measurement)
+if(isWallPlaceMode){
+const snap = getSnapStep();
+let wx = getSnapped(worldP.x, snap);
+let wy = getSnapped(worldP.y, snap);
 
-  for (let i = items.length-1; i >= 0; i--) {
-    const it = items[i];
+if(!wallPlaceStart){
+wallPlaceStart = {x:wx, y:wy};
+updateWorkHint();
+draw();
+return;
+}else{
+const s = wallPlaceStart;
+let x2 = wx, y2 = wy;
+const dx = x2 - s.x;
+const dy = y2 - s.y;
 
-    // 外壁モード（編集表示）は外枠(frame)のみ選択可能
-    if(!isMerged && it.type !== 'frame') continue;
+// 直交吸着（距離が近い方を揃える）
+const orthoThresh = snap * 0.75;
+if(Math.abs(dx) < orthoThresh) x2 = s.x;
+if(Math.abs(dy) < orthoThresh) y2 = s.y;
 
-    // 部屋モード（結合表示）は外枠(frame)は選択しない
-    if(isMerged && it.type === 'frame') continue;
+addWallBetween({x:s.x, y:s.y}, {x:x2, y:y2});
+wallPlaceStart = null; // 次の壁はまた1点目から
+updateWorkHint();
+return;
+}
+}
 
-      if(it.type === 'wallLine'){
-        const r = wallHitTest(worldP, it);
-        if(r.hit){ found = it; wallHandle = r.handle; break; }
-      } else {
-        if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
-          found = it; break;
-        }
-      }
-  }
+if(!found){
+for (let i = items.length-1; i >= 0; i--) {
+const it = items[i];
 
-  if(found){
-    selectedItem = found;
-    pendingItem = found;
+// 外壁モード（編集表示）は外枠(frame)のみ選択可能
+if(!isMerged && it.type !== 'frame') continue;
 
-    if(!isReadOnly) startLongPress(found);
+// 部屋モード（結合表示）は外枠(frame)は選択しない
+if(isMerged && it.type === 'frame') continue;
 
-    if(isReadOnly){
-      pendingAction = "pan"; // 閲覧モードはドラッグ=パン
-      draw();
-      return;
-    }
+if(it.type === 'wallLine'){
+const r = wallHitTest(worldP, it);
+if(r.hit){ found = it; wallHandle = r.handle; break; }
+} else {
+if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
+found = it; break;
+}
+}
+}
+}
 
-    if(found.locked){
-      pendingAction = null;
-      draw();
-      return;
-    }
 
-    if(found.type === 'wallLine'){
-      pendingWallHandle = wallHandle;
-      if(wallHandle === "p1" || wallHandle === "p2") pendingAction = wallHandle;
-      else pendingAction = "moveWall";
-    }else{
-      if(rectMoveHandleHit(worldP, found)){
-        pendingAction = "moveRect";
-      }else{
-        const base = isSmallRoom(found) ? 16 : 22;
-        const nearResize = (Math.abs(worldP.x-(found.x+found.w)) < base/scale) && (Math.abs(worldP.y-(found.y+found.h)) < base/scale);
-        pendingAction = nearResize ? "resizeRect" : "moveRect";
-      }
-    }
-  }else{
-    emptyTapCandidate = true;
-    pendingAction = "pan";
-    pendingItem = null;
-  }
+if(found){
+selectedItem = found;
+pendingItem = found;
 
-  draw();
+if(!isReadOnly) startLongPress(found);
+
+if(isReadOnly){
+pendingAction = "pan"; // 閲覧モードはドラッグ=パン
+draw();
+return;
+}
+
+if(found.locked){
+pendingAction = null;
+draw();
+return;
+}
+
+if(found.type === 'wallLine'){
+pendingWallHandle = wallHandle;
+if(wallHandle === "p1" || wallHandle === "p2") pendingAction = wallHandle;
+else pendingAction = "moveWall";
+}else{
+if(rectMoveHandleHit(worldP, found)){
+pendingAction = "moveRect";
+}else if(rectResizeHandleHit(worldP, found)){
+pendingAction = "resizeRect";
+}else{
+pendingAction = "pan";
+}
+}
+}else{
+emptyTapCandidate = true;
+pendingAction = "pan";
+pendingItem = null;
+}
+
+draw();
 });
 
 canvas.addEventListener('touchmove', (e) => {
-  e.preventDefault();
+e.preventDefault();
 
-  if(pinchActive && e.touches.length === 2){
-    const { dist, mid } = getPinchInfo(e.touches);
+if(pinchActive && e.touches.length === 2){
+const { dist, mid } = getPinchInfo(e.touches);
 
-    const factor = dist / pinchStartDist;
-    scale = clamp(pinchStartScale * factor, 0.5, 3.0);
+const factor = dist / pinchStartDist;
+scale = clamp(pinchStartScale * factor, 0.5, 3.0);
 
-    const rect = canvas.getBoundingClientRect();
-    const cx = canvas.width/2;
-    const cy = canvas.height/2;
-    const mx = mid.x - rect.left;
-    const my = mid.y - rect.top;
+const rect = canvas.getBoundingClientRect();
+const cx = canvas.width/2;
+const cy = canvas.height/2;
+const mx = mid.x - rect.left;
+const my = mid.y - rect.top;
 
-    camera.x = mx - cx - (pinchWorldMid.x * scale);
-    camera.y = my - cy - (pinchWorldMid.y * scale);
+camera.x = mx - cx - (pinchWorldMid.x * scale);
+camera.y = my - cy - (pinchWorldMid.y * scale);
 
-    draw();
-    return;
-  }
+draw();
+return;
+}
 
-  if(e.touches.length !== 1) return;
-  const t = e.touches[0];
-  if(!pressStart) return;
+if(e.touches.length !== 1) return;
+const t = e.touches[0];
+if(!pressStart) return;
 
-  const dx = t.clientX - pressStart.clientX;
-  const dy = t.clientY - pressStart.clientY;
-  const moved = Math.hypot(dx, dy);
+const dx = t.clientX - pressStart.clientX;
+const dy = t.clientY - pressStart.clientY;
+const moved = Math.hypot(dx, dy);
 
-  const worldP = screenToWorld(t.clientX, t.clientY);
-  const snap = getSnapStep();
+const worldP = screenToWorld(t.clientX, t.clientY);
+const snap = getSnapStep();
 
-  if(!dragActive && moved >= 6){
-    dragActive = true;
-    emptyTapCandidate = false;
-    if(longPressTimer) clearTimeout(longPressTimer);
-    longPressTimer = null;
+if(!dragActive && moved >= 6){
+dragActive = true;
+emptyTapCandidate = false;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
 
-    gestureSnapshot = snapshot();
+gestureSnapshot = snapshot();
 
-    if(pendingItem && !isReadOnly){
-      items.splice(items.indexOf(pendingItem), 1);
-      items.push(pendingItem);
-      normalizeZ();
-    }
+if(pendingItem && !isReadOnly){
+items.splice(items.indexOf(pendingItem), 1);
+items.push(pendingItem);
+normalizeZ();
+}
 
-    if(pendingAction === "moveRect" && pendingItem){
-      rectDragOffset = { dx: worldP.x - pendingItem.x, dy: worldP.y - pendingItem.y };
-    }
-    if(pendingAction === "moveWall" && pendingItem){
-      wallMoveOffset = { dx: worldP.x - pendingItem.x1, dy: worldP.y - pendingItem.y1 };
-    }
-  }
+if(pendingAction === "moveRect" && pendingItem){
+rectDragOffset = { dx: worldP.x - pendingItem.x, dy: worldP.y - pendingItem.y };
+}
+if(pendingAction === "moveWall" && pendingItem){
+wallMoveOffset = { dx: worldP.x - pendingItem.x1, dy: worldP.y - pendingItem.y1 };
+}
+}
 
-  if(dragActive){
-    if(pendingAction === "pan"){
-      camera.x += dx;
-      camera.y += dy;
-      pressStart = { clientX: t.clientX, clientY: t.clientY };
-      draw();
-      return;
-    }
+if(dragActive){
+if(pendingAction === "pan"){
+camera.x += dx;
+camera.y += dy;
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+draw();
+return;
+}
 
-    if(isReadOnly){
-      draw();
-      return;
-    }
+if(isReadOnly){
+draw();
+return;
+}
 
-    if(pendingItem && !pendingItem.locked){
-      if(pendingItem.type === 'wallLine'){
-        const w = pendingItem;
-        if(pendingAction === "p1"){
-          w.x1 = getSnapped(worldP.x, snap);
-          w.y1 = getSnapped(worldP.y, snap);
-          applyRightAngleSnap(w, "p1");
-        } else if(pendingAction === "p2"){
-          w.x2 = getSnapped(worldP.x, snap);
-          w.y2 = getSnapped(worldP.y, snap);
-          applyRightAngleSnap(w, "p2");
-        } else if(pendingAction === "moveWall"){
-          const vx = w.x2 - w.x1;
-          const vy = w.y2 - w.y1;
-          const nx1 = getSnapped(worldP.x - (wallMoveOffset?.dx ?? 0), snap);
-          const ny1 = getSnapped(worldP.y - (wallMoveOffset?.dy ?? 0), snap);
-          w.x1 = nx1; w.y1 = ny1;
-          w.x2 = nx1 + vx;
-          w.y2 = ny1 + vy;
-        }
-      }else{
-        const it = pendingItem;
-        if(pendingAction === "resizeRect"){
-          it.w = Math.max(snap, getSnapped(worldP.x - it.x, snap));
-          it.h = Math.max(snap, getSnapped(worldP.y - it.y, snap));
-        }else if(pendingAction === "moveRect"){
-          it.x = getSnapped(worldP.x - (rectDragOffset?.dx ?? 0), snap);
-          it.y = getSnapped(worldP.y - (rectDragOffset?.dy ?? 0), snap);
-        }
-      }
-    }
-  }
+if(pendingItem && !pendingItem.locked){
+if(pendingItem.type === 'wallLine'){
+const w = pendingItem;
+if(pendingAction === "p1"){
+w.x1 = getSnapped(worldP.x, snap);
+w.y1 = getSnapped(worldP.y, snap);
+applyRightAngleSnap(w, "p1");
+} else if(pendingAction === "p2"){
+w.x2 = getSnapped(worldP.x, snap);
+w.y2 = getSnapped(worldP.y, snap);
+applyRightAngleSnap(w, "p2");
+} else if(pendingAction === "moveWall"){
+const vx = w.x2 - w.x1;
+const vy = w.y2 - w.y1;
+const nx1 = getSnapped(worldP.x - (wallMoveOffset?.dx ?? 0), snap);
+const ny1 = getSnapped(worldP.y - (wallMoveOffset?.dy ?? 0), snap);
+w.x1 = nx1; w.y1 = ny1;
+w.x2 = nx1 + vx;
+w.y2 = ny1 + vy;
+}
+}else{
+const it = pendingItem;
+if(pendingAction === "resizeRect"){
+it.w = Math.max(snap, getSnapped(worldP.x - it.x, snap));
+it.h = Math.max(snap, getSnapped(worldP.y - it.y, snap));
+}else if(pendingAction === "moveRect"){
+it.x = getSnapped(worldP.x - (rectDragOffset?.dx ?? 0), snap);
+it.y = getSnapped(worldP.y - (rectDragOffset?.dy ?? 0), snap);
+}
+}
+}
+}
 
-  draw();
+draw();
 });
 
 function commitGestureIfAny(){
-  if(isReadOnly){
-    gestureSnapshot = null;
-    return;
-  }
-  if(dragActive && gestureSnapshot){
-    undoStack.push(gestureSnapshot);
-    if (undoStack.length > HISTORY_MAX) undoStack.shift();
-    redoStack = [];
-    gestureSnapshot = null;
-    syncHistoryButtons();
-    scheduleAutoSave();
-  }else{
-    gestureSnapshot = null;
-  }
+if(isReadOnly){
+gestureSnapshot = null;
+return;
+}
+if(dragActive && gestureSnapshot){
+
+// 外枠（外壁モード）で外枠同士が重なったら確定させず元に戻す
+if(!isMerged && pendingItem && pendingItem.type === 'frame' &&
+   (pendingAction === "moveRect" || pendingAction === "resizeRect")){
+if(frameOverlapsAny(pendingItem)){
+restore(gestureSnapshot);
+gestureSnapshot = null;
+showToast("外枠が重なっています。位置/サイズを調整してください");
+return;
+}
+}
+undoStack.push(gestureSnapshot);
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+gestureSnapshot = null;
+syncHistoryButtons();
+scheduleAutoSave();
+}else{
+gestureSnapshot = null;
+}
 }
 
 canvas.addEventListener('touchend', (e) => {
-  if(pinchActive){
-    if(e.touches.length < 2){
-      pinchActive = false;
-      commitGestureIfAny();
-    }
-    clearTouchState();
-    draw();
-    return;
-  }
+if(pinchActive){
+if(e.touches.length < 2){
+pinchActive = false;
+commitGestureIfAny();
+}
+clearTouchState();
+draw();
+return;
+}
 
-  if(longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = null;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
 
-  if(emptyTapCandidate && !dragActive){
-    selectedItem = null;
-  }
+if(emptyTapCandidate && !dragActive){
+selectedItem = null;
+}
 
-  commitGestureIfAny();
-  clearTouchState();
-  draw();
+commitGestureIfAny();
+clearTouchState();
+draw();
 });
 
 canvas.addEventListener('touchcancel', () => {
-  pinchActive = false;
-  if(longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = null;
-  gestureSnapshot = null;
-  clearTouchState();
-  draw();
+pinchActive = false;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
+gestureSnapshot = null;
+clearTouchState();
+draw();
 });
 
 init();
