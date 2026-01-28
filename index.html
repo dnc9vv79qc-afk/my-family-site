@@ -1797,42 +1797,58 @@ draw();
 }
 
 
-/* add items */
 function addRect(label, w, h, color, type='room'){
-if(isReadOnly) return;
+    if(isReadOnly) return;
 
-// frame は「重なりNG」なので、成功したら履歴に積む
-const prev = (type === 'frame') ? snapshot() : null;
-if(type !== 'frame') pushHistory();
+    // frame(外枠)の場合は、追加位置を探るロジックなどが必要ですが
+    // 今回は「部屋」のUX改善なので、frameの厳密なリジェクト処理はそのままにします
+    const prev = (type === 'frame') ? snapshot() : null;
+    if(type !== 'frame') pushHistory();
 
-const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
-const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
-const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
-if(type === 'frame') items.unshift(i); else items.push(i);
+    // 画面中央付近、または左上に配置
+    const targetX = getSnapped((-camera.x + canvas.width/2/scale) - (w*GRID_SIZE/2), GRID_SIZE);
+    const targetY = getSnapped((-camera.y + canvas.height/2/scale) - (h*GRID_SIZE/2), GRID_SIZE);
+    
+    // もし計算が変なら元のロジック（左上）へ
+    // const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
+    // const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
 
-ensureIds();
-normalizeZ();
-selectedItem = i;
+    const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
+    if(type === 'frame') items.unshift(i); else items.push(i);
 
-// frame 追加直後の重なりチェック（辺接触はOK、面積の重なりはNG）
-if(type === 'frame' && frameOverlapsAny(i)){
-restore(prev);
-showToast("外枠が重なっています。場所をずらして追加してください");
-return;
+    ensureIds();
+    normalizeZ();
+    selectedItem = i;
+
+    // frame 追加直後の重なりチェック（frameは従来通り厳しく弾く）
+    if(type === 'frame' && frameOverlapsAny(i)){
+        restore(prev);
+        showToast("外枠が重なっています。場所をずらして追加してください");
+        return;
+    }
+
+    // frame 追加成功時の履歴処理
+    if(type === 'frame'){
+        undoStack.push(prev);
+        if (undoStack.length > HISTORY_MAX) undoStack.shift();
+        redoStack = [];
+        syncHistoryButtons();
+    }
+
+    draw();
+    
+    // ✅ 部屋の重なりチェック（警告のみで、取り消しはしない）
+    if(type === 'room' && checkRoomOverlaps()){
+        showToast("⚠ 部屋が重なっています", 2000);
+    } else if(type === 'room') {
+        showToast('中央ハンドルで移動 / 右下ハンドルでサイズ / 色は右上');
+    }
+    
+    scheduleAutoSave();
 }
 
-// frame 追加が成功したので、ここで undo に積む（redo はクリア）
-if(type === 'frame'){
-undoStack.push(prev);
-if (undoStack.length > HISTORY_MAX) undoStack.shift();
-redoStack = [];
-syncHistoryButtons();
-}
 
-draw();
-if(type === 'room') showToast('中央ハンドルで移動 / 右下ハンドルでサイズ / 色は右上');
-scheduleAutoSave();
-}
+
 function addWallBetween(p1, p2){
 if(isReadOnly) return;
 const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
@@ -2279,6 +2295,25 @@ ctx.fillStyle = "#fff";
 ctx.fillText(text, x + pad, y + 15/scale);
 ctx.restore();
 }
+
+/* ✅ 部屋の重なりチェック関数 */
+function checkRoomOverlaps() {
+    const rooms = items.filter(i => i.type === 'room');
+    let hasOverlap = false;
+
+    for (let i = 0; i < rooms.length; i++) {
+        for (let j = i + 1; j < rooms.length; j++) {
+            // rectOverlap は既存の関数を使用
+            if (rectOverlap(rooms[i], rooms[j])) {
+                hasOverlap = true;
+                break;
+            }
+        }
+        if (hasOverlap) break;
+    }
+    return hasOverlap;
+}
+
 
 /* ✅ 修正版: 0スタート、外枠基準、数字位置を元に戻す */
 function drawBlueprintGrid(targetItems) {
@@ -3496,27 +3531,38 @@ gestureSnapshot = null;
 }
 
 canvas.addEventListener('touchend', (e) => {
-if(pinchActive){
-if(e.touches.length < 2){
-pinchActive = false;
-commitGestureIfAny();
-}
-clearTouchState();
-draw();
-return;
-}
+    if(pinchActive){
+        if(e.touches.length < 2){
+            pinchActive = false;
+            commitGestureIfAny();
+        }
+        clearTouchState();
+        draw();
+        return;
+    }
 
-if(longPressTimer) clearTimeout(longPressTimer);
-longPressTimer = null;
+    if(longPressTimer) clearTimeout(longPressTimer);
+    longPressTimer = null;
 
-if(emptyTapCandidate && !dragActive){
-selectedItem = null;
-}
+    if(emptyTapCandidate && !dragActive){
+        selectedItem = null;
+    }
 
-commitGestureIfAny();
-clearTouchState();
-draw();
+    // 操作確定
+    commitGestureIfAny();
+    
+    // ✅ ここに追加: 移動が終わったタイミングで重なりをチェック
+    // 外壁モード(!isMerged)ではなく、かつ部屋操作時のみ
+    if(!isReadOnly && isMerged && dragActive){
+        if(checkRoomOverlaps()){
+            showToast("⚠ 部屋が重なっています", 1500);
+        }
+    }
+
+    clearTouchState();
+    draw();
 });
+
 
 canvas.addEventListener('touchcancel', () => {
 pinchActive = false;
