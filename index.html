@@ -34,36 +34,40 @@
 
 html, body { height: 100%; }
 
-body{
-font-family:
--apple-system, BlinkMacSystemFont,
-"SF Pro Display", "SF Pro Text",
-"Hiragino Sans", "Hiragino Kaku Gothic ProN",
-"Noto Sans JP",
-"Yu Gothic", "YuGothic",
-"Meiryo",
-sans-serif;
--webkit-font-smoothing: antialiased;
-text-rendering: optimizeLegibility;
+body {
+    font-family:
+        -apple-system, BlinkMacSystemFont,
+        "SF Pro Display", "SF Pro Text",
+        "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+        "Noto Sans JP",
+        "Yu Gothic", "YuGothic",
+        "Meiryo",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
 
-margin: 0;
-background: var(--bg);
-color: var(--text);
+    /* ▼ 修正: ノッチの高さ(env)に12pxを加算して確保する */
+    padding-top: calc(env(safe-area-inset-top) + 12px);
+    
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 
-/* iOS Safari 上部見切れ対策 */
-padding-top: 0; /* ← ここを変更 */
-padding-left: env(safe-area-inset-left);
-padding-right: env(safe-area-inset-right);
+    touch-action: none;
 
-touch-action: none;
+    display: flex;
+    flex-direction: column;
 
-display: flex;
-flex-direction: column;
-
-/* 100vhより安全 */
-height: 100dvh;
-overflow: hidden;
+    /* ▼ 修正: 高さの計算方法を安定させる */
+    height: 100%;
+    position: fixed; /* Safariでのバウンスや余計なスクロールを防止 */
+    inset: 0;
+    overflow: hidden;
 }
+
 
 .ver-label{
 position: fixed;
@@ -78,24 +82,26 @@ text-align: right;
 opacity: .85;
 }
 
-.toolbar{
-margin: 12px;
-margin-top: calc(12px + env(safe-area-inset-top)); /* ← これを追加 */
-border-radius: var(--radius2);
-background: var(--card);
-border: 1px solid var(--stroke);
-box-shadow: var(--shadow);
-backdrop-filter: blur(16px);
--webkit-backdrop-filter: blur(16px);
+.toolbar {
+    /* ▼ 修正: 上マージンを0にし、左右と下だけ12pxにする */
+    margin: 0 12px 12px 12px;
+    
+    border-radius: var(--radius2);
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 
-padding: 10px;
-display:flex;
-align-items:center;
-justify-content: space-between;
-gap: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 
-z-index: 10;
+    z-index: 10;
 }
+
 
 .top-left, .top-right{ display:flex; align-items:center; gap: 10px; }
 .top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .9; user-select:text; cursor:text; padding:4px 8px; border-radius:10px; max-width: 44vw; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
