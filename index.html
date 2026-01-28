@@ -651,29 +651,49 @@ backdrop-filter: blur(8px);
 }
 .work-hint b{ font-weight: 800; }
 
-/* トースト */
-.toast{
-position: fixed;
-left: 50%;
-bottom: 74px; /* bottom barの上 */
-transform: translateX(-50%);
-background: rgba(20,20,20,.9);
-color: #fff;
-font-size: 12px;
-padding: 10px 12px;
-border-radius: 999px;
-opacity: 0;
-pointer-events: none;
-transition: opacity .18s ease, transform .18s ease;
-max-width: calc(100vw - 24px);
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
+/* --- トースト通知（基本：操作中用） --- */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 90px;
+    transform: translateX(-50%);
+    
+    background: rgba(20, 20, 20, 0.9);
+    color: #fff;
+    
+    /* 基本は小さく（操作中など） */
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 2000;
+
+    max-width: 85vw;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.4;
 }
-.toast.show{
-opacity: 1;
-transform: translateX(-50%) translateY(-4px);
+
+/* ★追加: 保存用（大きく目立たせる） */
+.toast.large {
+    bottom: 110px;        /* 少し上に */
+    font-size: 15px;      /* 文字大きく */
+    font-weight: bold;    /* 太字 */
+    padding: 14px 24px;   /* 余白たっぷり */
+    background: rgba(20, 20, 20, 0.95);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
 }
+
+/* 表示用 */
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+
 
 /* --- コンパクト化CSS --- */
 
@@ -1610,14 +1630,25 @@ draw();
 
 /* --- UX helpers: mode hint + toast --- */
 let toastTimer = null;
-function showToast(msg, ms=1800){
-const t = el('toast');
-if(!t) return;
-t.textContent = msg;
-t.classList.add('show');
-clearTimeout(toastTimer);
-toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+/* ✅ 修正版: 第3引数で「大きいモード」を選べるようにする */
+function showToast(msg, ms=1800, isLarge=false){
+    const t = el('toast');
+    if(!t) return;
+    
+    t.textContent = msg;
+    
+    // 大きいモードならクラスを追加、違えば削除
+    if(isLarge) t.classList.add('large');
+    else t.classList.remove('large');
+    
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    
+    // 大きい時は少し長く表示する（2.5秒）
+    const duration = isLarge ? 2500 : ms;
+    toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
+
 
 function updateModeAvailability(){
 // 外壁モード = 編集(!isMerged): 外枠のみを触る想定
@@ -3497,13 +3528,13 @@ draw();
 });
 
 
-/* ✅ 修正版: 仮想キャンバスを使って画面を揺らさずに保存する */
+/* ✅ 最終版: 仮想キャンバス・余白150px・成功時デカ文字トースト */
 async function downloadImage() {
     // 1. 現在の状態（カメラや選択状態）を退避
     const prevScale = scale;
     const prevCamera = { ...camera };
     const prevSelected = selectedItem;
-    // ★重要: 現在の画面上のキャンバス(グローバル変数)を退避
+    // グローバル変数を退避（すり替え用）
     const originalCanvas = canvas;
     const originalCtx = ctx;
 
@@ -3511,10 +3542,13 @@ async function downloadImage() {
     isExporting = true;
 
     try {
-        // --- 描画範囲の計算 ---
         const targets = items.filter(i => i.type !== 'wallLine');
-        if (targets.length === 0) return alert("出力する部屋がありません");
+        if (targets.length === 0) {
+            showToast("出力する部屋がありません"); // 通常トースト
+            return;
+        }
 
+        // 1. 部屋と壁の範囲を計算
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         targets.forEach(it => {
             minX = Math.min(minX, it.x);
@@ -3522,7 +3556,6 @@ async function downloadImage() {
             maxX = Math.max(maxX, it.x + it.w);
             maxY = Math.max(maxY, it.y + it.h);
         });
-        
         items.filter(i => i.type === 'wallLine').forEach(w => {
             minX = Math.min(minX, w.x1, w.x2);
             minY = Math.min(minY, w.y1, w.y2);
@@ -3530,55 +3563,60 @@ async function downloadImage() {
             maxY = Math.max(maxY, w.y1, w.y2);
         });
 
-        // --- 仮想キャンバスの作成 ---
-        const exportScale = 4.0; // 高画質倍率
-        const margin = 150;      // 余白（大きく確保）
-        const contentW = maxX - minX;
-        const contentH = maxY - minY;
+        // 2. グリッド基準でキャンバスサイズを決定（端の数字が見切れないように）
+        const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+        const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+        const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+        const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
 
-        // メモリ上に新しいキャンバスを作成（画面には表示されない）
+        const contentW = gridEndX - gridStartX;
+        const contentH = gridEndY - gridStartY;
+
+        const exportScale = 4.0; // 高画質設定
+        const margin = 150;      // 余白（上下左右150px確保）
+
+        // 仮想キャンバスを作成（画面には表示されない）
         const virtualCanvas = document.createElement('canvas');
         virtualCanvas.width = (contentW * exportScale) + (margin * 2);
         virtualCanvas.height = (contentH * exportScale) + (margin * 2);
         const virtualCtx = virtualCanvas.getContext('2d');
 
-        // ★魔法のステップ: グローバル変数を一時的に「仮想キャンバス」にすり替える
-        // これにより、既存の draw() 関数がそのまま使えます
+        // ★魔法のステップ: グローバル変数を仮想キャンバスにすり替える
         canvas = virtualCanvas;
         ctx = virtualCtx;
 
-        // 設定を仮想キャンバス用に合わせる
         scale = exportScale;
-        // カメラ位置を中心に合わせる
-        // (margin分は translate 時に canvas.width/2 に含まれるのでコンテンツ中心ズレだけ補正)
-        camera.x = -((minX + maxX) / 2 * scale);
-        camera.y = -((minY + maxY) / 2 * scale);
+        // カメラ中心を「グリッドの中心」に合わせる
+        camera.x = -((gridStartX + gridEndX) / 2 * scale);
+        camera.y = -((gridStartY + gridEndY) / 2 * scale);
 
-        // --- 描画実行 ---
-        // このdraw()は、すり替わった仮想キャンバス(virtualCtx)に対して描画を行います
-        // 画面上のキャンバスは一切動きません
+        // 描画実行（仮想キャンバスに対して描かれる）
         draw();
 
-        // --- 保存処理 ---
         const blob = await new Promise(resolve => virtualCanvas.toBlob(resolve, "image/png"));
         const file = new File([blob], `${currentTitle}.png`, { type: "image/png" });
 
+        // 共有またはダウンロード処理
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: currentTitle });
+            // 成功時：大きく表示 (isLarge=true)
+            showToast("画像を共有しました", 2500, true); 
         } else {
             const dataUrl = virtualCanvas.toDataURL("image/png");
             const a = document.createElement("a");
             a.href = dataUrl;
             a.download = `${currentTitle}.png`;
             a.click();
+            // 成功時：大きく表示 (isLarge=true)
+            showToast("画像を保存しました", 2500, true);
         }
 
     } catch (e) {
         console.error(e);
-        alert("画像の保存に失敗しました");
+        // エラー時：大きく表示 (isLarge=true)
+        showToast("画像の保存に失敗しました", 2500, true);
     } finally {
         // --- 復元処理 ---
-        // 変数を元の「画面上のキャンバス」に戻す
         canvas = originalCanvas;
         ctx = originalCtx;
         
@@ -3591,6 +3629,7 @@ async function downloadImage() {
         draw();
     }
 }
+
 
 
 
