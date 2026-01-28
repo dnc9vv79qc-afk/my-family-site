@@ -2248,14 +2248,93 @@ ctx.fillText(text, x + pad, y + 15/scale);
 ctx.restore();
 }
 
+/* ✅ 修正版: 0スタート、外枠基準、数字位置を元に戻す */
+function drawBlueprintGrid(targetItems) {
+    // 1. 外枠(frame)または全体の範囲を取得
+    const frames = targetItems.filter(i => i.type === 'frame');
+    const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine');
+    if (!targets.length) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    targets.forEach(it => {
+        minX = Math.min(minX, it.x);
+        minY = Math.min(minY, it.y);
+        maxX = Math.max(maxX, it.x + it.w);
+        maxY = Math.max(maxY, it.y + it.h);
+    });
+
+    // ★修正: 余白グリッドは作らず、建物の端(minX, minY)をそのまま開始位置にする
+    const startX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+    const startY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+    const endX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+    const endY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+
+    ctx.save();
+    const lw = isExporting ? 1 / scale : 0.5 / scale;
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = "#888"; 
+    
+    // 点線設定
+    ctx.setLineDash([2 / scale, 3 / scale]); 
+
+    // 文字設定
+    const fontSize = (isExporting ? 20 : 11) / scale;
+    ctx.font = `normal ${fontSize}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#555";
+
+    // ★修正: 数字と線の距離を元の「近め」に戻す
+    const padding = (isExporting ? 20 : 12) / scale; 
+
+    // ■ 縦線とX座標番号
+    // ★修正: startXを「0」としてカウントする
+    for (let x = startX; x <= endX; x += GRID_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(x, startY - padding); 
+        ctx.lineTo(x, endY + padding);   
+        ctx.stroke();
+
+        if (isExporting || scale > 0.5) {
+            // 左端(startX)からの距離をマス数(910mm単位)に換算して表示
+            const val = Math.round((x - startX) / GRID_SIZE);
+            const label = String(val);
+            ctx.fillText(label, x, startY - (padding * 1.5));
+            ctx.fillText(label, x, endY + (padding * 1.5));
+        }
+    }
+
+    // ■ 横線とY座標番号
+    for (let y = startY; y <= endY; y += GRID_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(startX - padding, y);
+        ctx.lineTo(endX + padding, y);
+        ctx.stroke();
+
+        if (isExporting || scale > 0.5) {
+            // 上端(startY)からの距離をマス数に換算
+            const val = Math.round((y - startY) / GRID_SIZE);
+            const label = String(val);
+            ctx.fillText(label, startX - (padding * 1.5), y);
+            ctx.fillText(label, endX + (padding * 1.5), y);
+        }
+    }
+
+    ctx.restore();
+    
+    return { maxX, maxY, endX, endY };
+}
+
+
 function drawMerged(){
     const roomMap = {};
     const frameMap = {};
     const groups = {};
     const sub = 16;
-    
-    // ★追加: 出力中は文字サイズを1.8倍にする倍率を設定
     const mag = isExporting ? 1.8 : 1.0;
+
+    // グリッド描画
+    const gridBounds = drawBlueprintGrid(items); 
 
     items.forEach((item, index) => {
         if(item.type === 'wallLine') return;
@@ -2299,8 +2378,6 @@ function drawMerged(){
         ctx.globalAlpha = 1.0;
     });
 
-    drawGrid();
-
     const drawEdge = (map, color, width) => {
         ctx.strokeStyle = color;
         ctx.lineWidth = width / scale;
@@ -2327,8 +2404,6 @@ function drawMerged(){
         const g = groups[key];
         const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
         const visualHeight = (g.maxY - g.minY) * scale;
-        
-        // 出力中はTinyMode（小文字モード）を強制解除して大きく書く
         const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
 
         ctx.fillStyle = "#111"; 
@@ -2339,7 +2414,6 @@ function drawMerged(){
         if (useTinyMode) {
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
-            
             const labelSize = 10 / scale;
             ctx.font = `bold ${labelSize}px sans-serif`;
             const labelY = g.minY + (2 / scale);
@@ -2357,13 +2431,9 @@ function drawMerged(){
         } else {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle"; 
-            
-            // ★変更: 文字サイズに mag を掛ける
-            ctx.font = `bold ${(14 * mag) / scale}px sans-serif`;
-            
-            // 少し位置調整（文字が大きくなる分、少し上にずらすなどお好みで）
-            const labelY = g.textY - ((4 * mag) / scale);
-            
+            const mainFontSize = (14 * mag) / scale;
+            ctx.font = `bold ${mainFontSize}px sans-serif`;
+            const labelY = g.textY - (mainFontSize * 0.4); 
             ctx.strokeText(g.label, g.textX, labelY);
             ctx.fillText(g.label, g.textX, labelY);
 
@@ -2372,18 +2442,59 @@ function drawMerged(){
             if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
 
             if (subText) {
-                // ★変更: 文字サイズに mag を掛ける
-                ctx.font = `${(11 * mag) / scale}px sans-serif`;
-                // 下の文字の位置も少し下げる
-                ctx.strokeText(subText, g.textX, g.textY + ((12 * mag) / scale));
-                ctx.fillText(subText, g.textX, g.textY + ((12 * mag) / scale));
+                const subFontSize = (11 * mag) / scale;
+                ctx.font = `${subFontSize}px sans-serif`;
+                const subY = g.textY + (mainFontSize * 0.7);
+                ctx.strokeText(subText, g.textX, subY);
+                ctx.fillText(subText, g.textX, subY);
             }
         }
         ctx.textAlign = "left";
     }
 
     items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+
+    // ✅ 画像出力時の右下情報
+    if (isExporting && gridBounds) {
+        let totalMasu = 0;
+        items.forEach(i => {
+            if(i.type === 'frame') {
+                totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
+            }
+        });
+
+        const tsubo = totalMasu / 4;
+        const jou = totalMasu / 2;
+        const m2 = tsubo * 3.305785;
+
+        ctx.save();
+        const infoFontSize = 24 / scale;
+        ctx.font = `bold ${infoFontSize}px sans-serif`;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom"; 
+        ctx.fillStyle = "#111";
+
+        // ★修正: 外枠基準(gridBounds.endX/Y)に対し、余白を考慮して内側に配置するのではなく
+        // 画像保存時に大きな余白(margin)を取るので、枠の少し外側に出しても大丈夫ですが
+        // 一応、枠線の真下あたりに配置します
+        const anchorX = gridBounds.endX; 
+        // 下側の数字(padding * 1.5)と被らないよう、十分に下げる
+        const anchorY = gridBounds.endY + (140 / scale); 
+
+        const lineH = infoFontSize * 1.5;
+
+        const text1 = `延床面積: ${m2.toFixed(2)} m²`;
+        const text2 = `(${tsubo.toFixed(2)} 坪)`;
+        const text3 = `施工面積: ${jou.toFixed(1)} 畳`; 
+
+        ctx.fillText(text3, anchorX, anchorY);
+        ctx.fillText(text2, anchorX, anchorY - lineH);
+        ctx.fillText(text1, anchorX, anchorY - (lineH * 2));
+
+        ctx.restore();
+    }
 }
+
 
 
 function drawWallPlaceGuide(){
@@ -3385,20 +3496,18 @@ draw();
 });
 
 
+/* ✅ 修正版: 出力画像の余白(margin)を増やして、端の数字が見切れないようにする */
 async function downloadImage() {
-    // 1. 現在の状態を退避（後でfinallyで戻すため）
     const prevScale = scale;
     const prevCamera = { ...camera };
     const prevSelected = selectedItem;
     const prevW = canvas.width;
     const prevH = canvas.height;
 
-    // 2. 書き出し用フラグON（UIを隠す）
     selectedItem = null;
     isExporting = true;
 
     try {
-        // --- 高画質化のための計算 ---
         const targets = items.filter(i => i.type !== 'wallLine');
         if (targets.length === 0) return alert("出力する部屋がありません");
 
@@ -3409,8 +3518,7 @@ async function downloadImage() {
             maxX = Math.max(maxX, it.x + it.w);
             maxY = Math.max(maxY, it.y + it.h);
         });
-
-        // 壁も含める（はみ出し防止）
+        
         items.filter(i => i.type === 'wallLine').forEach(w => {
             minX = Math.min(minX, w.x1, w.x2);
             minY = Math.min(minY, w.y1, w.y2);
@@ -3418,33 +3526,33 @@ async function downloadImage() {
             maxY = Math.max(maxY, w.y1, w.y2);
         });
 
-        const exportScale = 4.0; // 高画質（4倍）
-        const margin = 60;
+        const exportScale = 4.0;
+        
+        // ★修正: 余白を大きくする（60 -> 150）
+        // これにより、画像の端に余白ができ、外側の数字や面積情報が収まります
+        const margin = 150; 
+
         const contentW = maxX - minX;
         const contentH = maxY - minY;
 
-        // メインキャンバスを一時的に巨大化
         canvas.width = (contentW * exportScale) + (margin * 2);
         canvas.height = (contentH * exportScale) + (margin * 2);
 
         scale = exportScale;
-        camera.x = -((minX + maxX) / 2 * scale) + (margin * exportScale); 
-        // ※↑中央寄せ計算が少しずれていた可能性があるので修正（margin考慮なしでも動きますが、念のため）
-        // 元のロジックのままいくならこちら↓
+        
+        // 中心位置を合わせる（コンテンツの中心をキャンバスの中心へ）
+        // margin分は translate 時に canvas.width/2 に含まれるので、ここではコンテンツ自体の中心ズレだけ補正
         camera.x = -((minX + maxX) / 2 * scale);
         camera.y = -((minY + maxY) / 2 * scale);
 
-        // 描画実行
         draw();
 
-        // --- iPhone 共有メニュー処理 ---
         const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
         const file = new File([blob], `${currentTitle}.png`, { type: "image/png" });
 
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: currentTitle });
         } else {
-            // PC等のフォールバック
             const dataUrl = canvas.toDataURL("image/png");
             const a = document.createElement("a");
             a.href = dataUrl;
@@ -3456,16 +3564,16 @@ async function downloadImage() {
         console.error(e);
         alert("画像の保存に失敗しました");
     } finally {
-        // 3. 【ここが Finally】状態を完全に復元
         canvas.width = prevW;
         canvas.height = prevH;
         scale = prevScale;
         camera = prevCamera;
         selectedItem = prevSelected;
-        isExporting = false; // フラグをOFFにしてUI（ハンドル等）を再表示
-        draw(); // 画面を通常表示にリフレッシュ
+        isExporting = false;
+        draw();
     }
 }
+
 
 
 // ボタンイベント登録
