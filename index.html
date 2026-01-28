@@ -1064,8 +1064,9 @@ const db = getFirestore(app);
 const el = (id) => document.getElementById(id);
 
 // canvas
-const canvas = el('canvas');
-const ctx = canvas.getContext('2d');
+let canvas = el('canvas'); // ★ const から let に変更
+let ctx = canvas.getContext('2d'); // ★ const から let に変更
+
 const container = el('canvas-container');
 
 // constants
@@ -3496,18 +3497,21 @@ draw();
 });
 
 
-/* ✅ 修正版: 出力画像の余白(margin)を増やして、端の数字が見切れないようにする */
+/* ✅ 修正版: 仮想キャンバスを使って画面を揺らさずに保存する */
 async function downloadImage() {
+    // 1. 現在の状態（カメラや選択状態）を退避
     const prevScale = scale;
     const prevCamera = { ...camera };
     const prevSelected = selectedItem;
-    const prevW = canvas.width;
-    const prevH = canvas.height;
+    // ★重要: 現在の画面上のキャンバス(グローバル変数)を退避
+    const originalCanvas = canvas;
+    const originalCtx = ctx;
 
     selectedItem = null;
     isExporting = true;
 
     try {
+        // --- 描画範囲の計算 ---
         const targets = items.filter(i => i.type !== 'wallLine');
         if (targets.length === 0) return alert("出力する部屋がありません");
 
@@ -3526,34 +3530,43 @@ async function downloadImage() {
             maxY = Math.max(maxY, w.y1, w.y2);
         });
 
-        const exportScale = 4.0;
-        
-        // ★修正: 余白を大きくする（60 -> 150）
-        // これにより、画像の端に余白ができ、外側の数字や面積情報が収まります
-        const margin = 150; 
-
+        // --- 仮想キャンバスの作成 ---
+        const exportScale = 4.0; // 高画質倍率
+        const margin = 150;      // 余白（大きく確保）
         const contentW = maxX - minX;
         const contentH = maxY - minY;
 
-        canvas.width = (contentW * exportScale) + (margin * 2);
-        canvas.height = (contentH * exportScale) + (margin * 2);
+        // メモリ上に新しいキャンバスを作成（画面には表示されない）
+        const virtualCanvas = document.createElement('canvas');
+        virtualCanvas.width = (contentW * exportScale) + (margin * 2);
+        virtualCanvas.height = (contentH * exportScale) + (margin * 2);
+        const virtualCtx = virtualCanvas.getContext('2d');
 
+        // ★魔法のステップ: グローバル変数を一時的に「仮想キャンバス」にすり替える
+        // これにより、既存の draw() 関数がそのまま使えます
+        canvas = virtualCanvas;
+        ctx = virtualCtx;
+
+        // 設定を仮想キャンバス用に合わせる
         scale = exportScale;
-        
-        // 中心位置を合わせる（コンテンツの中心をキャンバスの中心へ）
-        // margin分は translate 時に canvas.width/2 に含まれるので、ここではコンテンツ自体の中心ズレだけ補正
+        // カメラ位置を中心に合わせる
+        // (margin分は translate 時に canvas.width/2 に含まれるのでコンテンツ中心ズレだけ補正)
         camera.x = -((minX + maxX) / 2 * scale);
         camera.y = -((minY + maxY) / 2 * scale);
 
+        // --- 描画実行 ---
+        // このdraw()は、すり替わった仮想キャンバス(virtualCtx)に対して描画を行います
+        // 画面上のキャンバスは一切動きません
         draw();
 
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+        // --- 保存処理 ---
+        const blob = await new Promise(resolve => virtualCanvas.toBlob(resolve, "image/png"));
         const file = new File([blob], `${currentTitle}.png`, { type: "image/png" });
 
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: currentTitle });
         } else {
-            const dataUrl = canvas.toDataURL("image/png");
+            const dataUrl = virtualCanvas.toDataURL("image/png");
             const a = document.createElement("a");
             a.href = dataUrl;
             a.download = `${currentTitle}.png`;
@@ -3564,15 +3577,21 @@ async function downloadImage() {
         console.error(e);
         alert("画像の保存に失敗しました");
     } finally {
-        canvas.width = prevW;
-        canvas.height = prevH;
+        // --- 復元処理 ---
+        // 変数を元の「画面上のキャンバス」に戻す
+        canvas = originalCanvas;
+        ctx = originalCtx;
+        
         scale = prevScale;
         camera = prevCamera;
         selectedItem = prevSelected;
         isExporting = false;
+        
+        // 画面を再描画して元通りにする
         draw();
     }
 }
+
 
 
 
