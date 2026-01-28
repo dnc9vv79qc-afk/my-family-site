@@ -256,6 +256,12 @@ background: var(--measure) !important;
 color: #fff !important;
 border: none !important;
 }
+
+.small-btn.view-active{
+background: var(--accent) !important;
+color: #fff !important;
+border: none !important;
+}
 .small-btn:disabled{ opacity: .4; transform: none !important; cursor: default; }
 
 /* iOS Safariで確実に色ピッカーを開かせる: label + input(color) を透明で被せる */
@@ -276,7 +282,7 @@ padding-left: 12px;
 content: "";
 width: 14px;
 height: 14px;
-border-radius: 4px;
+border-radius: 999px;
 background: var(--swatch, #ffffff);
 border: 1px solid rgba(0,0,0,.12);
 }
@@ -492,6 +498,35 @@ justify-content:center;
 .menu-btn.danger{
 background: rgba(255,59,48,.14);
 color: #ff3b30;
+}
+
+/* 長押しメニュー：色変更も他ボタンと同じ見た目に（右に色ドット） */
+.menu-color-label{
+position: relative;
+overflow: hidden;
+justify-content: space-between;
+padding: 0 14px;
+gap: 10px;
+}
+.menu-color-label input[type="color"]{
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+opacity: 0;
+border: 0;
+padding: 0;
+}
+.menu-color-dot{
+width: 14px;
+height: 14px;
+border-radius: 999px;
+background: var(--swatch, #FFF3E0);
+border: 1px solid rgba(0,0,0,.12);
+pointer-events: none;
+}
+@media (prefers-color-scheme: dark){
+.menu-color-dot{ border-color: rgba(255,255,255,.22); }
 }
 
 /* Preset manager */
@@ -758,7 +793,7 @@ overflow: hidden;
 .color-label-tiny .color-dot {
 width: 16px;
 height: 16px;
-border-radius: 4px;
+border-radius: 999px;
 background: var(--swatch, #fff);
 border: 1px solid rgba(0,0,0,0.1);
 pointer-events: none;
@@ -777,7 +812,7 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 </head>
 
 <body>
-<div class="ver-label">ver 7.0<br>by yuchi🐔</div>
+<div class="ver-label">ver 1.11<br>by yuchi🐔</div>
 
 <div class="toolbar">
 <div class="top-left">
@@ -821,6 +856,8 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <button class="seg-btn active" id="segMerge" type="button">部屋</button>
 </div>
 
+<button id="viewBtn" class="small-btn tiny gray" type="button" title="閲覧モード（拡大/移動）">閲覧</button>
+
 <button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
 
 <div class="joined-tiny">
@@ -832,11 +869,6 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <span class="color-dot"></span>
 <input type="color" id="quickColorInput" value="#ffffff" />
 </label>
-
-<div class="joined-tiny right-edge">
-<button id="fitBtn" class="btn-text" type="button">全体</button>
-<button id="centerBtn" class="btn-text" type="button">リセ</button>
-</div>
 </div>
 
 </div>
@@ -916,6 +948,7 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <li><b>計測:</b> 「計測」ボタンでモードON、2点をタップして距離を表示。</li>
 <li><b>壁(線):</b> 端点ドラッグで長さ、線ドラッグで移動。</li>
 <li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
+<li><b>閲覧:</b> 「閲覧」ボタンONで部屋を選択せずに移動／拡大できます。</li>
 <li><b>名前編集:</b> 2回タップ（編集モードのみ）。</li>
 <li><b>共有:</b> 共有URLは読み取り専用コピーなので上書きされません。</li>
 </ul>
@@ -960,15 +993,14 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
 
 <!-- ✅ 色変更（iOS Safariでも確実に開く） -->
-<label class="menu-btn color-label" id="menuColorBtn" title="色を変更">
-色変更
+<label class="menu-btn menu-color-label" id="menuColorBtn" title="色を変更">
+<span>色変更</span>
+<span class="menu-color-dot" aria-hidden="true"></span>
 <input type="color" id="menuColorInput" value="#FFF3E0">
 </label>
+
 <button class="menu-btn" id="menuDupBtn" type="button">複製</button>
 <button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
-<button class="menu-btn" id="menuFrontBtn" type="button">最前面</button>
-<button class="menu-btn" id="menuBackBtn" type="button">最背面</button>
-<button class="menu-btn" id="menuLockBtn" type="button">ロック/解除</button>
 </div>
 
 <div style="display:flex; gap:10px; margin-top:14px;">
@@ -1056,8 +1088,10 @@ let camera = { x: 0, y: 0 };
 let scale = 1.0;
 
 let lastTapTime = 0;
+let overlapPick = { key: null, idx: 0, ts: 0 };
 let layoutId = null;
 let isReadOnly = false;
+let isViewMode = false; // 閲覧（パン/ズーム優先）
 
 let currentTitle = "MORIYASU🏠";
 
@@ -1555,6 +1589,7 @@ isMerged = val;
 updateSegmentUI();
 updateModeAvailability();
 updateWorkHint();
+syncViewBtn();
 draw();
 }
 
@@ -1593,6 +1628,11 @@ if(wb) wb.classList.remove('active');
 function updateWorkHint(){
 const h = el('workHint');
 if(!h) return;
+
+if(isViewMode){
+h.innerHTML = "<b>閲覧モード</b>：ドラッグで移動／ピンチでズーム（解除：閲覧ボタン）";
+return;
+}
 
 if(isMeasureMode){
 h.innerHTML = "<b>計測</b>：2点をタップ（解除：計測ボタン）";
@@ -2013,7 +2053,7 @@ return (dx*dx + dy*dy) <= (rad/scale) * (rad/scale);
 // 矩形の重なり（面積が正に重なる時だけ true。辺が接するだけは false）
 function rectOverlap(a, b){
 return (a.x < b.x + b.w) && (a.x + a.w > b.x) &&
-       (a.y < b.y + b.h) && (a.y + a.h > b.y);
+(a.y < b.y + b.h) && (a.y + a.h > b.y);
 }
 function frameOverlapsAny(target){
 if(!target || target.type !== 'frame') return false;
@@ -2523,6 +2563,56 @@ el('measureBtn').classList.add('gray');
 draw();
 };
 
+function syncViewBtn(){
+const vb = el('viewBtn');
+if(!vb) return;
+if(isViewMode){
+vb.classList.add('view-active');
+vb.classList.remove('gray');
+}else{
+vb.classList.remove('view-active');
+vb.classList.add('gray');
+}
+}
+
+function setViewMode(on){
+isViewMode = !!on;
+
+// 閲覧中は誤操作防止で選択解除
+if(isViewMode){
+selectedItem = null;
+clearTouchState();
+
+// 計測/内壁設置は解除（タップ動作が衝突するため）
+if(isMeasureMode){
+isMeasureMode = false;
+measurePoints = [];
+const mb = el('measureBtn');
+if(mb){
+mb.classList.remove('active');
+mb.classList.add('gray');
+}
+}
+if(isWallPlaceMode){
+isWallPlaceMode = false;
+wallPlaceStart = null;
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+}
+}
+
+syncViewBtn();
+updateWorkHint();
+draw();
+}
+
+// 閲覧モード切替
+if(el('viewBtn')){
+el('viewBtn').onclick = () => {
+setViewMode(!isViewMode);
+};
+}
+
 el('undoBtn').onclick = undo;
 el('redoBtn').onclick = redo;
 syncHistoryButtons();
@@ -2755,8 +2845,6 @@ el('addColorBtn').style.setProperty('--swatch', addPendingColor);
 });
 
 /* fit/center */
-el('fitBtn').onclick = fitToFrame;
-el('centerBtn').onclick = () => { camera = { x: 0, y: 0 }; scale = 1.0; draw(); };
 
 // checkboxes update
 document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = draw);
@@ -2825,9 +2913,6 @@ el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu();
 el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
 el('menuDupBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
 el('menuDelBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
-el('menuFrontBtn').onclick= () => { const it = menuItem; closeMenu(); if(it) bringFront(it); };
-el('menuBackBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) bringBack(it); };
-el('menuLockBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) toggleLock(it); };
 
 /* bottom actions */
 el('addGenericRoomBtn2').onclick = () => {
@@ -2874,7 +2959,7 @@ emptyTapCandidate = false;
 }
 
 function startLongPress(item){
-if(isReadOnly) return;
+if(isReadOnly || isViewMode) return;
 if(longPressTimer) clearTimeout(longPressTimer);
 longPressTimer = setTimeout(() => {
 if(!dragActive && pendingItem === item){
@@ -2896,7 +2981,7 @@ canvas.addEventListener('touchstart', (e) => {
 if(e.touches.length === 2){
 pinchActive = true;
 clearTouchState();
-gestureSnapshot = snapshot();
+gestureSnapshot = (isReadOnly || isViewMode) ? null : snapshot();
 
 const { dist, mid } = getPinchInfo(e.touches);
 pinchStartDist = dist;
@@ -2907,6 +2992,18 @@ return;
 
 if(e.touches.length !== 1) return;
 const t = e.touches[0];
+
+// 閲覧モード：選択せずにパン/ズームだけ
+if(isViewMode){
+clearTouchState();
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+pressStartWorld = screenToWorld(t.clientX, t.clientY);
+emptyTapCandidate = true;
+pendingAction = "pan";
+pendingItem = null;
+draw();
+return;
+}
 
 const now = Date.now();
 if(!isReadOnly && now - lastTapTime < 300 && selectedItem && !isMerged){
@@ -2988,6 +3085,7 @@ return;
 }
 
 if(!found){
+const hits = [];
 for (let i = items.length-1; i >= 0; i--) {
 const it = items[i];
 
@@ -2999,12 +3097,32 @@ if(isMerged && it.type === 'frame') continue;
 
 if(it.type === 'wallLine'){
 const r = wallHitTest(worldP, it);
-if(r.hit){ found = it; wallHandle = r.handle; break; }
+if(r.hit) hits.push({ it, wallHandle: r.handle });
 } else {
 if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
-found = it; break;
+hits.push({ it, wallHandle: null });
 }
 }
+}
+
+if(hits.length === 1){
+found = hits[0].it;
+wallHandle = hits[0].wallHandle;
+}else if(hits.length > 1){
+const posKey = `${Math.round(worldP.x/8)}_${Math.round(worldP.y/8)}`;
+const idsKey = hits.map(h => h.it.id).join("|");
+const key = `${isMerged?1:0}|${posKey}|${idsKey}`;
+const within = (overlapPick.key === key) && (now - overlapPick.ts < 450);
+
+overlapPick.key = key;
+overlapPick.ts = now;
+overlapPick.idx = within ? (overlapPick.idx + 1) % hits.length : 0;
+
+const chosen = hits[overlapPick.idx];
+found = chosen.it;
+wallHandle = chosen.wallHandle;
+
+showToast(`重なり：${overlapPick.idx+1}/${hits.length}（${found.label || found.type}）`);
 }
 }
 
@@ -3088,7 +3206,7 @@ emptyTapCandidate = false;
 if(longPressTimer) clearTimeout(longPressTimer);
 longPressTimer = null;
 
-gestureSnapshot = snapshot();
+gestureSnapshot = (isReadOnly || isViewMode) ? null : snapshot();
 
 if(pendingItem && !isReadOnly){
 items.splice(items.indexOf(pendingItem), 1);
@@ -3155,7 +3273,7 @@ draw();
 });
 
 function commitGestureIfAny(){
-if(isReadOnly){
+if(isReadOnly || isViewMode){
 gestureSnapshot = null;
 return;
 }
@@ -3163,7 +3281,7 @@ if(dragActive && gestureSnapshot){
 
 // 外枠（外壁モード）で外枠同士が重なったら確定させず元に戻す
 if(!isMerged && pendingItem && pendingItem.type === 'frame' &&
-   (pendingAction === "moveRect" || pendingAction === "resizeRect")){
+(pendingAction === "moveRect" || pendingAction === "resizeRect")){
 if(frameOverlapsAny(pendingItem)){
 restore(gestureSnapshot);
 gestureSnapshot = null;
