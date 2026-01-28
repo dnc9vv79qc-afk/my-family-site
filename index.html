@@ -2321,28 +2321,92 @@ ctx.stroke();
 drawEdge(roomMap, "#111", 2);
 drawEdge(frameMap, "#111", 10);
 
-for (const key in groups) {
-const g = groups[key];
-ctx.fillStyle = "#111";
-ctx.textAlign = "center";
-ctx.font = `bold ${14/scale}px sans-serif`;
+     // drawMerged関数内の、最後のループ部分をこれに置き換え
 
-ctx.lineJoin="round";
-ctx.lineWidth=4/scale;
-ctx.strokeStyle="rgba(255,255,255,0.95)";
-ctx.strokeText(g.label, g.textX, g.textY - 4/scale);
-ctx.fillText(g.label, g.textX, g.textY - 4/scale);
+    for (const key in groups) {
+        const g = groups[key];
+        
+        // 1. まず「物理的に狭い部屋（1.5畳以下）」かチェック
+        const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
 
-let subText = "";
-if (el('showJou').checked) subText += `${(g.totalMasu/2).toFixed(1)}畳 `;
-if (el('showTsubo').checked) subText += `${(g.totalMasu/4).toFixed(2)}坪`;
+        // 2. 次に「画面上でどう見えているか（ズーム状態）」をチェック
+        // 部屋の高さ(World) × 倍率(scale) ＝ 画面上の高さ(px)
+        const visualHeight = (g.maxY - g.minY) * scale;
 
-ctx.font = `${11/scale}px sans-serif`;
-ctx.lineWidth=4/scale;
-ctx.strokeText(subText, g.textX, g.textY + 12/scale);
-ctx.fillText(subText, g.textX, g.textY + 12/scale);
-ctx.textAlign = "left";
-}
+        // ★判定ロジックの変更
+        // 「物理的に狭い」かつ「画面上でも小さく見える（高さ45px未満）」ときだけ、上詰めモードにする。
+        // → つまり、ズームして部屋が画面上で45px以上の大きさになれば、自動で「真ん中・大文字」に戻ります！
+        const useTinyMode = isPhysicallyTiny && (visualHeight < 45);
+
+        // 共通設定：白フチ（文字が壁と被っても読めるように）
+        ctx.fillStyle = "#111"; 
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 4 / scale;
+        ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+
+        if (useTinyMode) {
+            // ===============================================
+            // 【縮小中】狭い部屋モード（上詰め・小文字）
+            // ===============================================
+            
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top"; // 上寄せ
+            
+            // 部屋名（小さめ）
+            const labelSize = 10 / scale;
+            ctx.font = `bold ${labelSize}px sans-serif`;
+            
+            // 上端から少し下げた位置
+            const labelY = g.minY + (2 / scale);
+            
+            ctx.strokeText(g.label, g.textX, labelY);
+            ctx.fillText(g.label, g.textX, labelY);
+
+            // 畳数（さらに小さく）
+            if (el('showJou').checked) {
+                const subSize = 8 / scale;
+                ctx.font = `${subSize}px sans-serif`;
+                
+                const subY = labelY + labelSize + (1 / scale);
+                const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
+                
+                ctx.strokeText(subText, g.textX, subY);
+                ctx.fillText(subText, g.textX, subY);
+            }
+
+        } else {
+            // ===============================================
+            // 【拡大中 or 広い部屋】通常モード（真ん中・大文字）
+            // ===============================================
+            
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle"; // 真ん中
+            
+            // 部屋名（通常サイズ 14px）
+            ctx.font = `bold ${14 / scale}px sans-serif`;
+            const labelY = g.textY - (4 / scale);
+            
+            ctx.strokeText(g.label, g.textX, labelY);
+            ctx.fillText(g.label, g.textX, labelY);
+
+            // 畳数・坪数（通常サイズ 11px）
+            let subText = "";
+            if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
+            if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
+
+            if (subText) {
+                ctx.font = `${11 / scale}px sans-serif`;
+                ctx.strokeText(subText, g.textX, g.textY + 12 / scale);
+                ctx.fillText(subText, g.textX, g.textY + 12 / scale);
+            }
+        }
+        
+        ctx.textAlign = "left"; // 設定リセット
+    }
+
+
+    // ここまで！！
+
 
 items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
 }
