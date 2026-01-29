@@ -3136,23 +3136,80 @@ window.draw = draw;
 
 
 
-function fitToFrame(){
-const frames = items.filter(i => i.type === 'frame');
-const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
-if (!targets.length) return;
-let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-targets.forEach(it => {
-if(it.type === 'wallLine') return;
-minX = Math.min(minX, it.x);
-minY = Math.min(minY, it.y);
-maxX = Math.max(maxX, it.x + it.w);
-maxY = Math.max(maxY, it.y + it.h);
-});
-const cx = (minX + maxX)/2;
-const cy = (minY + maxY)/2;
-camera = { x: -cx * scale, y: -cy * scale };
-draw();
+function fitToFrame() {
+  // 1. 念のため最新の画面サイズを取得
+  resizeCanvas();
+
+  const frames = items.filter(i => i.type === 'frame');
+  const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
+
+  if (!targets.length) {
+    camera = { x: 0, y: 0 };
+    scale = 1.0;
+    draw();
+    return;
+  }
+
+  // 2. 範囲計算
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  
+  targets.forEach(it => {
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + it.w);
+    maxY = Math.max(maxY, it.y + it.h);
+  });
+  
+  items.filter(i => i.type === 'wallLine').forEach(w => {
+    minX = Math.min(minX, w.x1, w.x2);
+    minY = Math.min(minY, w.y1, w.y2);
+    maxX = Math.max(maxX, w.x1, w.x2);
+    maxY = Math.max(maxY, w.y1, w.y2);
+  });
+
+  // 3. グリッド端＋余白（数字用）
+  const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+  const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+  const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+  const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+
+  // 周囲の余白（64px = グリッド2マス分程度）
+  const marginWorld = 3; 
+
+  const contentMinX = gridStartX - marginWorld;
+  const contentMinY = gridStartY - marginWorld;
+  const contentMaxX = gridEndX + marginWorld;
+  const contentMaxY = gridEndY + marginWorld;
+
+  const contentW = contentMaxX - contentMinX;
+  const contentH = contentMaxY - contentMinY;
+  const cx = (contentMinX + contentMaxX) / 2;
+  const cy = (contentMinY + contentMaxY) / 2;
+
+  // 4. 倍率計算
+  // ★修正ポイント: CSSですでにボトムバー分の余白は確保されているので、
+  // ここでは純粋な「見た目のゆとり」分だけ引けばOKです。
+  const screenPadH = 40;  // 左右
+  const screenPadV = 60;  // 上下（以前の160から大幅に減らす）
+
+  const availW = VIEW_W - screenPadH;
+  const availH = VIEW_H - screenPadV;
+
+  if (contentW > 0 && contentH > 0) {
+    const scaleW = availW / contentW;
+    const scaleH = availH / contentH;
+    let newScale = Math.min(scaleW, scaleH);
+    newScale = Math.max(0.3, Math.min(2.0, newScale));
+    scale = newScale;
+  }
+
+  // 5. 中心合わせ
+  camera = { x: -cx * scale, y: -cy * scale };
+
+  draw();
 }
+
+
 
 function syncViewBtn(){
 const vb = el('viewBtn');
