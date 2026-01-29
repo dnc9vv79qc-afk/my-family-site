@@ -1619,14 +1619,22 @@ function updateSegmentUI(){
 el('segEdit').classList.toggle('active', !isMerged);
 el('segMerge').classList.toggle('active', isMerged);
 }
+
 function setMergedMode(val){
-isMerged = val;
-updateSegmentUI();
-updateModeAvailability();
-updateWorkHint();
-syncViewBtn();
-draw();
+    isMerged = val;
+    updateSegmentUI();
+    updateModeAvailability();
+    updateWorkHint();
+    syncViewBtn();
+    
+    // ▼ 修正: requestAnimationFrame でブラウザの描画サイクルに合わせて実行させる
+    requestAnimationFrame(() => {
+        draw();
+    });
 }
+
+
+
 
 /* --- UX helpers: mode hint + toast --- */
 let toastTimer = null;
@@ -2168,29 +2176,35 @@ function drawRectFill() {
     });
 }
 
-/* ✅ 修正版: 枠線・文字・選択枠専用（グリッドの上に描く） */
+/* ✅ 修正版: 外壁モード時は部屋の枠線・ラベルを非表示にする（完全版） */
 function drawRectStroke() {
     const rects = items.filter(i => i.type !== 'wallLine');
-    // 出力中は文字サイズ調整
     const mag = isExporting ? 1.8 : 1.0;
 
-    // Stroke
+    // 1. 枠線（Stroke）の描画
     rects.forEach(item => {
+        // ★追加: 外壁モード(!isMerged) かつ 部屋(room) の場合は枠線を描かない
+        if (!isMerged && item.type === 'room') return;
+
         const isFrame = item.type === 'frame';
-        const baseStroke = isFrame ? "#cfcfd6" : "#333";
+        const baseStroke = "#333"; 
+        
         if (isSmallRoom(item)) {
             ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 4 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
             ctx.strokeStyle = baseStroke; ctx.lineWidth = 2 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
         } else {
-            ctx.strokeStyle = baseStroke; ctx.lineWidth = 1 / scale;
+            ctx.strokeStyle = baseStroke; ctx.lineWidth = isFrame ? 2 / scale : 1 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
         }
     });
 
-    // Label
+    // 2. ラベル（文字）の描画
     rects.forEach(item => {
+        // ★追加: 外壁モード(!isMerged) かつ 部屋(room) の場合はラベルを描かない
+        if (!isMerged && item.type === 'room') return;
+
         const label = item.locked ? `${item.label} 🔒` : (item.label || "");
         if (!label) return;
 
@@ -2211,10 +2225,9 @@ function drawRectStroke() {
         ctx.fillText(label, x, y);
         ctx.restore();
     });
-    
-    // 選択枠の描画（選択中のみ）
+
+    // 3. 選択枠の描画（このブロックがないと操作中に固まって見えます）
     if(selectedItem && !isMerged && selectedItem.type !== 'wallLine'){
-        // 自分の描画タイミングで選択枠も描く
         ctx.strokeStyle = "#007AFF";
         ctx.lineWidth = 3 / scale;
         ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
@@ -2226,13 +2239,16 @@ function drawRectStroke() {
             ctx.lineWidth = 2/scale;
             ctx.beginPath();
             ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
-            ctx.fill(); ctx.stroke();
+            ctx.fill();
+            ctx.stroke();
         }
         if(dragActive && pendingItem === selectedItem){
             drawSizeBadge(selectedItem);
         }
     }
 }
+
+
 
 
 function drawWallLine(wall){
@@ -2621,81 +2637,68 @@ function drawMeasurement(){
 }
 
 
-/* ✅ 修正版: 部屋モードでも選択枠・ハンドル・壁選択が正しく出るように修正 */
-window.draw = function(){
+
+function draw() {
     ctx.save();
-    
+
     // 1. 背景クリア
-    if(isExporting) {
+    if (isExporting) {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+    // カメラ位置とスケールの適用
+    ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
     ctx.scale(scale, scale);
 
-    // 2. メイン描画
-    if(isMerged) {
+    // 2. モードによって描画を完全に分ける
+    if (isMerged) {
         // --- 部屋モード（結合表示） ---
         drawMerged();
         
-        // ★修正: 部屋モードでも「選択中のハイライト」を描画する
-        if(selectedItem && !selectedItem.locked && !isReadOnly){
-            // A. 壁の選択
-            if(selectedItem.type === 'wallLine'){
+        if (selectedItem && !selectedItem.locked && !isReadOnly) {
+            if (selectedItem.type === 'wallLine') {
                 drawWallSelection(selectedItem);
-            }
-            // B. 部屋の選択（外枠以外）
-            else if(selectedItem.type !== 'frame'){
-                // 青い枠線
+            } else if (selectedItem.type !== 'frame') {
                 ctx.strokeStyle = "#007AFF";
                 ctx.lineWidth = 3 / scale;
                 ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-
-                // 中央ハンドル（移動用）
                 drawMoveHandleRect(selectedItem);
-
-                // 右下ハンドル（リサイズ用）
+                
                 ctx.fillStyle = "#fff";
                 ctx.strokeStyle = "#007AFF";
-                ctx.lineWidth = 2/scale;
+                ctx.lineWidth = 2 / scale;
                 ctx.beginPath();
-                ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
+                ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem) / scale, 0, Math.PI * 2);
                 ctx.fill(); ctx.stroke();
-                
-                // ドラッグ中のサイズバッジ
-                if(dragActive && pendingItem === selectedItem){
-                    drawSizeBadge(selectedItem);
-                }
             }
         }
-
     } else {
         // --- 外枠モード（編集表示） ---
-        drawRectFill();         // 1. 床
-        drawBlueprintGrid(items); // 2. グリッド
-        drawRectStroke();       // 3. 枠線・部屋選択（この関数内に選択描画が含まれています）
+        drawRectFill();
+        drawBlueprintGrid(items);
+        drawRectStroke();
         
-        // 壁
-        items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
-        if(selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
+        items.forEach(it => { if (it.type === 'wallLine') drawWallLine(it); });
+        if (selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
     }
 
-    // 3. その他のガイド（計測など）
-    if(isMeasureMode) drawMeasurement();
-    if(isWallPlaceMode) drawWallPlaceGuide();
-
+    // 3. オーバーレイ描画
+    if (isMeasureMode) drawMeasurement();
+    if (isWallPlaceMode) drawWallPlaceGuide();
+    
     ctx.restore();
 
-    // UI同期
+    // UIパーツの同期
     updateSummary();
     syncBottomBarState();
     syncHistoryButtons();
     syncColorUI();
     syncWallThickUI();
-};
+}
+window.draw = draw;
 
 
 
@@ -2774,8 +2777,18 @@ scheduleAutoSave();
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-el('segEdit').onclick = () => setMergedMode(false);
-el('segMerge').onclick = () => setMergedMode(true);
+
+
+el('segEdit').onclick = () => {
+    setMergedMode(false);
+};
+
+el('segMerge').onclick = () => {
+    setMergedMode(true);
+};
+
+
+
 
 updateModeAvailability();
 updateWorkHint();
