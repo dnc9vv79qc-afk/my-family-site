@@ -1005,7 +1005,11 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <button class="seg-btn active" id="segMerge" type="button">部屋</button>
 </div>
 
+
 <button id="viewBtn" class="small-btn tiny gray" type="button" title="閲覧モード（拡大/移動）">閲覧</button>
+
+<button id="fitBtn" class="small-btn tiny gray" type="button" title="全体を表示">全体</button>
+
 
 <button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
 
@@ -3083,6 +3087,30 @@ vb.classList.add('gray');
 }
 
 
+// ✅ 「閲覧」ボタン（ダブルタップで全体表示・通知なし）
+if(document.getElementById('viewBtn')){
+  let lastTap = 0;
+  document.getElementById('viewBtn').onclick = (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      fitToFrame(); // ダブルタップで全体表示
+    } else {
+      setViewMode(!isViewMode); // シングルタップでモード切替
+    }
+    lastTap = now;
+  };
+}
+
+// ✅ 「全体」ボタン（クリックで即実行・通知なし）
+if(document.getElementById('fitBtn')){
+  document.getElementById('fitBtn').onclick = () => {
+    fitToFrame();
+  };
+}
+
+
+
+
 /* init */
 async function init(){
 presets = loadPresets();
@@ -3279,6 +3307,10 @@ upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
 }
 
 draw();
+
+setTimeout(() => fitToFrame(), 100);
+
+
 }else{
 // idが存在しない/見つからない場合：ドラフト復元を試す
 const restored = await maybeRestoreDraftOnBoot();
@@ -3287,6 +3319,9 @@ items = [];
 addRect('外枠', 2, 2, '#ffffff', 'frame');
 updateSegmentUI();
 draw();
+
+setTimeout(() => fitToFrame(), 100);
+
 }
 }
 }else{
