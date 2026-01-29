@@ -861,6 +861,97 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 
 /* UI簡素化: 上部のクイック色変更は非表示（必要なら削除してOK） */
 #quickColorBtn{ display:none !important; }
+
+/* --- 🆕 マニュアル用スタイリッシュCSS --- */
+#helpModal .modal {
+  background: #f2f2f7; /* 背景を少しグレーに */
+  padding: 0;
+  overflow: hidden;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+}
+#helpModal .modal-header {
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  text-align: center;
+}
+#helpModal h3 { margin: 0; font-size: 17px; }
+#helpModal .modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 60vh;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* セクション */
+.help-section {
+  margin-bottom: 24px;
+}
+.help-section-title {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 8px 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* カードリスト */
+.help-list {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.help-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebedf0;
+  gap: 12px;
+}
+.help-row:last-child { border-bottom: none; }
+
+.help-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.help-icon.green { background: #34C759; }
+.help-icon.orange { background: #FF9500; }
+.help-icon.pink { background: #FF2D55; }
+.help-icon.gray { background: #8E8E93; }
+
+.help-content { font-size: 13px; line-height: 1.5; color: #111; }
+.help-content b { display: block; font-size: 14px; margin-bottom: 2px; }
+
+/* 閉じるボタンエリア */
+#helpModal .modal-footer {
+  padding: 16px 20px 24px; /* 下に余裕を */
+  background: #f2f2f7;
+}
+#helpCloseBtn {
+  width: 100%;
+  height: 48px;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+#helpCloseBtn:active { background: #e5e5ea; transform: scale(0.98); }
+
+
 </style>
 </head>
 
@@ -1009,25 +1100,91 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 </div>
 </div>
 
+
 <div id="helpModal" class="modal-overlay">
-<div class="modal">
-<h3>🏠 操作マニュアル</h3>
-<ul>
-<li><b>移動:</b> パーツの“中央ハンドル”をドラッグ（誤リサイズ防止）。</li>
-<li><b>サイズ:</b> 右下の丸いハンドルをドラッグ。</li>
-<li><b>選択解除:</b> 何もない所を軽くタップ。</li>
-<li><b>長押し:</b> 指を動かさず押し続けるとメニュー。</li>
-<li><b>色変更:</b> 右上の「色」ボタン / もしくは長押しメニューの「色変更」。</li>
-<li><b>計測:</b> 「計測」ボタンでモードON、2点をタップして距離を表示。</li>
-<li><b>壁(線):</b> 端点ドラッグで長さ、線ドラッグで移動。</li>
-<li><b>ピンチ:</b> 2本指でズーム＆移動。</li>
-<li><b>閲覧:</b> 「閲覧」ボタンONで部屋を選択せずに移動／拡大できます。</li>
-<li><b>名前編集:</b> 2回タップ（編集モードのみ）。</li>
-<li><b>共有:</b> 共有URLは読み取り専用コピーなので上書きされません。</li>
-</ul>
-<p style="font-size:11px; color:#666; text-align:center;">（画面をタップして閉じる）</p>
+  <div class="modal">
+    <div class="modal-header">
+      <h3>使い方・操作ガイド</h3>
+    </div>
+    
+    <div class="modal-body">
+      
+      <div class="help-section">
+        <div class="help-section-title">基本操作</div>
+        <div class="help-list">
+          <div class="help-row">
+            <div class="help-icon">👆</div>
+            <div class="help-content">
+              <b>移動・選択</b>
+              部屋の中央ハンドルをドラッグで移動。タップで選択。何もない所をタップで解除。
+            </div>
+          </div>
+          <div class="help-row">
+            <div class="help-icon">↘️</div>
+            <div class="help-content">
+              <b>サイズ変更</b>
+              選択時、右下に出る白い丸ハンドルをドラッグして調整。
+            </div>
+          </div>
+          <div class="help-row">
+            <div class="help-icon orange">🎨</div>
+            <div class="help-content">
+              <b>色・名前の変更</b>
+              部屋を選択し、画面下のツールバーから変更。名前変更は部屋を「2回タップ」でも可能。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">作成の流れ</div>
+        <div class="help-list">
+          <div class="help-row">
+            <div class="help-icon gray">1</div>
+            <div class="help-content">
+              <b>外壁モード</b>
+              まずは家の「外枠」を作ります。サイズを決めたら「部屋」モードへ。
+            </div>
+          </div>
+          <div class="help-row">
+            <div class="help-icon green">2</div>
+            <div class="help-content">
+              <b>部屋モード</b>
+              部屋を追加して配置します。内壁は「内壁」ボタンを押してから2点をタップ。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">便利機能</div>
+        <div class="help-list">
+          <div class="help-row">
+            <div class="help-icon pink">📏</div>
+            <div class="help-content">
+              <b>計測モード</b>
+              2点をタップすると、その間の距離を表示します。
+            </div>
+          </div>
+          <div class="help-row">
+            <div class="help-icon">👀</div>
+            <div class="help-content">
+              <b>閲覧モード</b>
+              誤操作を防ぎながら、ピンチ操作（2本指）で拡大・縮小や移動ができます。
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button id="helpCloseBtn" type="button">閉じる</button>
+    </div>
+  </div>
 </div>
-</div>
+
+
 
 <div id="labelModal" class="modal-overlay">
 <div class="modal sheet">
@@ -3174,8 +3331,20 @@ setTitle(v);
 })();
 
 
+
+// ✅ マニュアル開閉（背景クリック or 閉じるボタン）
 el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
-el('helpModal').onclick = () => el('helpModal').style.display = 'none';
+// 閉じるボタン（IDが変わったので対応）
+const closeHelp = () => el('helpModal').style.display = 'none';
+const helpCloseBtn = el('helpCloseBtn');
+if(helpCloseBtn) helpCloseBtn.onclick = closeHelp;
+// 背景タップでも閉じる
+el('helpModal').onclick = (e) => {
+    if(e.target.id === 'helpModal') closeHelp();
+};
+
+
+
 
 /* share / copy-to-edit */
 async function copyThisLayoutToEditable(){
