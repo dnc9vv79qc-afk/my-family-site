@@ -1625,7 +1625,11 @@ function setMergedMode(val){
     updateSegmentUI();
     updateModeAvailability();
     updateWorkHint();
+
     syncViewBtn();
+
+
+
     
     // ▼ 修正: requestAnimationFrame でブラウザの描画サイクルに合わせて実行させる
     requestAnimationFrame(() => {
@@ -2639,6 +2643,10 @@ function drawMeasurement(){
 
 
 function draw() {
+
+	if(ctx) ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+
     ctx.save();
 
     // 1. 背景クリア
@@ -3218,6 +3226,24 @@ openMenu(item);
 }
 }, 450);
 }
+
+// 閲覧ボタンの見た目を同期する関数（これが消えていました！）
+function syncViewBtn(){
+    const vb = document.getElementById('viewBtn');
+    if(!vb) return;
+    
+    // isViewMode という変数がもし未定義なら false 扱いにする
+    const isView = (typeof isViewMode !== 'undefined') ? isViewMode : false;
+
+    if(isView){
+        vb.classList.add('view-active');
+        vb.classList.remove('gray');
+    }else{
+        vb.classList.remove('view-active');
+        vb.classList.add('gray');
+    }
+}
+
 
 function getPinchInfo(touches){
 const a = touches[0], b = touches[1];
