@@ -2621,9 +2621,11 @@ function drawMeasurement(){
 }
 
 
-/* ✅ 修正版: グリッドの順序を「床」と「上物」の間に統一 */
+/* ✅ 修正版: 部屋モードでも選択枠・ハンドル・壁選択が正しく出るように修正 */
 window.draw = function(){
     ctx.save();
+    
+    // 1. 背景クリア
     if(isExporting) {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2634,36 +2636,67 @@ window.draw = function(){
     ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
     ctx.scale(scale, scale);
 
+    // 2. メイン描画
     if(isMerged) {
-        // 結合モード（部屋モード）
+        // --- 部屋モード（結合表示） ---
         drawMerged();
+        
+        // ★修正: 部屋モードでも「選択中のハイライト」を描画する
+        if(selectedItem && !selectedItem.locked && !isReadOnly){
+            // A. 壁の選択
+            if(selectedItem.type === 'wallLine'){
+                drawWallSelection(selectedItem);
+            }
+            // B. 部屋の選択（外枠以外）
+            else if(selectedItem.type !== 'frame'){
+                // 青い枠線
+                ctx.strokeStyle = "#007AFF";
+                ctx.lineWidth = 3 / scale;
+                ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+
+                // 中央ハンドル（移動用）
+                drawMoveHandleRect(selectedItem);
+
+                // 右下ハンドル（リサイズ用）
+                ctx.fillStyle = "#fff";
+                ctx.strokeStyle = "#007AFF";
+                ctx.lineWidth = 2/scale;
+                ctx.beginPath();
+                ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
+                ctx.fill(); ctx.stroke();
+                
+                // ドラッグ中のサイズバッジ
+                if(dragActive && pendingItem === selectedItem){
+                    drawSizeBadge(selectedItem);
+                }
+            }
+        }
+
     } else {
-        // 外枠モード（編集モード）
-        // 1. 床（塗りつぶし）
-        drawRectFill();
-        
-        // 2. ★グリッド（床の上に描く）
-        drawBlueprintGrid(items);
-        
-        // 3. 枠線・文字・選択枠（グリッドの上に描く）
-        drawRectStroke();
+        // --- 外枠モード（編集表示） ---
+        drawRectFill();         // 1. 床
+        drawBlueprintGrid(items); // 2. グリッド
+        drawRectStroke();       // 3. 枠線・部屋選択（この関数内に選択描画が含まれています）
         
         // 壁
         items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
         if(selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
     }
 
+    // 3. その他のガイド（計測など）
     if(isMeasureMode) drawMeasurement();
     if(isWallPlaceMode) drawWallPlaceGuide();
 
     ctx.restore();
 
+    // UI同期
     updateSummary();
     syncBottomBarState();
     syncHistoryButtons();
     syncColorUI();
     syncWallThickUI();
 };
+
 
 
 function fitToFrame(){
