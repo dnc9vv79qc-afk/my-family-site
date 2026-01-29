@@ -2781,146 +2781,226 @@ return { maxX, maxY, endX, endY };
 }
 
 
-/* ✅ 修正版: グリッドを「床」と「文字」の間に挟む */
+
+
+/* ✅ 修正版: 結合後の形状をスキャンして、本当に一番広い場所に文字を置く drawMerged */
 function drawMerged(){
-const roomMap = {};
-const frameMap = {};
-const groups = {};
-const sub = 16;
-const mag = isExporting ? 1.8 : 1.0;
+  const roomMap = {};
+  const frameMap = {};
+  const groups = {};
+  const sub = 16; // グリッド解像度
+  const mag = isExporting ? 1.8 : 1.0;
 
-// 1. データ整理
-items.forEach((item) => {
-if(item.type === 'wallLine') return;
-if (item.type !== 'frame') {
-if (!groups[item.label]) {
-groups[item.label] = {
-label: item.label, totalMasu: 0,
-minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity,
-textX: 0, textY: 0
-};
-}
-const g = groups[item.label];
-g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-g.minX = Math.min(g.minX, item.x); g.minY = Math.min(g.minY, item.y);
-g.maxX = Math.max(g.maxX, item.x + item.w); g.maxY = Math.max(g.maxY, item.y + item.h);
-g.textX = (g.minX + g.maxX) / 2; g.textY = (g.minY + g.maxY) / 2;
-}
-for (let x = item.x; x < item.x + item.w; x += sub) {
-for (let y = item.y; y < item.y + item.h; y += sub) {
-const pos = `${x},${y}`;
-if (item.type === 'frame') frameMap[pos] = item.label;
-else roomMap[pos] = { label: item.label, color: item.color };
-}
-}
-});
+  // 1. データ整理（グループ化）
+  items.forEach((item) => {
+    if(item.type === 'wallLine') return;
+    
+    // グループ情報の作成
+    if (item.type !== 'frame') {
+      if (!groups[item.label]) {
+        groups[item.label] = {
+          label: item.label, 
+          totalMasu: 0,
+          minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
+        };
+      }
+      const g = groups[item.label];
+      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+      g.minX = Math.min(g.minX, item.x); 
+      g.minY = Math.min(g.minY, item.y);
+      g.maxX = Math.max(g.maxX, item.x + item.w); 
+      g.maxY = Math.max(g.maxY, item.y + item.h);
+    }
 
-// 2. 先に塗りつぶし（床）を描画
-items.forEach(item => {
-if(item.type === 'wallLine') return;
-if(item.type === 'frame'){
-ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
-}else{
-ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
-}
-ctx.fillRect(item.x, item.y, item.w, item.h);
-ctx.globalAlpha = 1.0;
-});
+    // 結合描画用のマップ作成（これが重要）
+    for (let x = item.x; x < item.x + item.w; x += sub) {
+      for (let y = item.y; y < item.y + item.h; y += sub) {
+        const pos = `${x},${y}`;
+        if (item.type === 'frame') frameMap[pos] = item.label;
+        else roomMap[pos] = { label: item.label, color: item.color };
+      }
+    }
+  });
 
-// 3. ★ここでグリッドを描く（床の上、文字の下）
-const gridBounds = drawBlueprintGrid(items); 
+  // 2. 先に塗りつぶし（床）
+  items.forEach(item => {
+    if(item.type === 'wallLine') return;
+    if(item.type === 'frame'){
+      ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
+    }else{
+      ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
+    }
+    ctx.fillRect(item.x, item.y, item.w, item.h);
+    ctx.globalAlpha = 1.0;
+  });
 
-// 4. 枠線や文字を描画
-const drawEdge = (map, color, width) => {
-ctx.strokeStyle = color;
-ctx.lineWidth = width / scale;
-for (const pos in map) {
-const [x, y] = pos.split(',').map(Number);
-const label = map[pos].label || map[pos];
-[{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-const nb = map[`${x+d.dx},${y+d.dy}`];
-const nbLabel = nb?.label || nb;
-if (nbLabel !== label) {
-ctx.beginPath();
-if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
-else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
-ctx.stroke();
-}
-});
-}
-};
-drawEdge(roomMap, "#111", 2);
-drawEdge(frameMap, "#111", 10);
+  // 3. グリッド線
+  const gridBounds = drawBlueprintGrid(items); 
 
-// 文字
-for (const key in groups) {
-const g = groups[key];
-const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
-const visualHeight = (g.maxY - g.minY) * scale;
-const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
+  // 4. 枠線描画
+  const drawEdge = (map, color, width) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width / scale;
+    for (const pos in map) {
+      const [x, y] = pos.split(',').map(Number);
+      const label = map[pos].label || map[pos];
+      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+        const nb = map[`${x+d.dx},${y+d.dy}`];
+        const nbLabel = nb?.label || nb;
+        if (nbLabel !== label) {
+          ctx.beginPath();
+          if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
+          else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
+          ctx.stroke();
+        }
+      });
+    }
+  };
+  drawEdge(roomMap, "#111", 2);
+  drawEdge(frameMap, "#111", 10);
 
-ctx.fillStyle = "#111"; 
-ctx.lineJoin = "round";
-ctx.lineWidth = 4 / scale;
-ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+  // 5. 文字描画（★ここが新ロジック）
+  for (const key in groups) {
+    const g = groups[key];
 
-if (useTinyMode) {
-ctx.textAlign = "center"; ctx.textBaseline = "top";
-const labelSize = 10 / scale;
-ctx.font = `bold ${labelSize}px sans-serif`;
-const labelY = g.minY + (2 / scale);
-ctx.strokeText(g.label, g.textX, labelY);
-ctx.fillText(g.label, g.textX, labelY);
-if (el('showJou').checked) {
-const subSize = 8 / scale;
-ctx.font = `${subSize}px sans-serif`;
-const subY = labelY + labelSize + (1 / scale);
-const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
-ctx.strokeText(subText, g.textX, subY);
-ctx.fillText(subText, g.textX, subY);
-}
-} else {
-ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
-const mainFontSize = (14 * mag) / scale;
-ctx.font = `bold ${mainFontSize}px sans-serif`;
-const labelY = g.textY - (mainFontSize * 0.4); 
-ctx.strokeText(g.label, g.textX, labelY);
-ctx.fillText(g.label, g.textX, labelY);
-let subText = "";
-if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
-if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
-if (subText) {
-const subFontSize = (11 * mag) / scale;
-ctx.font = `${subFontSize}px sans-serif`;
-const subY = g.textY + (mainFontSize * 0.7);
-ctx.strokeText(subText, g.textX, subY);
-ctx.fillText(subText, g.textX, subY);
-}
-}
-ctx.textAlign = "left";
-}
+    // --- 結合形状スキャンアルゴリズム ---
+    // 部屋の範囲(BoundingBox)を1行ずつ走査して、
+    // 「一番長く連続している横幅のブロック」を見つけ出す
+    
+    let bestRect = null; // {x, y, w, h}
+    let currentRects = []; // 候補リスト
 
-items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+    // Y軸方向にスキャン
+    for (let y = g.minY; y < g.maxY; y += sub) {
+      let startX = -1;
+      let length = 0;
+      
+      // X軸方向にスキャンして、この行の最長セグメントを見つける
+      for (let x = g.minX; x <= g.maxX; x += sub) { // <= は終了判定のため
+        const cell = roomMap[`${x},${y}`];
+        const isMyRoom = (cell && cell.label === g.label);
 
-// 画像出力時の右下情報
-if (isExporting && gridBounds) {
-let totalMasu = 0;
-items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
-const tsubo = totalMasu / 4;
-const jou = totalMasu / 2;
-const m2 = tsubo * 3.305785;
-ctx.save();
-const infoFontSize = 24 / scale;
-ctx.font = `bold ${infoFontSize}px sans-serif`;
-ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
-const anchorX = gridBounds.endX; 
-const anchorY = gridBounds.endY + (140 / scale); 
-const lineH = infoFontSize * 1.5;
-ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
-ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
-ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
-ctx.restore();
-}
+        if (isMyRoom) {
+          if (startX === -1) startX = x;
+          length += sub;
+        } else {
+          if (startX !== -1) {
+            // セグメント終了。リストに追加または統合
+            // 直前の行と同じX範囲なら、高さを足して統合する（大きな矩形として認識させる）
+            let merged = false;
+            for(let r of currentRects) {
+              // ほぼ同じX範囲で、かつYがつながっているなら統合
+              if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
+                r.h += sub;
+                merged = true;
+                break;
+              }
+            }
+            if(!merged){
+              currentRects.push({ x: startX, y: y, w: length, h: sub });
+            }
+            startX = -1;
+            length = 0;
+          }
+        }
+      }
+    }
+
+    // 候補の中から「最も横幅が広いもの」を選ぶ
+    // ※横幅が同じなら、面積（高さ）が大きい方を選ぶ
+    currentRects.forEach(r => {
+      if(!bestRect) {
+        bestRect = r;
+      } else {
+        if (r.w > bestRect.w) {
+           bestRect = r; // 幅優先
+        } else if (r.w === bestRect.w) {
+           if (r.h > bestRect.h) bestRect = r; // 幅が同じなら面積優先
+        }
+      }
+    });
+
+    // 決定した座標（見つからなければ重心）
+    let textX, textY;
+    if (bestRect) {
+      textX = bestRect.x + bestRect.w / 2;
+      textY = bestRect.y + bestRect.h / 2;
+    } else {
+      textX = (g.minX + g.maxX) / 2;
+      textY = (g.minY + g.maxY) / 2;
+    }
+
+    // --- 文字描画処理（以下は変更なし） ---
+    const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
+    const visualHeight = (g.maxY - g.minY) * scale;
+    const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
+
+    ctx.fillStyle = "#111"; 
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4 / scale;
+    ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+
+    if (useTinyMode) {
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      const labelSize = 10 / scale;
+      ctx.font = `bold ${labelSize}px sans-serif`;
+      const labelY = g.minY + (2 / scale);
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      if (el('showJou').checked) {
+        const subSize = 8 / scale;
+        ctx.font = `${subSize}px sans-serif`;
+        const subY = labelY + labelSize + (1 / scale);
+        const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    } else {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+      const mainFontSize = (14 * mag) / scale;
+      ctx.font = `bold ${mainFontSize}px sans-serif`;
+      const labelY = textY - (mainFontSize * 0.4); 
+      
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      
+      let subText = "";
+      if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
+      if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
+      
+      if (subText) {
+        const subFontSize = (11 * mag) / scale;
+        ctx.font = `${subFontSize}px sans-serif`;
+        const subY = textY + (mainFontSize * 0.7);
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    }
+    ctx.textAlign = "left";
+  }
+
+  // 壁描画
+  items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+
+  // 画像出力時の右下情報
+  if (isExporting && gridBounds) {
+    let totalMasu = 0;
+    items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
+    const tsubo = totalMasu / 4;
+    const jou = totalMasu / 2;
+    const m2 = tsubo * 3.305785;
+    ctx.save();
+    const infoFontSize = 24 / scale;
+    ctx.font = `bold ${infoFontSize}px sans-serif`;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
+    const anchorX = gridBounds.endX; 
+    const anchorY = gridBounds.endY + (140 / scale); 
+    const lineH = infoFontSize * 1.5;
+    ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
+    ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
+    ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
+    ctx.restore();
+  }
 }
 
 
