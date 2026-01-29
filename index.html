@@ -2151,65 +2151,87 @@ ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
 }
 }
 
-function drawRectItems(){
+/* ✅ 修正版: 塗りつぶし専用（グリッドの下に描く） */
+function drawRectFill() {
     const rects = items.filter(i => i.type !== 'wallLine');
-    
-    // ★追加: 出力中は文字サイズを1.8倍にする
-    const mag = isExporting ? 1.8 : 1.0;
-
-    // fill
     rects.forEach(item => {
         ctx.fillStyle = item.color;
-        ctx.globalAlpha = item.type==='room' ? 0.35 : 1.0;
+        // 部屋は少し薄く、外枠などは濃く
+        ctx.globalAlpha = item.type === 'room' ? 0.35 : 1.0;
         ctx.fillRect(item.x, item.y, item.w, item.h);
         ctx.globalAlpha = 1.0;
-        if(item.locked){
+        
+        if (item.locked) {
             ctx.fillStyle = "rgba(0,0,0,0.08)";
             ctx.fillRect(item.x, item.y, item.w, item.h);
         }
     });
+}
 
-    // stroke
+/* ✅ 修正版: 枠線・文字・選択枠専用（グリッドの上に描く） */
+function drawRectStroke() {
+    const rects = items.filter(i => i.type !== 'wallLine');
+    // 出力中は文字サイズ調整
+    const mag = isExporting ? 1.8 : 1.0;
+
+    // Stroke
     rects.forEach(item => {
         const isFrame = item.type === 'frame';
         const baseStroke = isFrame ? "#cfcfd6" : "#333";
-        if(isSmallRoom(item)){
+        if (isSmallRoom(item)) {
             ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 4 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
             ctx.strokeStyle = baseStroke; ctx.lineWidth = 2 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
-        }else{
+        } else {
             ctx.strokeStyle = baseStroke; ctx.lineWidth = 1 / scale;
             ctx.strokeRect(item.x, item.y, item.w, item.h);
         }
     });
 
-    // label
+    // Label
     rects.forEach(item => {
         const label = item.locked ? `${item.label} 🔒` : (item.label || "");
-        if(!label) return;
+        if (!label) return;
 
-        // ★変更: 文字サイズ計算に mag を掛ける
         const baseSize = isSmallRoom(item) ? 11 : 13;
         const fontSize = (baseSize * mag) / scale;
-        
-        const x = item.x + item.w/2;
-        const y = item.y + item.h/2;
+        const x = item.x + item.w / 2;
+        const y = item.y + item.h / 2;
 
         ctx.save();
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = `900 ${fontSize}px sans-serif`;
-
         ctx.lineJoin = "round";
-        ctx.lineWidth = 4/scale;
+        ctx.lineWidth = 4 / scale;
         ctx.strokeStyle = "rgba(255,255,255,0.95)";
         ctx.strokeText(label, x, y);
-
         ctx.fillStyle = "#111";
         ctx.fillText(label, x, y);
         ctx.restore();
     });
+    
+    // 選択枠の描画（選択中のみ）
+    if(selectedItem && !isMerged && selectedItem.type !== 'wallLine'){
+        // 自分の描画タイミングで選択枠も描く
+        ctx.strokeStyle = "#007AFF";
+        ctx.lineWidth = 3 / scale;
+        ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+
+        if(!selectedItem.locked && !isReadOnly){
+            drawMoveHandleRect(selectedItem);
+            ctx.fillStyle = "#fff";
+            ctx.strokeStyle = "#007AFF";
+            ctx.lineWidth = 2/scale;
+            ctx.beginPath();
+            ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
+            ctx.fill(); ctx.stroke();
+        }
+        if(dragActive && pendingItem === selectedItem){
+            drawSizeBadge(selectedItem);
+        }
+    }
 }
 
 
@@ -2393,6 +2415,7 @@ function drawBlueprintGrid(targetItems) {
 }
 
 
+/* ✅ 修正版: グリッドを「床」と「文字」の間に挟む */
 function drawMerged(){
     const roomMap = {};
     const frameMap = {};
@@ -2400,31 +2423,23 @@ function drawMerged(){
     const sub = 16;
     const mag = isExporting ? 1.8 : 1.0;
 
-    // グリッド描画
-    const gridBounds = drawBlueprintGrid(items); 
-
-    items.forEach((item, index) => {
+    // 1. データ整理
+    items.forEach((item) => {
         if(item.type === 'wallLine') return;
-
         if (item.type !== 'frame') {
             if (!groups[item.label]) {
                 groups[item.label] = {
-                    label: item.label,
-                    totalMasu: 0,
+                    label: item.label, totalMasu: 0,
                     minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity,
                     textX: 0, textY: 0
                 };
             }
             const g = groups[item.label];
             g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-            g.minX = Math.min(g.minX, item.x);
-            g.minY = Math.min(g.minY, item.y);
-            g.maxX = Math.max(g.maxX, item.x + item.w);
-            g.maxY = Math.max(g.maxY, item.y + item.h);
-            g.textX = (g.minX + g.maxX) / 2;
-            g.textY = (g.minY + g.maxY) / 2;
+            g.minX = Math.min(g.minX, item.x); g.minY = Math.min(g.minY, item.y);
+            g.maxX = Math.max(g.maxX, item.x + item.w); g.maxY = Math.max(g.maxY, item.y + item.h);
+            g.textX = (g.minX + g.maxX) / 2; g.textY = (g.minY + g.maxY) / 2;
         }
-
         for (let x = item.x; x < item.x + item.w; x += sub) {
             for (let y = item.y; y < item.y + item.h; y += sub) {
                 const pos = `${x},${y}`;
@@ -2434,6 +2449,7 @@ function drawMerged(){
         }
     });
 
+    // 2. 先に塗りつぶし（床）を描画
     items.forEach(item => {
         if(item.type === 'wallLine') return;
         if(item.type === 'frame'){
@@ -2445,6 +2461,10 @@ function drawMerged(){
         ctx.globalAlpha = 1.0;
     });
 
+    // 3. ★ここでグリッドを描く（床の上、文字の下）
+    const gridBounds = drawBlueprintGrid(items); 
+
+    // 4. 枠線や文字を描画
     const drawEdge = (map, color, width) => {
         ctx.strokeStyle = color;
         ctx.lineWidth = width / scale;
@@ -2463,10 +2483,10 @@ function drawMerged(){
             });
         }
     };
-
     drawEdge(roomMap, "#111", 2);
     drawEdge(frameMap, "#111", 10);
 
+    // 文字
     for (const key in groups) {
         const g = groups[key];
         const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
@@ -2479,14 +2499,12 @@ function drawMerged(){
         ctx.strokeStyle = "rgba(255,255,255, 0.95)";
 
         if (useTinyMode) {
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
+            ctx.textAlign = "center"; ctx.textBaseline = "top";
             const labelSize = 10 / scale;
             ctx.font = `bold ${labelSize}px sans-serif`;
             const labelY = g.minY + (2 / scale);
             ctx.strokeText(g.label, g.textX, labelY);
             ctx.fillText(g.label, g.textX, labelY);
-
             if (el('showJou').checked) {
                 const subSize = 8 / scale;
                 ctx.font = `${subSize}px sans-serif`;
@@ -2496,18 +2514,15 @@ function drawMerged(){
                 ctx.fillText(subText, g.textX, subY);
             }
         } else {
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle"; 
+            ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
             const mainFontSize = (14 * mag) / scale;
             ctx.font = `bold ${mainFontSize}px sans-serif`;
             const labelY = g.textY - (mainFontSize * 0.4); 
             ctx.strokeText(g.label, g.textX, labelY);
             ctx.fillText(g.label, g.textX, labelY);
-
             let subText = "";
             if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
             if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
-
             if (subText) {
                 const subFontSize = (11 * mag) / scale;
                 ctx.font = `${subFontSize}px sans-serif`;
@@ -2521,46 +2536,27 @@ function drawMerged(){
 
     items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
 
-    // ✅ 画像出力時の右下情報
+    // 画像出力時の右下情報
     if (isExporting && gridBounds) {
         let totalMasu = 0;
-        items.forEach(i => {
-            if(i.type === 'frame') {
-                totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
-            }
-        });
-
+        items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
         const tsubo = totalMasu / 4;
         const jou = totalMasu / 2;
         const m2 = tsubo * 3.305785;
-
         ctx.save();
         const infoFontSize = 24 / scale;
         ctx.font = `bold ${infoFontSize}px sans-serif`;
-        ctx.textAlign = "right";
-        ctx.textBaseline = "bottom"; 
-        ctx.fillStyle = "#111";
-
-        // ★修正: 外枠基準(gridBounds.endX/Y)に対し、余白を考慮して内側に配置するのではなく
-        // 画像保存時に大きな余白(margin)を取るので、枠の少し外側に出しても大丈夫ですが
-        // 一応、枠線の真下あたりに配置します
+        ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
         const anchorX = gridBounds.endX; 
-        // 下側の数字(padding * 1.5)と被らないよう、十分に下げる
         const anchorY = gridBounds.endY + (140 / scale); 
-
         const lineH = infoFontSize * 1.5;
-
-        const text1 = `延床面積: ${m2.toFixed(2)} m²`;
-        const text2 = `(${tsubo.toFixed(2)} 坪)`;
-        const text3 = `施工面積: ${jou.toFixed(1)} 畳`; 
-
-        ctx.fillText(text3, anchorX, anchorY);
-        ctx.fillText(text2, anchorX, anchorY - lineH);
-        ctx.fillText(text1, anchorX, anchorY - (lineH * 2));
-
+        ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
+        ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
+        ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
         ctx.restore();
     }
 }
+
 
 
 
@@ -2625,71 +2621,50 @@ function drawMeasurement(){
 }
 
 
+/* ✅ 修正版: グリッドの順序を「床」と「上物」の間に統一 */
 window.draw = function(){
-ctx.save();
+    ctx.save();
+    if(isExporting) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
-// ★変更: 出力中は背景を白く塗る（透過防止）
-if(isExporting) {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-} else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
+    ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+    ctx.scale(scale, scale);
 
+    if(isMerged) {
+        // 結合モード（部屋モード）
+        drawMerged();
+    } else {
+        // 外枠モード（編集モード）
+        // 1. 床（塗りつぶし）
+        drawRectFill();
+        
+        // 2. ★グリッド（床の上に描く）
+        drawBlueprintGrid(items);
+        
+        // 3. 枠線・文字・選択枠（グリッドの上に描く）
+        drawRectStroke();
+        
+        // 壁
+        items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+        if(selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
+    }
 
+    if(isMeasureMode) drawMeasurement();
+    if(isWallPlaceMode) drawWallPlaceGuide();
 
-ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
-ctx.scale(scale, scale);
+    ctx.restore();
 
-if(!isMerged) drawGrid();
-
-if(isMerged) drawMerged();
-else{
-drawRectItems();
-items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
-}
-
-if(selectedItem && !(isMerged && selectedItem.type === 'frame')){
-if(selectedItem.type === 'wallLine'){
-drawWallSelection(selectedItem);
-}else{
-ctx.strokeStyle = "#007AFF";
-ctx.lineWidth = 3 / scale;
-ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
-
-if(!selectedItem.locked && !isReadOnly){
-drawMoveHandleRect(selectedItem);
-
-ctx.fillStyle = "#fff";
-ctx.strokeStyle = "#007AFF";
-ctx.lineWidth = 2/scale;
-ctx.beginPath();
-ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
-ctx.fill(); ctx.stroke();
-}
-
-if(dragActive && pendingItem === selectedItem){
-drawSizeBadge(selectedItem);
-}
-}
-}else if(selectedItem && selectedItem.type === 'frame' && isMerged){
-if(dragActive && pendingItem === selectedItem){
-drawSizeBadge(selectedItem);
-}
-}
-
-if(isMeasureMode) drawMeasurement();
-
-if(isWallPlaceMode) drawWallPlaceGuide();
-
-ctx.restore();
-
-updateSummary();
-syncBottomBarState();
-syncHistoryButtons();
-syncColorUI();
-syncWallThickUI();
+    updateSummary();
+    syncBottomBarState();
+    syncHistoryButtons();
+    syncColorUI();
+    syncWallThickUI();
 };
+
 
 function fitToFrame(){
 const frames = items.filter(i => i.type === 'frame');
@@ -3691,4 +3666,3 @@ init();
 
 </body>
 </html>
-
