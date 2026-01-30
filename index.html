@@ -864,66 +864,66 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 
 /* --- 🆕 マニュアル用スタイリッシュCSS --- */
 #helpModal .modal {
-  background: #f2f2f7; /* 背景を少しグレーに */
-  padding: 0;
-  overflow: hidden;
-  max-width: 460px;
-  display: flex;
-  flex-direction: column;
+background: #f2f2f7; /* 背景を少しグレーに */
+padding: 0;
+overflow: hidden;
+max-width: 460px;
+display: flex;
+flex-direction: column;
 }
 #helpModal .modal-header {
-  padding: 20px;
-  background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  text-align: center;
+padding: 20px;
+background: #fff;
+border-bottom: 1px solid rgba(0,0,0,0.05);
+text-align: center;
 }
 #helpModal h3 { margin: 0; font-size: 17px; }
 #helpModal .modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  max-height: 60vh;
-  -webkit-overflow-scrolling: touch;
+padding: 20px;
+overflow-y: auto;
+max-height: 60vh;
+-webkit-overflow-scrolling: touch;
 }
 
 /* セクション */
 .help-section {
-  margin-bottom: 24px;
+margin-bottom: 24px;
 }
 .help-section-title {
-  font-size: 13px;
-  color: #666;
-  margin: 0 0 8px 4px;
-  font-weight: 600;
-  text-transform: uppercase;
+font-size: 13px;
+color: #666;
+margin: 0 0 8px 4px;
+font-weight: 600;
+text-transform: uppercase;
 }
 
 /* カードリスト */
 .help-list {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+background: #fff;
+border-radius: 12px;
+overflow: hidden;
+box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .help-row {
-  display: flex;
-  align-items: flex-start;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ebedf0;
-  gap: 12px;
+display: flex;
+align-items: flex-start;
+padding: 12px 16px;
+border-bottom: 1px solid #ebedf0;
+gap: 12px;
 }
 .help-row:last-child { border-bottom: none; }
 
 .help-icon {
-  width: 28px;
-  height: 28px;
-  background: var(--accent);
-  border-radius: 6px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
+width: 28px;
+height: 28px;
+background: var(--accent);
+border-radius: 6px;
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 16px;
+flex-shrink: 0;
 }
 .help-icon.green { background: #34C759; }
 .help-icon.orange { background: #FF9500; }
@@ -935,19 +935,19 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 
 /* 閉じるボタンエリア */
 #helpModal .modal-footer {
-  padding: 16px 20px 24px; /* 下に余裕を */
-  background: #f2f2f7;
+padding: 16px 20px 24px; /* 下に余裕を */
+background: #f2f2f7;
 }
 #helpCloseBtn {
-  width: 100%;
-  height: 48px;
-  background: #fff;
-  color: var(--accent);
-  font-weight: 700;
-  border-radius: 12px;
-  border: none;
-  font-size: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+width: 100%;
+height: 48px;
+background: #fff;
+color: var(--accent);
+font-weight: 700;
+border-radius: 12px;
+border: none;
+font-size: 15px;
+box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 #helpCloseBtn:active { background: #e5e5ea; transform: scale(0.98); }
 
@@ -956,7 +956,7 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 </head>
 
 <body>
-<div class="ver-label">ver 1.11<br>by yuchi🐔</div>
+<div class="ver-label">ver 1.12<br>by yuchi🐔</div>
 
 <div class="toolbar">
 <div class="top-left">
@@ -990,7 +990,7 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 
 <div class="v-line"></div>
 
-<label class="chip tiny"><input type="checkbox" id="useHalfGrid">半ます</label>
+<label class="chip tiny" title="一条の間取り想定：最小単位は半ます固定"><input type="checkbox" id="useHalfGrid" checked disabled>半ます固定</label>
 
 <div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
 <span class="lbl">壁</span>
@@ -1041,7 +1041,7 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 <div class="bottom-bar" id="defaultBar">
 <!-- 部屋モード：追加 -->
 <button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
-<button class="pill" id="addInnerWallBtn2" data-sub="2点タップ">内壁</button>
+<button class="pill" id="addInnerWallBtn2" data-sub="ドラッグ/2点">内壁</button>
 
 <!-- 外枠モード：外壁の追加/削除（部屋モード時は非表示） -->
 <button class="pill primary" id="addFrameBtn2" data-sub="追加" style="display:none;">外壁</button>
@@ -1106,86 +1106,86 @@ position: absolute; opacity: 0; inset: 0; width: 100%;
 
 
 <div id="helpModal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>使い方・操作ガイド</h3>
-    </div>
-    
-    <div class="modal-body">
-      
-      <div class="help-section">
-        <div class="help-section-title">基本操作</div>
-        <div class="help-list">
-          <div class="help-row">
-            <div class="help-icon">👆</div>
-            <div class="help-content">
-              <b>移動・選択</b>
-              部屋の中央ハンドルをドラッグで移動。タップで選択。何もない所をタップで解除。
-            </div>
-          </div>
-          <div class="help-row">
-            <div class="help-icon">↘️</div>
-            <div class="help-content">
-              <b>サイズ変更</b>
-              選択時、右下に出る白い丸ハンドルをドラッグして調整。
-            </div>
-          </div>
-          <div class="help-row">
-            <div class="help-icon orange">🎨</div>
-            <div class="help-content">
-              <b>色・名前の変更</b>
-              部屋を選択し、画面下のツールバーから変更。名前変更は部屋を「2回タップ」でも可能。
-            </div>
-          </div>
-        </div>
-      </div>
+<div class="modal">
+<div class="modal-header">
+<h3>使い方・操作ガイド</h3>
+</div>
 
-      <div class="help-section">
-        <div class="help-section-title">作成の流れ</div>
-        <div class="help-list">
-          <div class="help-row">
-            <div class="help-icon gray">1</div>
-            <div class="help-content">
-              <b>外壁モード</b>
-              まずは家の「外枠」を作ります。サイズを決めたら「部屋」モードへ。
-            </div>
-          </div>
-          <div class="help-row">
-            <div class="help-icon green">2</div>
-            <div class="help-content">
-              <b>部屋モード</b>
-              部屋を追加して配置します。内壁は「内壁」ボタンを押してから2点をタップ。
-            </div>
-          </div>
-        </div>
-      </div>
+<div class="modal-body">
 
-      <div class="help-section">
-        <div class="help-section-title">便利機能</div>
-        <div class="help-list">
-          <div class="help-row">
-            <div class="help-icon pink">📏</div>
-            <div class="help-content">
-              <b>計測モード</b>
-              2点をタップすると、その間の距離を表示します。
-            </div>
-          </div>
-          <div class="help-row">
-            <div class="help-icon">👀</div>
-            <div class="help-content">
-              <b>閲覧モード</b>
-              誤操作を防ぎながら、ピンチ操作（2本指）で拡大・縮小や移動ができます。
-            </div>
-          </div>
-        </div>
-      </div>
+<div class="help-section">
+<div class="help-section-title">基本操作</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon">👆</div>
+<div class="help-content">
+<b>移動・選択</b>
+部屋の中央ハンドルをドラッグで移動。タップで選択。何もない所をタップで解除。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">↘️</div>
+<div class="help-content">
+<b>サイズ変更</b>
+選択時、右下に出る白い丸ハンドルをドラッグして調整。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon orange">🎨</div>
+<div class="help-content">
+<b>色・名前の変更</b>
+部屋を選択し、画面下のツールバーから変更。名前変更は部屋を「2回タップ」でも可能。
+</div>
+</div>
+</div>
+</div>
 
-    </div>
+<div class="help-section">
+<div class="help-section-title">作成の流れ</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon gray">1</div>
+<div class="help-content">
+<b>外壁モード</b>
+まずは家の「外枠」を作ります。サイズを決めたら「部屋」モードへ。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon green">2</div>
+<div class="help-content">
+<b>部屋モード</b>
+部屋を追加して配置します。内壁は「内壁」ボタンを押してから2点をタップ。
+</div>
+</div>
+</div>
+</div>
 
-    <div class="modal-footer">
-      <button id="helpCloseBtn" type="button">閉じる</button>
-    </div>
-  </div>
+<div class="help-section">
+<div class="help-section-title">便利機能</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon pink">📏</div>
+<div class="help-content">
+<b>計測モード</b>
+2点をタップすると、その間の距離を表示します。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">👀</div>
+<div class="help-content">
+<b>閲覧モード</b>
+誤操作を防ぎながら、ピンチ操作（2本指）で拡大・縮小や移動ができます。
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="modal-footer">
+<button id="helpCloseBtn" type="button">閉じる</button>
+</div>
+</div>
 </div>
 
 
@@ -1293,8 +1293,8 @@ let ctx = canvas.getContext('2d'); // ★ const から let に変更
 const container = el('canvas-container');
 
 // --- canvas view (Retina対応) ---
-let VIEW_W = 0;     // 表示上の幅（CSS px / 仮想キャンバス時は内部px）
-let VIEW_H = 0;     // 表示上の高さ（CSS px / 仮想キャンバス時は内部px）
+let VIEW_W = 0; // 表示上の幅（CSS px / 仮想キャンバス時は内部px）
+let VIEW_H = 0; // 表示上の高さ（CSS px / 仮想キャンバス時は内部px）
 let RENDER_DPR = 1; // Retina等の解像度倍率（仮想キャンバス時は1）
 
 // constants
@@ -1369,7 +1369,10 @@ let isMeasureMode = false;
 let measurePoints = [];
 
 let isWallPlaceMode = false;
-let wallPlaceStart = null; // {x,y} when placing wall by 2 taps
+let wallPlaceStart = null;      // {x,y} 始点（未確定）
+let wallPlacePreviewEnd = null; // {x,y} ドラッグ中の終点プレビュー
+let wallPlaceGestureNewStart = false; // このタッチで始点を新規セットしたか
+let wallPlaceGestureMoved = false;    // このタッチで十分に動いたか（ドラッグ判定）
 
 // history
 let undoStack = [];
@@ -1443,10 +1446,29 @@ items = [...frames, ...others];
 }
 
 function getSnapStep(){
-return el('useHalfGrid').checked ? 16 : 32;
+  // 一条の間取り想定：最小単位は半ます（16px）固定
+  return 16;
 }
 function getSnapped(val, step){
 return Math.round(val / step) * step;
+}
+
+function quantizeAllToGrid(step){
+  // 既存データのズレを半ますグリッドへ寄せる（将来の互換性用）
+  if(!step) step = getSnapStep();
+  items.forEach(it => {
+    if(it.type === 'wallLine'){
+      it.x1 = getSnapped(it.x1, step);
+      it.y1 = getSnapped(it.y1, step);
+      it.x2 = getSnapped(it.x2, step);
+      it.y2 = getSnapped(it.y2, step);
+    }else{
+      it.x = getSnapped(it.x, step);
+      it.y = getSnapped(it.y, step);
+      it.w = Math.max(step, getSnapped(it.w, step));
+      it.h = Math.max(step, getSnapped(it.h, step));
+    }
+  });
 }
 function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
@@ -1541,6 +1563,7 @@ function restore(s){
 items = (s.items || []).map(i => ({...i}));
 ensureIds();
 normalizeZ();
+quantizeAllToGrid(getSnapStep());
 isMerged = !!s.isMerged;
 camera = s.camera ? {...s.camera} : {x:0,y:0};
 scale = typeof s.scale === "number" ? s.scale : 1.0;
@@ -1548,6 +1571,8 @@ layoutId = s.layoutId ?? layoutId;
 setTitle(s.title || currentTitle, {silent:true});
 
 selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
+// ✅ 壁の重なりを整理（同一直線・同じ太さ/色）
+selectedItem = mergeOverlappingWalls(selectedItem) || selectedItem;
 updateSegmentUI();
 updateWorkHint();
 draw();
@@ -1828,22 +1853,22 @@ renderLayoutList();
 
 /* ui helpers */
 function resizeCanvas(){
-  // 表示上のサイズ（CSS px）
-  VIEW_W = container.clientWidth;
-  VIEW_H = container.clientHeight;
+// 表示上のサイズ（CSS px）
+VIEW_W = container.clientWidth;
+VIEW_H = container.clientHeight;
 
-  // 端末のDPR（重くなりすぎないよう上限3にクランプ）
-  const dpr = window.devicePixelRatio || 1;
-  RENDER_DPR = Math.max(1, Math.min(3, dpr));
+// 端末のDPR（重くなりすぎないよう上限3にクランプ）
+const dpr = window.devicePixelRatio || 1;
+RENDER_DPR = Math.max(1, Math.min(3, dpr));
 
-  // CSSサイズを固定し、内部解像度だけ上げる（Retina対策）
-  canvas.style.width = VIEW_W + "px";
-  canvas.style.height = VIEW_H + "px";
+// CSSサイズを固定し、内部解像度だけ上げる（Retina対策）
+canvas.style.width = VIEW_W + "px";
+canvas.style.height = VIEW_H + "px";
 
-  canvas.width  = Math.round(VIEW_W * RENDER_DPR);
-  canvas.height = Math.round(VIEW_H * RENDER_DPR);
+canvas.width = Math.round(VIEW_W * RENDER_DPR);
+canvas.height = Math.round(VIEW_H * RENDER_DPR);
 
-  draw();
+draw();
 }
 function updateSegmentUI(){
 el('segEdit').classList.toggle('active', !isMerged);
@@ -1851,31 +1876,31 @@ el('segMerge').classList.toggle('active', isMerged);
 }
 
 function setMergedMode(val){
-  // 既に同じなら何もしない
-  if(isMerged === val) return;
+// 既に同じなら何もしない
+if(isMerged === val) return;
 
-  // ▼ モード更新
-  isMerged = val;
+// ▼ モード更新
+isMerged = val;
 
-  // モード切替時に、選択が不整合だとUIが迷うので解除
-  if(isMerged){
-    if(selectedItem && selectedItem.type === 'frame') selectedItem = null;
-  }else{
-    if(selectedItem && selectedItem.type !== 'frame') selectedItem = null;
-  }
+// モード切替時に、選択が不整合だとUIが迷うので解除
+if(isMerged){
+if(selectedItem && selectedItem.type === 'frame') selectedItem = null;
+}else{
+if(selectedItem && selectedItem.type !== 'frame') selectedItem = null;
+}
 
-  // 進行中のタッチ操作をリセット（切替直後の挙動が安定する）
-  try{ clearTouchState(); }catch(_){}
+// 進行中のタッチ操作をリセット（切替直後の挙動が安定する）
+try{ clearTouchState(); }catch(_){}
 
-  updateSegmentUI();
-  updateModeAvailability();
-  updateWorkHint();
-  syncViewBtn();
+updateSegmentUI();
+updateModeAvailability();
+updateWorkHint();
+syncViewBtn();
 
-  // ✅ 重要：モード切替は「即」反映する
-  // iOS Safariで requestAnimationFrame が遅延することがあり、
-  // その場合「次にキャンバスを触るまで反映されない」ように見えるため
-  draw();
+// ✅ 重要：モード切替は「即」反映する
+// iOS Safariで requestAnimationFrame が遅延することがあり、
+// その場合「次にキャンバスを触るまで反映されない」ように見えるため
+draw();
 }
 
 
@@ -1918,6 +1943,9 @@ if(btnFrame) btnFrame.disabled = !outer;
 if(outer){
 isWallPlaceMode = false;
 wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
 updateWorkHint();
 const wb = el('addInnerWallBtn2');
 if(wb) wb.classList.remove('active');
@@ -1939,9 +1967,9 @@ return;
 }
 if(isWallPlaceMode){
 if(!wallPlaceStart){
-h.innerHTML = "<b>内壁</b>：始点をタップ → 次に終点をタップ（解除：内壁ボタン）";
+h.innerHTML = "<b>内壁</b>：ドラッグで1本設置／または始点タップ→終点タップ（解除：内壁ボタン）";
 }else{
-h.innerHTML = "<b>内壁</b>：終点をタップ（解除：内壁ボタン）";
+h.innerHTML = "<b>内壁</b>：ドラッグして離す／終点タップで確定（解除：内壁ボタン）";
 }
 return;
 }
@@ -1949,7 +1977,7 @@ return;
 if(!isMerged){
 h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
 }else{
-h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：2点タップで設置";
+h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：ドラッグ／2点タップで設置";
 }
 }
 
@@ -1995,11 +2023,11 @@ const outer = !isMerged;
 defBar.classList.toggle('mode-outer', outer);
 
 // 要素参照
-const btnRoom  = el('addGenericRoomBtn2');
-const btnWall  = el('addInnerWallBtn2');
+const btnRoom = el('addGenericRoomBtn2');
+const btnWall = el('addInnerWallBtn2');
 const btnFrame = el('addFrameBtn2');
 
-const nameBtn  = el('editNameBtn');
+const nameBtn = el('editNameBtn');
 const nameDisp = el('selectedNameDisplay');
 
 const colorLabel = el('selectedColorLabel');
@@ -2220,9 +2248,12 @@ thick: WALL_DEFAULT_THICK,
 color: '#111'
 };
 items.push(w);
+
+// ✅ 重なった壁を結合（長い線へ）
+const merged = mergeOverlappingWalls(w);
 ensureIds();
 normalizeZ();
-selectedItem = w;
+selectedItem = merged || w;
 draw();
 scheduleAutoSave();
 }
@@ -2230,6 +2261,9 @@ scheduleAutoSave();
 function setWallPlaceMode(on){
 isWallPlaceMode = !!on;
 wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
 
 const btn = el('addInnerWallBtn2');
 if(btn){
@@ -2438,6 +2472,134 @@ else wall.x2 = wall.x1;
 }
 }
 
+
+/* wall merge helpers（重なった内壁を自動結合） */
+function isWallHorizontal(w, eps=1e-6){
+  return Math.abs(w.y1 - w.y2) <= eps;
+}
+function isWallVertical(w, eps=1e-6){
+  return Math.abs(w.x1 - w.x2) <= eps;
+}
+function normalizeWallEndpoints(w){
+  if(!w) return;
+  if(isWallHorizontal(w) && w.x2 < w.x1){
+    const tx = w.x1; w.x1 = w.x2; w.x2 = tx;
+    const ty = w.y1; w.y1 = w.y2; w.y2 = ty;
+  }else if(isWallVertical(w) && w.y2 < w.y1){
+    const tx = w.x1; w.x1 = w.x2; w.x2 = tx;
+    const ty = w.y1; w.y1 = w.y2; w.y2 = ty;
+  }
+}
+
+// ✅ 重なった/連続した壁（同一直線・同じ太さ/色）を1本にまとめる
+// preferWall を渡すと、その壁を含む結合結果の壁を返す（選択維持用）
+function mergeOverlappingWalls(preferWall=null){
+  const EPS = 1e-3; // world座標での誤差許容
+  const walls = items.filter(it => it && it.type === 'wallLine');
+  if(!walls.length) return preferWall;
+
+  // 1) 正規化（向きが揃っているとマージしやすい）
+  walls.forEach(w => {
+    if(!Number.isFinite(w.thick)) w.thick = WALL_DEFAULT_THICK;
+    if(!w.color) w.color = '#111';
+    normalizeWallEndpoints(w);
+  });
+
+  // 2) グループ化（水平/垂直 + 同一直線 + 同じ見た目）
+  const groups = new Map();
+  const keyOf = (w) => {
+    if(isWallHorizontal(w)){
+      const y = Math.round(w.y1 * 1000) / 1000;
+      return `H|${y}|${w.thick}|${w.color}`;
+    }
+    if(isWallVertical(w)){
+      const x = Math.round(w.x1 * 1000) / 1000;
+      return `V|${x}|${w.thick}|${w.color}`;
+    }
+    return null;
+  };
+
+  for(const w of walls){
+    const k = keyOf(w);
+    if(!k) continue;
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(w);
+  }
+
+  // preferWall が消えた場合の追跡
+  let preferKept = preferWall;
+
+  const removeWall = (w) => {
+    const idx = items.indexOf(w);
+    if(idx >= 0) items.splice(idx, 1);
+  };
+
+  // 3) 各グループ内で区間マージ
+  for(const arr of groups.values()){
+    if(arr.length <= 1) continue;
+
+    const horizontal = isWallHorizontal(arr[0]);
+
+    arr.sort((a,b) => {
+      if(horizontal) return a.x1 - b.x1;
+      return a.y1 - b.y1;
+    });
+
+    let current = arr[0];
+    normalizeWallEndpoints(current);
+
+    for(let i=1;i<arr.length;i++){
+      const w = arr[i];
+      if(items.indexOf(w) < 0) continue; // すでに消えてたらスキップ
+      normalizeWallEndpoints(w);
+
+      if(horizontal){
+        const a2 = current.x2;
+        const b1 = w.x1, b2 = w.x2;
+
+        // overlap or touch → merge
+        if(b1 <= a2 + EPS){
+          current.x2 = Math.max(a2, b2);
+          current.locked = !!(current.locked || w.locked);
+
+          if(preferWall === w) preferKept = current;
+          if(selectedItem === w) selectedItem = current;
+
+          removeWall(w);
+          continue;
+        }else{
+          current = w;
+        }
+      }else{
+        const a2 = current.y2;
+        const b1 = w.y1, b2 = w.y2;
+
+        if(b1 <= a2 + EPS){
+          current.y2 = Math.max(a2, b2);
+          current.locked = !!(current.locked || w.locked);
+
+          if(preferWall === w) preferKept = current;
+          if(selectedItem === w) selectedItem = current;
+
+          removeWall(w);
+          continue;
+        }else{
+          current = w;
+        }
+      }
+    }
+  }
+
+  // 結果も正規化
+  items.forEach(it => {
+    if(it && it.type === 'wallLine') normalizeWallEndpoints(it);
+  });
+
+  return preferKept;
+}
+
+
+
 /* rect helpers */
 function isSmallRoom(it){
 if(!it || it.type !== 'room') return false;
@@ -2496,17 +2658,38 @@ return false;
 
 /* draw */
 function drawGrid(){
-ctx.strokeStyle = "#e5e5ea";
-ctx.lineWidth = 0.5 / scale;
-const range = 1600;
-for (let x = -range; x <= range; x += GRID_SIZE) {
-ctx.beginPath();
-ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
-}
-for (let y = -range; y <= range; y += GRID_SIZE) {
-ctx.beginPath();
-ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
-}
+  const range = 1600;
+  const major = GRID_SIZE;      // 1マス
+  const minor = GRID_SIZE / 2;  // 半マス
+
+  // minor grid（薄く）
+  ctx.strokeStyle = "#e5e5ea";
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 0.5 / scale;
+
+  for (let x = -range; x <= range; x += minor) {
+    if (x % major === 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+  }
+  for (let y = -range; y <= range; y += minor) {
+    if (y % major === 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+  }
+
+  // major grid（少し濃く）
+  ctx.globalAlpha = 1.0;
+  ctx.lineWidth = 0.5 / scale;
+
+  for (let x = -range; x <= range; x += major) {
+    ctx.beginPath();
+    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+  }
+  for (let y = -range; y <= range; y += major) {
+    ctx.beginPath();
+    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+  }
 }
 
 /* ✅ 修正版: 塗りつぶし専用（グリッドの下に描く） */
@@ -2785,243 +2968,275 @@ return { maxX, maxY, endX, endY };
 
 /* ✅ 修正版: 結合後の形状をスキャンして、本当に一番広い場所に文字を置く drawMerged */
 function drawMerged(){
-  const roomMap = {};
-  const frameMap = {};
-  const groups = {};
-  const sub = 16; // グリッド解像度
-  const mag = isExporting ? 1.8 : 1.0;
+const roomMap = {};
+const frameMap = {};
+const groups = {};
+const sub = 16; // グリッド解像度
+const mag = isExporting ? 1.8 : 1.0;
 
-  // 1. データ整理（グループ化）
-  items.forEach((item) => {
-    if(item.type === 'wallLine') return;
-    
-    // グループ情報の作成
-    if (item.type !== 'frame') {
-      if (!groups[item.label]) {
-        groups[item.label] = {
-          label: item.label, 
-          totalMasu: 0,
-          minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
-        };
-      }
-      const g = groups[item.label];
-      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-      g.minX = Math.min(g.minX, item.x); 
-      g.minY = Math.min(g.minY, item.y);
-      g.maxX = Math.max(g.maxX, item.x + item.w); 
-      g.maxY = Math.max(g.maxY, item.y + item.h);
-    }
+// 1. データ整理（グループ化）
+items.forEach((item) => {
+if(item.type === 'wallLine') return;
 
-    // 結合描画用のマップ作成（これが重要）
-    for (let x = item.x; x < item.x + item.w; x += sub) {
-      for (let y = item.y; y < item.y + item.h; y += sub) {
-        const pos = `${x},${y}`;
-        if (item.type === 'frame') frameMap[pos] = item.label;
-        else roomMap[pos] = { label: item.label, color: item.color };
-      }
-    }
-  });
+// グループ情報の作成
+if (item.type !== 'frame') {
+if (!groups[item.label]) {
+groups[item.label] = {
+label: item.label, 
+totalMasu: 0,
+minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
+};
+}
+const g = groups[item.label];
+g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+g.minX = Math.min(g.minX, item.x); 
+g.minY = Math.min(g.minY, item.y);
+g.maxX = Math.max(g.maxX, item.x + item.w); 
+g.maxY = Math.max(g.maxY, item.y + item.h);
+}
 
-  // 2. 先に塗りつぶし（床）
-  items.forEach(item => {
-    if(item.type === 'wallLine') return;
-    if(item.type === 'frame'){
-      ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
-    }else{
-      ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
-    }
-    ctx.fillRect(item.x, item.y, item.w, item.h);
-    ctx.globalAlpha = 1.0;
-  });
+// 結合描画用のマップ作成（これが重要）
+for (let x = item.x; x < item.x + item.w; x += sub) {
+for (let y = item.y; y < item.y + item.h; y += sub) {
+const pos = `${x},${y}`;
+if (item.type === 'frame') frameMap[pos] = item.label;
+else roomMap[pos] = { label: item.label, color: item.color };
+}
+}
+});
 
-  // 3. グリッド線
-  const gridBounds = drawBlueprintGrid(items); 
+// 2. 先に塗りつぶし（床）
+items.forEach(item => {
+if(item.type === 'wallLine') return;
+if(item.type === 'frame'){
+ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
+}else{
+ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
+}
+ctx.fillRect(item.x, item.y, item.w, item.h);
+ctx.globalAlpha = 1.0;
+});
 
-  // 4. 枠線描画
-  const drawEdge = (map, color, width) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width / scale;
-    for (const pos in map) {
-      const [x, y] = pos.split(',').map(Number);
-      const label = map[pos].label || map[pos];
-      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-        const nb = map[`${x+d.dx},${y+d.dy}`];
-        const nbLabel = nb?.label || nb;
-        if (nbLabel !== label) {
-          ctx.beginPath();
-          if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
-          else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
-          ctx.stroke();
-        }
-      });
-    }
-  };
-  drawEdge(roomMap, "#111", 2);
-  drawEdge(frameMap, "#111", 10);
+// 3. グリッド線
+const gridBounds = drawBlueprintGrid(items); 
 
-  // 5. 文字描画（★ここが新ロジック）
-  for (const key in groups) {
-    const g = groups[key];
+// 4. 枠線描画
+const drawEdge = (map, color, width) => {
+ctx.strokeStyle = color;
+ctx.lineWidth = width / scale;
+for (const pos in map) {
+const [x, y] = pos.split(',').map(Number);
+const label = map[pos].label || map[pos];
+[{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+const nb = map[`${x+d.dx},${y+d.dy}`];
+const nbLabel = nb?.label || nb;
+if (nbLabel !== label) {
+ctx.beginPath();
+if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
+else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
+ctx.stroke();
+}
+});
+}
+};
+drawEdge(roomMap, "#111", 2);
+drawEdge(frameMap, "#111", 10);
 
-    // --- 結合形状スキャンアルゴリズム ---
-    // 部屋の範囲(BoundingBox)を1行ずつ走査して、
-    // 「一番長く連続している横幅のブロック」を見つけ出す
-    
-    let bestRect = null; // {x, y, w, h}
-    let currentRects = []; // 候補リスト
+// 5. 文字描画（★ここが新ロジック）
+for (const key in groups) {
+const g = groups[key];
 
-    // Y軸方向にスキャン
-    for (let y = g.minY; y < g.maxY; y += sub) {
-      let startX = -1;
-      let length = 0;
-      
-      // X軸方向にスキャンして、この行の最長セグメントを見つける
-      for (let x = g.minX; x <= g.maxX; x += sub) { // <= は終了判定のため
-        const cell = roomMap[`${x},${y}`];
-        const isMyRoom = (cell && cell.label === g.label);
+// --- 結合形状スキャンアルゴリズム ---
+// 部屋の範囲(BoundingBox)を1行ずつ走査して、
+// 「一番長く連続している横幅のブロック」を見つけ出す
 
-        if (isMyRoom) {
-          if (startX === -1) startX = x;
-          length += sub;
-        } else {
-          if (startX !== -1) {
-            // セグメント終了。リストに追加または統合
-            // 直前の行と同じX範囲なら、高さを足して統合する（大きな矩形として認識させる）
-            let merged = false;
-            for(let r of currentRects) {
-              // ほぼ同じX範囲で、かつYがつながっているなら統合
-              if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
-                r.h += sub;
-                merged = true;
-                break;
-              }
-            }
-            if(!merged){
-              currentRects.push({ x: startX, y: y, w: length, h: sub });
-            }
-            startX = -1;
-            length = 0;
-          }
-        }
-      }
-    }
+let bestRect = null; // {x, y, w, h}
+let currentRects = []; // 候補リスト
 
-    // 候補の中から「最も横幅が広いもの」を選ぶ
-    // ※横幅が同じなら、面積（高さ）が大きい方を選ぶ
-    currentRects.forEach(r => {
-      if(!bestRect) {
-        bestRect = r;
-      } else {
-        if (r.w > bestRect.w) {
-           bestRect = r; // 幅優先
-        } else if (r.w === bestRect.w) {
-           if (r.h > bestRect.h) bestRect = r; // 幅が同じなら面積優先
-        }
-      }
-    });
+// Y軸方向にスキャン
+for (let y = g.minY; y < g.maxY; y += sub) {
+let startX = -1;
+let length = 0;
 
-    // 決定した座標（見つからなければ重心）
-    let textX, textY;
-    if (bestRect) {
-      textX = bestRect.x + bestRect.w / 2;
-      textY = bestRect.y + bestRect.h / 2;
-    } else {
-      textX = (g.minX + g.maxX) / 2;
-      textY = (g.minY + g.maxY) / 2;
-    }
+// X軸方向にスキャンして、この行の最長セグメントを見つける
+for (let x = g.minX; x <= g.maxX; x += sub) { // <= は終了判定のため
+const cell = roomMap[`${x},${y}`];
+const isMyRoom = (cell && cell.label === g.label);
 
-    // --- 文字描画処理（以下は変更なし） ---
-    const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
-    const visualHeight = (g.maxY - g.minY) * scale;
-    const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
+if (isMyRoom) {
+if (startX === -1) startX = x;
+length += sub;
+} else {
+if (startX !== -1) {
+// セグメント終了。リストに追加または統合
+// 直前の行と同じX範囲なら、高さを足して統合する（大きな矩形として認識させる）
+let merged = false;
+for(let r of currentRects) {
+// ほぼ同じX範囲で、かつYがつながっているなら統合
+if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
+r.h += sub;
+merged = true;
+break;
+}
+}
+if(!merged){
+currentRects.push({ x: startX, y: y, w: length, h: sub });
+}
+startX = -1;
+length = 0;
+}
+}
+}
+}
 
-    ctx.fillStyle = "#111"; 
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 4 / scale;
-    ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+// 候補の中から「最も横幅が広いもの」を選ぶ
+// ※横幅が同じなら、面積（高さ）が大きい方を選ぶ
+currentRects.forEach(r => {
+if(!bestRect) {
+bestRect = r;
+} else {
+if (r.w > bestRect.w) {
+bestRect = r; // 幅優先
+} else if (r.w === bestRect.w) {
+if (r.h > bestRect.h) bestRect = r; // 幅が同じなら面積優先
+}
+}
+});
 
-    if (useTinyMode) {
-      ctx.textAlign = "center"; ctx.textBaseline = "top";
-      const labelSize = 10 / scale;
-      ctx.font = `bold ${labelSize}px sans-serif`;
-      const labelY = g.minY + (2 / scale);
-      ctx.strokeText(g.label, textX, labelY);
-      ctx.fillText(g.label, textX, labelY);
-      if (el('showJou').checked) {
-        const subSize = 8 / scale;
-        ctx.font = `${subSize}px sans-serif`;
-        const subY = labelY + labelSize + (1 / scale);
-        const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
-        ctx.strokeText(subText, textX, subY);
-        ctx.fillText(subText, textX, subY);
-      }
-    } else {
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
-      const mainFontSize = (14 * mag) / scale;
-      ctx.font = `bold ${mainFontSize}px sans-serif`;
-      const labelY = textY - (mainFontSize * 0.4); 
-      
-      ctx.strokeText(g.label, textX, labelY);
-      ctx.fillText(g.label, textX, labelY);
-      
-      let subText = "";
-      if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
-      if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
-      
-      if (subText) {
-        const subFontSize = (11 * mag) / scale;
-        ctx.font = `${subFontSize}px sans-serif`;
-        const subY = textY + (mainFontSize * 0.7);
-        ctx.strokeText(subText, textX, subY);
-        ctx.fillText(subText, textX, subY);
-      }
-    }
-    ctx.textAlign = "left";
-  }
+// 決定した座標（見つからなければ重心）
+let textX, textY;
+if (bestRect) {
+textX = bestRect.x + bestRect.w / 2;
+textY = bestRect.y + bestRect.h / 2;
+} else {
+textX = (g.minX + g.maxX) / 2;
+textY = (g.minY + g.maxY) / 2;
+}
 
-  // 壁描画
-  items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+// --- 文字描画処理（以下は変更なし） ---
+const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
+const visualHeight = (g.maxY - g.minY) * scale;
+const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
 
-  // 画像出力時の右下情報
-  if (isExporting && gridBounds) {
-    let totalMasu = 0;
-    items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
-    const tsubo = totalMasu / 4;
-    const jou = totalMasu / 2;
-    const m2 = tsubo * 3.305785;
-    ctx.save();
-    const infoFontSize = 24 / scale;
-    ctx.font = `bold ${infoFontSize}px sans-serif`;
-    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
-    const anchorX = gridBounds.endX; 
-    const anchorY = gridBounds.endY + (140 / scale); 
-    const lineH = infoFontSize * 1.5;
-    ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
-    ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
-    ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
-    ctx.restore();
-  }
+ctx.fillStyle = "#111"; 
+ctx.lineJoin = "round";
+ctx.lineWidth = 4 / scale;
+ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+
+if (useTinyMode) {
+ctx.textAlign = "center"; ctx.textBaseline = "top";
+const labelSize = 10 / scale;
+ctx.font = `bold ${labelSize}px sans-serif`;
+const labelY = g.minY + (2 / scale);
+ctx.strokeText(g.label, textX, labelY);
+ctx.fillText(g.label, textX, labelY);
+if (el('showJou').checked) {
+const subSize = 8 / scale;
+ctx.font = `${subSize}px sans-serif`;
+const subY = labelY + labelSize + (1 / scale);
+const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
+ctx.strokeText(subText, textX, subY);
+ctx.fillText(subText, textX, subY);
+}
+} else {
+ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+const mainFontSize = (14 * mag) / scale;
+ctx.font = `bold ${mainFontSize}px sans-serif`;
+const labelY = textY - (mainFontSize * 0.4); 
+
+ctx.strokeText(g.label, textX, labelY);
+ctx.fillText(g.label, textX, labelY);
+
+let subText = "";
+if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
+if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
+
+if (subText) {
+const subFontSize = (11 * mag) / scale;
+ctx.font = `${subFontSize}px sans-serif`;
+const subY = textY + (mainFontSize * 0.7);
+ctx.strokeText(subText, textX, subY);
+ctx.fillText(subText, textX, subY);
+}
+}
+ctx.textAlign = "left";
+}
+
+// 壁描画
+items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+
+// 画像出力時の右下情報
+if (isExporting && gridBounds) {
+let totalMasu = 0;
+items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
+const tsubo = totalMasu / 4;
+const jou = totalMasu / 2;
+const m2 = tsubo * 3.305785;
+ctx.save();
+const infoFontSize = 24 / scale;
+ctx.font = `bold ${infoFontSize}px sans-serif`;
+ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
+const anchorX = gridBounds.endX; 
+const anchorY = gridBounds.endY + (140 / scale); 
+const lineH = infoFontSize * 1.5;
+ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
+ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
+ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
+ctx.restore();
+}
 }
 
 
 
 
 function drawWallPlaceGuide(){
-// 壁設置モード：1点目が確定している時だけマーカーを表示
+// 壁設置モード：始点がある時だけガイドを表示
 if(!isWallPlaceMode || !wallPlaceStart) return;
 
 ctx.save();
+
+const r = 6/scale;
+
+// 1) プレビュー線（ドラッグ中 or 終点候補あり）
+if(wallPlacePreviewEnd){
+const thickWorld = (WALL_DEFAULT_THICK || 12) / scale;
+
+ctx.save();
+ctx.lineCap = "butt";
+ctx.strokeStyle = "rgba(0,122,255,0.85)";
+ctx.lineWidth = thickWorld;
+ctx.setLineDash([10/scale, 8/scale]);
+
+ctx.beginPath();
+ctx.moveTo(wallPlaceStart.x, wallPlaceStart.y);
+ctx.lineTo(wallPlacePreviewEnd.x, wallPlacePreviewEnd.y);
+ctx.stroke();
+
+ctx.setLineDash([]);
+ctx.restore();
+
+// 終点マーカー
+ctx.fillStyle = "rgba(0,122,255,0.85)";
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.lineWidth = 4/scale;
+ctx.beginPath();
+ctx.arc(wallPlacePreviewEnd.x, wallPlacePreviewEnd.y, r, 0, Math.PI*2);
+ctx.fill();
+ctx.stroke();
+}
+
+// 2) 始点マーカー
 ctx.fillStyle = "#007AFF";
 ctx.strokeStyle = "rgba(255,255,255,0.95)";
 ctx.lineWidth = 4/scale;
-
-const r = 6/scale;
 ctx.beginPath();
 ctx.arc(wallPlaceStart.x, wallPlaceStart.y, r, 0, Math.PI*2);
 ctx.fill();
 ctx.stroke();
+
 ctx.restore();
 }
+
 
 function drawMeasurement(){
 if(!measurePoints.length) return;
@@ -3055,7 +3270,8 @@ ctx.font = `bold ${(16 * mag) / scale}px sans-serif`;
 ctx.textAlign = "center";
 ctx.textBaseline = "bottom";
 
-const txt = `${meters}m`;
+const masTxt = `${masVal.toFixed(1)}マス`;
+const txt = `${meters}m（${masTxt}）`;
 
 ctx.lineWidth = 4/scale;
 ctx.lineJoin = "round";
@@ -3137,76 +3353,76 @@ window.draw = draw;
 
 
 function fitToFrame() {
-  // 1. 念のため最新の画面サイズを取得
-  resizeCanvas();
+// 1. 念のため最新の画面サイズを取得
+resizeCanvas();
 
-  const frames = items.filter(i => i.type === 'frame');
-  const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
+const frames = items.filter(i => i.type === 'frame');
+const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
 
-  if (!targets.length) {
-    camera = { x: 0, y: 0 };
-    scale = 1.0;
-    draw();
-    return;
-  }
+if (!targets.length) {
+camera = { x: 0, y: 0 };
+scale = 1.0;
+draw();
+return;
+}
 
-  // 2. 範囲計算
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  
-  targets.forEach(it => {
-    minX = Math.min(minX, it.x);
-    minY = Math.min(minY, it.y);
-    maxX = Math.max(maxX, it.x + it.w);
-    maxY = Math.max(maxY, it.y + it.h);
-  });
-  
-  items.filter(i => i.type === 'wallLine').forEach(w => {
-    minX = Math.min(minX, w.x1, w.x2);
-    minY = Math.min(minY, w.y1, w.y2);
-    maxX = Math.max(maxX, w.x1, w.x2);
-    maxY = Math.max(maxY, w.y1, w.y2);
-  });
+// 2. 範囲計算
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-  // 3. グリッド端＋余白（数字用）
-  const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
-  const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
-  const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
-  const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+targets.forEach(it => {
+minX = Math.min(minX, it.x);
+minY = Math.min(minY, it.y);
+maxX = Math.max(maxX, it.x + it.w);
+maxY = Math.max(maxY, it.y + it.h);
+});
 
-  // 周囲の余白（64px = グリッド2マス分程度）
-  const marginWorld = 3; 
+items.filter(i => i.type === 'wallLine').forEach(w => {
+minX = Math.min(minX, w.x1, w.x2);
+minY = Math.min(minY, w.y1, w.y2);
+maxX = Math.max(maxX, w.x1, w.x2);
+maxY = Math.max(maxY, w.y1, w.y2);
+});
 
-  const contentMinX = gridStartX - marginWorld;
-  const contentMinY = gridStartY - marginWorld;
-  const contentMaxX = gridEndX + marginWorld;
-  const contentMaxY = gridEndY + marginWorld;
+// 3. グリッド端＋余白（数字用）
+const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
 
-  const contentW = contentMaxX - contentMinX;
-  const contentH = contentMaxY - contentMinY;
-  const cx = (contentMinX + contentMaxX) / 2;
-  const cy = (contentMinY + contentMaxY) / 2;
+// 周囲の余白（64px = グリッド2マス分程度）
+const marginWorld = 3; 
 
-  // 4. 倍率計算
-  // ★修正ポイント: CSSですでにボトムバー分の余白は確保されているので、
-  // ここでは純粋な「見た目のゆとり」分だけ引けばOKです。
-  const screenPadH = 40;  // 左右
-  const screenPadV = 60;  // 上下（以前の160から大幅に減らす）
+const contentMinX = gridStartX - marginWorld;
+const contentMinY = gridStartY - marginWorld;
+const contentMaxX = gridEndX + marginWorld;
+const contentMaxY = gridEndY + marginWorld;
 
-  const availW = VIEW_W - screenPadH;
-  const availH = VIEW_H - screenPadV;
+const contentW = contentMaxX - contentMinX;
+const contentH = contentMaxY - contentMinY;
+const cx = (contentMinX + contentMaxX) / 2;
+const cy = (contentMinY + contentMaxY) / 2;
 
-  if (contentW > 0 && contentH > 0) {
-    const scaleW = availW / contentW;
-    const scaleH = availH / contentH;
-    let newScale = Math.min(scaleW, scaleH);
-    newScale = Math.max(0.3, Math.min(2.0, newScale));
-    scale = newScale;
-  }
+// 4. 倍率計算
+// ★修正ポイント: CSSですでにボトムバー分の余白は確保されているので、
+// ここでは純粋な「見た目のゆとり」分だけ引けばOKです。
+const screenPadH = 40; // 左右
+const screenPadV = 60; // 上下（以前の160から大幅に減らす）
 
-  // 5. 中心合わせ
-  camera = { x: -cx * scale, y: -cy * scale };
+const availW = VIEW_W - screenPadH;
+const availH = VIEW_H - screenPadV;
 
-  draw();
+if (contentW > 0 && contentH > 0) {
+const scaleW = availW / contentW;
+const scaleH = availH / contentH;
+let newScale = Math.min(scaleW, scaleH);
+newScale = Math.max(0.3, Math.min(2.0, newScale));
+scale = newScale;
+}
+
+// 5. 中心合わせ
+camera = { x: -cx * scale, y: -cy * scale };
+
+draw();
 }
 
 
@@ -3226,23 +3442,23 @@ vb.classList.add('gray');
 
 // ✅ 「閲覧」ボタン（ダブルタップで全体表示・通知なし）
 if(document.getElementById('viewBtn')){
-  let lastTap = 0;
-  document.getElementById('viewBtn').onclick = (e) => {
-    const now = Date.now();
-    if (now - lastTap < 300) {
-      fitToFrame(); // ダブルタップで全体表示
-    } else {
-      setViewMode(!isViewMode); // シングルタップでモード切替
-    }
-    lastTap = now;
-  };
+let lastTap = 0;
+document.getElementById('viewBtn').onclick = (e) => {
+const now = Date.now();
+if (now - lastTap < 300) {
+fitToFrame(); // ダブルタップで全体表示
+} else {
+setViewMode(!isViewMode); // シングルタップでモード切替
+}
+lastTap = now;
+};
 }
 
 // ✅ 「全体」ボタン（クリックで即実行・通知なし）
 if(document.getElementById('fitBtn')){
-  document.getElementById('fitBtn').onclick = () => {
-    fitToFrame();
-  };
+document.getElementById('fitBtn').onclick = () => {
+fitToFrame();
+};
 }
 
 
@@ -3309,32 +3525,32 @@ window.addEventListener('resize', resizeCanvas);
 
 // ✅ モード切替：モバイルで確実に反応させるため click ではなく pointerdown を優先
 (function bindModeButtons(){
-  const bind = (id, val) => {
-    const b = el(id);
-    if(!b) return;
+const bind = (id, val) => {
+const b = el(id);
+if(!b) return;
 
-    // 二重発火（pointerdown + click）を避ける
-    let armed = false;
+// 二重発火（pointerdown + click）を避ける
+let armed = false;
 
-    b.addEventListener('pointerdown', (e) => {
-      // iOSでも即反応させる
-      try{ e.preventDefault(); }catch(_){}
-      armed = true;
-      setMergedMode(val);
-    }, {passive:false});
+b.addEventListener('pointerdown', (e) => {
+// iOSでも即反応させる
+try{ e.preventDefault(); }catch(_){}
+armed = true;
+setMergedMode(val);
+}, {passive:false});
 
-    b.addEventListener('click', () => {
-      // pointerdown が効かない環境向けのフォールバック
-      if(armed){
-        armed = false;
-        return;
-      }
-      setMergedMode(val);
-    });
-  };
+b.addEventListener('click', () => {
+// pointerdown が効かない環境向けのフォールバック
+if(armed){
+armed = false;
+return;
+}
+setMergedMode(val);
+});
+};
 
-  bind('segEdit', false);
-  bind('segMerge', true);
+bind('segEdit', false);
+bind('segMerge', true);
 })();
 
 
@@ -3348,6 +3564,9 @@ isMeasureMode = !isMeasureMode;
 // 計測中は壁設置と排他
 isWallPlaceMode = false;
 wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
 updateWorkHint();
 const wb = el('addInnerWallBtn2');
 if(wb) wb.classList.remove('active');
@@ -3386,6 +3605,9 @@ mb.classList.add('gray');
 if(isWallPlaceMode){
 isWallPlaceMode = false;
 wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
 const wb = el('addInnerWallBtn2');
 if(wb) wb.classList.remove('active');
 }
@@ -3512,7 +3734,7 @@ const helpCloseBtn = el('helpCloseBtn');
 if(helpCloseBtn) helpCloseBtn.onclick = closeHelp;
 // 背景タップでも閉じる
 el('helpModal').onclick = (e) => {
-    if(e.target.id === 'helpModal') closeHelp();
+if(e.target.id === 'helpModal') closeHelp();
 };
 
 
@@ -3999,33 +4221,36 @@ draw();
 return;
 }
 
-// wall place mode (2 taps like measurement)
+// wall place mode（タップ or ドラッグ）
 if(isWallPlaceMode){
 const snap = getSnapStep();
-let wx = getSnapped(worldP.x, snap);
-let wy = getSnapped(worldP.y, snap);
+const wx = getSnapped(worldP.x, snap);
+const wy = getSnapped(worldP.y, snap);
+
+// このタッチが「始点をセットするタッチ」かどうか
+wallPlaceGestureNewStart = !wallPlaceStart;
+wallPlaceGestureMoved = false;
 
 if(!wallPlaceStart){
 wallPlaceStart = {x:wx, y:wy};
+}
+
+// このタッチ時点の終点候補（ドラッグ中に更新される）
+const s = wallPlaceStart;
+let x2 = wx, y2 = wy;
+const dxw = x2 - s.x;
+const dyw = y2 - s.y;
+
+// 直交吸着（距離が近い方を揃える）
+const orthoThresh = GRID_SIZE * 0.75; // 半ますでも直交が効きやすいように
+if(Math.abs(dxw) < orthoThresh) x2 = s.x;
+if(Math.abs(dyw) < orthoThresh) y2 = s.y;
+
+wallPlacePreviewEnd = {x:x2, y:y2};
+
 updateWorkHint();
 draw();
 return;
-}else{
-const s = wallPlaceStart;
-let x2 = wx, y2 = wy;
-const dx = x2 - s.x;
-const dy = y2 - s.y;
-
-// 直交吸着（距離が近い方を揃える）
-const orthoThresh = snap * 0.75;
-if(Math.abs(dx) < orthoThresh) x2 = s.x;
-if(Math.abs(dy) < orthoThresh) y2 = s.y;
-
-addWallBetween({x:s.x, y:s.y}, {x:x2, y:y2});
-wallPlaceStart = null; // 次の壁はまた1点目から
-updateWorkHint();
-return;
-}
 }
 
 if(!found){
@@ -4144,6 +4369,29 @@ const moved = Math.hypot(dx, dy);
 const worldP = screenToWorld(t.clientX, t.clientY);
 const snap = getSnapStep();
 
+
+// ✅ 内壁設置（ドラッグ）中はここでプレビュー更新（通常のドラッグ処理より優先）
+if(isWallPlaceMode && !isReadOnly && wallPlaceStart){
+let wx = getSnapped(worldP.x, snap);
+let wy = getSnapped(worldP.y, snap);
+
+const s = wallPlaceStart;
+let x2 = wx, y2 = wy;
+const dxw = x2 - s.x;
+const dyw = y2 - s.y;
+
+// 直交吸着（距離が近い方を揃える）
+const orthoThresh = GRID_SIZE * 0.75; // 半ますでも直交が効きやすいように
+if(Math.abs(dxw) < orthoThresh) x2 = s.x;
+if(Math.abs(dyw) < orthoThresh) y2 = s.y;
+
+wallPlacePreviewEnd = {x:x2, y:y2};
+if(moved >= 6) wallPlaceGestureMoved = true;
+
+draw();
+return;
+}
+
 if(!dragActive && moved >= 6){
 dragActive = true;
 emptyTapCandidate = false;
@@ -4258,6 +4506,31 @@ return;
 if(longPressTimer) clearTimeout(longPressTimer);
 longPressTimer = null;
 
+// ✅ 内壁設置モード：タッチ終了で確定（ドラッグ）／2点タップ（従来互換）
+if(isWallPlaceMode && !isReadOnly && wallPlaceStart){
+const s = wallPlaceStart;
+const end = wallPlacePreviewEnd || s;
+
+// 終点が同一点なら確定しない（始点セット扱い）
+if(!(s.x === end.x && s.y === end.y)){
+// - このタッチで始点を作った場合：ドラッグしたときだけ確定
+// - すでに始点がある場合：タップでも確定
+if(!wallPlaceGestureNewStart || wallPlaceGestureMoved){
+addWallBetween({x:s.x, y:s.y}, {x:end.x, y:end.y});
+wallPlaceStart = null; // 既存仕様：次の壁はまた始点から
+}
+}
+
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+
+clearTouchState();
+draw();
+return;
+}
+
 if(emptyTapCandidate && !dragActive){
 selectedItem = null;
 }
@@ -4265,7 +4538,15 @@ selectedItem = null;
 // 操作確定
 commitGestureIfAny();
 
-// ✅ ここに追加: 移動が終わったタイミングで重なりをチェック
+// ✅ 壁の移動/端点移動後：重なった壁を自動結合（長い線へ）
+if(!isReadOnly && dragActive && pendingItem && pendingItem.type === 'wallLine' &&
+(pendingAction === "moveWall" || pendingAction === "p1" || pendingAction === "p2")){
+const mergedWall = mergeOverlappingWalls(pendingItem);
+if(mergedWall) selectedItem = mergedWall;
+scheduleAutoSave();
+}
+
+ // ✅ ここに追加: 移動が終わったタイミングで重なりをチェック
 // 外壁モード(!isMerged)ではなく、かつ部屋操作時のみ
 if(!isReadOnly && isMerged && dragActive){
 if(checkRoomOverlaps()){
@@ -4283,6 +4564,9 @@ pinchActive = false;
 if(longPressTimer) clearTimeout(longPressTimer);
 longPressTimer = null;
 gestureSnapshot = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
 clearTouchState();
 draw();
 });
