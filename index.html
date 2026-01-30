@@ -731,10 +731,11 @@ align-items: stretch;
 
 /* 1行ごとの設定 */
 .config-row {
-display: flex;
-align-items: center;
-gap: 6px;
-justify-content: space-between;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 /* 小さいチップ（単位など） */
@@ -952,11 +953,17 @@ box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 #helpCloseBtn:active { background: #e5e5ea; transform: scale(0.98); }
 
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+
+
+
 </style>
 </head>
 
 <body>
-<div class="ver-label">ver 1.12<br>by yuchi🐔</div>
+<div class="ver-label">ver 1.19<br>by yuchi🐔</div>
 
 <div class="toolbar">
 <div class="top-left">
@@ -986,11 +993,12 @@ box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 <label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
 <label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
 <label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
+<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告表示</label>
+
 </div>
 
 <div class="v-line"></div>
 
-<label class="chip tiny" title="一条の間取り想定：最小単位は半ます固定"><input type="checkbox" id="useHalfGrid" checked disabled>半ます固定</label>
 
 <div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
 <span class="lbl">壁</span>
@@ -1573,9 +1581,14 @@ setTitle(s.title || currentTitle, {silent:true});
 selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
 // ✅ 壁の重なりを整理（同一直線・同じ太さ/色）
 selectedItem = mergeOverlappingWalls(selectedItem) || selectedItem;
+
+// [変更後] updateModeAvailability(); を追加
 updateSegmentUI();
+updateModeAvailability(); // ✅ 追加
 updateWorkHint();
 draw();
+
+
 }
 
 /* --- Draft (お気に入り起動でも復元できる) --- */
@@ -1969,7 +1982,7 @@ if(isWallPlaceMode){
 if(!wallPlaceStart){
 h.innerHTML = "<b>内壁</b>：ドラッグで1本設置／または始点タップ→終点タップ（解除：内壁ボタン）";
 }else{
-h.innerHTML = "<b>内壁</b>：ドラッグして離す／終点タップで確定（解除：内壁ボタン）";
+h.innerHTML = "<b>内壁</b>：ドラッグして離す／終点タップで確定（始点タップで取消／↩︎取消で1本戻す）";
 }
 return;
 }
@@ -2101,7 +2114,11 @@ dupBtn.disabled = !canEdit;
 }
 
 if(delBtn){
-if(hasSel){
+if(isWallPlaceMode){
+delBtn.textContent = "↩︎取消";
+delBtn.dataset.sub = "1本/始点";
+delBtn.disabled = isReadOnly;
+}else if(hasSel){
 delBtn.textContent = "削除";
 delBtn.dataset.sub = "選択";
 delBtn.disabled = (isReadOnly || selectedItem.locked);
@@ -2191,15 +2208,31 @@ if(isReadOnly) return;
 const prev = (type === 'frame') ? snapshot() : null;
 if(type !== 'frame') pushHistory();
 
-// 画面中央付近、または左上に配置
-const targetX = getSnapped((-camera.x + VIEW_W/2/scale) - (w*GRID_SIZE/2), GRID_SIZE);
-const targetY = getSnapped((-camera.y + VIEW_H/2/scale) - (h*GRID_SIZE/2), GRID_SIZE);
+// ✅ 追加位置：今見ているキャンパス（表示範囲）内に必ず出す
+const step = getSnapStep();           // 一条想定：半ます固定（16px）
+const rectW = w * GRID_SIZE;
+const rectH = h * GRID_SIZE;
 
-// もし計算が変なら元のロジック（左上）へ
-// const targetX = getSnapped((-camera.x)/scale, GRID_SIZE);
-// const targetY = getSnapped((-camera.y)/scale, GRID_SIZE);
+// 現在の表示範囲（ワールド座標）
+const viewLeft   = (-VIEW_W/2 - camera.x) / scale;
+const viewRight  = ( VIEW_W/2 - camera.x) / scale;
+const viewTop    = (-VIEW_H/2 - camera.y) / scale;
+const viewBottom = ( VIEW_H/2 - camera.y) / scale;
 
-const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: w*GRID_SIZE, h: h*GRID_SIZE, label, color };
+// 画面中心に置く（部屋の中心が画面中心に来るように）
+let targetX = getSnapped((-camera.x)/scale - rectW/2, step);
+let targetY = getSnapped((-camera.y)/scale - rectH/2, step);
+
+// 可能なら「部屋が画面内に収まる」ようにクランプ
+const pad = step; // 端から半ます分あける
+if((viewRight - viewLeft) > rectW + pad*2){
+targetX = Math.min(Math.max(targetX, viewLeft + pad), viewRight - rectW - pad);
+}
+if((viewBottom - viewTop) > rectH + pad*2){
+targetY = Math.min(Math.max(targetY, viewTop + pad), viewBottom - rectH - pad);
+}
+
+const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: rectW, h: rectH, label, color };
 if(type === 'frame') items.unshift(i); else items.push(i);
 
 ensureIds();
@@ -2287,6 +2320,38 @@ draw();
 function toggleWallPlaceMode(){
 if(isReadOnly) return;
 setWallPlaceMode(!isWallPlaceMode);
+}
+
+// ✅ 内壁モード中の「ワンステップ取り消し」
+// - 始点がある：始点を取消（誤タップ救済）
+// - 始点がない：直前の操作をUndo（直前に引いた壁を1本消せる）
+function wallQuickUndo(){
+if(isReadOnly) return;
+if(!isWallPlaceMode) return;
+
+// 途中の始点だけ立っている場合はキャンセル
+if(wallPlaceStart){
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+draw();
+showToast("始点を取消しました", 900);
+return;
+}
+
+// Undoできるものが無ければ何もしない
+if(!undoStack || undoStack.length === 0){
+showToast("戻れる操作がありません", 900);
+return;
+}
+
+// 直前の操作を取り消す（通常は直前に引いた壁）
+undo();
+// undo() 内で draw() されるが、念のため
+updateWorkHint();
+draw();
 }
 
 /* menu actions */
@@ -2692,6 +2757,169 @@ function drawGrid(){
   }
 }
 
+
+/* ✅ 重なり（部屋同士の重複）をハッチング表示 */
+
+
+function rectSubtract(a, b){
+  // a - b の領域を最大4つの矩形に分割して返す（軸平行矩形）
+  const ax1 = a.x, ay1 = a.y, ax2 = a.x + a.w, ay2 = a.y + a.h;
+  const bx1 = b.x, by1 = b.y, bx2 = b.x + b.w, by2 = b.y + b.h;
+
+  const ix1 = Math.max(ax1, bx1);
+  const iy1 = Math.max(ay1, by1);
+  const ix2 = Math.min(ax2, bx2);
+  const iy2 = Math.min(ay2, by2);
+
+  // 交差なし
+  if(ix2 <= ix1 || iy2 <= iy1) return [a];
+
+  const out = [];
+  // 上
+  if(iy1 > ay1) out.push({ x: ax1, y: ay1, w: (ax2-ax1), h: (iy1-ay1) });
+  // 下
+  if(iy2 < ay2) out.push({ x: ax1, y: iy2, w: (ax2-ax1), h: (ay2-iy2) });
+  // 左（交差高さだけ）
+  if(ix1 > ax1) out.push({ x: ax1, y: iy1, w: (ix1-ax1), h: (iy2-iy1) });
+  // 右（交差高さだけ）
+  if(ix2 < ax2) out.push({ x: ix2, y: iy1, w: (ax2-ix2), h: (iy2-iy1) });
+
+  return out;
+}
+
+function getRoomOutOfFrameRects(){
+  const frames = items.filter(it => it.type === 'frame');
+  if(!frames.length) return [];
+
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  if(!rooms.length) return [];
+
+  const outRects = [];
+
+  rooms.forEach(room => {
+    let parts = [{ x: room.x, y: room.y, w: room.w, h: room.h }];
+
+    // すべての外枠（複数可）の「合成領域」を許容範囲として扱い、
+    // room から frames の union を差し引いた部分を「はみ出し」とする
+    frames.forEach(f => {
+      const next = [];
+      parts.forEach(p => {
+        next.push(...rectSubtract(p, { x:f.x, y:f.y, w:f.w, h:f.h }));
+      });
+      parts = next;
+      if(!parts.length) return;
+    });
+
+    parts.forEach(p => {
+      if(p.w > 0 && p.h > 0) outRects.push(p);
+    });
+  });
+
+  return outRects;
+}
+
+function drawOutOfFrameHatching(){
+const chk = document.getElementById('showWarnings');
+
+  if (chk && !chk.checked) return;
+
+  const outRects = getRoomOutOfFrameRects();
+  if(!outRects.length) return;
+
+  ctx.save();
+
+  // 外枠はみ出し警告（オレンジのハッチ）
+  ctx.fillStyle = "rgba(255,149,0,0.06)";
+  ctx.strokeStyle = "rgba(255,149,0,0.45)";
+  ctx.lineWidth = 1.25 / scale;
+
+  const spacing = 10 / scale; // 画面上で約10px間隔
+
+  outRects.forEach(r => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+
+    // 薄い塗り
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    // 斜線（\）
+    const startX = r.x - r.h;
+    const endX = r.x + r.w;
+    for(let x = startX; x <= endX; x += spacing){
+      ctx.beginPath();
+      ctx.moveTo(x, r.y + r.h);
+      ctx.lineTo(x + r.h, r.y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+function getRoomOverlapRects(){
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  const overlaps = [];
+  for(let i=0;i<rooms.length;i++){
+    const a = rooms[i];
+    for(let j=i+1;j<rooms.length;j++){
+      const b = rooms[j];
+      const x1 = Math.max(a.x, b.x);
+      const y1 = Math.max(a.y, b.y);
+      const x2 = Math.min(a.x + a.w, b.x + b.w);
+      const y2 = Math.min(a.y + a.h, b.y + b.h);
+      if(x2 > x1 && y2 > y1){
+        overlaps.push({ x:x1, y:y1, w:(x2-x1), h:(y2-y1) });
+      }
+    }
+  }
+  return overlaps;
+}
+
+function drawOverlapHatching(){
+const chk = document.getElementById('showWarnings');
+
+  if (chk && !chk.checked) return;
+
+  const overlaps = getRoomOverlapRects();
+  if(!overlaps.length) return;
+
+  ctx.save();
+
+  // うっすら赤塗り＋斜線（重なり警告）
+  ctx.fillStyle = "rgba(255,59,48,0.08)";
+  ctx.strokeStyle = "rgba(255,59,48,0.35)";
+  ctx.lineWidth = 1.25 / scale;
+
+  const spacing = 10 / scale; // 画面上で約10px間隔
+  overlaps.forEach(r => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+
+    // 薄い塗り
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    // 斜線（/）
+    const startX = r.x - r.h;
+    const endX = r.x + r.w;
+    for(let x = startX; x <= endX; x += spacing){
+      ctx.beginPath();
+      ctx.moveTo(x, r.y);
+      ctx.lineTo(x + r.h, r.y + r.h);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+
 /* ✅ 修正版: 塗りつぶし専用（グリッドの下に描く） */
 function drawRectFill() {
 const rects = items.filter(i => i.type !== 'wallLine');
@@ -2886,304 +3114,291 @@ return hasOverlap;
 }
 
 
-/* ✅ 修正版: 0スタート、外枠基準、数字位置を元に戻す */
+/* ✅ 修正版: startX, startY を返すように変更 */
 function drawBlueprintGrid(targetItems) {
-// 1. 外枠(frame)または全体の範囲を取得
-const frames = targetItems.filter(i => i.type === 'frame');
-const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine');
-if (!targets.length) return;
+  // 1. 外枠(frame)または全体の範囲を取得
+  const frames = targetItems.filter(i => i.type === 'frame');
+  const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine');
+  if (!targets.length) return;
 
-let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-targets.forEach(it => {
-minX = Math.min(minX, it.x);
-minY = Math.min(minY, it.y);
-maxX = Math.max(maxX, it.x + it.w);
-maxY = Math.max(maxY, it.y + it.h);
-});
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  targets.forEach(it => {
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + it.w);
+    maxY = Math.max(maxY, it.y + it.h);
+  });
 
-// ★修正: 余白グリッドは作らず、建物の端(minX, minY)をそのまま開始位置にする
-const startX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
-const startY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
-const endX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
-const endY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+  // ★修正: 余白グリッドは作らず、建物の端(minX, minY)をそのまま開始位置にする
+  const startX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+  const startY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+  const endX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+  const endY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
 
-ctx.save();
-const lw = isExporting ? 1 / scale : 0.5 / scale;
-ctx.lineWidth = lw;
-ctx.strokeStyle = "#888"; 
+  ctx.save();
+  const lw = isExporting ? 1 / scale : 0.5 / scale;
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = "#888";
+  // 点線設定
+  ctx.setLineDash([2 / scale, 3 / scale]); 
 
-// 点線設定
-ctx.setLineDash([2 / scale, 3 / scale]); 
+  // 文字設定
+  const fontSize = (isExporting ? 20 : 11) / scale;
+  ctx.font = `normal ${fontSize}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#555";
 
-// 文字設定
-const fontSize = (isExporting ? 20 : 11) / scale;
-ctx.font = `normal ${fontSize}px sans-serif`;
-ctx.textAlign = "center";
-ctx.textBaseline = "middle";
-ctx.fillStyle = "#555";
+  // ★修正: 数字と線の距離を元の「近め」に戻す
+  const padding = (isExporting ? 20 : 12) / scale;
 
-// ★修正: 数字と線の距離を元の「近め」に戻す
-const padding = (isExporting ? 20 : 12) / scale; 
+  // ■ 縦線とX座標番号
+  for (let x = startX; x <= endX; x += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, startY - padding);
+    ctx.lineTo(x, endY + padding); 
+    ctx.stroke();
 
-// ■ 縦線とX座標番号
-// ★修正: startXを「0」としてカウントする
-for (let x = startX; x <= endX; x += GRID_SIZE) {
-ctx.beginPath();
-ctx.moveTo(x, startY - padding); 
-ctx.lineTo(x, endY + padding); 
-ctx.stroke();
+    if (isExporting || scale > 0.5) {
+      const val = Math.round((x - startX) / GRID_SIZE);
+      const label = String(val);
+      ctx.fillText(label, x, startY - (padding * 1.5));
+      ctx.fillText(label, x, endY + (padding * 1.5));
+    }
+  }
 
-if (isExporting || scale > 0.5) {
-// 左端(startX)からの距離をマス数(910mm単位)に換算して表示
-const val = Math.round((x - startX) / GRID_SIZE);
-const label = String(val);
-ctx.fillText(label, x, startY - (padding * 1.5));
-ctx.fillText(label, x, endY + (padding * 1.5));
-}
-}
+  // ■ 横線とY座標番号
+  for (let y = startY; y <= endY; y += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(startX - padding, y);
+    ctx.lineTo(endX + padding, y);
+    ctx.stroke();
 
-// ■ 横線とY座標番号
-for (let y = startY; y <= endY; y += GRID_SIZE) {
-ctx.beginPath();
-ctx.moveTo(startX - padding, y);
-ctx.lineTo(endX + padding, y);
-ctx.stroke();
+    if (isExporting || scale > 0.5) {
+      const val = Math.round((y - startY) / GRID_SIZE);
+      const label = String(val);
+      ctx.fillText(label, startX - (padding * 1.5), y);
+      ctx.fillText(label, endX + (padding * 1.5), y);
+    }
+  }
 
-if (isExporting || scale > 0.5) {
-// 上端(startY)からの距離をマス数に換算
-const val = Math.round((y - startY) / GRID_SIZE);
-const label = String(val);
-ctx.fillText(label, startX - (padding * 1.5), y);
-ctx.fillText(label, endX + (padding * 1.5), y);
-}
-}
-
-ctx.restore();
-
-return { maxX, maxY, endX, endY };
+  ctx.restore();
+  
+  // ✅ 変更点: startX, startY も返す
+  return { startX, startY, maxX, maxY, endX, endY };
 }
 
 
 
 
-/* ✅ 修正版: 結合後の形状をスキャンして、本当に一番広い場所に文字を置く drawMerged */
+/* ✅ 修正版: タイトルを「下の真ん中」＋「ZEN丸ゴシック」に変更 */
 function drawMerged(){
-const roomMap = {};
-const frameMap = {};
-const groups = {};
-const sub = 16; // グリッド解像度
-const mag = isExporting ? 1.8 : 1.0;
+  const roomMap = {};
+  const frameMap = {};
+  const groups = {};
+  const sub = 16; 
+  const mag = isExporting ? 1.8 : 1.0;
 
-// 1. データ整理（グループ化）
-items.forEach((item) => {
-if(item.type === 'wallLine') return;
+  // 1. データ整理
+  items.forEach((item) => {
+    if(item.type === 'wallLine') return;
+    if (item.type !== 'frame') {
+      if (!groups[item.label]) {
+        groups[item.label] = {
+          label: item.label, 
+          totalMasu: 0,
+          minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
+        };
+      }
+      const g = groups[item.label];
+      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+      g.minX = Math.min(g.minX, item.x); 
+      g.minY = Math.min(g.minY, item.y);
+      g.maxX = Math.max(g.maxX, item.x + item.w); 
+      g.maxY = Math.max(g.maxY, item.y + item.h);
+    }
+    for (let x = item.x; x < item.x + item.w; x += sub) {
+      for (let y = item.y; y < item.y + item.h; y += sub) {
+        const pos = `${x},${y}`;
+        if (item.type === 'frame') frameMap[pos] = item.label;
+        else roomMap[pos] = { label: item.label, color: item.color };
+      }
+    }
+  });
 
-// グループ情報の作成
-if (item.type !== 'frame') {
-if (!groups[item.label]) {
-groups[item.label] = {
-label: item.label, 
-totalMasu: 0,
-minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
-};
-}
-const g = groups[item.label];
-g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-g.minX = Math.min(g.minX, item.x); 
-g.minY = Math.min(g.minY, item.y);
-g.maxX = Math.max(g.maxX, item.x + item.w); 
-g.maxY = Math.max(g.maxY, item.y + item.h);
-}
+  // 2. 塗りつぶし
+  items.forEach(item => {
+    if(item.type === 'wallLine') return;
+    if(item.type === 'frame'){
+      ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
+    }else{
+      ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
+    }
+    ctx.fillRect(item.x, item.y, item.w, item.h);
+    ctx.globalAlpha = 1.0;
+  });
 
-// 結合描画用のマップ作成（これが重要）
-for (let x = item.x; x < item.x + item.w; x += sub) {
-for (let y = item.y; y < item.y + item.h; y += sub) {
-const pos = `${x},${y}`;
-if (item.type === 'frame') frameMap[pos] = item.label;
-else roomMap[pos] = { label: item.label, color: item.color };
-}
-}
-});
+  // 3. グリッド線
+  const gridBounds = drawBlueprintGrid(items); 
 
-// 2. 先に塗りつぶし（床）
-items.forEach(item => {
-if(item.type === 'wallLine') return;
-if(item.type === 'frame'){
-ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
-}else{
-ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
-}
-ctx.fillRect(item.x, item.y, item.w, item.h);
-ctx.globalAlpha = 1.0;
-});
+  drawOutOfFrameHatching();
+  drawOverlapHatching();
 
-// 3. グリッド線
-const gridBounds = drawBlueprintGrid(items); 
+  // 4. 枠線描画
+  const drawEdge = (map, color, width) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width / scale;
+    for (const pos in map) {
+      const [x, y] = pos.split(',').map(Number);
+      const label = map[pos].label || map[pos];
+      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+        const nb = map[`${x+d.dx},${y+d.dy}`];
+        const nbLabel = nb?.label || nb;
+        if (nbLabel !== label) {
+          ctx.beginPath();
+          if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
+          else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
+          ctx.stroke();
+        }
+      });
+    }
+  };
+  drawEdge(roomMap, "#111", 2);
+  drawEdge(frameMap, "#111", 10);
 
-// 4. 枠線描画
-const drawEdge = (map, color, width) => {
-ctx.strokeStyle = color;
-ctx.lineWidth = width / scale;
-for (const pos in map) {
-const [x, y] = pos.split(',').map(Number);
-const label = map[pos].label || map[pos];
-[{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
-const nb = map[`${x+d.dx},${y+d.dy}`];
-const nbLabel = nb?.label || nb;
-if (nbLabel !== label) {
-ctx.beginPath();
-if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
-else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
-ctx.stroke();
-}
-});
-}
-};
-drawEdge(roomMap, "#111", 2);
-drawEdge(frameMap, "#111", 10);
+  // 5. 文字描画（部屋名）
+  for (const key in groups) {
+    const g = groups[key];
+    let bestRect = null;
+    let currentRects = [];
+    for (let y = g.minY; y < g.maxY; y += sub) {
+      let startX = -1;
+      let length = 0;
+      for (let x = g.minX; x <= g.maxX; x += sub) { 
+        const cell = roomMap[`${x},${y}`];
+        const isMyRoom = (cell && cell.label === g.label);
+        if (isMyRoom) {
+          if (startX === -1) startX = x;
+          length += sub;
+        } else {
+          if (startX !== -1) {
+            let merged = false;
+            for(let r of currentRects) {
+              if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
+                r.h += sub; merged = true; break;
+              }
+            }
+            if(!merged) currentRects.push({ x: startX, y: y, w: length, h: sub });
+            startX = -1; length = 0;
+          }
+        }
+      }
+    }
+    currentRects.forEach(r => {
+      if(!bestRect) bestRect = r;
+      else {
+        if (r.w > bestRect.w) bestRect = r;
+        else if (r.w === bestRect.w && r.h > bestRect.h) bestRect = r;
+      }
+    });
 
-// 5. 文字描画（★ここが新ロジック）
-for (const key in groups) {
-const g = groups[key];
+    let textX, textY;
+    if (bestRect) {
+      textX = bestRect.x + bestRect.w / 2;
+      textY = bestRect.y + bestRect.h / 2;
+    } else {
+      textX = (g.minX + g.maxX) / 2;
+      textY = (g.minY + g.maxY) / 2;
+    }
 
-// --- 結合形状スキャンアルゴリズム ---
-// 部屋の範囲(BoundingBox)を1行ずつ走査して、
-// 「一番長く連続している横幅のブロック」を見つけ出す
+    const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
+    const visualHeight = (g.maxY - g.minY) * scale;
+    const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
 
-let bestRect = null; // {x, y, w, h}
-let currentRects = []; // 候補リスト
+    ctx.fillStyle = "#111"; 
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4 / scale;
+    ctx.strokeStyle = "rgba(255,255,255, 0.95)";
 
-// Y軸方向にスキャン
-for (let y = g.minY; y < g.maxY; y += sub) {
-let startX = -1;
-let length = 0;
+    if (useTinyMode) {
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      const labelSize = 10 / scale;
+      ctx.font = `bold ${labelSize}px sans-serif`;
+      const labelY = g.minY + (2 / scale);
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      if (el('showJou').checked) {
+        const subSize = 8 / scale;
+        ctx.font = `${subSize}px sans-serif`;
+        const subY = labelY + labelSize + (1 / scale);
+        const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    } else {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+      const mainFontSize = (14 * mag) / scale;
+      ctx.font = `bold ${mainFontSize}px sans-serif`;
+      const labelY = textY - (mainFontSize * 0.4); 
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      let subText = "";
+      if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
+      if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
+      if (subText) {
+        const subFontSize = (11 * mag) / scale;
+        ctx.font = `${subFontSize}px sans-serif`;
+        const subY = textY + (mainFontSize * 0.7);
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    }
+    ctx.textAlign = "left";
+  }
 
-// X軸方向にスキャンして、この行の最長セグメントを見つける
-for (let x = g.minX; x <= g.maxX; x += sub) { // <= は終了判定のため
-const cell = roomMap[`${x},${y}`];
-const isMyRoom = (cell && cell.label === g.label);
+  // 壁描画
+  items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
 
-if (isMyRoom) {
-if (startX === -1) startX = x;
-length += sub;
-} else {
-if (startX !== -1) {
-// セグメント終了。リストに追加または統合
-// 直前の行と同じX範囲なら、高さを足して統合する（大きな矩形として認識させる）
-let merged = false;
-for(let r of currentRects) {
-// ほぼ同じX範囲で、かつYがつながっているなら統合
-if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
-r.h += sub;
-merged = true;
-break;
-}
-}
-if(!merged){
-currentRects.push({ x: startX, y: y, w: length, h: sub });
-}
-startX = -1;
-length = 0;
-}
-}
-}
-}
+  // 画像出力時の追加描画
+  if (isExporting && gridBounds) {
+    const anchorY = gridBounds.endY + (140 / scale); 
+    
+    // 1. タイトル描画（下の真ん中 + Zen Maru Gothic）
+    ctx.save();
+    const titleSize = 56 / scale;
+    
+    // ✅ ここを変更: Google Fonts の Zen Maru Gothic を指定
+    ctx.font = `bold ${titleSize}px "Zen Maru Gothic", sans-serif`;
+    
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    
+    const centerX = (gridBounds.startX + gridBounds.endX) / 2;
+    ctx.fillText(currentTitle, centerX, anchorY);
+    ctx.restore();
 
-// 候補の中から「最も横幅が広いもの」を選ぶ
-// ※横幅が同じなら、面積（高さ）が大きい方を選ぶ
-currentRects.forEach(r => {
-if(!bestRect) {
-bestRect = r;
-} else {
-if (r.w > bestRect.w) {
-bestRect = r; // 幅優先
-} else if (r.w === bestRect.w) {
-if (r.h > bestRect.h) bestRect = r; // 幅が同じなら面積優先
-}
-}
-});
 
-// 決定した座標（見つからなければ重心）
-let textX, textY;
-if (bestRect) {
-textX = bestRect.x + bestRect.w / 2;
-textY = bestRect.y + bestRect.h / 2;
-} else {
-textX = (g.minX + g.maxX) / 2;
-textY = (g.minY + g.maxY) / 2;
-}
-
-// --- 文字描画処理（以下は変更なし） ---
-const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
-const visualHeight = (g.maxY - g.minY) * scale;
-const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
-
-ctx.fillStyle = "#111"; 
-ctx.lineJoin = "round";
-ctx.lineWidth = 4 / scale;
-ctx.strokeStyle = "rgba(255,255,255, 0.95)";
-
-if (useTinyMode) {
-ctx.textAlign = "center"; ctx.textBaseline = "top";
-const labelSize = 10 / scale;
-ctx.font = `bold ${labelSize}px sans-serif`;
-const labelY = g.minY + (2 / scale);
-ctx.strokeText(g.label, textX, labelY);
-ctx.fillText(g.label, textX, labelY);
-if (el('showJou').checked) {
-const subSize = 8 / scale;
-ctx.font = `${subSize}px sans-serif`;
-const subY = labelY + labelSize + (1 / scale);
-const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
-ctx.strokeText(subText, textX, subY);
-ctx.fillText(subText, textX, subY);
-}
-} else {
-ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
-const mainFontSize = (14 * mag) / scale;
-ctx.font = `bold ${mainFontSize}px sans-serif`;
-const labelY = textY - (mainFontSize * 0.4); 
-
-ctx.strokeText(g.label, textX, labelY);
-ctx.fillText(g.label, textX, labelY);
-
-let subText = "";
-if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
-if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
-
-if (subText) {
-const subFontSize = (11 * mag) / scale;
-ctx.font = `${subFontSize}px sans-serif`;
-const subY = textY + (mainFontSize * 0.7);
-ctx.strokeText(subText, textX, subY);
-ctx.fillText(subText, textX, subY);
-}
-}
-ctx.textAlign = "left";
-}
-
-// 壁描画
-items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
-
-// 画像出力時の右下情報
-if (isExporting && gridBounds) {
-let totalMasu = 0;
-items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
-const tsubo = totalMasu / 4;
-const jou = totalMasu / 2;
-const m2 = tsubo * 3.305785;
-ctx.save();
-const infoFontSize = 24 / scale;
-ctx.font = `bold ${infoFontSize}px sans-serif`;
-ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
-const anchorX = gridBounds.endX; 
-const anchorY = gridBounds.endY + (140 / scale); 
-const lineH = infoFontSize * 1.5;
-ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
-ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
-ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
-ctx.restore();
-}
+    // 2. 右下情報
+    let totalMasu = 0;
+    items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
+    const tsubo = totalMasu / 4;
+    const jou = totalMasu / 2;
+    const m2 = tsubo * 3.305785;
+    
+    ctx.save();
+    const infoFontSize = 24 / scale;
+    ctx.font = `bold ${infoFontSize}px sans-serif`;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
+    
+    const anchorX = gridBounds.endX;
+    const lineH = infoFontSize * 1.5;
+    
+    ctx.fillText(`施工面積: ${jou.toFixed(1)} 畳`, anchorX, anchorY);
+    ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
+    ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
+    ctx.restore();
+  }
 }
 
 
@@ -3329,6 +3544,8 @@ ctx.fill(); ctx.stroke();
 // --- 外枠モード（編集表示） ---
 drawRectFill();
 drawBlueprintGrid(items);
+drawOutOfFrameHatching();
+drawOverlapHatching();
 drawRectStroke();
 
 items.forEach(it => { if (it.type === 'wallLine') drawWallLine(it); });
@@ -3468,6 +3685,15 @@ fitToFrame();
 async function init(){
 presets = loadPresets();
 renderPresetChips();
+
+// ✅ 表示系トグルは即時反映（再描画）
+
+['showJou','showTsubo','showM2','showWarnings'].forEach(id => {
+
+  const cb = el(id);
+  if(cb) cb.addEventListener('change', () => draw());
+});
+
 // 色スウォッチ初期化
 el('quickColorBtn').style.setProperty('--swatch', '#ffffff');
 el('addColorBtn').style.setProperty('--swatch', addPendingColor);
@@ -3654,11 +3880,17 @@ el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
 el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
 }
 }
+
+// [変更後] updateModeAvailability(); と updateWorkHint(); を追加
 isMerged = !!data.isMerged;
 updateSegmentUI();
+updateModeAvailability(); // ✅ 追加: ボタンの有効化
+updateWorkHint();         // ✅ 追加: ヒント文の更新
 
 // 閲覧モードUI
 el('modeBanner').style.display = isReadOnly ? "flex" : "none";
+
+
 el('shareBtn').innerText = isReadOnly ? "コピーして編集" : "共有";
 
 if(!isReadOnly){
@@ -3983,6 +4215,12 @@ const delSelectedBtn = el('delSelectedBtn');
 if(delSelectedBtn){
 delSelectedBtn.onclick = () => {
 if(isReadOnly) return;
+
+// ✅ 内壁設置中は「ワンステップ取消（始点取消/1本戻す）」
+if(isMerged && isWallPlaceMode){
+wallQuickUndo();
+return;
+}
 
 // 外枠モード：選択中の外壁だけ削除 / 未選択は全消去
 if(!isMerged){
@@ -4511,8 +4749,18 @@ if(isWallPlaceMode && !isReadOnly && wallPlaceStart){
 const s = wallPlaceStart;
 const end = wallPlacePreviewEnd || s;
 
-// 終点が同一点なら確定しない（始点セット扱い）
-if(!(s.x === end.x && s.y === end.y)){
+const samePoint = (s.x === end.x && s.y === end.y);
+
+// ✅ 終点が同一点：
+// - 1回目タップ（新規始点）→ 始点セット扱い（そのまま）
+// - すでに始点がある状態で同じ点をタップ → 始点取消（誤タップ救済）
+// - ドラッグして戻ってきた → 始点取消
+if(samePoint){
+if(!wallPlaceGestureNewStart || wallPlaceGestureMoved){
+wallPlaceStart = null;
+showToast("始点を取消しました", 900);
+}
+}else{
 // - このタッチで始点を作った場合：ドラッグしたときだけ確定
 // - すでに始点がある場合：タップでも確定
 if(!wallPlaceGestureNewStart || wallPlaceGestureMoved){
@@ -4546,13 +4794,20 @@ if(mergedWall) selectedItem = mergedWall;
 scheduleAutoSave();
 }
 
- // ✅ ここに追加: 移動が終わったタイミングで重なりをチェック
-// 外壁モード(!isMerged)ではなく、かつ部屋操作時のみ
+ // ✅ 修正: 移動終了時に「重なり」と「はみ出し」両方をチェック
 if(!isReadOnly && isMerged && dragActive){
-if(checkRoomOverlaps()){
-showToast("⚠ 部屋が重なっています", 1500);
+  const hasOverlap = checkRoomOverlaps();
+  const hasOob = getRoomOutOfFrameRects().length > 0; // はみ出しがあるか
+
+  if(hasOverlap && hasOob){
+    showToast("⚠ 重なり・はみ出しがあります", 2000);
+  } else if(hasOverlap){
+    showToast("⚠ 部屋が重なっています", 1500);
+  } else if(hasOob){
+    showToast("⚠ 部屋が外枠からはみ出しています", 1500);
+  }
 }
-}
+
 
 clearTouchState();
 draw();
