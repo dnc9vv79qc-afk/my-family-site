@@ -617,6 +617,7 @@ font-weight: 800;
 outline: none;
 }
 
+
 /* Layout list */
 .layout-list{
 overflow:auto;
@@ -627,18 +628,26 @@ margin-top: 10px;
 }
 .layout-row{
 display: grid;
-grid-template-columns: 1fr 74px 74px 44px;
+/* ★変更: 上段にタイトル、下段にボタン(1:1:固定幅) */
+grid-template-columns: 1fr 1fr 50px;
 gap: 8px;
 align-items: center;
-margin-bottom: 10px;
+margin-bottom: 12px;
+padding-bottom: 12px;
+border-bottom: 1px solid #eee; /* ★追加: 区切り線 */
 }
 .layout-row input[type="text"]{
+/* ★追加: タイトルを1行目全体に広げる */
+grid-column: 1 / -1;
 margin: 0;
-padding: 10px 10px;
+padding: 10px;
 border-radius: 14px;
 border: 1px solid #ddd;
 font-weight: 800;
+font-size: 16px; /* ★追加: 文字サイズを大きく */
 }
+
+
 .layout-btn{
 height: 42px;
 border-radius: 14px;
