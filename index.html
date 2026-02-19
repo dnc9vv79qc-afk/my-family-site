@@ -4489,7 +4489,9 @@ const dxw = x2 - s.x;
 const dyw = y2 - s.y;
 
 // 直交吸着（距離が近い方を揃える）
-const orthoThresh = GRID_SIZE * 0.75; // 半ますでも直交が効きやすいように
+
+const orthoThresh = 12; // ★修正: 半マス(16px)より小さくする
+
 if(Math.abs(dxw) < orthoThresh) x2 = s.x;
 if(Math.abs(dyw) < orthoThresh) y2 = s.y;
 
@@ -4628,7 +4630,9 @@ const dxw = x2 - s.x;
 const dyw = y2 - s.y;
 
 // 直交吸着（距離が近い方を揃える）
-const orthoThresh = GRID_SIZE * 0.75; // 半ますでも直交が効きやすいように
+
+const orthoThresh = 12; // ★修正: 半マス(16px)より小さくする
+
 if(Math.abs(dxw) < orthoThresh) x2 = s.x;
 if(Math.abs(dyw) < orthoThresh) y2 = s.y;
 
