@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v7.2</title>
+<title>間取り検討サイト（Ichijo) v8.0</title>
 
 <style>
 :root{
@@ -962,9 +962,6 @@ box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 #helpCloseBtn:active { background: #e5e5ea; transform: scale(0.98); }
 
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
 
 
 
@@ -1005,26 +1002,205 @@ scrollbar-width: none;
 }
 .summary::-webkit-scrollbar{ display: none; }
 .summary span{ flex-shrink: 0; }
+
+/* ============================================================
+   v2.0: 全画面キャンバス + すりガラスUI
+   ============================================================ */
+body{ padding: 0 !important; overflow: hidden; }
+
+#canvas-container{
+position: fixed !important;
+inset: 0 !important;
+margin: 0 !important;
+border: none !important;
+border-radius: 0 !important;
+box-shadow: none !important;
+}
+
+/* --- 上部バー --- */
+.v2top{
+position: fixed; z-index: 50;
+top: calc(env(safe-area-inset-top) + 8px);
+left: 10px; right: 10px;
+background: rgba(255,255,255,.82);
+border: .5px solid rgba(60,60,67,.18);
+border-radius: 20px;
+backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+box-shadow: 0 4px 16px rgba(0,0,0,.08);
+padding: 6px 10px;
+display: flex; flex-direction: column; gap: 3px;
+}
+.v2row{ display: flex; align-items: center; gap: 8px; }
+.v2top .btn-help{ width: 28px; height: 28px; min-width: 28px; font-size: 13px; border-radius: 50%; padding: 0; }
+.v2top .top-title{
+flex: 1; min-width: 0;
+font-size: 13px; font-weight: 700;
+overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+padding: 2px 4px; text-align: left;
+}
+.v2floorseg{ height: 28px; padding: 2px; }
+.v2floorseg .seg-btn{ height: 24px; min-width: 34px; padding: 0 8px; font-size: 11px; }
+.v2row-sub{ justify-content: space-between; }
+.v2top .summary{
+position: static; flex: 1; min-width: 0;
+margin: 0; padding: 0 2px;
+background: transparent; border: none; box-shadow: none;
+backdrop-filter: none; -webkit-backdrop-filter: none;
+font-size: 10.5px; color: #555;
+display: flex; gap: 8px; align-items: baseline;
+white-space: nowrap; overflow-x: auto;
+-webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.v2top .summary::-webkit-scrollbar{ display: none; }
+.v2top .summary b{ font-size: 11.5px; }
+.v2top .summary span{ flex-shrink: 0; }
+.v2undo{ display: flex; gap: 2px; background: rgba(120,120,128,.10); border-radius: 10px; padding: 2px; }
+.v2undo .btn-icon{ width: 32px; height: 24px; font-size: 13px; background: transparent; border-radius: 8px; padding: 0; box-shadow: none; }
+.v2undo .btn-icon:disabled{ opacity: .3; }
+
+/* --- バナー / ヒント --- */
+.mode-banner{
+position: fixed; z-index: 49;
+top: calc(env(safe-area-inset-top) + 80px);
+left: 10px; right: 10px; margin: 0;
+}
+.work-hint{
+position: fixed; z-index: 48;
+top: calc(env(safe-area-inset-top) + 80px);
+left: 50%; transform: translateX(-50%);
+margin: 0; max-width: calc(100% - 28px);
+background: rgba(255,255,255,.85);
+border: .5px solid rgba(60,60,67,.15);
+backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+border-radius: 999px;
+padding: 5px 12px; font-size: 10px; line-height: 1.3; color: #555;
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+/* --- フローティング全体表示 --- */
+.v2fab{
+position: fixed; z-index: 47;
+right: 12px;
+bottom: calc(env(safe-area-inset-bottom) + 160px);
+width: 42px; height: 42px; border-radius: 50%;
+background: rgba(255,255,255,.9); color: #333;
+border: .5px solid rgba(60,60,67,.2);
+backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+font-size: 17px; padding: 0;
+box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+
+/* --- 選択バー --- */
+.v2selbar{
+position: fixed; z-index: 51;
+left: 10px; right: 10px;
+bottom: calc(env(safe-area-inset-bottom) + 88px);
+display: grid;
+grid-template-columns: 1.7fr .7fr .9fr .9fr;
+gap: 6px; padding: 6px;
+background: rgba(255,255,255,.88);
+border: .5px solid rgba(60,60,67,.18);
+border-radius: 18px;
+backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+box-shadow: 0 6px 20px rgba(0,0,0,.10);
+}
+.v2selbar.mode-outer{ grid-template-columns: 1fr 1fr; }
+.v2selbar .pill{ height: 46px; border-radius: 14px; }
+#addGenericRoomBtn2, #addInnerWallBtn2{ display: none !important; }
+
+/* --- ドック --- */
+.v2dock{
+position: fixed; z-index: 52;
+left: 10px; right: 10px;
+bottom: calc(env(safe-area-inset-bottom) + 14px);
+height: 64px;
+background: rgba(255,255,255,.85);
+border: .5px solid rgba(60,60,67,.18);
+border-radius: 24px;
+backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+box-shadow: 0 8px 24px rgba(0,0,0,.12);
+display: flex; align-items: center; justify-content: space-around;
+padding: 0 4px;
+}
+.v2tool{
+display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+background: transparent; color: #6b6b70;
+width: 48px; height: 56px; padding: 0; border-radius: 14px;
+font-size: 9px; font-weight: 700; box-shadow: none;
+}
+.v2tool svg{ width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.v2tool.gray{ color: #6b6b70; background: transparent; }
+.v2tool.active, .v2tool.view-active{ color: var(--accent); background: rgba(255,149,0,.12); }
+.v2tool.active.gray, .v2tool.view-active.gray{ color: var(--accent); }
+
+/* --- シート --- */
+.v2overlay{ align-items: flex-end !important; }
+.v2sheet{
+width: 100% !important; max-width: none !important;
+margin: 0; text-align: left;
+border-radius: 22px 22px 0 0;
+padding: 10px 16px calc(env(safe-area-inset-bottom) + 14px);
+box-shadow: 0 -10px 30px rgba(0,0,0,.18);
+}
+.grabber{ width: 36px; height: 4.5px; border-radius: 3px; background: #ccc; margin: 0 auto 12px; }
+.v2catgrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.v2cat{
+display: flex; align-items: center; gap: 9px;
+background: rgba(120,120,128,.10);
+border: .5px solid rgba(60,60,67,.12);
+border-radius: 14px; height: 50px; padding: 0 12px;
+font-size: 12.5px; font-weight: 700; color: var(--text);
+box-shadow: none;
+}
+.v2cat svg{ width: 19px; height: 19px; stroke: var(--accent); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.v2cat.soon{ opacity: .48; }
+.v2cat.soon svg{ stroke: #888; }
+.v2cat i{ font-style: normal; font-size: 9px; font-weight: 800; color: #999; margin-left: auto; background: rgba(120,120,128,.14); border-radius: 8px; padding: 2px 6px; }
+.v2group-label{ font-size: 11px; font-weight: 800; color: #888; margin: 6px 0 7px; }
+.v2chiprow{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.v2chiprow .chip.tiny{ height: 30px; padding: 0 10px; font-size: 11.5px; }
+.v2wallchip{ height: 32px !important; width: 100%; margin-bottom: 12px; }
+.v2actiongrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.v2action{ height: 46px; border-radius: 14px; font-size: 13px; font-weight: 800; }
+.v2verline{ text-align: center; font-size: 9.5px; color: #aaa; margin: 2px 0 8px; }
+.v2sheetclose{
+width: 100%; height: 44px; border-radius: 14px;
+background: rgba(120,120,128,.16); color: var(--text);
+font-size: 13px; font-weight: 700;
+}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-<div class="ver-label">ver 1.21 (1F/2F)<br>by yuchi🐔</div>
 
-<div class="toolbar">
-<div class="top-left">
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
+
+<!-- ===== v2: 上部バー ===== -->
+<div class="v2top">
+<div class="v2row">
 <button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
 <div class="top-title" id="topTitle" contenteditable="true" spellcheck="false" role="textbox" aria-label="間取り名（タップして編集）">MORI</div>
+<div class="segment v2floorseg" role="tablist" id="floorSeg" aria-label="フロア切替">
+<button class="seg-btn active" id="floor1Btn" type="button">1F</button>
+<button class="seg-btn" id="floor2Btn" type="button">2F</button>
 </div>
-
-<!-- 共有 / 閲覧モードではコピーして-->
-
-<div class="top-right">
-<button class="btn-primary" id="downloadImageBtn" style="background:#34C759; margin-right:10px;">画像保存</button>
-<button class="btn-primary" id="shareBtn">共有</button>
 </div>
-
-
+<div class="v2row v2row-sub">
+<div class="summary">
+<span>延床 <b id="totalTsubo">0.00</b>坪</span>
+<span id="jouWrap"><b id="totalJou">0.0</b>畳</span>
+<span id="m2Wrap"><b id="totalM2">0.0</b>m²</span>
+<span id="floorBreakdown" style="display:none;"></span>
+</div>
+<div class="v2undo">
+<button id="undoBtn" class="btn-icon" type="button" aria-label="元に戻す">↩︎</button>
+<button id="redoBtn" class="btn-icon" type="button" disabled aria-label="やり直す">↪︎</button>
+</div>
+</div>
 </div>
 
 <div id="modeBanner" class="mode-banner" style="display:none;">
@@ -1032,94 +1208,112 @@ scrollbar-width: none;
 <button id="copyToEditBtn" style="background:var(--accent);">コピーして編集</button>
 </div>
 
-<div class="config-bar compact">
-
-<div class="config-row">
-<div class="group-tiny">
-<label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
-<label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
-<label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
-<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告表示</label>
-<label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
-
-</div>
-
-<div class="v-line"></div>
-
-
-<div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
-<span class="lbl">壁</span>
-<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
-<span id="wallThickVal" class="val">12</span>
-</div>
-</div>
-
-<div class="config-row">
-<div class="segment tiny" role="tablist" id="floorSeg" aria-label="フロア切替">
-<button class="seg-btn active" id="floor1Btn" type="button">1F</button>
-<button class="seg-btn" id="floor2Btn" type="button">2F</button>
-</div>
-
-<div class="segment tiny" role="tablist">
-<button class="seg-btn" id="segEdit" type="button">外壁</button>
-<button class="seg-btn active" id="segMerge" type="button">部屋</button>
-</div>
-
-
-<button id="viewBtn" class="small-btn tiny gray" type="button" title="閲覧モード（拡大/移動）">閲覧</button>
-
-<button id="fitBtn" class="small-btn tiny gray" type="button" title="全体を表示">全体</button>
-
-
-<button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
-
-<div class="joined-tiny">
-<button id="undoBtn" class="btn-icon" type="button">↩︎</button>
-<button id="redoBtn" class="btn-icon" type="button" disabled>↪︎</button>
-</div>
-
-<label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1" title="色変更">
-<span class="color-dot"></span>
-<input type="color" id="quickColorInput" value="#ffffff" />
-</label>
-</div>
-
-</div>
-
-
-<!-- 作業モードヒント -->
 <div id="workHint" class="work-hint"></div>
-<!-- ✅ 延床のみ（外枠frame面積） -->
-<div class="summary">
-<span>延床: <b id="totalTsubo">0.00</b> 坪</span>
-<span id="jouWrap"><b id="totalJou">0.0</b> 畳</span>
-<span id="m2Wrap"><b id="totalM2">0.0</b> m²</span>
-<span id="floorBreakdown" style="display:none;"></span>
-</div>
 
-<div id="canvas-container"><canvas id="canvas"></canvas></div>
+<button id="fitBtn" class="v2fab" type="button" title="全体を表示" aria-label="全体を表示">⛶</button>
 
-<div class="bottom-bar" id="defaultBar">
-<!-- 部屋モード：追加 -->
+<!-- ===== v2: 選択バー（選択中のみ表示） ===== -->
+<div class="v2selbar" id="defaultBar">
 <button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
 <button class="pill" id="addInnerWallBtn2" data-sub="ドラッグ/2点">内壁</button>
-
-<!-- 外枠モード：外壁の追加/削除（部屋モード時は非表示） -->
 <button class="pill primary" id="addFrameBtn2" data-sub="追加" style="display:none;">外壁</button>
-
-<!-- 部屋モード：選択中の編集 -->
 <button class="pill" id="editNameBtn" data-sub="名前変更" type="button">
 <span id="selectedNameDisplay">未選択</span>
 </button>
-
 <label class="pill" id="selectedColorLabel" data-sub="色" style="position:relative; overflow:hidden;" aria-label="選択中の色">
 <span class="color-dot" id="selectedColorDot" style="width:20px; height:20px; border-radius:50%; border:1px solid rgba(0,0,0,0.2); background:#fff;"></span>
 <input type="color" id="selectedColorInput" style="position:absolute; inset:0; opacity:0; width:100%; height:100%;" disabled>
 </label>
-
-<!-- 部屋モード：表面に出す -->
 <button class="pill" id="dupSelectedBtn" data-sub="複製" type="button">複製</button>
 <button class="pill danger" id="delSelectedBtn" data-sub="削除" type="button">削除</button>
+</div>
+
+<!-- ===== v2: ドック ===== -->
+<div class="v2dock">
+<button class="v2tool active" id="dockSelect" type="button">
+<svg viewBox="0 0 24 24"><path d="M6 4l12 7-5 1 3 6-3 1-3-6-4 4z"/></svg><span>選択</span>
+</button>
+<button class="v2tool" id="dockAdd" type="button">
+<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>追加</span>
+</button>
+<button class="v2tool gray" id="measureBtn" type="button">
+<svg viewBox="0 0 24 24"><path d="M5 19L19 5M7.5 12.5l2 2M10.5 9.5l2 2M13.5 6.5l2 2"/></svg><span>計測</span>
+</button>
+<button class="v2tool gray" id="viewBtn" type="button">
+<svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12m0 .5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7 6 6 0 0 1-5-3l-3-5a1.7 1.7 0 0 1 3-2l1 2"/></svg><span>閲覧</span>
+</button>
+<button class="v2tool" id="dock3d" type="button">
+<svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg><span>3D</span>
+</button>
+<button class="v2tool" id="dockMore" type="button">
+<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>他</span>
+</button>
+</div>
+
+<!-- ===== v2: 追加シート ===== -->
+<div id="addSheet" class="modal-overlay v2overlay">
+<div class="modal sheet v2sheet">
+<div class="grabber"></div>
+<h3 style="margin:0 0 10px; text-align:left;">追加</h3>
+<div class="v2catgrid">
+<button class="v2cat" id="catRoom" type="button">
+<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg><span>部屋</span>
+</button>
+<button class="v2cat" id="catWall" type="button">
+<svg viewBox="0 0 24 24"><path d="M4 12h16"/></svg><span>内壁</span>
+</button>
+<button class="v2cat" id="catFrameAdd" type="button">
+<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M12 9v6M9 12h6"/></svg><span>外壁を追加</span>
+</button>
+<button class="v2cat" id="catFrameEdit" type="button">
+<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M9 15l6-6"/></svg><span>外壁を編集</span>
+</button>
+<button class="v2cat soon" type="button" disabled>
+<svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア・窓</span><i>v2.1</i>
+</button>
+<button class="v2cat soon" type="button" disabled>
+<svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.2</i>
+</button>
+</div>
+<button class="v2sheetclose" id="addSheetClose" type="button">閉じる</button>
+</div>
+</div>
+
+<!-- ===== v2: 設定・その他シート ===== -->
+<div id="moreSheet" class="modal-overlay v2overlay">
+<div class="modal sheet v2sheet">
+<div class="grabber"></div>
+<h3 style="margin:0 0 10px; text-align:left;">設定・その他</h3>
+
+<div class="v2group-label">表示</div>
+<div class="v2chiprow">
+<label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
+<label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
+<label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
+<label class="chip tiny"><input type="checkbox" id="showMM" checked>mm寸法</label>
+<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告</label>
+<label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
+</div>
+<div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
+<span class="lbl">壁太さ</span>
+<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
+<span id="wallThickVal" class="val">12</span>
+</div>
+
+<div class="v2group-label">アクション</div>
+<div class="v2actiongrid">
+<button class="v2action" id="downloadImageBtn" type="button" style="background:rgba(52,199,89,.92); color:#fff;">画像保存</button>
+<button class="v2action" id="shareBtn" type="button" style="background:var(--accent); color:#fff;">共有</button>
+</div>
+
+<div style="display:none;" aria-hidden="true">
+<label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1"><span class="color-dot"></span><input type="color" id="quickColorInput" value="#ffffff" /></label>
+<div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
+</div>
+
+<div class="v2verline">ver 2.0 by yuchi🐔</div>
+<button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
+</div>
 </div>
 
 <!-- 共有モーダル -->
@@ -2098,9 +2292,9 @@ return;
 }
 
 if(!isMerged){
-h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
+h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら下の「選択」へ）";
 }else{
-h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：ドラッグ／2点タップで設置";
+h.innerHTML = "部屋をタップで選択／下の「追加」から部屋・内壁・外壁";
 }
 }
 
@@ -3475,6 +3669,19 @@ function drawMerged(){
         const subY = textY + (mainFontSize * 0.7);
         ctx.strokeText(subText, textX, subY);
         ctx.fillText(subText, textX, subY);
+      }
+      // ✅ v2: mm寸法（1マス=910mm換算）
+      if (el('showMM')?.checked) {
+        const mmW = Math.round((g.maxX - g.minX) / GRID_SIZE * 910);
+        const mmH = Math.round((g.maxY - g.minY) / GRID_SIZE * 910);
+        if (mmW > 0 && mmH > 0) {
+          const mmFontSize = (9 * mag) / scale;
+          ctx.font = `${mmFontSize}px sans-serif`;
+          const mmY = textY + (mainFontSize * 0.7) + ((12 * mag) / scale);
+          const mmText = `${mmW}×${mmH}`;
+          ctx.strokeText(mmText, textX, mmY);
+          ctx.fillText(mmText, textX, mmY);
+        }
       }
     }
     ctx.textAlign = "left";
@@ -5218,6 +5425,112 @@ draw();
 
 // ボタンイベント登録
 el('downloadImageBtn').onclick = downloadImage;
+
+
+
+/* ============================================================
+   v2.0 アダプタ：ドック・シート・mm寸法
+   ============================================================ */
+const MM_KEY = "floorplan_show_mm_v1";
+
+function v2OpenSheet(id){ const m = el(id); if(m) m.style.display = 'flex'; }
+function v2CloseSheet(id){ const m = el(id); if(m) m.style.display = 'none'; }
+
+function v2SyncDock(){
+const sel = el('dockSelect'), add = el('dockAdd');
+const special = isMeasureMode || isViewMode;
+if(sel) sel.classList.toggle('active', isMerged && !special && !isWallPlaceMode);
+if(add) add.classList.toggle('active', (!isMerged || isWallPlaceMode) && !special);
+}
+
+// モード変化に追従（既存関数をラップ）
+const __v2_updateWorkHint = updateWorkHint;
+updateWorkHint = function(){
+__v2_updateWorkHint();
+const h = el('workHint');
+if(h) h.style.display = isReadOnly ? 'none' : '';
+v2SyncDock();
+};
+
+// 部屋モードで未選択なら選択バーを隠す
+const __v2_syncBottomBarState = syncBottomBarState;
+syncBottomBarState = function(){
+__v2_syncBottomBarState();
+const defBar = el('defaultBar');
+if(!defBar) return;
+if(isMerged && !selectedItem){
+defBar.style.display = 'none';
+}
+};
+
+// --- ドック ---
+if(el('dockSelect')) el('dockSelect').onclick = () => {
+if(isMeasureMode && el('measureBtn')) el('measureBtn').click();
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(!isMerged && !isReadOnly) setMergedMode(true);
+selectedItem = null;
+syncBottomBarState();
+updateWorkHint();
+draw();
+};
+if(el('dockAdd')) el('dockAdd').onclick = () => {
+if(isReadOnly){ showToast('閲覧専用です。「コピーして編集」をどうぞ'); return; }
+v2OpenSheet('addSheet');
+};
+if(el('dock3d')) el('dock3d').onclick = () => showToast('3Dパースは次のアップデートで追加予定です🏠');
+if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
+if(el('addSheetClose')) el('addSheetClose').onclick = () => v2CloseSheet('addSheet');
+if(el('moreSheetClose')) el('moreSheetClose').onclick = () => v2CloseSheet('moreSheet');
+['addSheet','moreSheet'].forEach(id => {
+const m = el(id);
+if(m) m.addEventListener('click', (e) => { if(e.target.id === id) v2CloseSheet(id); });
+});
+
+// --- 追加シートのカテゴリ ---
+if(el('catRoom')) el('catRoom').onclick = () => {
+v2CloseSheet('addSheet');
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(!isMerged) setMergedMode(true);
+const b = el('addGenericRoomBtn2');
+if(b) b.click();
+};
+if(el('catWall')) el('catWall').onclick = () => {
+v2CloseSheet('addSheet');
+if(isViewMode) setViewMode(false);
+if(!isMerged) setMergedMode(true);
+if(!isWallPlaceMode) setWallPlaceMode(true);
+updateWorkHint();
+};
+if(el('catFrameAdd')) el('catFrameAdd').onclick = () => {
+v2CloseSheet('addSheet');
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(isMerged) setMergedMode(false);
+const b = el('addFrameBtn2');
+if(b) b.click();
+updateWorkHint();
+};
+if(el('catFrameEdit')) el('catFrameEdit').onclick = () => {
+v2CloseSheet('addSheet');
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(isMerged) setMergedMode(false);
+updateWorkHint();
+};
+
+// --- mm寸法 ---
+try{
+const mm = localStorage.getItem(MM_KEY);
+if(mm !== null && el('showMM')) el('showMM').checked = (mm === "1");
+}catch(_){}
+if(el('showMM')) el('showMM').addEventListener('change', (e) => {
+try{ localStorage.setItem(MM_KEY, e.target.checked ? "1" : "0"); }catch(_){}
+draw();
+});
+
+v2SyncDock();
 
 
 init();
