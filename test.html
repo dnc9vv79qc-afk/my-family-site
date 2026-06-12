@@ -1,0 +1,5192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<title>間取り検討サイト（Ichijo) v7.1</title>
+
+<style>
+:root{
+--accent:#007AFF;
+--danger:#ff3b30;
+--measure:#FF2D55;
+--bg:#f2f2f7;
+--card: rgba(255,255,255,.72);
+--stroke: rgba(60,60,67,.18);
+--text:#111;
+--muted: rgba(60,60,67,.6);
+--shadow: 0 10px 30px rgba(0,0,0,.10);
+--radius2: 26px;
+}
+
+@media (prefers-color-scheme: dark){
+:root{
+--bg:#000;
+--card: rgba(28,28,30,.68);
+--stroke: rgba(84,84,88,.55);
+--text:#fff;
+--muted: rgba(235,235,245,.6);
+--shadow: 0 16px 50px rgba(0,0,0,.45);
+}
+}
+
+*{ box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+font-family:
+-apple-system, BlinkMacSystemFont,
+"SF Pro Display", "SF Pro Text",
+"Hiragino Sans", "Hiragino Kaku Gothic ProN",
+"Noto Sans JP",
+"Yu Gothic", "YuGothic",
+"Meiryo",
+sans-serif;
+-webkit-font-smoothing: antialiased;
+text-rendering: optimizeLegibility;
+
+margin: 0;
+background: var(--bg);
+color: var(--text);
+
+/* ▼ 修正: ノッチの高さ(env)に12pxを加算して確保する */
+padding-top: calc(env(safe-area-inset-top) + 12px);
+
+padding-left: env(safe-area-inset-left);
+padding-right: env(safe-area-inset-right);
+
+touch-action: none;
+
+display: flex;
+flex-direction: column;
+
+/* ▼ 修正: 高さの計算方法を安定させる */
+height: 100%;
+position: fixed; /* Safariでのバウンスや余計なスクロールを防止 */
+inset: 0;
+overflow: hidden;
+}
+
+
+.ver-label{
+position: fixed;
+top: calc(6px + env(safe-area-inset-top));
+right: 10px;
+font-size: 10px;
+color: var(--muted);
+z-index: 100;
+pointer-events: none;
+font-weight: 800;
+text-align: right;
+opacity: .85;
+}
+
+.toolbar {
+/* ▼ 修正: 上マージンを0にし、左右と下だけ12pxにする */
+margin: 0 12px 8px 12px;
+
+border-radius: var(--radius2);
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+
+padding: 10px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 10px;
+
+z-index: 10;
+}
+
+
+.top-left, .top-right{ display:flex; align-items:center; gap: 10px; }
+.top-title{ font-weight: 900; font-size: 13px; letter-spacing: .3px; opacity: .9; user-select:text; cursor:text; padding:4px 8px; border-radius:10px; max-width: 44vw; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-title:focus{ outline:2px solid rgba(0,122,255,.35); background: rgba(0,122,255,.08); }
+
+button{
+height: 44px;
+font-size: 13px;
+border: none;
+border-radius: 16px;
+color: white;
+font-weight: 900;
+cursor: pointer;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+padding: 0 14px;
+-webkit-tap-highlight-color: transparent;
+letter-spacing: .2px;
+transition: transform .08s ease, filter .08s ease, opacity .08s ease;
+}
+button:active { opacity: 0.85; transform: scale(0.98); }
+
+.btn-primary{ background: rgba(255,149,0,.95); }
+.btn-help{
+background: rgba(120,120,128,.18);
+color: var(--text);
+font-size: 18px;
+width: 44px;
+padding: 0;
+}
+
+.mode-banner{
+margin: 0 12px 12px;
+border-radius: 999px;
+background: rgba(255,149,0,.14);
+border: 1px solid rgba(255,149,0,.30);
+color: rgba(255,149,0,.95);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+padding: 8px 12px;
+font-size: 12px;
+font-weight: 900;
+display:flex;
+align-items:center;
+justify-content: space-between;
+gap: 10px;
+}
+.mode-banner button{
+height: 34px;
+border-radius: 999px;
+padding: 0 12px;
+font-size: 12px;
+}
+
+.config-bar{
+margin: 0 12px 12px;
+border-radius: var(--radius2);
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+
+padding: 10px;
+display:flex;
+justify-content: space-between;
+align-items:center;
+gap: 10px;
+flex-wrap: wrap;
+}
+
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip{
+background: rgba(255,255,255,.55);
+border: 1px solid var(--stroke);
+padding: 8px 12px;
+border-radius: 999px;
+font-size: 13px;
+font-weight: 900;
+display:flex;
+align-items:center;
+gap: 6px;
+box-shadow: 0 1px 6px rgba(0,0,0,.06);
+cursor: pointer;
+color: var(--text);
+}
+@media (prefers-color-scheme: dark){
+.chip{ background: rgba(44,44,46,.65); }
+}
+.chip input { margin: 0; width: 18px; height: 18px; }
+
+
+/* range chip */
+.range-chip{
+cursor: default;
+gap: 8px;
+padding: 8px 10px;
+}
+.range-chip input[type="range"]{
+width: 92px;
+height: 18px;
+}
+@media (max-width: 420px){
+.range-chip input[type="range"]{ width: 72px; }
+}
+
+.right-actions{
+display:flex;
+align-items:center;
+gap: 10px;
+flex-wrap: wrap;
+justify-content: flex-end;
+}
+
+.segment{
+display:flex;
+align-items: center;
+border: 1px solid var(--stroke);
+border-radius: 14px;
+background: rgba(120,120,128,.12);
+padding: 2px;
+height: 36px;
+}
+.seg-btn{
+height: 32px;
+min-width: 56px;
+padding: 0 12px;
+border-radius: 12px;
+background: transparent;
+color: var(--text);
+font-size: 12px;
+font-weight: 900;
+line-height: 1;
+box-shadow:none;
+white-space: nowrap;
+}
+.seg-btn.active{ background: var(--accent); color: #fff; }
+.seg-btn:active{ transform: none; }
+
+.small-btn{
+height: 34px;
+border-radius: 999px;
+padding: 0 12px;
+background: var(--accent);
+color:#fff;
+font-size: 12px;
+font-weight: 900;
+}
+.small-btn.gray{
+background: rgba(120,120,128,.25);
+color: var(--text);
+border: 1px solid var(--stroke);
+}
+.small-btn.active{
+background: var(--measure) !important;
+color: #fff !important;
+border: none !important;
+}
+
+.small-btn.view-active{
+background: var(--accent) !important;
+color: #fff !important;
+border: none !important;
+}
+.small-btn:disabled{ opacity: .4; transform: none !important; cursor: default; }
+
+/* iOS Safariで確実に色ピッカーを開かせる: label + input(color) を透明で被せる */
+.color-label{
+position: relative;
+overflow: hidden;
+
+/* ラベル内に色見本を出す */
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding-left: 12px;
+}
+
+/* 先頭に色見本（CSS変数 --swatch を使う） */
+.color-label::before{
+content: "";
+width: 14px;
+height: 14px;
+border-radius: 999px;
+background: var(--swatch, #ffffff);
+border: 1px solid rgba(0,0,0,.12);
+}
+.color-label input[type="color"]{
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+opacity: 0; /* display:noneはNG */
+border: 0;
+padding: 0;
+}
+.color-label[data-disabled="1"]{
+opacity: .35;
+filter: grayscale(1);
+pointer-events: none;
+}
+
+/* ===== Summary（延床のみ：外枠(frame)面積） ===== */
+.summary{
+margin: 0 12px 12px;
+border-radius: 999px;
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+
+padding: 10px 14px;
+display:flex;
+justify-content: space-around;
+align-items:center;
+
+font-size: 14px;
+font-weight: 900;
+}
+.summary b{ color: var(--accent); }
+
+/* ===== Canvas ===== */
+#canvas-container{
+flex: 1;
+position: relative;
+margin: 0 12px 12px;
+border-radius: 24px;
+overflow: hidden;
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+background: #fff;
+touch-action: none;
+
+margin-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+canvas{ display:block; }
+
+/* ===== Bottom Bar ===== */
+.bottom-bar{
+position: fixed;
+left: 12px; right: 12px;
+bottom: calc(12px + env(safe-area-inset-bottom));
+display: grid;
+
+/* ▼ デフォルトは「部屋モード」の列（外枠モードで上書き） */
+grid-template-columns: 1.05fr 1.05fr 1.75fr 0.75fr 0.85fr 0.85fr;
+
+gap: 10px;
+padding: 10px;
+border-radius: 24px;
+background: var(--card);
+border: 1px solid var(--stroke);
+box-shadow: var(--shadow);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+z-index: 60;
+}
+
+/* ✅ 外枠モード：外壁追加＋削除だけにして、見た目も押しやすく */
+.bottom-bar.mode-outer{
+grid-template-columns: 1fr 1fr;
+}
+
+/* 小さい画面は少し詰める（押しやすさは維持） */
+@media (max-width: 390px){
+.bottom-bar{ gap: 8px; left: 10px; right: 10px; }
+}
+
+
+.pill{
+height: 48px;
+border-radius: 18px;
+background: rgba(120,120,128,.16);
+color: var(--text);
+box-shadow: none;
+font-weight: 900;
+font-size: 13px;
+letter-spacing: .2px;
+
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction: column;
+gap: 2px;
+padding: 6px 0;
+}
+.pill.active{
+background: var(--accent);
+color: #fff;
+box-shadow: 0 8px 18px rgba(0,122,255,.25);
+}
+
+.pill::after{
+content: attr(data-sub);
+font-size: 10px;
+font-weight: 800;
+color: var(--muted);
+letter-spacing: .1px;
+}
+.pill.primary{ background: var(--accent); color:#fff; }
+.pill.primary::after{ color: rgba(255,255,255,.85); }
+.pill.danger{
+background: rgba(255,59,48,.14);
+color: #ff3b30;
+}
+.pill:disabled{
+opacity: .35;
+filter: grayscale(1);
+transform: none !important;
+cursor: default;
+}
+
+/* ボトムバー：選択名の省略表示 */
+#selectedNameDisplay{
+max-width: 100%;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+display: block;
+}
+
+
+/* ===== Modals ===== */
+.modal-overlay{
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.6);
+z-index: 1000;
+align-items: center;
+justify-content: center;
+}
+.modal{
+background: #fff;
+padding: 25px;
+border-radius: 20px;
+width: 85%;
+max-width: 360px;
+text-align: center;
+box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.modal input{
+width: 100%;
+padding: 12px;
+margin: 15px 0;
+border: 1px solid #ddd;
+border-radius: 10px;
+font-size: 14px;
+box-sizing: border-box;
+}
+#helpModal .modal{
+max-width: 420px;
+text-align: left;
+max-height: 80vh;
+overflow-y: auto;
+}
+#helpModal ul{ padding-left: 20px; font-size: 13px; line-height: 1.6; }
+#helpModal h3{ text-align: center; margin-top: 0; }
+
+.modal.sheet{ width: 92%; max-width: 420px; text-align: left; border-radius: 22px; }
+
+#labelInput{
+width: 100%;
+padding: 12px 12px;
+border: 1px solid #ddd;
+border-radius: 14px;
+font-size: 16px;
+font-weight: 800;
+outline: none;
+}
+
+.chip-grid{
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+margin-top: 12px;
+}
+.name-chip{
+height: 38px;
+border-radius: 14px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+font-size: 13px;
+letter-spacing: .2px;
+padding: 0 8px;
+width: 100%;
+justify-content: center;
+box-shadow: none;
+gap: 8px;
+display:flex;
+}
+.name-chip .dot{
+width: 12px;
+height: 12px;
+border-radius: 999px;
+border: 1px solid rgba(0,0,0,.08);
+}
+.name-chip:active{ transform: scale(.98); opacity: .9; }
+
+.menu-list{
+display:flex;
+flex-direction: column;
+gap: 10px;
+margin-top: 14px;
+}
+.menu-btn{
+height: 42px;
+border-radius: 16px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+justify-content: center;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+.menu-btn.danger{
+background: rgba(255,59,48,.14);
+color: #ff3b30;
+}
+
+/* 長押しメニュー：色変更も他ボタンと同じ見た目に（右に色ドット） */
+.menu-color-label{
+position: relative;
+overflow: hidden;
+justify-content: space-between;
+padding: 0 14px;
+gap: 10px;
+}
+.menu-color-label input[type="color"]{
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+opacity: 0;
+border: 0;
+padding: 0;
+}
+.menu-color-dot{
+width: 14px;
+height: 14px;
+border-radius: 999px;
+background: var(--swatch, #FFF3E0);
+border: 1px solid rgba(0,0,0,.12);
+pointer-events: none;
+}
+@media (prefers-color-scheme: dark){
+.menu-color-dot{ border-color: rgba(255,255,255,.22); }
+}
+
+/* Preset manager */
+.preset-list{ display:flex; flex-direction:column; gap:10px; margin-top: 10px; }
+.preset-row{
+display:grid;
+grid-template-columns: 1fr 54px 54px;
+gap: 8px;
+align-items:center;
+}
+.preset-row input[type="text"]{
+margin: 0;
+padding: 10px 10px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
+}
+.preset-row input[type="color"]{
+width: 54px;
+height: 42px;
+border-radius: 14px;
+padding: 0;
+border: 1px solid var(--stroke);
+background: transparent;
+}
+.preset-del{
+height: 42px;
+border-radius: 14px;
+background: rgba(255,59,48,.14);
+color:#ff3b30;
+border: 1px solid rgba(255,59,48,.25);
+font-weight: 900;
+}
+
+#presetModal .modal.sheet{
+max-height: calc(86vh - env(safe-area-inset-bottom));
+display: flex;
+flex-direction: column;
+}
+#presetList{
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+flex: 1;
+padding-right: 4px;
+}
+.preset-footer{
+position: sticky;
+bottom: 0;
+padding-top: 10px;
+background: inherit;
+}
+#presetSearch{
+width: 100%;
+padding: 10px 12px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
+outline: none;
+}
+
+
+/* Layout list */
+.layout-list{
+overflow:auto;
+-webkit-overflow-scrolling: touch;
+flex: 1;
+padding-right: 4px;
+margin-top: 10px;
+}
+.layout-row{
+display: grid;
+/* ★変更: 上段にタイトル、下段にボタン(1:1:固定幅) */
+grid-template-columns: 1fr 1fr 50px;
+gap: 8px;
+align-items: center;
+margin-bottom: 12px;
+padding-bottom: 12px;
+border-bottom: 1px solid #eee; /* ★追加: 区切り線 */
+}
+.layout-row input[type="text"]{
+/* ★追加: タイトルを1行目全体に広げる */
+grid-column: 1 / -1;
+margin: 0;
+padding: 10px;
+border-radius: 14px;
+border: 1px solid #ddd;
+font-weight: 800;
+font-size: 16px; /* ★追加: 文字サイズを大きく */
+}
+
+
+.layout-btn{
+height: 42px;
+border-radius: 14px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.14);
+color: var(--text);
+font-weight: 900;
+justify-content: center;
+}
+.layout-del{
+height: 42px;
+border-radius: 14px;
+background: rgba(255,59,48,.14);
+color:#ff3b30;
+border: 1px solid rgba(255,59,48,.25);
+font-weight: 900;
+padding: 0;
+}
+
+/* 作業モードヒント */
+.work-hint{
+position: sticky;
+top: 0;
+z-index: 20;
+margin: 4px 12px 0;
+padding: 8px 10px;
+border-radius: 12px;
+background: rgba(255,255,255,.9);
+border: 1px solid rgba(0,0,0,.08);
+color: #333;
+font-size: 12px;
+line-height: 1.35;
+backdrop-filter: blur(8px);
+}
+.work-hint b{ font-weight: 800; }
+
+/* --- トースト通知（基本：操作中用） --- */
+.toast {
+position: fixed;
+left: 50%;
+bottom: 90px;
+transform: translateX(-50%);
+
+background: rgba(20, 20, 20, 0.9);
+color: #fff;
+
+/* 基本は小さく（操作中など） */
+font-size: 12px;
+padding: 8px 16px;
+border-radius: 999px;
+
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.2s ease, transform 0.2s ease;
+z-index: 2000;
+
+max-width: 85vw;
+white-space: normal;
+text-align: center;
+line-height: 1.4;
+}
+
+/* ★追加: 保存用（大きく目立たせる） */
+.toast.large {
+bottom: 110px; /* 少し上に */
+font-size: 15px; /* 文字大きく */
+font-weight: bold; /* 太字 */
+padding: 14px 24px; /* 余白たっぷり */
+background: rgba(20, 20, 20, 0.95);
+box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* 表示用 */
+.toast.show {
+opacity: 1;
+transform: translateX(-50%) translateY(-4px);
+}
+
+
+
+/* --- コンパクト化CSS --- */
+
+/* バー全体の余白を削減 */
+.config-bar.compact {
+padding: 8px 10px;
+gap: 6px;
+flex-direction: column; /* 確実に縦2段にする */
+align-items: stretch;
+}
+
+/* 1行ごとの設定 */
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+/* 小さいチップ（単位など） */
+.chip.tiny {
+padding: 0 8px;
+height: 28px; /* 高さ削減 */
+font-size: 11px; /* 文字サイズ縮小 */
+font-weight: 800;
+gap: 4px;
+}
+.chip.tiny input[type="checkbox"] {
+width: 14px;
+height: 14px;
+}
+
+/* グループ化 */
+.group-tiny {
+display: flex;
+gap: 4px;
+}
+
+/* 区切り線 */
+.v-line {
+width: 1px;
+height: 16px;
+background: rgba(0,0,0,0.1);
+margin: 0 2px;
+}
+@media (prefers-color-scheme: dark){ .v-line{ background: rgba(255,255,255,0.15); } }
+
+/* 壁スライダーの極小化 */
+.range-chip-tiny {
+flex: 1; /* 空きスペースを埋める */
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 8px;
+min-width: 0; /* flex縮小用 */
+}
+.range-chip-tiny input[type="range"] {
+width: 100%; /* 親に合わせて伸縮 */
+height: 14px;
+margin: 0 6px;
+min-width: 40px;
+}
+.range-chip-tiny .lbl { font-size:10px; opacity:0.7; }
+.range-chip-tiny .val { font-size:11px; min-width:14px; text-align:right; }
+
+/* 2段目のボタン群 */
+.small-btn.tiny {
+height: 30px;
+padding: 0 10px;
+font-size: 11px;
+border-radius: 8px;
+}
+.segment.tiny {
+height: 30px;
+border-radius: 8px;
+}
+.segment.tiny .seg-btn {
+height: 26px;
+font-size: 11px;
+min-width: 40px;
+padding: 0 8px;
+}
+
+/* Undo/Redoなどの結合ボタン */
+.joined-tiny {
+display: flex;
+background: rgba(120,120,128,.12);
+border-radius: 8px;
+padding: 2px;
+flex-shrink: 0;
+}
+.joined-tiny button {
+background: transparent;
+border: none;
+height: 26px;
+border-radius: 6px;
+font-size: 14px;
+width: 32px;
+padding: 0;
+color: var(--text);
+font-weight: 900;
+}
+.joined-tiny button:active { background: rgba(0,0,0,0.05); }
+.joined-tiny button:disabled { opacity: 0.3; }
+
+/* 全体・リセットボタンは文字のみで省スペース */
+.joined-tiny .btn-text {
+font-size: 10px;
+width: auto;
+padding: 0 6px;
+}
+
+/* 色ボタン */
+.color-label-tiny {
+display: flex;
+align-items: center;
+justify-content: center;
+width: 36px;
+padding: 0;
+position: relative;
+overflow: hidden;
+}
+.color-label-tiny .color-dot {
+width: 16px;
+height: 16px;
+border-radius: 999px;
+background: var(--swatch, #fff);
+border: 1px solid rgba(0,0,0,0.1);
+pointer-events: none;
+}
+.color-label-tiny input {
+position: absolute; opacity: 0; inset: 0; width: 100%;
+}
+.color-label-tiny::before { display: none; } /* 既存スタイルの打ち消し */
+
+/* 右寄せ調整 */
+.right-edge { margin-left: auto; }
+
+
+
+
+/* UI簡素化: 上部のクイック色変更は非表示（必要なら削除してOK） */
+#quickColorBtn{ display:none !important; }
+
+/* --- 🆕 マニュアル用スタイリッシュCSS --- */
+#helpModal .modal {
+background: #f2f2f7; /* 背景を少しグレーに */
+padding: 0;
+overflow: hidden;
+max-width: 460px;
+display: flex;
+flex-direction: column;
+}
+#helpModal .modal-header {
+padding: 20px;
+background: #fff;
+border-bottom: 1px solid rgba(0,0,0,0.05);
+text-align: center;
+}
+#helpModal h3 { margin: 0; font-size: 17px; }
+#helpModal .modal-body {
+padding: 20px;
+overflow-y: auto;
+max-height: 60vh;
+-webkit-overflow-scrolling: touch;
+}
+
+/* セクション */
+.help-section {
+margin-bottom: 24px;
+}
+.help-section-title {
+font-size: 13px;
+color: #666;
+margin: 0 0 8px 4px;
+font-weight: 600;
+text-transform: uppercase;
+}
+
+/* カードリスト */
+.help-list {
+background: #fff;
+border-radius: 12px;
+overflow: hidden;
+box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.help-row {
+display: flex;
+align-items: flex-start;
+padding: 12px 16px;
+border-bottom: 1px solid #ebedf0;
+gap: 12px;
+}
+.help-row:last-child { border-bottom: none; }
+
+.help-icon {
+width: 28px;
+height: 28px;
+background: var(--accent);
+border-radius: 6px;
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 16px;
+flex-shrink: 0;
+}
+.help-icon.green { background: #34C759; }
+.help-icon.orange { background: #FF9500; }
+.help-icon.pink { background: #FF2D55; }
+.help-icon.gray { background: #8E8E93; }
+
+.help-content { font-size: 13px; line-height: 1.5; color: #111; }
+.help-content b { display: block; font-size: 14px; margin-bottom: 2px; }
+
+/* 閉じるボタンエリア */
+#helpModal .modal-footer {
+padding: 16px 20px 24px; /* 下に余裕を */
+background: #f2f2f7;
+}
+#helpCloseBtn {
+width: 100%;
+height: 48px;
+background: #fff;
+color: var(--accent);
+font-weight: 700;
+border-radius: 12px;
+border: none;
+font-size: 15px;
+box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+#helpCloseBtn:active { background: #e5e5ea; transform: scale(0.98); }
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+
+
+
+</style>
+</head>
+
+<body>
+<div class="ver-label">ver 1.20 (1F/2F)<br>by yuchi🐔</div>
+
+<div class="toolbar">
+<div class="top-left">
+<button class="btn-help" id="openHelpBtn" aria-label="ヘルプ">？</button>
+<div class="top-title" id="topTitle" contenteditable="true" spellcheck="false" role="textbox" aria-label="間取り名（タップして編集）">MORI</div>
+</div>
+
+<!-- 共有 / 閲覧モードではコピーして-->
+
+<div class="top-right">
+<button class="btn-primary" id="downloadImageBtn" style="background:#34C759; margin-right:10px;">画像保存</button>
+<button class="btn-primary" id="shareBtn">共有</button>
+</div>
+
+
+</div>
+
+<div id="modeBanner" class="mode-banner" style="display:none;">
+<div>閲覧モード（上書きされません）</div>
+<button id="copyToEditBtn" style="background:var(--accent);">コピーして編集</button>
+</div>
+
+<div class="config-bar compact">
+
+<div class="config-row">
+<div class="group-tiny">
+<label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
+<label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
+<label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
+<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告表示</label>
+<label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
+
+</div>
+
+<div class="v-line"></div>
+
+
+<div class="chip tiny range-chip-tiny" id="wallThickChip" title="壁の太さ">
+<span class="lbl">壁</span>
+<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
+<span id="wallThickVal" class="val">12</span>
+</div>
+</div>
+
+<div class="config-row">
+<div class="segment tiny" role="tablist" id="floorSeg" aria-label="フロア切替">
+<button class="seg-btn active" id="floor1Btn" type="button">1F</button>
+<button class="seg-btn" id="floor2Btn" type="button">2F</button>
+</div>
+
+<div class="segment tiny" role="tablist">
+<button class="seg-btn" id="segEdit" type="button">外壁</button>
+<button class="seg-btn active" id="segMerge" type="button">部屋</button>
+</div>
+
+
+<button id="viewBtn" class="small-btn tiny gray" type="button" title="閲覧モード（拡大/移動）">閲覧</button>
+
+<button id="fitBtn" class="small-btn tiny gray" type="button" title="全体を表示">全体</button>
+
+
+<button id="measureBtn" class="small-btn tiny gray" type="button">計測</button>
+
+<div class="joined-tiny">
+<button id="undoBtn" class="btn-icon" type="button">↩︎</button>
+<button id="redoBtn" class="btn-icon" type="button" disabled>↪︎</button>
+</div>
+
+<label id="quickColorBtn" class="small-btn tiny color-label-tiny" data-disabled="1" title="色変更">
+<span class="color-dot"></span>
+<input type="color" id="quickColorInput" value="#ffffff" />
+</label>
+</div>
+
+</div>
+
+
+<!-- 作業モードヒント -->
+<div id="workHint" class="work-hint"></div>
+<!-- ✅ 延床のみ（外枠frame面積） -->
+<div class="summary">
+<span>延床: <b id="totalTsubo">0.00</b> 坪</span>
+<span id="jouWrap"><b id="totalJou">0.0</b> 畳</span>
+<span id="m2Wrap"><b id="totalM2">0.0</b> m²</span>
+<span id="floorBreakdown" style="display:none;"></span>
+</div>
+
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
+
+<div class="bottom-bar" id="defaultBar">
+<!-- 部屋モード：追加 -->
+<button class="pill primary" id="addGenericRoomBtn2" data-sub="プリセット選択">部屋</button>
+<button class="pill" id="addInnerWallBtn2" data-sub="ドラッグ/2点">内壁</button>
+
+<!-- 外枠モード：外壁の追加/削除（部屋モード時は非表示） -->
+<button class="pill primary" id="addFrameBtn2" data-sub="追加" style="display:none;">外壁</button>
+
+<!-- 部屋モード：選択中の編集 -->
+<button class="pill" id="editNameBtn" data-sub="名前変更" type="button">
+<span id="selectedNameDisplay">未選択</span>
+</button>
+
+<label class="pill" id="selectedColorLabel" data-sub="色" style="position:relative; overflow:hidden;" aria-label="選択中の色">
+<span class="color-dot" id="selectedColorDot" style="width:20px; height:20px; border-radius:50%; border:1px solid rgba(0,0,0,0.2); background:#fff;"></span>
+<input type="color" id="selectedColorInput" style="position:absolute; inset:0; opacity:0; width:100%; height:100%;" disabled>
+</label>
+
+<!-- 部屋モード：表面に出す -->
+<button class="pill" id="dupSelectedBtn" data-sub="複製" type="button">複製</button>
+<button class="pill danger" id="delSelectedBtn" data-sub="削除" type="button">削除</button>
+</div>
+
+<!-- 共有モーダル -->
+<div id="shareModal" class="modal-overlay">
+<div class="modal">
+<h3>共有</h3>
+
+<div style="text-align:left; font-size:12px; font-weight:bold; color:#666; margin-bottom:4px;">間取り名</div>
+<input type="text" id="layoutTitleInput" value="MORIYASU🏠" maxlength="20" style="margin-top:0; font-weight:bold;">
+
+<div style="font-size:12px;color:#666;margin-top:10px;">共有URL（読み取り専用：上書きされません）</div>
+<input type="text" id="shareUrlInput" readonly onclick="this.select()">
+
+<div style="display:flex; gap:10px;">
+<button style="flex:1; background:var(--accent);" id="copyUrlBtn">コピー</button>
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="closeShareModalBtn">閉じる</button>
+</div>
+
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="openLayoutsBtn">保存一覧</button>
+<button style="flex:1; background:rgba(120,120,128,.18); color:#111; border:1px solid rgba(60,60,67,.18);" id="saveAsBtn">別名で保存</button>
+</div>
+
+<p style="font-size:11px;color:#666; margin-top:10px; line-height:1.5;">
+※共有URLは「この状態のコピー」です。自分の編集は元のまま続けられます。
+</p>
+</div>
+</div>
+
+<div id="layoutsModal" class="modal-overlay">
+<div class="modal sheet" style="max-height:calc(86vh - env(safe-area-inset-bottom)); display:flex; flex-direction:column;">
+<h3 style="margin:0 0 6px;">保存一覧</h3>
+<div style="font-size:12px;color:#666;margin-bottom:6px;">自分用の編集URLだけ表示 / 名前は編集できます</div>
+<div style="font-size:12px;color:#666;margin-bottom:10px;">※お気に入り等で空の画面になった場合は、ここで「開く」から編集を再開できます</div>
+
+<div class="layout-list" id="layoutList"></div>
+
+<div class="preset-footer">
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button class="small-btn gray" id="layoutsCloseBtn" type="button" style="height:42px; flex:1;">閉じる</button>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="helpModal" class="modal-overlay">
+<div class="modal">
+<div class="modal-header">
+<h3>使い方・操作ガイド</h3>
+</div>
+
+<div class="modal-body">
+
+<div class="help-section">
+<div class="help-section-title">基本操作</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon">👆</div>
+<div class="help-content">
+<b>移動・選択</b>
+部屋の中央ハンドルをドラッグで移動。タップで選択。何もない所をタップで解除。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">↘️</div>
+<div class="help-content">
+<b>サイズ変更</b>
+選択時、右下に出る白い丸ハンドルをドラッグして調整。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon orange">🎨</div>
+<div class="help-content">
+<b>色・名前の変更</b>
+部屋を選択し、画面下のツールバーから変更。名前変更は部屋を「2回タップ」でも可能。
+</div>
+</div>
+</div>
+</div>
+
+<div class="help-section">
+<div class="help-section-title">作成の流れ</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon gray">1</div>
+<div class="help-content">
+<b>外壁モード</b>
+まずは家の「外枠」を作ります。サイズを決めたら「部屋」モードへ。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon green">2</div>
+<div class="help-content">
+<b>部屋モード</b>
+部屋を追加して配置します。内壁は「内壁」ボタンを押してから2点をタップ。
+</div>
+</div>
+</div>
+</div>
+
+<div class="help-section">
+<div class="help-section-title">便利機能</div>
+<div class="help-list">
+<div class="help-row">
+<div class="help-icon">🏠</div>
+<div class="help-content">
+<b>1F / 2F 切替</b>
+上部の「1F/2F」でフロアを切替できます。「重ね」をONにすると、もう一方のフロアが紫の透かしで表示され、上下階の壁や水回りの位置合わせができます。延床は1F+2Fの合計です。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon pink">📏</div>
+<div class="help-content">
+<b>計測モード</b>
+2点をタップすると、その間の距離を表示します。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">👀</div>
+<div class="help-content">
+<b>閲覧モード</b>
+誤操作を防ぎながら、ピンチ操作（2本指）で拡大・縮小や移動ができます。
+</div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="modal-footer">
+<button id="helpCloseBtn" type="button">閉じる</button>
+</div>
+</div>
+</div>
+
+
+
+<div id="labelModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 id="labelModalTitle" style="margin:0 0 6px;">部屋を追加</h3>
+<div id="labelModalSub" style="font-size:12px;color:#666;margin-bottom:10px;">プリセットをタップで即追加 / 入力してOKでも追加</div>
+
+<input type="text" id="labelInput" placeholder="部屋名（入力追加）" maxlength="12">
+
+<div style="display:flex; gap:10px; margin:12px 0 6px; align-items:center;">
+<button class="small-btn gray" id="openPresetBtn" type="button" style="height:36px;">プリセット編集</button>
+
+<!-- ✅ 追加時も色を選べる（iOS対応） -->
+<label id="addColorBtn" class="small-btn gray color-label" style="height:36px;">
+色
+<input type="color" id="addColorInput" value="#FFF3E0">
+</label>
+
+<div id="addHint" style="font-size: 12px; color: #666; align-self: center; display: block;">※チップは即追加</div>
+</div>
+
+<div class="chip-grid" id="labelChips"></div>
+
+<div style="display:flex; gap:10px; margin-top:14px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="labelCancelBtn" type="button">キャンセル</button>
+<button style="flex:1; background:var(--accent);" id="labelOkBtn" type="button">OK</button>
+</div>
+</div>
+</div>
+
+<div id="menuModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">メニュー</h3>
+<div id="menuTitle" style="font-size:12px;color:#666;margin-bottom:8px;">選択中</div>
+
+<div class="menu-list">
+<button class="menu-btn" id="menuEditBtn" type="button">名前変更</button>
+
+<!-- ✅ 色変更（iOS Safariでも確実に開く） -->
+<label class="menu-btn menu-color-label" id="menuColorBtn" title="色を変更">
+<span>色変更</span>
+<span class="menu-color-dot" aria-hidden="true"></span>
+<input type="color" id="menuColorInput" value="#FFF3E0">
+</label>
+
+<button class="menu-btn" id="menuDupBtn" type="button">複製</button>
+<button class="menu-btn danger" id="menuDelBtn" type="button">削除</button>
+</div>
+
+<div style="display:flex; gap:10px; margin-top:14px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="menuCloseBtn" type="button">閉じる</button>
+</div>
+</div>
+</div>
+
+<div id="presetModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">プリセット編集</h3>
+<div style="font-size:12px;color:#666;margin-bottom:8px;">部屋名と色を追加/変更できます</div>
+
+<input id="presetSearch" type="text" placeholder="検索（例：LDK）">
+
+<div class="preset-list" id="presetList"></div>
+
+<div class="preset-footer">
+<div style="display:flex; gap:10px; margin-top:12px;">
+<button class="small-btn gray" id="presetAddBtn" type="button" style="height:42px;">＋追加</button>
+<button class="small-btn" id="presetSaveBtn" type="button" style="height:42px;">保存</button>
+</div>
+
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="presetCloseBtn" type="button">閉じる</button>
+</div>
+</div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+getFirestore, collection, addDoc, getDoc, doc, setDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
+authDomain: "test-55430.firebaseapp.com",
+projectId: "test-55430",
+storageBucket: "test-55430.firebasestorage.app",
+messagingSenderId: "742726212885",
+appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
+measurementId: "G-PW24JY2LBP"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const el = (id) => document.getElementById(id);
+
+// canvas
+let canvas = el('canvas'); // ★ const から let に変更
+let ctx = canvas.getContext('2d'); // ★ const から let に変更
+
+const container = el('canvas-container');
+
+// --- canvas view (Retina対応) ---
+let VIEW_W = 0; // 表示上の幅（CSS px / 仮想キャンバス時は内部px）
+let VIEW_H = 0; // 表示上の高さ（CSS px / 仮想キャンバス時は内部px）
+let RENDER_DPR = 1; // Retina等の解像度倍率（仮想キャンバス時は1）
+
+// constants
+const GRID_SIZE = 32;
+const HISTORY_MAX = 50;
+
+const PRESET_KEY = "floorplan_presets_v1";
+const LAYOUTS_KEY = "floorplan_saved_layouts_v2";
+const DRAFT_KEY = "floorplan_draft_v1";
+const DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14日（任意） // v2: editable only list
+
+const WALL_THICK_KEY = "wallThick_v1";
+let WALL_DEFAULT_THICK = 12;
+const WALL_HANDLE_R = 18;
+const WALL_HIT_PAD = 12;
+const SNAP_ANGLE_DEG = 15;
+
+const AUTOSAVE_DELAY = 1500;
+const TSUBO_TO_M2 = 3.305785;
+
+const MOVE_HANDLE_R = 14;
+const MOVE_HANDLE_HIT = 22;
+
+const SMALL_ROOM_MAX_MASU = 4;
+
+// state
+let floors = [
+{ name: '1F', items: [] },
+{ name: '2F', items: [] }
+];
+let activeFloor = 0;
+let items = floors[0].items;
+
+function syncActiveFloor(){
+floors[activeFloor].items = items;
+}
+function setItems(arr){
+items = arr;
+floors[activeFloor].items = items;
+}
+function serializeFloors(){
+syncActiveFloor();
+return floors.map((f, i) => ({
+name: f.name || ((i + 1) + 'F'),
+items: (f.items || []).map(it => ({...it}))
+}));
+}
+function floorsPayload(){
+const fs = serializeFloors();
+return {
+formatVersion: 2,
+floors: fs,
+activeFloor,
+items: fs[0].items
+};
+}
+let selectedItem = null;
+let isMerged = false;
+let camera = { x: 0, y: 0 };
+let scale = 1.0;
+
+let lastTapTime = 0;
+let overlapPick = { key: null, idx: 0, ts: 0 };
+let layoutId = null;
+let isReadOnly = false;
+
+let isViewMode = false; // 閲覧（パン/ズーム優先）
+let isExporting = false; // ★追加: 画像出力中フラグ
+
+
+let currentTitle = "MORIYASU🏠";
+
+const DEFAULT_TITLE = "MORIYASU🏠";
+
+function setTitle(raw, opts={}){
+const t = String(raw ?? "").replace(/\n/g, " ").trim() || DEFAULT_TITLE;
+currentTitle = t;
+
+// UI
+try{ el('topTitle').innerText = t; }catch(_){}
+try{ el('layoutTitleInput').value = t; }catch(_){}
+
+// Readonlyでは保存しない
+if(isReadOnly) return;
+
+// ドラフト保存＆（idがあれば）Firestore保存の予約
+if(!opts.silent){
+scheduleAutoSave();
+if(layoutId) upsertLayoutMeta(layoutId, { title: currentTitle });
+}
+}
+
+
+let editingItem = null;
+let menuItem = null;
+
+let labelModalMode = "edit";
+let addPendingColor = "#FFF3E0";
+
+let isMeasureMode = false;
+let measurePoints = [];
+
+let isWallPlaceMode = false;
+let wallPlaceStart = null;      // {x,y} 始点（未確定）
+let wallPlacePreviewEnd = null; // {x,y} ドラッグ中の終点プレビュー
+let wallPlaceGestureNewStart = false; // このタッチで始点を新規セットしたか
+let wallPlaceGestureMoved = false;    // このタッチで十分に動いたか（ドラッグ判定）
+
+// history
+let undoStack = [];
+let redoStack = [];
+let gestureSnapshot = null;
+
+// autosave
+let autosaveTimer = null;
+
+// presets
+let presets = [];
+let presetSearchQuery = "";
+
+// touch state
+let longPressTimer = null;
+let pressStart = null;
+let pressStartWorld = null;
+let pendingItem = null;
+let pendingWallHandle = null;
+let pendingAction = null;
+let dragActive = false;
+let rectDragOffset = null;
+let wallMoveOffset = null;
+let emptyTapCandidate = false;
+
+// pinch
+let pinchActive = false;
+let pinchStartDist = 0;
+let pinchStartScale = 1;
+let pinchWorldMid = null;
+
+// polyfill: roundRect
+if(!CanvasRenderingContext2D.prototype.roundRect){
+CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+r = Math.min(r, w/2, h/2);
+this.beginPath();
+this.moveTo(x+r, y);
+this.arcTo(x+w, y, x+w, y+h, r);
+this.arcTo(x+w, y+h, x, y+h, r);
+this.arcTo(x, y+h, x, y, r);
+this.arcTo(x, y, x+w, y, r);
+this.closePath();
+return this;
+};
+}
+
+function uid(){
+return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
+function ensureIds(){
+syncActiveFloor();
+floors.forEach(f => (f.items || []).forEach(it => {
+if(!it.id) it.id = uid();
+if(typeof it.locked !== "boolean") it.locked = false;
+if(it.type === 'wallLine'){
+if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
+if(!it.color) it.color = "#111";
+if(!it.label) it.label = "壁";
+}
+if(it.type !== 'wallLine'){
+if(!it.color) it.color = "#FFF3E0";
+if(!it.label) it.label = "部屋";
+}
+}));
+}
+
+function normalizeZ(){
+const frames = items.filter(i => i.type === 'frame');
+const others = items.filter(i => i.type !== 'frame');
+setItems([...frames, ...others]);
+}
+
+function getSnapStep(){
+  // 一条の間取り想定：最小単位は半ます（16px）固定
+  return 16;
+}
+function getSnapped(val, step){
+return Math.round(val / step) * step;
+}
+
+function quantizeAllToGrid(step){
+  // 既存データのズレを半ますグリッドへ寄せる（将来の互換性用）
+  if(!step) step = getSnapStep();
+  syncActiveFloor();
+  floors.forEach(f => (f.items || []).forEach(it => {
+    if(it.type === 'wallLine'){
+      it.x1 = getSnapped(it.x1, step);
+      it.y1 = getSnapped(it.y1, step);
+      it.x2 = getSnapped(it.x2, step);
+      it.y2 = getSnapped(it.y2, step);
+    }else{
+      it.x = getSnapped(it.x, step);
+      it.y = getSnapped(it.y, step);
+      it.w = Math.max(step, getSnapped(it.w, step));
+      it.h = Math.max(step, getSnapped(it.h, step));
+    }
+  }));
+}
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+/* coordinate */
+function screenToWorld(screenX, screenY){
+const rect = canvas.getBoundingClientRect();
+// clientX/Y はCSS pxなので、ここもCSS px基準で合わせる（Retina内部解像度と分離）
+const cx = rect.width/2;
+const cy = rect.height/2;
+const x = (screenX - rect.left - cx - camera.x) / scale;
+const y = (screenY - rect.top - cy - camera.y) / scale;
+return {x,y};
+}
+
+/* firestore save */
+async function saveLayoutToFirestore(){
+if(!layoutId || isReadOnly) return;
+try{
+await setDoc(doc(db, "layouts", layoutId), {
+...floorsPayload(),
+isMerged,
+title: currentTitle,
+readonly: false,
+updatedAt: new Date()
+}, { merge: true });
+}catch(e){
+console.warn("save failed", e);
+}
+}
+
+function scheduleAutoSave(){
+if(isReadOnly) return;
+
+// ✅ idが無くてもドラフト保存（お気に入り起動でも復元できる）
+saveDraft();
+
+// Firestore保存は編集IDがある時だけ
+if(!layoutId) return;
+
+if(autosaveTimer) clearTimeout(autosaveTimer);
+autosaveTimer = setTimeout(async () => {
+await saveLayoutToFirestore();
+touchLayoutMeta(layoutId);
+}, AUTOSAVE_DELAY);
+}
+
+async function ensureEditableLayoutId(){
+if(layoutId) return layoutId;
+const r = await addDoc(collection(db, "layouts"), {
+...floorsPayload(),
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+return layoutId;
+}
+
+async function createReadOnlyShareSnapshot(){
+// 共有は「読み取り専用コピー」を発行
+const r = await addDoc(collection(db, "layouts"), {
+...floorsPayload(),
+isMerged,
+title: currentTitle,
+readonly: true,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+return r.id;
+}
+
+/* history */
+function snapshot(){
+ensureIds();
+return {
+floors: serializeFloors(),
+activeFloor,
+selectedId: selectedItem?.id || null,
+isMerged,
+camera: {...camera},
+scale,
+layoutId,
+title: currentTitle
+};
+}
+
+function restore(s){
+if(Array.isArray(s.floors)){
+floors = s.floors.map((f, i) => ({
+name: f.name || ((i + 1) + 'F'),
+items: (f.items || []).map(it => ({...it}))
+}));
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [] });
+activeFloor = Number.isInteger(s.activeFloor) ? clamp(s.activeFloor, 0, floors.length - 1) : 0;
+}else{
+// 旧形式（単一フロア）からの自動移行
+floors = [
+{ name: '1F', items: (s.items || []).map(it => ({...it})) },
+{ name: '2F', items: [] }
+];
+activeFloor = 0;
+}
+items = floors[activeFloor].items;
+updateFloorUI();
+ensureIds();
+normalizeZ();
+quantizeAllToGrid(getSnapStep());
+isMerged = !!s.isMerged;
+camera = s.camera ? {...s.camera} : {x:0,y:0};
+scale = typeof s.scale === "number" ? s.scale : 1.0;
+layoutId = s.layoutId ?? layoutId;
+setTitle(s.title || currentTitle, {silent:true});
+
+selectedItem = s.selectedId ? items.find(i => i.id === s.selectedId) || null : null;
+// ✅ 壁の重なりを整理（同一直線・同じ太さ/色）
+selectedItem = mergeOverlappingWalls(selectedItem) || selectedItem;
+
+// [変更後] updateModeAvailability(); を追加
+updateSegmentUI();
+updateModeAvailability(); // ✅ 追加
+updateWorkHint();
+draw();
+
+
+}
+
+/* --- Draft (お気に入り起動でも復元できる) --- */
+function saveDraft(){
+try{
+const s = snapshot();
+localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...s, ts: Date.now() }));
+}catch(_){}
+}
+function loadDraft(){
+try{
+const raw = localStorage.getItem(DRAFT_KEY);
+if(!raw) return null;
+const d = JSON.parse(raw);
+if(!d) return null;
+if(d.ts && (Date.now() - d.ts > DRAFT_TTL_MS)) return null;
+const hasFloors = Array.isArray(d.floors) && d.floors.some(f => Array.isArray(f.items) && f.items.length > 0);
+const hasItems = Array.isArray(d.items) && d.items.length > 0;
+if(!hasFloors && !hasItems) return null;
+return d;
+}catch(_){ return null; }
+}
+function clearDraft(){
+try{ localStorage.removeItem(DRAFT_KEY); }catch(_){}
+}
+async function maybeRestoreDraftOnBoot(){
+const d = loadDraft();
+if(!d) return false;
+
+const title = (d.title || "無題").slice(0, 24);
+const ok = confirm(`最後に作業していた「${title}」を復元しますか？`);
+if(!ok) return false;
+
+restore(d);
+
+// 編集URLを確保して以後の保存を安定させる
+await ensureEditableLayoutId();
+if(!isReadOnly){
+await saveLayoutToFirestore();
+touchLayoutMeta(layoutId);
+}
+return true;
+}
+
+// ✅ 追加: タブを閉じる/バックグラウンドに回る時にもドラフトを確実に保存（Safari/iOS対策）
+window.addEventListener('pagehide', () => { try{ if(!isReadOnly) saveDraft(); }catch(_){} });
+document.addEventListener('visibilitychange', () => {
+try{
+if(document.visibilityState === 'hidden' && !isReadOnly) saveDraft();
+}catch(_){}
+});
+
+function pushHistory(){
+if(isReadOnly) return;
+undoStack.push(snapshot());
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+syncHistoryButtons();
+}
+
+function undo(){
+if (isReadOnly) return;
+if (!undoStack.length) return;
+redoStack.push(snapshot());
+restore(undoStack.pop());
+syncHistoryButtons();
+scheduleAutoSave();
+}
+
+function redo(){
+if (isReadOnly) return;
+if (!redoStack.length) return;
+undoStack.push(snapshot());
+restore(redoStack.pop());
+syncHistoryButtons();
+scheduleAutoSave();
+}
+
+function syncHistoryButtons(){
+el('undoBtn').disabled = isReadOnly || undoStack.length === 0;
+el('redoBtn').disabled = isReadOnly || redoStack.length === 0;
+}
+
+/* presets */
+function defaultPresets(){
+// 図面っぽく見えるように全体的に淡い色に寄せる
+return [
+{ name: "LDK", color: "#F4EBD2" },
+{ name: "洋室", color: "#F7F3EA" },
+{ name: "寝室", color: "#F2F6EF" },
+{ name: "土間", color: "#F1F1F1" },
+{ name: "収納", color: "#F6F2F7" },
+{ name: "洗面", color: "#EFF7F7" },
+{ name: "トイレ", color: "#FFF9E6" },
+{ name: "玄関", color: "#F8EFEA" },
+];
+}
+function loadPresets(){
+try{
+const raw = localStorage.getItem(PRESET_KEY);
+if(raw){
+const arr = JSON.parse(raw);
+if(Array.isArray(arr) && arr.length){
+return arr.map(p => ({
+name: String(p.name||"").trim() || "部屋",
+color: String(p.color||"#FFF3E0")
+}));
+}
+}
+}catch(_){}
+return defaultPresets();
+}
+function savePresets(){
+localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+}
+function escapeHtml(s){
+return String(s).replace(/[&<>"']/g, m => ({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#39;"
+}[m]));
+}
+
+function onPresetPicked(name, color){
+if(isReadOnly) return;
+if(labelModalMode === "add"){
+addPendingColor = color || addPendingColor || "#FFF3E0";
+el('addColorInput').value = addPendingColor;
+closeLabelModal();
+addRect(name, 4, 4, addPendingColor, 'room');
+return;
+}
+el('labelInput').value = name;
+applyLabel(true, color);
+}
+
+function renderPresetChips(){
+const box = el('labelChips');
+box.innerHTML = "";
+presets.forEach(p => {
+const b = document.createElement("button");
+b.type = "button";
+b.className = "name-chip";
+b.innerHTML = `<span class="dot" style="background:${p.color}"></span><span>${escapeHtml(p.name)}</span>`;
+b.addEventListener("click", () => onPresetPicked(p.name, p.color));
+box.appendChild(b);
+});
+}
+
+function renderPresetEditorList(){
+const list = el('presetList');
+list.innerHTML = "";
+const q = (presetSearchQuery || "").toLowerCase();
+const visible = presets
+.map((p, idx) => ({...p, idx}))
+.filter(p => !q || (p.name || "").toLowerCase().includes(q));
+
+visible.forEach(({name, color, idx}) => {
+const row = document.createElement("div");
+row.className = "preset-row";
+row.innerHTML = `
+<input type="text" value="${escapeHtml(name)}" maxlength="12" data-idx="${idx}" data-k="name">
+<input type="color" value="${color}" data-idx="${idx}" data-k="color">
+<button class="preset-del" type="button" data-idx="${idx}">削除</button>
+`;
+list.appendChild(row);
+});
+
+list.querySelectorAll('input').forEach(inp => {
+inp.addEventListener('input', () => {
+const i = Number(inp.dataset.idx);
+const k = inp.dataset.k;
+if(!presets[i]) return;
+if(k === 'name') presets[i].name = (inp.value || "").trim().slice(0,12) || "部屋";
+if(k === 'color') presets[i].color = inp.value || "#FFF3E0";
+});
+});
+list.querySelectorAll('.preset-del').forEach(btn => {
+btn.addEventListener('click', () => {
+const i = Number(btn.dataset.idx);
+presets.splice(i, 1);
+renderPresetEditorList();
+});
+});
+}
+
+el('presetList').addEventListener('focusin', (e) => {
+const row = e.target.closest?.('.preset-row');
+if(row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
+
+/* layouts list (editable only) */
+function loadLayouts(){
+try{
+const raw = localStorage.getItem(LAYOUTS_KEY);
+const arr = raw ? JSON.parse(raw) : [];
+if(Array.isArray(arr)) return arr;
+}catch(_){}
+return [];
+}
+function saveLayouts(arr){
+localStorage.setItem(LAYOUTS_KEY, JSON.stringify(arr));
+}
+function formatDate(ts){
+try{
+const d = new Date(ts);
+return d.toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}catch(_){ return ""; }
+}
+function upsertLayoutMeta(id, patch){
+const list = loadLayouts();
+const idx = list.findIndex(x => x.id === id);
+const title = patch.title || currentTitle || "MORIYASU🏠";
+
+if(idx >= 0){
+list[idx] = { ...list[idx], ...patch, title };
+}else{
+list.unshift({ id, title, updatedAt: patch.updatedAt || Date.now() });
+}
+saveLayouts(list);
+}
+function touchLayoutMeta(id){
+if(!id) return;
+upsertLayoutMeta(id, { updatedAt: Date.now() });
+}
+function renderLayoutList(){
+const box = el('layoutList');
+box.innerHTML = "";
+const list = loadLayouts();
+
+if(!list.length){
+box.innerHTML = `<div style="font-size:13px;color:#666;">まだ保存がありません</div>`;
+return;
+}
+
+list.forEach((it) => {
+const row = document.createElement('div');
+row.className = 'layout-row';
+row.innerHTML = `
+<input type="text" value="${escapeHtml(it.title || "MORIYASU🏠")}" maxlength="24" data-id="${it.id}">
+<button class="layout-btn" type="button" data-act="open" data-id="${it.id}">開く</button>
+<button class="layout-btn" type="button" data-act="newtab" data-id="${it.id}">新規タブ</button>
+<button class="layout-del" type="button" data-act="del" data-id="${it.id}">×</button>
+<div style="grid-column:1 / -1; font-size:11px; color:#999; margin-top:-4px; text-align:right;">
+${formatDate(it.updatedAt || Date.now())}
+</div>
+`;
+box.appendChild(row);
+});
+
+box.querySelectorAll('input[type="text"]').forEach(inp => {
+inp.addEventListener('input', () => {
+const id = inp.dataset.id;
+upsertLayoutMeta(id, { title: (inp.value||"").trim().slice(0,24) || "間取り" });
+});
+});
+
+box.querySelectorAll('button').forEach(btn => {
+const act = btn.dataset.act;
+const id = btn.dataset.id;
+if(!act || !id) return;
+
+btn.addEventListener('click', () => {
+const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+if(act === 'open') window.location.href = url;
+if(act === 'newtab') window.open(url, "_blank");
+if(act === 'del'){
+const list = loadLayouts().filter(x => x.id !== id);
+saveLayouts(list);
+renderLayoutList();
+}
+});
+});
+}
+
+/* ui helpers */
+function resizeCanvas(){
+// 表示上のサイズ（CSS px）
+VIEW_W = container.clientWidth;
+VIEW_H = container.clientHeight;
+
+// 端末のDPR（重くなりすぎないよう上限3にクランプ）
+const dpr = window.devicePixelRatio || 1;
+RENDER_DPR = Math.max(1, Math.min(3, dpr));
+
+// CSSサイズを固定し、内部解像度だけ上げる（Retina対策）
+canvas.style.width = VIEW_W + "px";
+canvas.style.height = VIEW_H + "px";
+
+canvas.width = Math.round(VIEW_W * RENDER_DPR);
+canvas.height = Math.round(VIEW_H * RENDER_DPR);
+
+draw();
+}
+function updateSegmentUI(){
+el('segEdit').classList.toggle('active', !isMerged);
+el('segMerge').classList.toggle('active', isMerged);
+}
+
+function setMergedMode(val){
+// 既に同じなら何もしない
+if(isMerged === val) return;
+
+// ▼ モード更新
+isMerged = val;
+
+// モード切替時に、選択が不整合だとUIが迷うので解除
+if(isMerged){
+if(selectedItem && selectedItem.type === 'frame') selectedItem = null;
+}else{
+if(selectedItem && selectedItem.type !== 'frame') selectedItem = null;
+}
+
+// 進行中のタッチ操作をリセット（切替直後の挙動が安定する）
+try{ clearTouchState(); }catch(_){}
+
+updateSegmentUI();
+updateModeAvailability();
+updateWorkHint();
+syncViewBtn();
+
+// ✅ 重要：モード切替は「即」反映する
+// iOS Safariで requestAnimationFrame が遅延することがあり、
+// その場合「次にキャンバスを触るまで反映されない」ように見えるため
+draw();
+}
+
+
+
+
+/* --- UX helpers: mode hint + toast --- */
+let toastTimer = null;
+/* ✅ 修正版: 第3引数で「大きいモード」を選べるようにする */
+function showToast(msg, ms=1800, isLarge=false){
+const t = el('toast');
+if(!t) return;
+
+t.textContent = msg;
+
+// 大きいモードならクラスを追加、違えば削除
+if(isLarge) t.classList.add('large');
+else t.classList.remove('large');
+
+t.classList.add('show');
+clearTimeout(toastTimer);
+
+// 大きい時は少し長く表示する（2.5秒）
+const duration = isLarge ? 2500 : ms;
+toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+
+function updateModeAvailability(){
+// 外壁モード = 編集(!isMerged): 外枠のみを触る想定
+const outer = !isMerged;
+const btnRoom = el('addGenericRoomBtn2');
+const btnWall = el('addInnerWallBtn2');
+const btnFrame = el('addFrameBtn2');
+
+if(btnRoom) btnRoom.disabled = outer;
+if(btnWall) btnWall.disabled = outer;
+if(btnFrame) btnFrame.disabled = !outer;
+
+// 外壁モードに切り替えたら壁設置は解除
+if(outer){
+isWallPlaceMode = false;
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+}
+}
+
+function updateWorkHint(){
+const h = el('workHint');
+if(!h) return;
+
+if(isViewMode){
+h.innerHTML = "<b>閲覧モード</b>：ドラッグで移動／ピンチでズーム（解除：閲覧ボタン）";
+return;
+}
+
+if(isMeasureMode){
+h.innerHTML = "<b>計測</b>：2点をタップ（解除：計測ボタン）";
+return;
+}
+if(isWallPlaceMode){
+if(!wallPlaceStart){
+h.innerHTML = "<b>内壁</b>：ドラッグで1本設置／または始点タップ→終点タップ（解除：内壁ボタン）";
+}else{
+h.innerHTML = "<b>内壁</b>：ドラッグして離す／終点タップで確定（始点タップで取消／↩︎取消で1本戻す）";
+}
+return;
+}
+
+if(!isMerged){
+h.innerHTML = "<b>外壁設定モード</b>：外枠をドラッグで移動／角でサイズ調整（完了したら「部屋」へ）";
+}else{
+h.innerHTML = "<b>部屋設定モード</b>：部屋を追加 → 配置／内壁：ドラッグ／2点タップで設置";
+}
+}
+
+/* 修正版: 部屋(room)は無視し、「外枠(frame)」の面積だけを合計する（建築図面方式） */
+function updateSummary(){
+syncActiveFloor();
+
+// 外枠(frame)だけを足す
+// ※L字の家にする場合は、「外枠」ボタンで枠を2つ追加して並べてください
+const masuOf = (arr) => {
+let m = 0;
+(arr || []).forEach(i => {
+if(i.type === 'frame') m += (i.w/GRID_SIZE) * (i.h/GRID_SIZE);
+});
+return m;
+};
+const perFloor = floors.map(f => masuOf(f.items));
+const tm = perFloor.reduce((a, b) => a + b, 0);
+
+// フロア内訳（2Fに面積がある時だけ表示）
+const fb = el('floorBreakdown');
+if(fb){
+const hasUpper = perFloor.slice(1).some(v => v > 0);
+fb.style.display = hasUpper ? "" : "none";
+if(hasUpper){
+fb.innerText = floors.map((f, i) => `${f.name} ${(perFloor[i]/4).toFixed(2)}坪`).join(' / ');
+}
+}
+
+const tsubo = tm/4;
+const jou = tm/2;
+const m2 = tsubo * TSUBO_TO_M2;
+
+el('totalTsubo').innerText = tsubo.toFixed(2);
+el('totalJou').innerText = jou.toFixed(1);
+el('totalM2').innerText = m2.toFixed(1);
+
+el('jouWrap').style.display = (el('showJou')?.checked ?? true) ? "" : "none";
+el('m2Wrap').style.display = (el('showM2')?.checked ?? true) ? "" : "none";
+}
+
+
+/* ✅ 修正版: 選択状態に応じてボトムバーを切り替える */
+function syncBottomBarState(){
+const defBar = el('defaultBar');
+if(!defBar) return;
+
+// ✅ 描画領域は「1段バー」分の余白で固定（キャンバスを狭めない）
+const baseMB = "calc(96px + env(safe-area-inset-bottom))";
+if(container) container.style.marginBottom = baseMB;
+
+// ボトムバーは常に表示（連続追加できる）
+defBar.style.display = 'grid';
+
+// モード反映（外枠/部屋）
+const outer = !isMerged;
+defBar.classList.toggle('mode-outer', outer);
+
+// 要素参照
+const btnRoom = el('addGenericRoomBtn2');
+const btnWall = el('addInnerWallBtn2');
+const btnFrame = el('addFrameBtn2');
+
+const nameBtn = el('editNameBtn');
+const nameDisp = el('selectedNameDisplay');
+
+const colorLabel = el('selectedColorLabel');
+const colorInp = el('selectedColorInput');
+const colorDot = el('selectedColorDot');
+
+const dupBtn = el('dupSelectedBtn');
+const delBtn = el('delSelectedBtn');
+
+// === 外枠モード：外壁追加＋削除のみ ===
+if(outer){
+if(btnFrame) btnFrame.style.display = '';
+if(btnRoom) btnRoom.style.display = 'none';
+if(btnWall) btnWall.style.display = 'none';
+if(nameBtn) nameBtn.style.display = 'none';
+if(colorLabel) colorLabel.style.display = 'none';
+if(dupBtn) dupBtn.style.display = 'none';
+
+if(delBtn) delBtn.style.display = '';
+
+const isFrameSel = !!(selectedItem && selectedItem.type === 'frame');
+const canAdd = !isReadOnly;
+const canDel = isFrameSel && !isReadOnly && !selectedItem.locked;
+
+if(btnFrame) btnFrame.disabled = !canAdd;
+
+if(delBtn){
+if(isFrameSel){
+delBtn.textContent = "削除";
+delBtn.dataset.sub = "外壁";
+delBtn.disabled = !canDel;
+}else{
+delBtn.textContent = "全消去";
+delBtn.dataset.sub = "外壁";
+delBtn.disabled = isReadOnly;
+}
+}
+return;
+}
+
+// === 部屋モード：部屋/内壁 + 名前/色 + 複製/削除 ===
+if(btnFrame) btnFrame.style.display = 'none';
+if(btnRoom) btnRoom.style.display = '';
+if(btnWall) btnWall.style.display = '';
+if(nameBtn) nameBtn.style.display = '';
+if(colorLabel) colorLabel.style.display = '';
+if(dupBtn) dupBtn.style.display = '';
+if(delBtn) delBtn.style.display = '';
+
+const hasSel = !!selectedItem;
+
+if(nameDisp){
+nameDisp.textContent = hasSel ? (selectedItem.label || "（無名）") : "未選択";
+}
+
+const canEdit = hasSel && !isReadOnly && !selectedItem.locked;
+
+if(nameBtn) nameBtn.disabled = !canEdit;
+
+if(colorInp){
+const c = hasSel ? (selectedItem.color || "#FFF3E0") : "#ffffff";
+colorInp.value = c;
+colorInp.disabled = !canEdit;
+}
+if(colorDot){
+colorDot.style.background = hasSel ? (selectedItem.color || "#FFF3E0") : "#ffffff";
+}
+
+if(dupBtn){
+dupBtn.disabled = !canEdit;
+}
+
+if(delBtn){
+if(isWallPlaceMode){
+delBtn.textContent = "↩︎取消";
+delBtn.dataset.sub = "1本/始点";
+delBtn.disabled = isReadOnly;
+}else if(hasSel){
+delBtn.textContent = "削除";
+delBtn.dataset.sub = "選択";
+delBtn.disabled = (isReadOnly || selectedItem.locked);
+}else{
+delBtn.textContent = "全消去";
+delBtn.dataset.sub = "確認";
+delBtn.disabled = isReadOnly;
+}
+}
+}
+
+
+
+
+
+
+
+/* ✅ 色UI同期 */
+function syncColorUI(){
+const btn = el('quickColorBtn');
+const inp = el('quickColorInput');
+
+if(!selectedItem || isReadOnly || selectedItem.locked){
+btn.dataset.disabled = "1";
+btn.style.setProperty('--swatch', '#ffffff');
+return;
+}
+
+btn.dataset.disabled = "0";
+const c = selectedItem.color || "#FFF3E0";
+inp.value = c;
+btn.style.setProperty('--swatch', c);
+}
+
+
+/* ✅ 壁太さUI同期（スライダーは「全ての内壁」に適用） */
+function syncWallThickUI(){
+const slider = el('wallThickSlider');
+const val = el('wallThickVal');
+if(!slider || !val) return;
+
+slider.disabled = isReadOnly;
+
+// 壁を選択している時はその壁の太さをスライダーに合わせる（違う値のレイアウト読み込み対策）
+if(selectedItem && selectedItem.type === 'wallLine'){
+const t = Number(selectedItem.thick ?? WALL_DEFAULT_THICK);
+if(Number.isFinite(t)){
+slider.value = String(t);
+val.textContent = String(t);
+WALL_DEFAULT_THICK = t;
+}
+}else{
+slider.value = String(WALL_DEFAULT_THICK);
+val.textContent = String(WALL_DEFAULT_THICK);
+}
+}
+
+function applyWallThicknessToAll(newThick, {respectLock=true} = {}){
+const t = Number(newThick);
+if(!Number.isFinite(t)) return;
+
+WALL_DEFAULT_THICK = t;
+
+items.forEach(it => {
+if(it.type !== 'wallLine') return;
+if(respectLock && it.locked) return;
+it.thick = t;
+if(!it.color) it.color = "#111";
+});
+
+// UI
+const slider = el('wallThickSlider');
+const val = el('wallThickVal');
+if(slider) slider.value = String(t);
+if(val) val.textContent = String(t);
+
+try{ localStorage.setItem(WALL_THICK_KEY, String(t)); }catch(_){}
+draw();
+}
+
+
+function addRect(label, w, h, color, type='room'){
+if(isReadOnly) return;
+
+// frame(外枠)の場合は、追加位置を探るロジックなどが必要ですが
+// 今回は「部屋」のUX改善なので、frameの厳密なリジェクト処理はそのままにします
+const prev = (type === 'frame') ? snapshot() : null;
+if(type !== 'frame') pushHistory();
+
+// ✅ 追加位置：今見ているキャンパス（表示範囲）内に必ず出す
+const step = getSnapStep();           // 一条想定：半ます固定（16px）
+const rectW = w * GRID_SIZE;
+const rectH = h * GRID_SIZE;
+
+// 現在の表示範囲（ワールド座標）
+const viewLeft   = (-VIEW_W/2 - camera.x) / scale;
+const viewRight  = ( VIEW_W/2 - camera.x) / scale;
+const viewTop    = (-VIEW_H/2 - camera.y) / scale;
+const viewBottom = ( VIEW_H/2 - camera.y) / scale;
+
+// 画面中心に置く（部屋の中心が画面中心に来るように）
+let targetX = getSnapped((-camera.x)/scale - rectW/2, step);
+let targetY = getSnapped((-camera.y)/scale - rectH/2, step);
+
+// 可能なら「部屋が画面内に収まる」ようにクランプ
+const pad = step; // 端から半ます分あける
+if((viewRight - viewLeft) > rectW + pad*2){
+targetX = Math.min(Math.max(targetX, viewLeft + pad), viewRight - rectW - pad);
+}
+if((viewBottom - viewTop) > rectH + pad*2){
+targetY = Math.min(Math.max(targetY, viewTop + pad), viewBottom - rectH - pad);
+}
+
+const i = { id: uid(), locked:false, type, x: targetX, y: targetY, w: rectW, h: rectH, label, color };
+if(type === 'frame') items.unshift(i); else items.push(i);
+
+ensureIds();
+normalizeZ();
+selectedItem = i;
+
+// frame 追加直後の重なりチェック（frameは従来通り厳しく弾く）
+if(type === 'frame' && frameOverlapsAny(i)){
+restore(prev);
+showToast("外枠が重なっています。場所をずらして追加してください");
+return;
+}
+
+// frame 追加成功時の履歴処理
+if(type === 'frame'){
+undoStack.push(prev);
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+syncHistoryButtons();
+}
+
+draw();
+
+// ✅ 部屋の重なりチェック（警告のみで、取り消しはしない）
+if(type === 'room' && checkRoomOverlaps()){
+showToast("⚠ 部屋が重なっています", 2000);
+} else if(type === 'room') {
+showToast('中央ハンドルで移動 / 右下ハンドルでサイズ / 色は右上');
+}
+
+scheduleAutoSave();
+}
+
+
+
+function addWallBetween(p1, p2){
+if(isReadOnly) return;
+const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+if(x1 === x2 && y1 === y2) return;
+
+pushHistory();
+const w = {
+type: 'wallLine',
+x1, y1, x2, y2,
+thick: WALL_DEFAULT_THICK,
+color: '#111'
+};
+items.push(w);
+
+// ✅ 重なった壁を結合（長い線へ）
+const merged = mergeOverlappingWalls(w);
+ensureIds();
+normalizeZ();
+selectedItem = merged || w;
+draw();
+scheduleAutoSave();
+}
+
+function setWallPlaceMode(on){
+isWallPlaceMode = !!on;
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+
+const btn = el('addInnerWallBtn2');
+if(btn){
+btn.classList.toggle('active', isWallPlaceMode);
+}
+
+// 壁設置中は計測と排他
+if(isWallPlaceMode){
+isMeasureMode = false;
+measurePoints = [];
+const mb = el('measureBtn');
+if(mb){
+mb.classList.remove('active');
+mb.classList.add('gray');
+}
+selectedItem = null;
+}
+draw();
+}
+
+function toggleWallPlaceMode(){
+if(isReadOnly) return;
+setWallPlaceMode(!isWallPlaceMode);
+}
+
+// ✅ 内壁モード中の「ワンステップ取り消し」
+// - 始点がある：始点を取消（誤タップ救済）
+// - 始点がない：直前の操作をUndo（直前に引いた壁を1本消せる）
+function wallQuickUndo(){
+if(isReadOnly) return;
+if(!isWallPlaceMode) return;
+
+// 途中の始点だけ立っている場合はキャンセル
+if(wallPlaceStart){
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+draw();
+showToast("始点を取消しました", 900);
+return;
+}
+
+// Undoできるものが無ければ何もしない
+if(!undoStack || undoStack.length === 0){
+showToast("戻れる操作がありません", 900);
+return;
+}
+
+// 直前の操作を取り消す（通常は直前に引いた壁）
+undo();
+// undo() 内で draw() されるが、念のため
+updateWorkHint();
+draw();
+}
+
+/* menu actions */
+
+function openMenu(item){
+if(!item) return;
+menuItem = item;
+const lockedText = item.locked ? "（ロック）" : "";
+el('menuTitle').innerText = `${item.label || "（無名）"} / ${item.type}${lockedText}`;
+
+// 色入力の初期値
+el('menuColorInput').value = item.color || "#FFF3E0";
+el('menuColorBtn').style.setProperty('--swatch', el('menuColorInput').value);
+
+el('menuModal').style.display = 'flex';
+}
+function closeMenu(){
+el('menuModal').style.display = 'none';
+menuItem = null;
+}
+function duplicateItem(it){
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+let n;
+if(it.type === 'wallLine'){
+n = { ...it, id: uid(), x1: it.x1 + GRID_SIZE, y1: it.y1 + GRID_SIZE, x2: it.x2 + GRID_SIZE, y2: it.y2 + GRID_SIZE };
+}else{
+n = { ...it, id: uid(), x: it.x + GRID_SIZE, y: it.y + GRID_SIZE };
+}
+items.push(n);
+normalizeZ();
+selectedItem = n;
+draw();
+scheduleAutoSave();
+}
+function deleteItem(it){
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+setItems(items.filter(x => x !== it));
+selectedItem = null;
+normalizeZ();
+draw();
+scheduleAutoSave();
+}
+function bringFront(it){
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+setItems(items.filter(x => x !== it));
+items.push(it);
+normalizeZ();
+draw();
+scheduleAutoSave();
+}
+function bringBack(it){
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+const frames = items.filter(i => i.type === 'frame');
+const others = items.filter(i => i.type !== 'frame' && i !== it);
+setItems([...frames, it, ...others]);
+normalizeZ();
+draw();
+scheduleAutoSave();
+}
+function toggleLock(it){
+if(isReadOnly) return;
+if(!it) return;
+pushHistory();
+it.locked = !it.locked;
+draw();
+scheduleAutoSave();
+}
+
+/* label modal */
+function openLabelModal(mode){
+if(isReadOnly) return;
+
+// 外枠モードでは部屋追加しない（呼び出し経路が増えても止める）
+if(mode === "add" && !isMerged){
+showToast("外枠モードでは部屋を追加できません（「部屋」モードに切り替えてください）");
+return;
+}
+
+labelModalMode = mode;
+el('labelModal').style.display = 'flex';
+
+if(mode === "add"){
+el('labelModalTitle').innerText = "部屋を追加";
+el('labelModalSub').innerText = "プリセットをタップで即追加 / 入力してOKでも追加";
+el('addHint').style.display = "block";
+el('labelInput').placeholder = "部屋名（入力追加）";
+el('labelInput').value = "";
+el('addColorInput').value = addPendingColor || "#FFF3E0";
+el('addColorBtn').style.display = "";
+}else{
+el('labelModalTitle').innerText = "部屋名を変更";
+el('labelModalSub').innerText = "候補をタップ（名前＋色） / 入力してOK";
+el('addHint').style.display = "none";
+el('labelInput').placeholder = "部屋名";
+el('addColorBtn').style.display = "none";
+}
+
+setTimeout(() => el('labelInput').focus(), 50);
+}
+
+function closeLabelModal(){
+el('labelModal').style.display = 'none';
+labelModalMode = "edit";
+editingItem = null;
+}
+
+function openLabelEditor(item){
+if(isReadOnly) return;
+if(!item) return;
+editingItem = item;
+el('labelInput').value = item.label || "";
+openLabelModal("edit");
+}
+
+function applyLabel(applyColor=false, colorValue=null){
+if(isReadOnly) return;
+if (!editingItem) return;
+const v = el('labelInput').value.trim();
+if (!v) return;
+
+pushHistory();
+editingItem.label = v;
+if(applyColor && colorValue) editingItem.color = colorValue;
+
+closeLabelModal();
+draw();
+scheduleAutoSave();
+}
+
+/* wall helpers */
+function distPointToSegment(px, py, x1, y1, x2, y2){
+const vx = x2 - x1, vy = y2 - y1;
+const wx = px - x1, wy = py - y1;
+const c1 = vx*wx + vy*wy;
+if (c1 <= 0) return Math.hypot(px - x1, py - y1);
+const c2 = vx*vx + vy*vy;
+if (c2 <= c1) return Math.hypot(px - x2, py - y2);
+const t = c1 / c2;
+const bx = x1 + t*vx;
+const by = y1 + t*vy;
+return Math.hypot(px - bx, py - by);
+}
+function wallHitTest(worldP, wall){
+const handleRWorld = WALL_HANDLE_R / scale;
+const padWorld = WALL_HIT_PAD / scale;
+const d1 = Math.hypot(worldP.x - wall.x1, worldP.y - wall.y1);
+if(d1 <= handleRWorld) return {hit:true, handle:"p1"};
+const d2 = Math.hypot(worldP.x - wall.x2, worldP.y - wall.y2);
+if(d2 <= handleRWorld) return {hit:true, handle:"p2"};
+const dSeg = distPointToSegment(worldP.x, worldP.y, wall.x1, wall.y1, wall.x2, wall.y2);
+const thickWorld = (wall.thick || WALL_DEFAULT_THICK) / scale;
+if(dSeg <= (thickWorld/2 + padWorld)) return {hit:true, handle:null};
+return {hit:false, handle:null};
+}
+function applyRightAngleSnap(wall, movingHandle){
+const ax = (movingHandle === "p1") ? wall.x2 : wall.x1;
+const ay = (movingHandle === "p1") ? wall.y2 : wall.y1;
+const bx = (movingHandle === "p1") ? wall.x1 : wall.x2;
+const by = (movingHandle === "p1") ? wall.y1 : wall.y2;
+
+const dx = bx - ax;
+const dy = by - ay;
+const adx = Math.abs(dx), ady = Math.abs(dy);
+if(adx < 1e-6 && ady < 1e-6) return;
+
+const tan = Math.tan(SNAP_ANGLE_DEG * Math.PI/180);
+if(ady <= adx * tan){
+if(movingHandle === "p1") wall.y1 = wall.y2;
+else wall.y2 = wall.y1;
+return;
+}
+if(adx <= ady * tan){
+if(movingHandle === "p1") wall.x1 = wall.x2;
+else wall.x2 = wall.x1;
+}
+}
+
+
+/* wall merge helpers（重なった内壁を自動結合） */
+function isWallHorizontal(w, eps=1e-6){
+  return Math.abs(w.y1 - w.y2) <= eps;
+}
+function isWallVertical(w, eps=1e-6){
+  return Math.abs(w.x1 - w.x2) <= eps;
+}
+function normalizeWallEndpoints(w){
+  if(!w) return;
+  if(isWallHorizontal(w) && w.x2 < w.x1){
+    const tx = w.x1; w.x1 = w.x2; w.x2 = tx;
+    const ty = w.y1; w.y1 = w.y2; w.y2 = ty;
+  }else if(isWallVertical(w) && w.y2 < w.y1){
+    const tx = w.x1; w.x1 = w.x2; w.x2 = tx;
+    const ty = w.y1; w.y1 = w.y2; w.y2 = ty;
+  }
+}
+
+// ✅ 重なった/連続した壁（同一直線・同じ太さ/色）を1本にまとめる
+// preferWall を渡すと、その壁を含む結合結果の壁を返す（選択維持用）
+function mergeOverlappingWalls(preferWall=null){
+  const EPS = 1e-3; // world座標での誤差許容
+  const walls = items.filter(it => it && it.type === 'wallLine');
+  if(!walls.length) return preferWall;
+
+  // 1) 正規化（向きが揃っているとマージしやすい）
+  walls.forEach(w => {
+    if(!Number.isFinite(w.thick)) w.thick = WALL_DEFAULT_THICK;
+    if(!w.color) w.color = '#111';
+    normalizeWallEndpoints(w);
+  });
+
+  // 2) グループ化（水平/垂直 + 同一直線 + 同じ見た目）
+  const groups = new Map();
+  const keyOf = (w) => {
+    if(isWallHorizontal(w)){
+      const y = Math.round(w.y1 * 1000) / 1000;
+      return `H|${y}|${w.thick}|${w.color}`;
+    }
+    if(isWallVertical(w)){
+      const x = Math.round(w.x1 * 1000) / 1000;
+      return `V|${x}|${w.thick}|${w.color}`;
+    }
+    return null;
+  };
+
+  for(const w of walls){
+    const k = keyOf(w);
+    if(!k) continue;
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(w);
+  }
+
+  // preferWall が消えた場合の追跡
+  let preferKept = preferWall;
+
+  const removeWall = (w) => {
+    const idx = items.indexOf(w);
+    if(idx >= 0) items.splice(idx, 1);
+  };
+
+  // 3) 各グループ内で区間マージ
+  for(const arr of groups.values()){
+    if(arr.length <= 1) continue;
+
+    const horizontal = isWallHorizontal(arr[0]);
+
+    arr.sort((a,b) => {
+      if(horizontal) return a.x1 - b.x1;
+      return a.y1 - b.y1;
+    });
+
+    let current = arr[0];
+    normalizeWallEndpoints(current);
+
+    for(let i=1;i<arr.length;i++){
+      const w = arr[i];
+      if(items.indexOf(w) < 0) continue; // すでに消えてたらスキップ
+      normalizeWallEndpoints(w);
+
+      if(horizontal){
+        const a2 = current.x2;
+        const b1 = w.x1, b2 = w.x2;
+
+        // overlap or touch → merge
+        if(b1 <= a2 + EPS){
+          current.x2 = Math.max(a2, b2);
+          current.locked = !!(current.locked || w.locked);
+
+          if(preferWall === w) preferKept = current;
+          if(selectedItem === w) selectedItem = current;
+
+          removeWall(w);
+          continue;
+        }else{
+          current = w;
+        }
+      }else{
+        const a2 = current.y2;
+        const b1 = w.y1, b2 = w.y2;
+
+        if(b1 <= a2 + EPS){
+          current.y2 = Math.max(a2, b2);
+          current.locked = !!(current.locked || w.locked);
+
+          if(preferWall === w) preferKept = current;
+          if(selectedItem === w) selectedItem = current;
+
+          removeWall(w);
+          continue;
+        }else{
+          current = w;
+        }
+      }
+    }
+  }
+
+  // 結果も正規化
+  items.forEach(it => {
+    if(it && it.type === 'wallLine') normalizeWallEndpoints(it);
+  });
+
+  return preferKept;
+}
+
+
+
+/* rect helpers */
+function isSmallRoom(it){
+if(!it || it.type !== 'room') return false;
+const masu = (it.w/GRID_SIZE) * (it.h/GRID_SIZE);
+return masu <= SMALL_ROOM_MAX_MASU;
+}
+function rectMoveHandleCenter(it){
+return { x: it.x + it.w/2, y: it.y + it.h/2 };
+}
+function rectMoveHandleHit(worldP, it){
+const c = rectMoveHandleCenter(it);
+const r = MOVE_HANDLE_HIT / scale;
+return Math.hypot(worldP.x - c.x, worldP.y - c.y) <= r;
+}
+
+function getResizeHandleRadiusPx(it){
+if(!it) return 18;
+// 小さい部屋・外枠はタップしやすく少し大きめ
+if(it.type === 'frame') return 26;
+if(it.type === 'room' && isSmallRoom(it)) return 24;
+return 18;
+}
+function rectResizeHandleHit(worldP, it){
+if(!it || (it.type !== 'room' && it.type !== 'frame')) return false;
+const hx = it.x + it.w;
+const hy = it.y + it.h;
+const rad = getResizeHandleRadiusPx(it);
+const dx = worldP.x - hx;
+const dy = worldP.y - hy;
+return (dx*dx + dy*dy) <= (rad/scale) * (rad/scale);
+}
+
+// 矩形の重なり（面積が正に重なる時だけ true。辺が接するだけは false）
+function rectOverlap(a, b){
+return (a.x < b.x + b.w) && (a.x + a.w > b.x) &&
+(a.y < b.y + b.h) && (a.y + a.h > b.y);
+}
+function frameOverlapsAny(target){
+if(!target || target.type !== 'frame') return false;
+for(const f of items){
+if(f.type !== 'frame') continue;
+if(f.id === target.id) continue;
+if(rectOverlap(target, f)) return true;
+}
+return false;
+}
+function anyFrameOverlap(){
+const frames = items.filter(i => i.type === 'frame');
+for(let i=0;i<frames.length;i++){
+for(let j=i+1;j<frames.length;j++){
+if(rectOverlap(frames[i], frames[j])) return true;
+}
+}
+return false;
+}
+
+/* draw */
+function drawGrid(){
+  const range = 1600;
+  const major = GRID_SIZE;      // 1マス
+  const minor = GRID_SIZE / 2;  // 半マス
+
+  // minor grid（薄く）
+  ctx.strokeStyle = "#e5e5ea";
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 0.5 / scale;
+
+  for (let x = -range; x <= range; x += minor) {
+    if (x % major === 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+  }
+  for (let y = -range; y <= range; y += minor) {
+    if (y % major === 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+  }
+
+  // major grid（少し濃く）
+  ctx.globalAlpha = 1.0;
+  ctx.lineWidth = 0.5 / scale;
+
+  for (let x = -range; x <= range; x += major) {
+    ctx.beginPath();
+    ctx.moveTo(x, -range); ctx.lineTo(x, range); ctx.stroke();
+  }
+  for (let y = -range; y <= range; y += major) {
+    ctx.beginPath();
+    ctx.moveTo(-range, y); ctx.lineTo(range, y); ctx.stroke();
+  }
+}
+
+
+/* ✅ 重なり（部屋同士の重複）をハッチング表示 */
+
+
+function rectSubtract(a, b){
+  // a - b の領域を最大4つの矩形に分割して返す（軸平行矩形）
+  const ax1 = a.x, ay1 = a.y, ax2 = a.x + a.w, ay2 = a.y + a.h;
+  const bx1 = b.x, by1 = b.y, bx2 = b.x + b.w, by2 = b.y + b.h;
+
+  const ix1 = Math.max(ax1, bx1);
+  const iy1 = Math.max(ay1, by1);
+  const ix2 = Math.min(ax2, bx2);
+  const iy2 = Math.min(ay2, by2);
+
+  // 交差なし
+  if(ix2 <= ix1 || iy2 <= iy1) return [a];
+
+  const out = [];
+  // 上
+  if(iy1 > ay1) out.push({ x: ax1, y: ay1, w: (ax2-ax1), h: (iy1-ay1) });
+  // 下
+  if(iy2 < ay2) out.push({ x: ax1, y: iy2, w: (ax2-ax1), h: (ay2-iy2) });
+  // 左（交差高さだけ）
+  if(ix1 > ax1) out.push({ x: ax1, y: iy1, w: (ix1-ax1), h: (iy2-iy1) });
+  // 右（交差高さだけ）
+  if(ix2 < ax2) out.push({ x: ix2, y: iy1, w: (ax2-ix2), h: (iy2-iy1) });
+
+  return out;
+}
+
+function getRoomOutOfFrameRects(){
+  const frames = items.filter(it => it.type === 'frame');
+  if(!frames.length) return [];
+
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  if(!rooms.length) return [];
+
+  const outRects = [];
+
+  rooms.forEach(room => {
+    let parts = [{ x: room.x, y: room.y, w: room.w, h: room.h }];
+
+    // すべての外枠（複数可）の「合成領域」を許容範囲として扱い、
+    // room から frames の union を差し引いた部分を「はみ出し」とする
+    frames.forEach(f => {
+      const next = [];
+      parts.forEach(p => {
+        next.push(...rectSubtract(p, { x:f.x, y:f.y, w:f.w, h:f.h }));
+      });
+      parts = next;
+      if(!parts.length) return;
+    });
+
+    parts.forEach(p => {
+      if(p.w > 0 && p.h > 0) outRects.push(p);
+    });
+  });
+
+  return outRects;
+}
+
+function drawOutOfFrameHatching(){
+const chk = document.getElementById('showWarnings');
+
+  if (chk && !chk.checked) return;
+
+  const outRects = getRoomOutOfFrameRects();
+  if(!outRects.length) return;
+
+  ctx.save();
+
+  // 外枠はみ出し警告（オレンジのハッチ）
+  ctx.fillStyle = "rgba(255,149,0,0.06)";
+  ctx.strokeStyle = "rgba(255,149,0,0.45)";
+  ctx.lineWidth = 1.25 / scale;
+
+  const spacing = 10 / scale; // 画面上で約10px間隔
+
+  outRects.forEach(r => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+
+    // 薄い塗り
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    // 斜線（\）
+    const startX = r.x - r.h;
+    const endX = r.x + r.w;
+    for(let x = startX; x <= endX; x += spacing){
+      ctx.beginPath();
+      ctx.moveTo(x, r.y + r.h);
+      ctx.lineTo(x + r.h, r.y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+function getRoomOverlapRects(){
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  const overlaps = [];
+  for(let i=0;i<rooms.length;i++){
+    const a = rooms[i];
+    for(let j=i+1;j<rooms.length;j++){
+      const b = rooms[j];
+      const x1 = Math.max(a.x, b.x);
+      const y1 = Math.max(a.y, b.y);
+      const x2 = Math.min(a.x + a.w, b.x + b.w);
+      const y2 = Math.min(a.y + a.h, b.y + b.h);
+      if(x2 > x1 && y2 > y1){
+        overlaps.push({ x:x1, y:y1, w:(x2-x1), h:(y2-y1) });
+      }
+    }
+  }
+  return overlaps;
+}
+
+function drawOverlapHatching(){
+const chk = document.getElementById('showWarnings');
+
+  if (chk && !chk.checked) return;
+
+  const overlaps = getRoomOverlapRects();
+  if(!overlaps.length) return;
+
+  ctx.save();
+
+  // うっすら赤塗り＋斜線（重なり警告）
+  ctx.fillStyle = "rgba(255,59,48,0.08)";
+  ctx.strokeStyle = "rgba(255,59,48,0.35)";
+  ctx.lineWidth = 1.25 / scale;
+
+  const spacing = 10 / scale; // 画面上で約10px間隔
+  overlaps.forEach(r => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+
+    // 薄い塗り
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    // 斜線（/）
+    const startX = r.x - r.h;
+    const endX = r.x + r.w;
+    for(let x = startX; x <= endX; x += spacing){
+      ctx.beginPath();
+      ctx.moveTo(x, r.y);
+      ctx.lineTo(x + r.h, r.y + r.h);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+
+/* ✅ 修正版: 塗りつぶし専用（グリッドの下に描く） */
+function drawRectFill() {
+const rects = items.filter(i => i.type !== 'wallLine');
+rects.forEach(item => {
+ctx.fillStyle = item.color;
+// 部屋は少し薄く、外枠などは濃く
+ctx.globalAlpha = item.type === 'room' ? 0.35 : 1.0;
+ctx.fillRect(item.x, item.y, item.w, item.h);
+ctx.globalAlpha = 1.0;
+
+if (item.locked) {
+ctx.fillStyle = "rgba(0,0,0,0.08)";
+ctx.fillRect(item.x, item.y, item.w, item.h);
+}
+});
+}
+
+/* ✅ 修正版: 外壁モード時は部屋の枠線・ラベルを非表示にする（完全版） */
+function drawRectStroke() {
+const rects = items.filter(i => i.type !== 'wallLine');
+const mag = isExporting ? 1.8 : 1.0;
+
+// 1. 枠線（Stroke）の描画
+rects.forEach(item => {
+// ★追加: 外壁モード(!isMerged) かつ 部屋(room) の場合は枠線を描かない
+if (!isMerged && item.type === 'room') return;
+
+const isFrame = item.type === 'frame';
+const baseStroke = "#333"; 
+
+if (isSmallRoom(item)) {
+ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 4 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+ctx.strokeStyle = baseStroke; ctx.lineWidth = 2 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+} else {
+ctx.strokeStyle = baseStroke; ctx.lineWidth = isFrame ? 2 / scale : 1 / scale;
+ctx.strokeRect(item.x, item.y, item.w, item.h);
+}
+});
+
+// 2. ラベル（文字）の描画
+rects.forEach(item => {
+// ★追加: 外壁モード(!isMerged) かつ 部屋(room) の場合はラベルを描かない
+if (!isMerged && item.type === 'room') return;
+
+const label = item.locked ? `${item.label} 🔒` : (item.label || "");
+if (!label) return;
+
+const baseSize = isSmallRoom(item) ? 11 : 13;
+const fontSize = (baseSize * mag) / scale;
+const x = item.x + item.w / 2;
+const y = item.y + item.h / 2;
+
+ctx.save();
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.font = `900 ${fontSize}px sans-serif`;
+ctx.lineJoin = "round";
+ctx.lineWidth = 4 / scale;
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.strokeText(label, x, y);
+ctx.fillStyle = "#111";
+ctx.fillText(label, x, y);
+ctx.restore();
+});
+
+// 3. 選択枠の描画（このブロックがないと操作中に固まって見えます）
+if(selectedItem && !isMerged && selectedItem.type !== 'wallLine'){
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 3 / scale;
+ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+
+if(!selectedItem.locked && !isReadOnly){
+drawMoveHandleRect(selectedItem);
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
+ctx.beginPath();
+ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem)/scale, 0, Math.PI*2);
+ctx.fill();
+ctx.stroke();
+}
+if(dragActive && pendingItem === selectedItem){
+drawSizeBadge(selectedItem);
+}
+}
+}
+
+
+
+
+function drawWallLine(wall){
+const thick = wall.thick ?? WALL_DEFAULT_THICK;
+
+ctx.save();
+// 図面ライク：角ばった端
+ctx.lineCap = "butt";
+ctx.strokeStyle = wall.color || "#111";
+ctx.lineWidth = thick / scale;
+
+ctx.beginPath();
+ctx.moveTo(wall.x1, wall.y1);
+ctx.lineTo(wall.x2, wall.y2);
+ctx.stroke();
+
+ctx.restore();
+}
+
+function drawWallSelection(wall){
+ctx.save();
+ctx.lineCap = "round";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = ((wall.thick || WALL_DEFAULT_THICK) + 4) / scale;
+ctx.globalAlpha = 0.25;
+ctx.beginPath();
+ctx.moveTo(wall.x1, wall.y1);
+ctx.lineTo(wall.x2, wall.y2);
+ctx.stroke();
+ctx.globalAlpha = 1;
+
+if(!wall.locked && !isReadOnly){
+const r = WALL_HANDLE_R / scale;
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
+ctx.beginPath(); ctx.arc(wall.x1, wall.y1, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+ctx.beginPath(); ctx.arc(wall.x2, wall.y2, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+}
+ctx.restore();
+}
+
+function drawMoveHandleRect(it){
+const c = rectMoveHandleCenter(it);
+const r = MOVE_HANDLE_R / scale;
+
+ctx.save();
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2/scale;
+
+ctx.beginPath();
+ctx.arc(c.x, c.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(c.x - r*0.55, c.y);
+ctx.lineTo(c.x + r*0.55, c.y);
+ctx.moveTo(c.x, c.y - r*0.55);
+ctx.lineTo(c.x, c.y + r*0.55);
+ctx.stroke();
+
+ctx.restore();
+}
+
+function drawSizeBadge(it){
+const mw = (it.w / GRID_SIZE).toFixed(1).replace('.0','');
+const mh = (it.h / GRID_SIZE).toFixed(1).replace('.0','');
+const text = (it.type === 'frame') ? `外枠: ${mw}×${mh}マス` : `${mw}×${mh}マス`;
+const pad = 8/scale;
+ctx.save();
+ctx.font = `900 ${12/scale}px sans-serif`;
+const w = ctx.measureText(text).width + pad*2;
+const h = 22/scale;
+const x = it.x;
+const y = it.y - (h + 8/scale);
+
+ctx.fillStyle = "rgba(0,122,255,0.92)";
+ctx.roundRect(x, y, w, h, 10/scale);
+ctx.fill();
+
+ctx.fillStyle = "#fff";
+ctx.fillText(text, x + pad, y + 15/scale);
+ctx.restore();
+}
+
+/* ✅ 部屋の重なりチェック関数 */
+function checkRoomOverlaps() {
+const rooms = items.filter(i => i.type === 'room');
+let hasOverlap = false;
+
+for (let i = 0; i < rooms.length; i++) {
+for (let j = i + 1; j < rooms.length; j++) {
+// rectOverlap は既存の関数を使用
+if (rectOverlap(rooms[i], rooms[j])) {
+hasOverlap = true;
+break;
+}
+}
+if (hasOverlap) break;
+}
+return hasOverlap;
+}
+
+
+/* ✅ 修正版: startX, startY を返すように変更 */
+function drawBlueprintGrid(targetItems) {
+  // 1. 外枠(frame)または全体の範囲を取得
+  const frames = targetItems.filter(i => i.type === 'frame');
+  const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine');
+  if (!targets.length) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  targets.forEach(it => {
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + it.w);
+    maxY = Math.max(maxY, it.y + it.h);
+  });
+
+  // ★修正: 余白グリッドは作らず、建物の端(minX, minY)をそのまま開始位置にする
+  const startX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+  const startY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+  const endX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+  const endY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+
+  ctx.save();
+  const lw = isExporting ? 1 / scale : 0.5 / scale;
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = "#888";
+  // 点線設定
+  ctx.setLineDash([2 / scale, 3 / scale]); 
+
+  // 文字設定
+  const fontSize = (isExporting ? 20 : 11) / scale;
+  ctx.font = `normal ${fontSize}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#555";
+
+  // ★修正: 数字と線の距離を元の「近め」に戻す
+  const padding = (isExporting ? 20 : 12) / scale;
+
+  // ■ 縦線とX座標番号
+  for (let x = startX; x <= endX; x += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, startY - padding);
+    ctx.lineTo(x, endY + padding); 
+    ctx.stroke();
+
+    if (isExporting || scale > 0.5) {
+      const val = Math.round((x - startX) / GRID_SIZE);
+      const label = String(val);
+      ctx.fillText(label, x, startY - (padding * 1.5));
+      ctx.fillText(label, x, endY + (padding * 1.5));
+    }
+  }
+
+  // ■ 横線とY座標番号
+  for (let y = startY; y <= endY; y += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(startX - padding, y);
+    ctx.lineTo(endX + padding, y);
+    ctx.stroke();
+
+    if (isExporting || scale > 0.5) {
+      const val = Math.round((y - startY) / GRID_SIZE);
+      const label = String(val);
+      ctx.fillText(label, startX - (padding * 1.5), y);
+      ctx.fillText(label, endX + (padding * 1.5), y);
+    }
+  }
+
+  ctx.restore();
+  
+  // ✅ 変更点: startX, startY も返す
+  return { startX, startY, maxX, maxY, endX, endY };
+}
+
+
+
+
+/* ✅ 修正版: タイトルを「下の真ん中」＋「ZEN丸ゴシック」に変更 */
+function drawMerged(){
+  const roomMap = {};
+  const frameMap = {};
+  const groups = {};
+  const sub = 16; 
+  const mag = isExporting ? 1.8 : 1.0;
+
+  // 1. データ整理
+  items.forEach((item) => {
+    if(item.type === 'wallLine') return;
+    if (item.type !== 'frame') {
+      if (!groups[item.label]) {
+        groups[item.label] = {
+          label: item.label, 
+          totalMasu: 0,
+          minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity
+        };
+      }
+      const g = groups[item.label];
+      g.totalMasu += (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
+      g.minX = Math.min(g.minX, item.x); 
+      g.minY = Math.min(g.minY, item.y);
+      g.maxX = Math.max(g.maxX, item.x + item.w); 
+      g.maxY = Math.max(g.maxY, item.y + item.h);
+    }
+    for (let x = item.x; x < item.x + item.w; x += sub) {
+      for (let y = item.y; y < item.y + item.h; y += sub) {
+        const pos = `${x},${y}`;
+        if (item.type === 'frame') frameMap[pos] = item.label;
+        else roomMap[pos] = { label: item.label, color: item.color };
+      }
+    }
+  });
+
+  // 2. 塗りつぶし
+  items.forEach(item => {
+    if(item.type === 'wallLine') return;
+    if(item.type === 'frame'){
+      ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
+    }else{
+      ctx.globalAlpha = 0.22; ctx.fillStyle = item.color;
+    }
+    ctx.fillRect(item.x, item.y, item.w, item.h);
+    ctx.globalAlpha = 1.0;
+  });
+
+  // 3. グリッド線
+  const gridBounds = drawBlueprintGrid(items); 
+
+  drawOutOfFrameHatching();
+  drawOverlapHatching();
+
+  // 4. 枠線描画
+  const drawEdge = (map, color, width) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width / scale;
+    for (const pos in map) {
+      const [x, y] = pos.split(',').map(Number);
+      const label = map[pos].label || map[pos];
+      [{dx:0, dy:-sub}, {dx:0, dy:sub}, {dx:-sub, dy:0}, {dx:sub, dy:0}].forEach(d => {
+        const nb = map[`${x+d.dx},${y+d.dy}`];
+        const nbLabel = nb?.label || nb;
+        if (nbLabel !== label) {
+          ctx.beginPath();
+          if(d.dy!==0){ ctx.moveTo(x, y+(d.dy>0?sub:0)); ctx.lineTo(x+sub, y+(d.dy>0?sub:0)); } 
+          else { ctx.moveTo(x+(d.dx>0?sub:0), y); ctx.lineTo(x+(d.dx>0?sub:0), y+sub); }
+          ctx.stroke();
+        }
+      });
+    }
+  };
+  drawEdge(roomMap, "#111", 2);
+  drawEdge(frameMap, "#111", 10);
+
+  // 5. 文字描画（部屋名）
+  for (const key in groups) {
+    const g = groups[key];
+    let bestRect = null;
+    let currentRects = [];
+    for (let y = g.minY; y < g.maxY; y += sub) {
+      let startX = -1;
+      let length = 0;
+      for (let x = g.minX; x <= g.maxX; x += sub) { 
+        const cell = roomMap[`${x},${y}`];
+        const isMyRoom = (cell && cell.label === g.label);
+        if (isMyRoom) {
+          if (startX === -1) startX = x;
+          length += sub;
+        } else {
+          if (startX !== -1) {
+            let merged = false;
+            for(let r of currentRects) {
+              if (Math.abs(r.x - startX) < 1 && Math.abs(r.w - length) < 1 && Math.abs((r.y + r.h) - y) < 1) {
+                r.h += sub; merged = true; break;
+              }
+            }
+            if(!merged) currentRects.push({ x: startX, y: y, w: length, h: sub });
+            startX = -1; length = 0;
+          }
+        }
+      }
+    }
+    currentRects.forEach(r => {
+      if(!bestRect) bestRect = r;
+      else {
+        if (r.w > bestRect.w) bestRect = r;
+        else if (r.w === bestRect.w && r.h > bestRect.h) bestRect = r;
+      }
+    });
+
+    let textX, textY;
+    if (bestRect) {
+      textX = bestRect.x + bestRect.w / 2;
+      textY = bestRect.y + bestRect.h / 2;
+    } else {
+      textX = (g.minX + g.maxX) / 2;
+      textY = (g.minY + g.maxY) / 2;
+    }
+
+    const isPhysicallyTiny = (g.totalMasu / 2) <= 1.5;
+    const visualHeight = (g.maxY - g.minY) * scale;
+    const useTinyMode = !isExporting && isPhysicallyTiny && (visualHeight < 45);
+
+    ctx.fillStyle = "#111"; 
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 4 / scale;
+    ctx.strokeStyle = "rgba(255,255,255, 0.95)";
+
+    if (useTinyMode) {
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      const labelSize = 10 / scale;
+      ctx.font = `bold ${labelSize}px sans-serif`;
+      const labelY = g.minY + (2 / scale);
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      if (el('showJou').checked) {
+        const subSize = 8 / scale;
+        ctx.font = `${subSize}px sans-serif`;
+        const subY = labelY + labelSize + (1 / scale);
+        const subText = `${(g.totalMasu / 2).toFixed(1)}畳`;
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    } else {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+      const mainFontSize = (14 * mag) / scale;
+      ctx.font = `bold ${mainFontSize}px sans-serif`;
+      const labelY = textY - (mainFontSize * 0.4); 
+      ctx.strokeText(g.label, textX, labelY);
+      ctx.fillText(g.label, textX, labelY);
+      let subText = "";
+      if (el('showJou').checked) subText += `${(g.totalMasu / 2).toFixed(1)}畳 `;
+      if (el('showTsubo').checked) subText += `${(g.totalMasu / 4).toFixed(2)}坪`;
+      if (subText) {
+        const subFontSize = (11 * mag) / scale;
+        ctx.font = `${subFontSize}px sans-serif`;
+        const subY = textY + (mainFontSize * 0.7);
+        ctx.strokeText(subText, textX, subY);
+        ctx.fillText(subText, textX, subY);
+      }
+    }
+    ctx.textAlign = "left";
+  }
+
+  // 壁描画
+  items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+
+  // 画像出力時の追加描画
+  if (isExporting && gridBounds) {
+    const anchorY = gridBounds.endY + (140 / scale); 
+    
+    // 1. タイトル描画（下の真ん中 + Zen Maru Gothic）
+    ctx.save();
+    const titleSize = 56 / scale;
+    
+    // ✅ ここを変更: Google Fonts の Zen Maru Gothic を指定
+    ctx.font = `bold ${titleSize}px "Zen Maru Gothic", sans-serif`;
+    
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    
+    const centerX = (gridBounds.startX + gridBounds.endX) / 2;
+    ctx.fillText(currentTitle, centerX, anchorY);
+    ctx.restore();
+
+
+    // 2. 右下情報
+    let totalMasu = 0;
+    items.forEach(i => { if(i.type === 'frame') totalMasu += (i.w/GRID_SIZE) * (i.h/GRID_SIZE); });
+    const tsubo = totalMasu / 4;
+    const jou = totalMasu / 2;
+    const m2 = tsubo * 3.305785;
+    
+    ctx.save();
+    const infoFontSize = 24 / scale;
+    ctx.font = `bold ${infoFontSize}px sans-serif`;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#111";
+    
+    const anchorX = gridBounds.endX;
+    const lineH = infoFontSize * 1.5;
+    
+    ctx.fillText(`施工面積(${floors[activeFloor].name}): ${jou.toFixed(1)} 畳`, anchorX, anchorY);
+    ctx.fillText(`(${tsubo.toFixed(2)} 坪)`, anchorX, anchorY - lineH);
+    ctx.fillText(`延床面積: ${m2.toFixed(2)} m²`, anchorX, anchorY - (lineH * 2));
+    ctx.restore();
+  }
+}
+
+
+
+
+function drawWallPlaceGuide(){
+// 壁設置モード：始点がある時だけガイドを表示
+if(!isWallPlaceMode || !wallPlaceStart) return;
+
+ctx.save();
+
+const r = 6/scale;
+
+// 1) プレビュー線（ドラッグ中 or 終点候補あり）
+if(wallPlacePreviewEnd){
+const thickWorld = (WALL_DEFAULT_THICK || 12) / scale;
+
+ctx.save();
+ctx.lineCap = "butt";
+ctx.strokeStyle = "rgba(0,122,255,0.85)";
+ctx.lineWidth = thickWorld;
+ctx.setLineDash([10/scale, 8/scale]);
+
+ctx.beginPath();
+ctx.moveTo(wallPlaceStart.x, wallPlaceStart.y);
+ctx.lineTo(wallPlacePreviewEnd.x, wallPlacePreviewEnd.y);
+ctx.stroke();
+
+ctx.setLineDash([]);
+ctx.restore();
+
+// 終点マーカー
+ctx.fillStyle = "rgba(0,122,255,0.85)";
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.lineWidth = 4/scale;
+ctx.beginPath();
+ctx.arc(wallPlacePreviewEnd.x, wallPlacePreviewEnd.y, r, 0, Math.PI*2);
+ctx.fill();
+ctx.stroke();
+}
+
+// 2) 始点マーカー
+ctx.fillStyle = "#007AFF";
+ctx.strokeStyle = "rgba(255,255,255,0.95)";
+ctx.lineWidth = 4/scale;
+ctx.beginPath();
+ctx.arc(wallPlaceStart.x, wallPlaceStart.y, r, 0, Math.PI*2);
+ctx.fill();
+ctx.stroke();
+
+ctx.restore();
+}
+
+
+function drawMeasurement(){
+if(!measurePoints.length) return;
+
+// ★追加
+const mag = isExporting ? 1.8 : 1.0;
+
+ctx.save();
+ctx.fillStyle = "#FF2D55";
+ctx.strokeStyle = "#FF2D55";
+ctx.lineWidth = 2/scale;
+
+const r = 5/scale;
+measurePoints.forEach(p => {
+ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
+});
+
+if(measurePoints.length === 2){
+const [p1, p2] = measurePoints;
+ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+
+const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+const masVal = dist / GRID_SIZE;
+const meters = (masVal * 0.91).toFixed(2);
+
+const midX = (p1.x + p2.x)/2;
+const midY = (p1.y + p2.y)/2;
+
+// ★変更: 文字サイズに mag を掛ける
+ctx.font = `bold ${(16 * mag) / scale}px sans-serif`;
+ctx.textAlign = "center";
+ctx.textBaseline = "bottom";
+
+const masTxt = `${masVal.toFixed(1)}マス`;
+const txt = `${meters}m（${masTxt}）`;
+
+ctx.lineWidth = 4/scale;
+ctx.lineJoin = "round";
+ctx.strokeStyle = "rgba(255,255,255,0.9)";
+ctx.strokeText(txt, midX, midY - 6/scale);
+ctx.fillText(txt, midX, midY - 6/scale);
+}
+ctx.restore();
+}
+
+
+
+/* --- フロア（1F/2F） --- */
+const UNDERLAY_KEY = "floorplan_underlay_v1";
+
+function updateFloorUI(){
+const b1 = el('floor1Btn'), b2 = el('floor2Btn');
+if(b1) b1.classList.toggle('active', activeFloor === 0);
+if(b2) b2.classList.toggle('active', activeFloor === 1);
+}
+
+function copyFramesFromOtherFloor(){
+const other = floors[1 - activeFloor];
+const frames = (other?.items || []).filter(i => i.type === 'frame');
+if(frames.length === 0) return false;
+frames.forEach(f => { items.push({ ...f, id: uid() }); });
+ensureIds();
+normalizeZ();
+return true;
+}
+
+function setActiveFloor(idx){
+idx = clamp(idx, 0, floors.length - 1);
+if(idx === activeFloor) return;
+
+syncActiveFloor();
+
+// 進行中の操作をリセット
+selectedItem = null;
+editingItem = null;
+menuItem = null;
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(isMeasureMode){
+isMeasureMode = false;
+measurePoints = [];
+const mb = el('measureBtn');
+if(mb){ mb.classList.remove('active'); mb.classList.add('gray'); }
+}
+
+activeFloor = idx;
+items = floors[activeFloor].items;
+
+// 空フロアに切り替えた時：もう一方の外壁コピーを提案（総二階の検討に便利）
+if(!isReadOnly && items.length === 0){
+const other = floors[1 - activeFloor];
+const hasFrames = (other?.items || []).some(i => i.type === 'frame');
+let copied = false;
+if(hasFrames && confirm(`${other.name} の外壁を ${floors[activeFloor].name} にコピーしますか？（総二階の検討に便利です）`)){
+copied = copyFramesFromOtherFloor();
+}
+if(!copied){
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+selectedItem = null;
+}
+
+ensureIds();
+normalizeZ();
+updateFloorUI();
+updateSegmentUI();
+updateModeAvailability();
+updateWorkHint();
+showToast(`${floors[activeFloor].name} を表示中`, 1200);
+draw();
+saveDraft();
+}
+
+function drawFloorUnderlay(){
+if(isExporting) return;
+const cb = el('showUnderlay');
+if(cb && !cb.checked) return;
+syncActiveFloor();
+const other = floors[1 - activeFloor];
+if(!other || !other.items || other.items.length === 0) return;
+
+ctx.save();
+const tint = '#5856D6';
+other.items.forEach(it => {
+if(it.type === 'wallLine'){
+ctx.globalAlpha = 0.22;
+ctx.strokeStyle = tint;
+ctx.lineWidth = (typeof it.thick === 'number' ? it.thick : 8);
+ctx.lineCap = 'butt';
+ctx.setLineDash([]);
+ctx.beginPath();
+ctx.moveTo(it.x1, it.y1);
+ctx.lineTo(it.x2, it.y2);
+ctx.stroke();
+}else if(it.type === 'frame'){
+ctx.globalAlpha = 0.45;
+ctx.strokeStyle = tint;
+ctx.lineWidth = 2.5 / scale;
+ctx.setLineDash([10/scale, 7/scale]);
+ctx.strokeRect(it.x, it.y, it.w, it.h);
+ctx.setLineDash([]);
+}else{
+ctx.globalAlpha = 0.10;
+ctx.fillStyle = tint;
+ctx.fillRect(it.x, it.y, it.w, it.h);
+ctx.globalAlpha = 0.28;
+ctx.strokeStyle = tint;
+ctx.lineWidth = 1.5 / scale;
+ctx.setLineDash([]);
+ctx.strokeRect(it.x, it.y, it.w, it.h);
+}
+});
+ctx.restore();
+}
+
+function draw() {
+
+if(ctx) ctx.setTransform(RENDER_DPR, 0, 0, RENDER_DPR, 0, 0);
+
+
+ctx.save();
+
+// 1. 背景クリア
+if (isExporting) {
+ctx.fillStyle = "#ffffff";
+ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+} else {
+ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+}
+
+// カメラ位置とスケールの適用
+ctx.translate(VIEW_W / 2 + camera.x, VIEW_H / 2 + camera.y);
+ctx.scale(scale, scale);
+
+// ▼ もう一方のフロアを透かし表示
+drawFloorUnderlay();
+
+// 2. モードによって描画を完全に分ける
+if (isMerged) {
+// --- 部屋モード（結合表示） ---
+drawMerged();
+
+if (selectedItem && !selectedItem.locked && !isReadOnly) {
+if (selectedItem.type === 'wallLine') {
+drawWallSelection(selectedItem);
+} else if (selectedItem.type !== 'frame') {
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 3 / scale;
+ctx.strokeRect(selectedItem.x, selectedItem.y, selectedItem.w, selectedItem.h);
+drawMoveHandleRect(selectedItem);
+
+ctx.fillStyle = "#fff";
+ctx.strokeStyle = "#007AFF";
+ctx.lineWidth = 2 / scale;
+ctx.beginPath();
+ctx.arc(selectedItem.x + selectedItem.w, selectedItem.y + selectedItem.h, getResizeHandleRadiusPx(selectedItem) / scale, 0, Math.PI * 2);
+ctx.fill(); ctx.stroke();
+}
+}
+} else {
+// --- 外枠モード（編集表示） ---
+drawRectFill();
+drawBlueprintGrid(items);
+drawOutOfFrameHatching();
+drawOverlapHatching();
+drawRectStroke();
+
+items.forEach(it => { if (it.type === 'wallLine') drawWallLine(it); });
+if (selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
+}
+
+// 3. オーバーレイ描画
+if (isMeasureMode) drawMeasurement();
+if (isWallPlaceMode) drawWallPlaceGuide();
+
+ctx.restore();
+
+// UIパーツの同期
+updateSummary();
+syncBottomBarState();
+syncHistoryButtons();
+syncColorUI();
+syncWallThickUI();
+}
+window.draw = draw;
+
+
+
+function fitToFrame() {
+// 1. 念のため最新の画面サイズを取得
+resizeCanvas();
+
+const frames = items.filter(i => i.type === 'frame');
+const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
+
+if (!targets.length) {
+camera = { x: 0, y: 0 };
+scale = 1.0;
+draw();
+return;
+}
+
+// 2. 範囲計算
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+targets.forEach(it => {
+minX = Math.min(minX, it.x);
+minY = Math.min(minY, it.y);
+maxX = Math.max(maxX, it.x + it.w);
+maxY = Math.max(maxY, it.y + it.h);
+});
+
+items.filter(i => i.type === 'wallLine').forEach(w => {
+minX = Math.min(minX, w.x1, w.x2);
+minY = Math.min(minY, w.y1, w.y2);
+maxX = Math.max(maxX, w.x1, w.x2);
+maxY = Math.max(maxY, w.y1, w.y2);
+});
+
+// 3. グリッド端＋余白（数字用）
+const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+
+// 周囲の余白（64px = グリッド2マス分程度）
+const marginWorld = 3; 
+
+const contentMinX = gridStartX - marginWorld;
+const contentMinY = gridStartY - marginWorld;
+const contentMaxX = gridEndX + marginWorld;
+const contentMaxY = gridEndY + marginWorld;
+
+const contentW = contentMaxX - contentMinX;
+const contentH = contentMaxY - contentMinY;
+const cx = (contentMinX + contentMaxX) / 2;
+const cy = (contentMinY + contentMaxY) / 2;
+
+// 4. 倍率計算
+// ★修正ポイント: CSSですでにボトムバー分の余白は確保されているので、
+// ここでは純粋な「見た目のゆとり」分だけ引けばOKです。
+const screenPadH = 40; // 左右
+const screenPadV = 60; // 上下（以前の160から大幅に減らす）
+
+const availW = VIEW_W - screenPadH;
+const availH = VIEW_H - screenPadV;
+
+if (contentW > 0 && contentH > 0) {
+const scaleW = availW / contentW;
+const scaleH = availH / contentH;
+let newScale = Math.min(scaleW, scaleH);
+newScale = Math.max(0.3, Math.min(2.0, newScale));
+scale = newScale;
+}
+
+// 5. 中心合わせ
+camera = { x: -cx * scale, y: -cy * scale };
+
+draw();
+}
+
+
+
+function syncViewBtn(){
+const vb = el('viewBtn');
+if(!vb) return;
+if(isViewMode){
+vb.classList.add('view-active');
+vb.classList.remove('gray');
+}else{
+vb.classList.remove('view-active');
+vb.classList.add('gray');
+}
+}
+
+
+// ✅ 「閲覧」ボタン（ダブルタップで全体表示・通知なし）
+if(document.getElementById('viewBtn')){
+let lastTap = 0;
+document.getElementById('viewBtn').onclick = (e) => {
+const now = Date.now();
+if (now - lastTap < 300) {
+fitToFrame(); // ダブルタップで全体表示
+} else {
+setViewMode(!isViewMode); // シングルタップでモード切替
+}
+lastTap = now;
+};
+}
+
+// ✅ 「全体」ボタン（クリックで即実行・通知なし）
+if(document.getElementById('fitBtn')){
+document.getElementById('fitBtn').onclick = () => {
+fitToFrame();
+};
+}
+
+
+
+
+/* init */
+async function init(){
+presets = loadPresets();
+renderPresetChips();
+
+// ✅ 表示系トグルは即時反映（再描画）
+
+['showJou','showTsubo','showM2','showWarnings'].forEach(id => {
+
+  const cb = el(id);
+  if(cb) cb.addEventListener('change', () => draw());
+});
+
+// 色スウォッチ初期化
+el('quickColorBtn').style.setProperty('--swatch', '#ffffff');
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+el('menuColorBtn').style.setProperty('--swatch', '#FFF3E0');
+
+
+// ✅ 壁太さ（スライダー）：全ての内壁に適用
+try{
+const savedThick = Number(localStorage.getItem(WALL_THICK_KEY));
+if(Number.isFinite(savedThick)) WALL_DEFAULT_THICK = clamp(savedThick, 4, 24);
+}catch(_){}
+
+// 初期UI反映
+if(el('wallThickSlider')){
+el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+
+let armed = false;
+const armHistory = () => {
+if(isReadOnly) return;
+if(armed) return;
+pushHistory(); // 変更前を保存（Undo対応）
+armed = true;
+};
+
+// 変更開始時に一度だけ履歴を積む
+el('wallThickSlider').addEventListener('pointerdown', armHistory);
+el('wallThickSlider').addEventListener('mousedown', armHistory);
+el('wallThickSlider').addEventListener('touchstart', armHistory, {passive:true});
+
+// スライド中は即反映（履歴は積まない）
+el('wallThickSlider').addEventListener('input', (e) => {
+if(isReadOnly) return;
+const v = clamp(Number(e.target.value), 4, 24);
+el('wallThickVal').textContent = String(v);
+applyWallThicknessToAll(v, {respectLock:true});
+});
+
+// 指を離したタイミングで保存
+el('wallThickSlider').addEventListener('change', (e) => {
+if(isReadOnly) return;
+const v = clamp(Number(e.target.value), 4, 24);
+el('wallThickVal').textContent = String(v);
+applyWallThicknessToAll(v, {respectLock:true});
+armed = false;
+scheduleAutoSave();
+});
+}
+
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+
+
+// ✅ モード切替：モバイルで確実に反応させるため click ではなく pointerdown を優先
+(function bindModeButtons(){
+const bind = (id, val) => {
+const b = el(id);
+if(!b) return;
+
+// 二重発火（pointerdown + click）を避ける
+let armed = false;
+
+b.addEventListener('pointerdown', (e) => {
+// iOSでも即反応させる
+try{ e.preventDefault(); }catch(_){}
+armed = true;
+setMergedMode(val);
+}, {passive:false});
+
+b.addEventListener('click', () => {
+// pointerdown が効かない環境向けのフォールバック
+if(armed){
+armed = false;
+return;
+}
+setMergedMode(val);
+});
+};
+
+bind('segEdit', false);
+bind('segMerge', true);
+})();
+
+
+
+
+updateModeAvailability();
+updateWorkHint();
+
+el('measureBtn').onclick = () => {
+isMeasureMode = !isMeasureMode;
+// 計測中は壁設置と排他
+isWallPlaceMode = false;
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+measurePoints = [];
+selectedItem = null;
+
+if(isMeasureMode){
+el('measureBtn').classList.add('active');
+el('measureBtn').classList.remove('gray');
+}else{
+el('measureBtn').classList.remove('active');
+el('measureBtn').classList.add('gray');
+}
+draw();
+};
+
+
+function setViewMode(on){
+isViewMode = !!on;
+
+// 閲覧中は誤操作防止で選択解除
+if(isViewMode){
+selectedItem = null;
+clearTouchState();
+
+// 計測/内壁設置は解除（タップ動作が衝突するため）
+if(isMeasureMode){
+isMeasureMode = false;
+measurePoints = [];
+const mb = el('measureBtn');
+if(mb){
+mb.classList.remove('active');
+mb.classList.add('gray');
+}
+}
+if(isWallPlaceMode){
+isWallPlaceMode = false;
+wallPlaceStart = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+const wb = el('addInnerWallBtn2');
+if(wb) wb.classList.remove('active');
+}
+}
+
+syncViewBtn();
+updateWorkHint();
+draw();
+}
+
+// 閲覧モード切替
+if(el('viewBtn')){
+el('viewBtn').onclick = () => {
+setViewMode(!isViewMode);
+};
+}
+
+el('undoBtn').onclick = undo;
+el('redoBtn').onclick = redo;
+syncHistoryButtons();
+
+// ✅ フロア切替（1F/2F）
+if(el('floor1Btn')) el('floor1Btn').onclick = () => setActiveFloor(0);
+if(el('floor2Btn')) el('floor2Btn').onclick = () => setActiveFloor(1);
+try{
+const u = localStorage.getItem(UNDERLAY_KEY);
+if(u !== null && el('showUnderlay')) el('showUnderlay').checked = (u === "1");
+}catch(_){}
+if(el('showUnderlay')){
+el('showUnderlay').addEventListener('change', (e) => {
+try{ localStorage.setItem(UNDERLAY_KEY, e.target.checked ? "1" : "0"); }catch(_){}
+draw();
+});
+}
+updateFloorUI();
+
+const params = new URLSearchParams(window.location.search);
+layoutId = params.get('id') || null;
+
+if(layoutId){
+const snap = await getDoc(doc(db, "layouts", layoutId));
+if(snap.exists()){
+const data = snap.data();
+if(Array.isArray(data.floors)){
+floors = data.floors.map((f, i) => ({
+name: f.name || ((i + 1) + 'F'),
+items: (f.items || []).map(it => ({...it}))
+}));
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [] });
+activeFloor = Number.isInteger(data.activeFloor) ? clamp(data.activeFloor, 0, floors.length - 1) : 0;
+}else{
+// 旧形式（単一フロア）からの自動移行
+floors = [
+{ name: '1F', items: (data.items || []).map(it => ({...it})) },
+{ name: '2F', items: [] }
+];
+activeFloor = 0;
+}
+items = floors[activeFloor].items;
+updateFloorUI();
+currentTitle = data.title || DEFAULT_TITLE;
+isReadOnly = !!data.readonly;
+
+setTitle(currentTitle, {silent:true});
+
+ensureIds();
+normalizeZ();
+
+// ✅ 既存レイアウトに壁がある場合は、その太さをスライダー初期値に合わせる（表示だけ）
+const firstWall = items.find(i => i.type === 'wallLine' && typeof i.thick === 'number');
+if(firstWall && Number.isFinite(firstWall.thick)){
+WALL_DEFAULT_THICK = clamp(firstWall.thick, 4, 24);
+if(el('wallThickSlider')){
+el('wallThickSlider').value = String(WALL_DEFAULT_THICK);
+el('wallThickVal').textContent = String(WALL_DEFAULT_THICK);
+}
+}
+
+// [変更後] updateModeAvailability(); と updateWorkHint(); を追加
+isMerged = !!data.isMerged;
+updateSegmentUI();
+updateModeAvailability(); // ✅ 追加: ボタンの有効化
+updateWorkHint();         // ✅ 追加: ヒント文の更新
+
+// 閲覧モードUI
+el('modeBanner').style.display = isReadOnly ? "flex" : "none";
+
+
+el('shareBtn').innerText = isReadOnly ? "コピーして編集" : "共有";
+
+if(!isReadOnly){
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+}
+
+draw();
+
+setTimeout(() => fitToFrame(), 100);
+
+
+}else{
+// idが存在しない/見つからない場合：ドラフト復元を試す
+const restored = await maybeRestoreDraftOnBoot();
+if(!restored){
+setItems([]);
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+updateSegmentUI();
+draw();
+
+setTimeout(() => fitToFrame(), 100);
+
+}
+}
+}else{
+// id無し：ドラフト復元を試す
+const restored = await maybeRestoreDraftOnBoot();
+if(!restored){
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+updateSegmentUI();
+draw();
+}
+}
+}
+
+/* help */
+/* title inline edit */
+(() => {
+const tt = el('topTitle');
+if(!tt) return;
+
+const stopIfReadOnly = () => {
+if(isReadOnly){
+tt.blur();
+tt.innerText = currentTitle;
+showToast("閲覧モードでは名前は変更できません");
+return true;
+}
+return false;
+};
+
+tt.addEventListener('focus', () => { stopIfReadOnly(); });
+tt.addEventListener('keydown', (e) => {
+if(e.key === 'Enter'){
+e.preventDefault();
+tt.blur();
+}
+});
+tt.addEventListener('blur', () => {
+if(stopIfReadOnly()) return;
+const v = tt.innerText.replace(/\n/g,' ').trim();
+setTitle(v);
+});
+})();
+
+
+
+// ✅ マニュアル開閉（背景クリック or 閉じるボタン）
+el('openHelpBtn').onclick = () => el('helpModal').style.display = 'flex';
+// 閉じるボタン（IDが変わったので対応）
+const closeHelp = () => el('helpModal').style.display = 'none';
+const helpCloseBtn = el('helpCloseBtn');
+if(helpCloseBtn) helpCloseBtn.onclick = closeHelp;
+// 背景タップでも閉じる
+el('helpModal').onclick = (e) => {
+if(e.target.id === 'helpModal') closeHelp();
+};
+
+
+
+
+/* share / copy-to-edit */
+async function copyThisLayoutToEditable(){
+// 現在の状態を新しい編集IDに複製
+const r = await addDoc(collection(db, "layouts"), {
+...floorsPayload(),
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+isReadOnly = false;
+
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
+
+el('modeBanner').style.display = "none";
+el('shareBtn').innerText = "共有";
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+
+draw();
+alert("コピーして編集を開始しました（新しいURLになりました）");
+}
+
+el('copyToEditBtn').onclick = async () => {
+await copyThisLayoutToEditable();
+};
+
+el('shareBtn').onclick = async () => {
+if(isReadOnly){
+await copyThisLayoutToEditable();
+return;
+}
+
+// 編集用IDを確保（自分の編集は自分のIDに保存）
+await ensureEditableLayoutId();
+await saveLayoutToFirestore();
+
+// 共有は「読み取り専用コピー」を発行
+const shareId = await createReadOnlyShareSnapshot();
+const shareUrl = `${window.location.origin}${window.location.pathname}?id=${shareId}`;
+el('shareUrlInput').value = shareUrl;
+
+el('layoutTitleInput').value = currentTitle;
+el('shareModal').style.display = 'flex';
+};
+
+el('layoutTitleInput').addEventListener('input', (e) => {
+setTitle(e.target.value);
+});
+
+el('copyUrlBtn').onclick = () => {
+navigator.clipboard.writeText(el('shareUrlInput').value);
+alert("コピーしました");
+};
+el('closeShareModalBtn').onclick = () => el('shareModal').style.display = 'none';
+el('shareModal').onclick = (e) => { if(e.target.id === 'shareModal') el('shareModal').style.display = 'none'; };
+
+el('openLayoutsBtn').onclick = () => {
+renderLayoutList();
+el('layoutsModal').style.display = 'flex';
+};
+el('layoutsCloseBtn').onclick = () => el('layoutsModal').style.display = 'none';
+el('layoutsModal').onclick = (e) => { if(e.target.id === 'layoutsModal') el('layoutsModal').style.display = 'none'; };
+
+el('saveAsBtn').onclick = async () => {
+if(isReadOnly){
+await copyThisLayoutToEditable();
+return;
+}
+// 別名保存（新しい編集ID）
+const r = await addDoc(collection(db, "layouts"), {
+...floorsPayload(),
+isMerged,
+title: currentTitle,
+readonly: false,
+createdAt: new Date(),
+updatedAt: new Date()
+});
+layoutId = r.id;
+const newUrl = `${window.location.origin}${window.location.pathname}?id=${layoutId}`;
+history.replaceState(null, "", newUrl);
+
+upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
+alert("別名で保存しました（新しいURLになりました）");
+};
+
+
+/* ✅ 色変更（同名の部屋をまとめて変更版・通知なし） */
+function applyColorToSelected(color, targetOverride = null){
+if(isReadOnly) return;
+const it = targetOverride || selectedItem;
+if(!it || it.locked) return;
+
+pushHistory();
+
+const name = it.label;
+
+// 部屋(room)かつ名前がある場合、同じ名前の部屋を全て塗る
+if(it.type === 'room' && name){
+items.forEach(item => {
+// タイプが部屋で、名前が一緒で、ロックされていなければ塗る
+if(item.type === 'room' && item.label === name && !item.locked){
+item.color = color;
+}
+});
+// ※通知処理は削除しました
+
+} else {
+// それ以外（壁や外枠、無名）は単体のみ変更
+it.color = color;
+}
+
+addPendingColor = color; // 次に追加する部屋の色にも反映
+
+// メニュー表示中ならメニューのアイコン色も更新
+if(menuItem) el('menuColorBtn').style.setProperty('--swatch', color);
+
+draw();
+scheduleAutoSave();
+}
+
+// イベントリスナー（ここもセットで貼り付けておくと確実です）
+el('quickColorInput').addEventListener('input', (e) => applyColorToSelected(e.target.value));
+el('quickColorInput').addEventListener('change', (e) => applyColorToSelected(e.target.value));
+
+const handleMenuColor = (e) => {
+applyColorToSelected(e.target.value, menuItem || selectedItem);
+};
+el('menuColorInput').addEventListener('input', handleMenuColor);
+el('menuColorInput').addEventListener('change', handleMenuColor);
+
+el('addColorInput').addEventListener('input', () => {
+addPendingColor = el('addColorInput').value || "#FFF3E0";
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+});
+el('addColorInput').addEventListener('change', () => {
+addPendingColor = el('addColorInput').value || "#FFF3E0";
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+});
+
+
+
+/* fit/center */
+
+// checkboxes update
+document.querySelectorAll('input[type="checkbox"]').forEach(c => c.onchange = draw);
+
+/* label modal ok/cancel */
+el('labelCancelBtn').onclick = closeLabelModal;
+el('labelOkBtn').onclick = () => {
+if(isReadOnly) return;
+const name = el('labelInput').value.trim();
+if(!name) return;
+
+if(labelModalMode === "add"){
+closeLabelModal();
+addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
+return;
+}
+applyLabel(false, null);
+};
+el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabelModal(); };
+el('labelInput').addEventListener('keydown', (e) => {
+if (e.key === 'Enter') el('labelOkBtn').click();
+});
+
+/* preset editor */
+el('openPresetBtn').onclick = () => {
+el('presetModal').style.display = 'flex';
+presetSearchQuery = "";
+el('presetSearch').value = "";
+renderPresetEditorList();
+};
+el('presetSearch').addEventListener('input', (e) => {
+presetSearchQuery = (e.target.value || "").trim();
+renderPresetEditorList();
+});
+el('presetCloseBtn').onclick = () => el('presetModal').style.display = 'none';
+el('presetModal').onclick = (e) => { if(e.target.id === 'presetModal') el('presetModal').style.display = 'none'; };
+el('presetAddBtn').onclick = () => {
+// 追加した行を見失わない：検索を解除し、追加行へフォーカス＆自動スクロール
+presetSearchQuery = "";
+el('presetSearch').value = "";
+presets.push({ name: "部屋", color: "#FFF3E0" });
+renderPresetEditorList();
+
+// render後に該当inputへフォーカス（focusinでscrollIntoViewが走る）
+const idx = presets.length - 1;
+setTimeout(() => {
+const inp = el('presetList')?.querySelector?.(`input[data-idx="${idx}"][data-k="name"]`);
+if(inp){
+inp.focus();
+try{ inp.select(); }catch(_){}
+}
+}, 0);
+};
+el('presetSaveBtn').onclick = () => {
+presets = presets
+.map(p => ({ name: (p.name||"部屋").trim().slice(0,12) || "部屋", color: p.color || "#FFF3E0" }))
+.filter(p => p.name.length > 0);
+savePresets();
+renderPresetChips();
+el('presetModal').style.display = 'none';
+};
+
+/* menu modal */
+el('menuCloseBtn').onclick = closeMenu;
+el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu(); };
+el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
+el('menuDupBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
+el('menuDelBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
+
+/* bottom actions */
+el('addGenericRoomBtn2').onclick = () => {
+if(isReadOnly) return;
+
+// 外枠モードでは部屋追加しない
+if(!isMerged){
+showToast("外枠モードでは部屋を追加できません（「部屋」モードに切り替えてください）");
+return;
+}
+
+editingItem = null;
+addPendingColor = addPendingColor || "#FFF3E0";
+openLabelModal("add");
+};
+const addFrameBtn2 = el('addFrameBtn2');
+if(addFrameBtn2){
+addFrameBtn2.onclick = () => addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+el('addInnerWallBtn2').onclick = () => toggleWallPlaceMode();
+
+const dupSelectedBtn = el('dupSelectedBtn');
+if(dupSelectedBtn){
+dupSelectedBtn.onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
+}
+
+const delSelectedBtn = el('delSelectedBtn');
+if(delSelectedBtn){
+delSelectedBtn.onclick = () => {
+if(isReadOnly) return;
+
+// ✅ 内壁設置中は「ワンステップ取消（始点取消/1本戻す）」
+if(isMerged && isWallPlaceMode){
+wallQuickUndo();
+return;
+}
+
+// 外枠モード：選択中の外壁だけ削除 / 未選択は全消去
+if(!isMerged){
+if(selectedItem && selectedItem.type === 'frame'){
+deleteItem(selectedItem);
+return;
+}
+if(confirm("外壁を全消去しますか？")){
+pushHistory();
+// 外壁（frame）だけ消す：部屋/内壁は残す
+setItems(items.filter(x => x.type !== 'frame'));
+selectedItem = null;
+
+// 最低1つは外枠を残す（面積計算・編集の起点）
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+return;
+}
+
+// 部屋モード：選択中は削除 / 未選択は全消去
+if(selectedItem){
+deleteItem(selectedItem);
+return;
+}
+if(confirm("全消去しますか？")){
+pushHistory();
+setItems([]);
+selectedItem = null;
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+};
+}
+
+
+// ✅ 1列ボトムバー：右端「⋯」
+// - 選択中：メニュー（複製/削除/色変更）
+// - 未選択：全消去（旧「削除」ボタンの代替）
+const openSelectedMenuBtn = el('openSelectedMenuBtn');
+if(openSelectedMenuBtn){
+openSelectedMenuBtn.onclick = () => {
+if(isReadOnly) return;
+
+if(selectedItem){
+openMenu(selectedItem);
+return;
+}
+
+if(confirm("全消去しますか？")) {
+pushHistory();
+setItems([]);
+selectedItem = null;
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+};
+}
+
+// copyBtn2 はUIから削除されていることがあるため、存在チェックしてからバインド（GitHub Pages等でのJS停止防止）
+const copyBtn2 = el('copyBtn2');
+if(copyBtn2){
+copyBtn2.onclick = () => { if(selectedItem) duplicateItem(selectedItem); };
+}
+
+const resetBtn2 = el('resetBtn2');
+if(resetBtn2){
+resetBtn2.onclick = () => {
+if(isReadOnly) return;
+if(selectedItem) deleteItem(selectedItem);
+else if(confirm("全消去しますか？")) {
+pushHistory();
+setItems([]);
+selectedItem = null;
+addRect('外枠', 2, 2, '#ffffff', 'frame');
+}
+};
+}
+
+/* --- ▼ 追加: 選択時ボトムバーのイベント --- */
+
+// ✅ 1段バー運用: 選択中の「編集」ボタン（メニューを開く）
+if(el('editSelectedBtn')){
+el('editSelectedBtn').onclick = () => {
+if(selectedItem) openMenu(selectedItem);
+};
+}
+
+
+// 名前変更ボタン
+if(el('editNameBtn')){
+el('editNameBtn').onclick = () => {
+if(selectedItem) openLabelEditor(selectedItem);
+};
+}
+
+// 色変更
+if(el('selectedColorInput')){
+el('selectedColorInput').addEventListener('input', (e) => {
+applyColorToSelected(e.target.value);
+if(el('selectedColorDot')) el('selectedColorDot').style.background = e.target.value;
+});
+el('selectedColorInput').addEventListener('change', (e) => {
+applyColorToSelected(e.target.value);
+});
+}
+
+// 複製
+if(el('copyBtnSelected')){
+el('copyBtnSelected').onclick = () => {
+if(selectedItem) duplicateItem(selectedItem);
+};
+}
+
+// 削除
+if(el('deleteBtnSelected')){
+el('deleteBtnSelected').onclick = () => {
+if(selectedItem) deleteItem(selectedItem);
+};
+}
+
+// 選択解除（×ボタン）
+if(el('closeSelectionBtn')){
+el('closeSelectionBtn').onclick = () => {
+selectedItem = null;
+draw(); 
+};
+}
+
+
+
+/* touch handling */
+function clearTouchState(){
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
+
+pressStart = null;
+pressStartWorld = null;
+pendingItem = null;
+pendingWallHandle = null;
+pendingAction = null;
+dragActive = false;
+rectDragOffset = null;
+wallMoveOffset = null;
+emptyTapCandidate = false;
+}
+
+function startLongPress(item){
+return;
+}
+
+// 閲覧ボタンの見た目を同期する関数（これが消えていました！）
+
+
+function getPinchInfo(touches){
+const a = touches[0], b = touches[1];
+const dx = b.clientX - a.clientX;
+const dy = b.clientY - a.clientY;
+const dist = Math.hypot(dx, dy);
+const mid = { x: (a.clientX + b.clientX)/2, y: (a.clientY + b.clientY)/2 };
+return { dist, mid };
+}
+
+canvas.addEventListener('touchstart', (e) => {
+if(e.touches.length === 2){
+pinchActive = true;
+clearTouchState();
+gestureSnapshot = (isReadOnly || isViewMode) ? null : snapshot();
+
+const { dist, mid } = getPinchInfo(e.touches);
+pinchStartDist = dist;
+pinchStartScale = scale;
+pinchWorldMid = screenToWorld(mid.x, mid.y);
+return;
+}
+
+if(e.touches.length !== 1) return;
+const t = e.touches[0];
+
+// 閲覧モード：選択せずにパン/ズームだけ
+if(isViewMode){
+clearTouchState();
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+pressStartWorld = screenToWorld(t.clientX, t.clientY);
+emptyTapCandidate = true;
+pendingAction = "pan";
+pendingItem = null;
+draw();
+return;
+}
+
+const now = Date.now();
+if(!isReadOnly && now - lastTapTime < 300 && selectedItem && !isMerged){
+openLabelEditor(selectedItem);
+return;
+}
+lastTapTime = now;
+
+clearTouchState();
+
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+pressStartWorld = screenToWorld(t.clientX, t.clientY);
+const worldP = pressStartWorld;
+
+// すでに選択中の要素のハンドルを掴みに行った場合は、重なっている別要素よりも優先する（誤選択防止）
+let found = null;
+let wallHandle = null;
+
+if(selectedItem && !selectedItem.locked){
+const s = selectedItem;
+
+// 外壁モード（編集表示）は外枠(frame)のみ、部屋モード（結合表示）は外枠(frame)以外
+const selectable =
+(!isMerged && s.type === 'frame') ||
+(isMerged && s.type !== 'frame');
+
+if(selectable){
+if(s.type === 'wallLine'){
+const r = wallHitTest(worldP, s);
+if(r && r.hit){ found = s; wallHandle = r.handle; }
+}else{
+if(rectMoveHandleHit(worldP, s) || rectResizeHandleHit(worldP, s)){
+found = s;
+}
+}
+}
+}
+
+// measure mode
+if(isMeasureMode){
+const snap = getSnapStep();
+const mx = getSnapped(worldP.x, snap);
+const my = getSnapped(worldP.y, snap);
+
+if(measurePoints.length >= 2) measurePoints = [];
+measurePoints.push({x:mx, y:my});
+updateWorkHint();
+draw();
+return;
+}
+
+// wall place mode（タップ or ドラッグ）
+if(isWallPlaceMode){
+const snap = getSnapStep();
+const wx = getSnapped(worldP.x, snap);
+const wy = getSnapped(worldP.y, snap);
+
+// このタッチが「始点をセットするタッチ」かどうか
+wallPlaceGestureNewStart = !wallPlaceStart;
+wallPlaceGestureMoved = false;
+
+if(!wallPlaceStart){
+wallPlaceStart = {x:wx, y:wy};
+}
+
+// このタッチ時点の終点候補（ドラッグ中に更新される）
+const s = wallPlaceStart;
+let x2 = wx, y2 = wy;
+const dxw = x2 - s.x;
+const dyw = y2 - s.y;
+
+// 直交吸着（距離が近い方を揃える）
+
+const orthoThresh = 12; // ★修正: 半マス(16px)より小さくする
+
+if(Math.abs(dxw) < orthoThresh) x2 = s.x;
+if(Math.abs(dyw) < orthoThresh) y2 = s.y;
+
+wallPlacePreviewEnd = {x:x2, y:y2};
+
+updateWorkHint();
+draw();
+return;
+}
+
+if(!found){
+const hits = [];
+for (let i = items.length-1; i >= 0; i--) {
+const it = items[i];
+
+// 外壁モード（編集表示）は外枠(frame)のみ選択可能
+if(!isMerged && it.type !== 'frame') continue;
+
+// 部屋モード（結合表示）は外枠(frame)は選択しない
+if(isMerged && it.type === 'frame') continue;
+
+if(it.type === 'wallLine'){
+const r = wallHitTest(worldP, it);
+if(r.hit) hits.push({ it, wallHandle: r.handle });
+} else {
+if (worldP.x >= it.x && worldP.x <= it.x+it.w && worldP.y >= it.y && worldP.y <= it.y+it.h) {
+hits.push({ it, wallHandle: null });
+}
+}
+}
+
+if(hits.length === 1){
+found = hits[0].it;
+wallHandle = hits[0].wallHandle;
+}else if(hits.length > 1){
+const posKey = `${Math.round(worldP.x/8)}_${Math.round(worldP.y/8)}`;
+const idsKey = hits.map(h => h.it.id).join("|");
+const key = `${isMerged?1:0}|${posKey}|${idsKey}`;
+const within = (overlapPick.key === key) && (now - overlapPick.ts < 450);
+
+overlapPick.key = key;
+overlapPick.ts = now;
+overlapPick.idx = within ? (overlapPick.idx + 1) % hits.length : 0;
+
+const chosen = hits[overlapPick.idx];
+found = chosen.it;
+wallHandle = chosen.wallHandle;
+
+showToast(`重なり：${overlapPick.idx+1}/${hits.length}（${found.label || found.type}）`);
+}
+}
+
+
+if(found){
+selectedItem = found;
+pendingItem = found;
+
+if(!isReadOnly) startLongPress(found);
+
+if(isReadOnly){
+pendingAction = "pan"; // 閲覧モードはドラッグ=パン
+draw();
+return;
+}
+
+if(found.locked){
+pendingAction = null;
+draw();
+return;
+}
+
+if(found.type === 'wallLine'){
+pendingWallHandle = wallHandle;
+if(wallHandle === "p1" || wallHandle === "p2") pendingAction = wallHandle;
+else pendingAction = "moveWall";
+}else{
+if(rectMoveHandleHit(worldP, found)){
+pendingAction = "moveRect";
+}else if(rectResizeHandleHit(worldP, found)){
+pendingAction = "resizeRect";
+}else{
+pendingAction = "pan";
+}
+}
+}else{
+emptyTapCandidate = true;
+pendingAction = "pan";
+pendingItem = null;
+}
+
+draw();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+e.preventDefault();
+
+if(pinchActive && e.touches.length === 2){
+const { dist, mid } = getPinchInfo(e.touches);
+
+const factor = dist / pinchStartDist;
+scale = clamp(pinchStartScale * factor, 0.5, 3.0);
+
+const rect = canvas.getBoundingClientRect();
+const cx = rect.width/2;
+const cy = rect.height/2;
+const mx = mid.x - rect.left;
+const my = mid.y - rect.top;
+
+camera.x = mx - cx - (pinchWorldMid.x * scale);
+camera.y = my - cy - (pinchWorldMid.y * scale);
+
+draw();
+return;
+}
+
+if(e.touches.length !== 1) return;
+const t = e.touches[0];
+if(!pressStart) return;
+
+const dx = t.clientX - pressStart.clientX;
+const dy = t.clientY - pressStart.clientY;
+const moved = Math.hypot(dx, dy);
+
+const worldP = screenToWorld(t.clientX, t.clientY);
+const snap = getSnapStep();
+
+
+// ✅ 内壁設置（ドラッグ）中はここでプレビュー更新（通常のドラッグ処理より優先）
+if(isWallPlaceMode && !isReadOnly && wallPlaceStart){
+let wx = getSnapped(worldP.x, snap);
+let wy = getSnapped(worldP.y, snap);
+
+const s = wallPlaceStart;
+let x2 = wx, y2 = wy;
+const dxw = x2 - s.x;
+const dyw = y2 - s.y;
+
+// 直交吸着（距離が近い方を揃える）
+
+const orthoThresh = 12; // ★修正: 半マス(16px)より小さくする
+
+if(Math.abs(dxw) < orthoThresh) x2 = s.x;
+if(Math.abs(dyw) < orthoThresh) y2 = s.y;
+
+wallPlacePreviewEnd = {x:x2, y:y2};
+if(moved >= 6) wallPlaceGestureMoved = true;
+
+draw();
+return;
+}
+
+if(!dragActive && moved >= 6){
+dragActive = true;
+emptyTapCandidate = false;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
+
+gestureSnapshot = (isReadOnly || isViewMode) ? null : snapshot();
+
+if(pendingItem && !isReadOnly){
+items.splice(items.indexOf(pendingItem), 1);
+items.push(pendingItem);
+normalizeZ();
+}
+
+if(pendingAction === "moveRect" && pendingItem){
+rectDragOffset = { dx: worldP.x - pendingItem.x, dy: worldP.y - pendingItem.y };
+}
+if(pendingAction === "moveWall" && pendingItem){
+wallMoveOffset = { dx: worldP.x - pendingItem.x1, dy: worldP.y - pendingItem.y1 };
+}
+}
+
+if(dragActive){
+if(pendingAction === "pan"){
+camera.x += dx;
+camera.y += dy;
+pressStart = { clientX: t.clientX, clientY: t.clientY };
+draw();
+return;
+}
+
+if(isReadOnly){
+draw();
+return;
+}
+
+if(pendingItem && !pendingItem.locked){
+if(pendingItem.type === 'wallLine'){
+const w = pendingItem;
+if(pendingAction === "p1"){
+w.x1 = getSnapped(worldP.x, snap);
+w.y1 = getSnapped(worldP.y, snap);
+applyRightAngleSnap(w, "p1");
+} else if(pendingAction === "p2"){
+w.x2 = getSnapped(worldP.x, snap);
+w.y2 = getSnapped(worldP.y, snap);
+applyRightAngleSnap(w, "p2");
+} else if(pendingAction === "moveWall"){
+const vx = w.x2 - w.x1;
+const vy = w.y2 - w.y1;
+const nx1 = getSnapped(worldP.x - (wallMoveOffset?.dx ?? 0), snap);
+const ny1 = getSnapped(worldP.y - (wallMoveOffset?.dy ?? 0), snap);
+w.x1 = nx1; w.y1 = ny1;
+w.x2 = nx1 + vx;
+w.y2 = ny1 + vy;
+}
+}else{
+const it = pendingItem;
+if(pendingAction === "resizeRect"){
+it.w = Math.max(snap, getSnapped(worldP.x - it.x, snap));
+it.h = Math.max(snap, getSnapped(worldP.y - it.y, snap));
+}else if(pendingAction === "moveRect"){
+it.x = getSnapped(worldP.x - (rectDragOffset?.dx ?? 0), snap);
+it.y = getSnapped(worldP.y - (rectDragOffset?.dy ?? 0), snap);
+}
+}
+}
+}
+
+draw();
+}, { passive: false });
+
+function commitGestureIfAny(){
+if(isReadOnly || isViewMode){
+gestureSnapshot = null;
+return;
+}
+if(dragActive && gestureSnapshot){
+
+// 外枠（外壁モード）で外枠同士が重なったら確定させず元に戻す
+if(!isMerged && pendingItem && pendingItem.type === 'frame' &&
+(pendingAction === "moveRect" || pendingAction === "resizeRect")){
+if(frameOverlapsAny(pendingItem)){
+restore(gestureSnapshot);
+gestureSnapshot = null;
+showToast("外枠が重なっています。位置/サイズを調整してください");
+return;
+}
+}
+undoStack.push(gestureSnapshot);
+if (undoStack.length > HISTORY_MAX) undoStack.shift();
+redoStack = [];
+gestureSnapshot = null;
+syncHistoryButtons();
+scheduleAutoSave();
+}else{
+gestureSnapshot = null;
+}
+}
+
+canvas.addEventListener('touchend', (e) => {
+if(pinchActive){
+if(e.touches.length < 2){
+pinchActive = false;
+commitGestureIfAny();
+}
+clearTouchState();
+draw();
+return;
+}
+
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
+
+// ✅ 内壁設置モード：タッチ終了で確定（ドラッグ）／2点タップ（従来互換）
+if(isWallPlaceMode && !isReadOnly && wallPlaceStart){
+const s = wallPlaceStart;
+const end = wallPlacePreviewEnd || s;
+
+const samePoint = (s.x === end.x && s.y === end.y);
+
+// ✅ 終点が同一点：
+// - 1回目タップ（新規始点）→ 始点セット扱い（そのまま）
+// - すでに始点がある状態で同じ点をタップ → 始点取消（誤タップ救済）
+// - ドラッグして戻ってきた → 始点取消
+if(samePoint){
+if(!wallPlaceGestureNewStart || wallPlaceGestureMoved){
+wallPlaceStart = null;
+showToast("始点を取消しました", 900);
+}
+}else{
+// - このタッチで始点を作った場合：ドラッグしたときだけ確定
+// - すでに始点がある場合：タップでも確定
+if(!wallPlaceGestureNewStart || wallPlaceGestureMoved){
+addWallBetween({x:s.x, y:s.y}, {x:end.x, y:end.y});
+wallPlaceStart = null; // 既存仕様：次の壁はまた始点から
+}
+}
+
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+updateWorkHint();
+
+clearTouchState();
+draw();
+return;
+}
+
+if(emptyTapCandidate && !dragActive){
+selectedItem = null;
+}
+
+// 操作確定
+commitGestureIfAny();
+
+// ✅ 壁の移動/端点移動後：重なった壁を自動結合（長い線へ）
+if(!isReadOnly && dragActive && pendingItem && pendingItem.type === 'wallLine' &&
+(pendingAction === "moveWall" || pendingAction === "p1" || pendingAction === "p2")){
+const mergedWall = mergeOverlappingWalls(pendingItem);
+if(mergedWall) selectedItem = mergedWall;
+scheduleAutoSave();
+}
+
+ // ✅ 修正: 移動終了時に「重なり」と「はみ出し」両方をチェック
+if(!isReadOnly && isMerged && dragActive){
+  const hasOverlap = checkRoomOverlaps();
+  const hasOob = getRoomOutOfFrameRects().length > 0; // はみ出しがあるか
+
+  if(hasOverlap && hasOob){
+    showToast("⚠ 重なり・はみ出しがあります", 2000);
+  } else if(hasOverlap){
+    showToast("⚠ 部屋が重なっています", 1500);
+  } else if(hasOob){
+    showToast("⚠ 部屋が外枠からはみ出しています", 1500);
+  }
+}
+
+
+clearTouchState();
+draw();
+});
+
+
+canvas.addEventListener('touchcancel', () => {
+pinchActive = false;
+if(longPressTimer) clearTimeout(longPressTimer);
+longPressTimer = null;
+gestureSnapshot = null;
+wallPlacePreviewEnd = null;
+wallPlaceGestureNewStart = false;
+wallPlaceGestureMoved = false;
+clearTouchState();
+draw();
+});
+
+
+/* ✅ 最終版: 仮想キャンバス・余白150px・成功時デカ文字トースト */
+async function downloadImage() {
+// 1. 現在の状態（カメラや選択状態）を退避
+const prevScale = scale;
+const prevCamera = { ...camera };
+const prevSelected = selectedItem;
+// グローバル変数を退避（すり替え用）
+const originalCanvas = canvas;
+const originalCtx = ctx;
+// Retina用の描画パラメータも退避
+const prevViewW = VIEW_W;
+const prevViewH = VIEW_H;
+const prevRenderDpr = RENDER_DPR;
+
+selectedItem = null;
+isExporting = true;
+
+try {
+const targets = items.filter(i => i.type !== 'wallLine');
+if (targets.length === 0) {
+showToast("出力する部屋がありません"); // 通常トースト
+return;
+}
+
+// 1. 部屋と壁の範囲を計算
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+targets.forEach(it => {
+minX = Math.min(minX, it.x);
+minY = Math.min(minY, it.y);
+maxX = Math.max(maxX, it.x + it.w);
+maxY = Math.max(maxY, it.y + it.h);
+});
+items.filter(i => i.type === 'wallLine').forEach(w => {
+minX = Math.min(minX, w.x1, w.x2);
+minY = Math.min(minY, w.y1, w.y2);
+maxX = Math.max(maxX, w.x1, w.x2);
+maxY = Math.max(maxY, w.y1, w.y2);
+});
+
+// 2. グリッド基準でキャンバスサイズを決定（端の数字が見切れないように）
+const gridStartX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+const gridStartY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+const gridEndX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+const gridEndY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+
+const contentW = gridEndX - gridStartX;
+const contentH = gridEndY - gridStartY;
+
+const exportScale = 4.0; // 高画質設定
+const margin = 150; // 余白（上下左右150px確保）
+
+// 仮想キャンバスを作成（画面には表示されない）
+const virtualCanvas = document.createElement('canvas');
+virtualCanvas.width = (contentW * exportScale) + (margin * 2);
+virtualCanvas.height = (contentH * exportScale) + (margin * 2);
+const virtualCtx = virtualCanvas.getContext('2d');
+
+// ★魔法のステップ: グローバル変数を仮想キャンバスにすり替える
+canvas = virtualCanvas;
+ctx = virtualCtx;
+
+// 仮想キャンバスは「内部px」をそのまま描画単位にする
+VIEW_W = virtualCanvas.width;
+VIEW_H = virtualCanvas.height;
+RENDER_DPR = 1;
+
+scale = exportScale;
+// カメラ中心を「グリッドの中心」に合わせる
+camera.x = -((gridStartX + gridEndX) / 2 * scale);
+camera.y = -((gridStartY + gridEndY) / 2 * scale);
+
+// 描画実行（仮想キャンバスに対して描かれる）
+draw();
+
+const blob = await new Promise(resolve => virtualCanvas.toBlob(resolve, "image/png"));
+const file = new File([blob], `${currentTitle}_${floors[activeFloor].name}.png`, { type: "image/png" });
+
+// 共有またはダウンロード処理
+if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+await navigator.share({ files: [file], title: currentTitle });
+// 成功時：大きく表示 (isLarge=true)
+showToast("画像を共有しました", 2500, true); 
+} else {
+const dataUrl = virtualCanvas.toDataURL("image/png");
+const a = document.createElement("a");
+a.href = dataUrl;
+a.download = `${currentTitle}_${floors[activeFloor].name}.png`;
+a.click();
+// 成功時：大きく表示 (isLarge=true)
+showToast("画像を保存しました", 2500, true);
+}
+
+} catch (e) {
+console.error(e);
+// エラー時：大きく表示 (isLarge=true)
+showToast("画像の保存に失敗しました", 2500, true);
+} finally {
+// --- 復元処理 ---
+canvas = originalCanvas;
+ctx = originalCtx;
+
+// Retina描画パラメータを復元
+VIEW_W = prevViewW;
+VIEW_H = prevViewH;
+RENDER_DPR = prevRenderDpr;
+
+scale = prevScale;
+camera = prevCamera;
+selectedItem = prevSelected;
+isExporting = false;
+
+// 画面を再描画して元通りにする
+draw();
+}
+}
+
+
+
+
+
+// ボタンイベント登録
+el('downloadImageBtn').onclick = downloadImage;
+
+
+init();
+</script>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+</body>
+</html>
