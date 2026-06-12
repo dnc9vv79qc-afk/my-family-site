@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.1</title>
+<title>間取り検討サイト（Ichijo) v8.2</title>
 
 <style>
 :root{
@@ -1171,6 +1171,46 @@ width: 100%; height: 44px; border-radius: 14px;
 background: rgba(120,120,128,.16); color: var(--text);
 font-size: 13px; font-weight: 700;
 }
+/* ===== v2.2: 3Dパースビューア ===== */
+.v3d{
+position: fixed; inset: 0; z-index: 600;
+background: #FAFAFC;
+display: none;
+}
+.v3d.open{ display: block; }
+.v3d canvas{ position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.v3dtop{
+position: absolute; top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: 10px;
+height: 44px; border-radius: 22px; z-index: 2;
+background: rgba(255,255,255,.85); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+border: .5px solid rgba(60,60,67,.16);
+display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px;
+}
+.v3dtop .t{ font-size: 13px; font-weight: 800; }
+.v3dseg{ display: flex; background: #fff; border: .5px solid rgba(60,60,67,.2); border-radius: 14px; padding: 2px; }
+.v3dseg button{ font-size: 11px; padding: 5px 11px; border-radius: 11px; background: transparent; color: #333; height: auto; }
+.v3dseg button.active{ background: var(--accent); color: #fff; font-weight: 700; }
+.v3ddock{
+position: absolute; bottom: calc(env(safe-area-inset-bottom) + 14px); left: 10px; right: 10px;
+height: 58px; border-radius: 23px; z-index: 2;
+background: rgba(255,255,255,.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+border: .5px solid rgba(60,60,67,.16);
+display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 10px;
+}
+.v3ddock button{ height: 40px; border-radius: 13px; font-size: 12.5px; font-weight: 700; padding: 0 16px; }
+.v3ddock .back{ background: rgba(120,120,128,.16); color: var(--text); }
+.v3ddock .save{ background: rgba(52,199,89,.92); color: #fff; }
+.v3dhint{
+position: absolute; bottom: calc(env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%);
+z-index: 2; font-size: 10px; color: #8a8a8e;
+background: rgba(255,255,255,.8); border-radius: 10px; padding: 4px 10px;
+border: .5px solid rgba(60,60,67,.12); white-space: nowrap;
+}
+.v3dload{
+position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+z-index: 2; font-size: 12px; color: #666; display: none;
+}
+.v3d.loading .v3dload{ display: block; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1257,6 +1297,25 @@ font-size: 13px; font-weight: 700;
 </button>
 </div>
 
+<!-- ===== v2.2: 3Dパース ===== -->
+<div class="v3d" id="viewer3d">
+<canvas id="canvas3d"></canvas>
+<div class="v3dtop">
+<span class="t">3Dパース</span>
+<div class="v3dseg">
+<button id="v3dSeg1" type="button">1F</button>
+<button id="v3dSeg2" type="button">2F</button>
+<button id="v3dSegAll" type="button" class="active">全体</button>
+</div>
+</div>
+<div class="v3dhint">1本指で回転 ・ ピンチでズーム ・ 2本指で移動</div>
+<div class="v3dload">3D読み込み中…</div>
+<div class="v3ddock">
+<button class="back" id="v3dBackBtn" type="button">2Dに戻る</button>
+<button class="save" id="v3dSaveBtn" type="button">画像保存</button>
+</div>
+</div>
+
 <!-- ===== v2: 追加シート ===== -->
 <div id="addSheet" class="modal-overlay v2overlay">
 <div class="modal sheet v2sheet">
@@ -1291,7 +1350,7 @@ font-size: 13px; font-weight: 700;
 <svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 12h16"/></svg><span>窓</span>
 </button>
 <button class="v2cat soon" type="button" disabled>
-<svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.2</i>
+<svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.3</i>
 </button>
 </div>
 <button class="v2sheetclose" id="addSheetClose" type="button">閉じる</button>
@@ -1330,7 +1389,7 @@ font-size: 13px; font-weight: 700;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.1.1 by yuchi🐔</div>
+<div class="v2verline">ver 2.2 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1437,6 +1496,13 @@ font-size: 13px; font-weight: 700;
 <div class="help-section">
 <div class="help-section-title">便利機能</div>
 <div class="help-list">
+<div class="help-row">
+<div class="help-icon">📦</div>
+<div class="help-content">
+<b>3Dパース</b>
+下の「3D」ボタンで白模型の3D表示。1本指で回転、ピンチでズーム、2本指で移動。1F/2F/全体を切り替えて、画像保存もできます（表示には通信が必要です）。
+</div>
+</div>
 <div class="help-row">
 <div class="help-icon orange">🚪</div>
 <div class="help-content">
@@ -5690,6 +5756,382 @@ el('downloadImageBtn').onclick = downloadImage;
 
 
 /* ============================================================
+   v2.2: 3Dパースビューア（Three.js / 白模型）
+   ============================================================ */
+const PX_PER_MM = GRID_SIZE / 910;          // 1px = 約28.4mm
+const V3D_WALL_H = 2400 * PX_PER_MM;        // 壁高さ 2400mm
+const V3D_SLAB_T = 200 * PX_PER_MM;         // 床スラブ
+const V3D_DOOR_H = 2000 * PX_PER_MM;        // 建具高さ
+const V3D_WIN_B = 900 * PX_PER_MM;          // 窓下端
+const V3D_WIN_T = 2000 * PX_PER_MM;         // 窓上端
+const V3D_OUTER_T = 6;                      // 外周壁の厚み(px)
+
+let THREE_M = null;
+let v3dOpen = false;
+let v3dMode = 'all';                        // 'f1' | 'f2' | 'all'
+let v3dRenderer = null, v3dScene = null, v3dCamera = null;
+let v3dRoot = null, v3dFloorGroups = [];
+let v3dTheta = Math.PI / 4, v3dPhi = 1.05, v3dRadius = 600;
+let v3dTarget = { x: 0, y: 0, z: 0 };
+
+async function ensureThree(){
+if(THREE_M) return THREE_M;
+THREE_M = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+return THREE_M;
+}
+
+function v3dDisposeGroup(g){
+if(!g) return;
+g.traverse(o => {
+if(o.geometry) o.geometry.dispose();
+if(o.material){
+(Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+}
+});
+}
+
+/* 外枠群から「外周の壁セグメント」を抽出（L字も結合済みの外形になる） */
+function v3dOuterSegs(frames){
+const sub = 16;
+const cells = new Set();
+frames.forEach(f => {
+for(let x = f.x; x < f.x + f.w; x += sub)
+for(let y = f.y; y < f.y + f.h; y += sub) cells.add(x + "," + y);
+});
+const hMap = new Map(), vMap = new Map();
+const addE = (map, k, v) => { if(!map.has(k)) map.set(k, new Set()); map.get(k).add(v); };
+cells.forEach(key => {
+const [x, y] = key.split(',').map(Number);
+if(!cells.has(x + "," + (y - sub))) addE(hMap, y, x);
+if(!cells.has(x + "," + (y + sub))) addE(hMap, y + sub, x);
+if(!cells.has((x - sub) + "," + y)) addE(vMap, x, y);
+if(!cells.has((x + sub) + "," + y)) addE(vMap, x + sub, y);
+});
+const segs = [];
+const runs = (map, horiz) => {
+map.forEach((set, fixed) => {
+const arr = [...set].sort((a, b) => a - b);
+let s = null, prev = null;
+arr.forEach(v => {
+if(s === null){ s = v; prev = v; return; }
+if(v === prev + sub){ prev = v; return; }
+segs.push(horiz ? { x1: s, y1: fixed, x2: prev + sub, y2: fixed } : { x1: fixed, y1: s, x2: fixed, y2: prev + sub });
+s = v; prev = v;
+});
+if(s !== null) segs.push(horiz ? { x1: s, y1: fixed, x2: prev + sub, y2: fixed } : { x1: fixed, y1: s, x2: fixed, y2: prev + sub });
+});
+};
+runs(hMap, true);
+runs(vMap, false);
+return segs;
+}
+
+/* 線分→壁ボックス（X-Z平面、Yが高さ） */
+function v3dWallBox(T, seg, t, h, yBase, mat){
+const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+const len = Math.hypot(dx, dy);
+if(len < 0.5) return null;
+const geo = new T.BoxGeometry(len, h, t);
+const m = new T.Mesh(geo, mat);
+m.position.set((seg.x1 + seg.x2) / 2, yBase + h / 2, (seg.y1 + seg.y2) / 2);
+m.rotation.y = -Math.atan2(dy, dx);
+return m;
+}
+
+function v3dBuildFloor(T, group, fItems){
+const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
+wall: new T.MeshLambertMaterial({ color: 0xf5f5f7 }),
+slab: new T.MeshLambertMaterial({ color: 0xe7e7ec }),
+door: new T.MeshLambertMaterial({ color: 0x8b5a2b }),
+slide: new T.MeshLambertMaterial({ color: 0xa57b4f }),
+window: new T.MeshLambertMaterial({ color: 0xbcd8ee, transparent: true, opacity: 0.75 }),
+});
+const frames = fItems.filter(i => i.type === 'frame');
+const yBase = V3D_SLAB_T;
+
+// 床スラブ
+frames.forEach(f => {
+const geo = new T.BoxGeometry(f.w, V3D_SLAB_T, f.h);
+const m = new T.Mesh(geo, mats.slab);
+m.position.set(f.x + f.w / 2, V3D_SLAB_T / 2, f.y + f.h / 2);
+group.add(m);
+});
+
+// 部屋の床色
+fItems.forEach(it => {
+if(it.type !== 'room') return;
+const geo = new T.BoxGeometry(Math.max(1, it.w - 2), 0.8, Math.max(1, it.h - 2));
+const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#FFF3E0'), transparent: true, opacity: 0.55 });
+const m = new T.Mesh(geo, mat);
+m.position.set(it.x + it.w / 2, yBase + 0.5, it.y + it.h / 2);
+group.add(m);
+});
+
+// 外周壁
+v3dOuterSegs(frames).forEach(seg => {
+const m = v3dWallBox(T, seg, V3D_OUTER_T, V3D_WALL_H, yBase, mats.wall);
+if(m) group.add(m);
+});
+
+// 内壁
+fItems.forEach(it => {
+if(it.type !== 'wallLine') return;
+const t = clamp((it.thick ?? WALL_DEFAULT_THICK) * 0.35, 3, 7);
+const m = v3dWallBox(T, it, t, V3D_WALL_H, yBase, mats.wall);
+if(m) group.add(m);
+});
+
+// 建具（壁から少し突き出す色パネル）
+fItems.forEach(it => {
+if(it.type !== 'opening') return;
+const t = (it.thick ?? WALL_DEFAULT_THICK) * 0.35 + 3;
+let h, y0, mat;
+if(it.kind === 'window'){
+h = V3D_WIN_T - V3D_WIN_B; y0 = yBase + V3D_WIN_B; mat = mats.window;
+}else{
+h = V3D_DOOR_H; y0 = yBase; mat = (it.kind === 'slide') ? mats.slide : mats.door;
+}
+const dx = it.x2 - it.x1, dy = it.y2 - it.y1;
+const len = Math.hypot(dx, dy);
+if(len < 0.5) return;
+const geo = new T.BoxGeometry(len, h, t);
+const m = new T.Mesh(geo, mat);
+m.position.set((it.x1 + it.x2) / 2, y0 + h / 2, (it.y1 + it.y2) / 2);
+m.rotation.y = -Math.atan2(dy, dx);
+group.add(m);
+});
+}
+
+function v3dBounds(){
+syncActiveFloor();
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
+floors.forEach(f => (f.items || []).forEach(it => {
+if(it.type === 'wallLine' || it.type === 'opening'){
+minX = Math.min(minX, it.x1, it.x2); maxX = Math.max(maxX, it.x1, it.x2);
+minY = Math.min(minY, it.y1, it.y2); maxY = Math.max(maxY, it.y1, it.y2);
+found = true;
+}else{
+minX = Math.min(minX, it.x); maxX = Math.max(maxX, it.x + it.w);
+minY = Math.min(minY, it.y); maxY = Math.max(maxY, it.y + it.h);
+found = true;
+}
+}));
+if(!found){ minX = 0; minY = 0; maxX = 320; maxY = 320; }
+return { minX, minY, maxX, maxY };
+}
+
+function v3dBuildScene(){
+const T = THREE_M;
+if(v3dRoot){
+v3dDisposeGroup(v3dRoot);
+v3dScene.remove(v3dRoot);
+}
+v3dBuildFloor._mats = null;
+v3dRoot = new T.Group();
+v3dFloorGroups = [];
+syncActiveFloor();
+floors.forEach((f, idx) => {
+const g = new T.Group();
+g.position.y = idx * (V3D_WALL_H + V3D_SLAB_T);
+v3dBuildFloor(T, g, f.items || []);
+v3dFloorGroups[idx] = g;
+v3dRoot.add(g);
+});
+v3dScene.add(v3dRoot);
+v3dApplyMode();
+}
+
+function v3dApplyMode(){
+v3dFloorGroups.forEach((g, idx) => {
+if(!g) return;
+g.visible = (v3dMode === 'all') || (v3dMode === 'f1' && idx === 0) || (v3dMode === 'f2' && idx === 1);
+if(v3dMode === 'f2' && idx === 1) g.position.y = 0;
+else g.position.y = idx * (V3D_WALL_H + V3D_SLAB_T);
+});
+['v3dSeg1','v3dSeg2','v3dSegAll'].forEach(id => {
+const b = el(id);
+if(!b) return;
+const on = (id === 'v3dSeg1' && v3dMode === 'f1') || (id === 'v3dSeg2' && v3dMode === 'f2') || (id === 'v3dSegAll' && v3dMode === 'all');
+b.classList.toggle('active', on);
+});
+}
+
+function v3dUpdateCamera(){
+const sp = Math.sin(v3dPhi), cp = Math.cos(v3dPhi);
+v3dCamera.position.set(
+v3dTarget.x + v3dRadius * sp * Math.cos(v3dTheta),
+v3dTarget.y + v3dRadius * cp,
+v3dTarget.z + v3dRadius * sp * Math.sin(v3dTheta)
+);
+v3dCamera.lookAt(v3dTarget.x, v3dTarget.y, v3dTarget.z);
+}
+
+function v3dResize(){
+if(!v3dRenderer) return;
+const w = window.innerWidth, h = window.innerHeight;
+v3dRenderer.setSize(w, h, false);
+v3dCamera.aspect = w / h;
+v3dCamera.updateProjectionMatrix();
+}
+
+function v3dLoop(){
+if(!v3dOpen) return;
+v3dUpdateCamera();
+v3dRenderer.render(v3dScene, v3dCamera);
+requestAnimationFrame(v3dLoop);
+}
+
+function v3dSetupControls(cv){
+let touches = [];
+let lastDist = 0, lastMid = null, lastP = null;
+const getT = (e) => [...e.touches].map(t => ({ x: t.clientX, y: t.clientY }));
+
+cv.addEventListener('touchstart', (e) => {
+e.preventDefault();
+touches = getT(e);
+if(touches.length === 1){ lastP = touches[0]; }
+if(touches.length === 2){
+lastDist = Math.hypot(touches[0].x - touches[1].x, touches[0].y - touches[1].y);
+lastMid = { x: (touches[0].x + touches[1].x) / 2, y: (touches[0].y + touches[1].y) / 2 };
+}
+}, { passive: false });
+
+cv.addEventListener('touchmove', (e) => {
+e.preventDefault();
+const ts = getT(e);
+if(ts.length === 1 && lastP){
+const dx = ts[0].x - lastP.x, dy = ts[0].y - lastP.y;
+v3dTheta += dx * 0.006;
+v3dPhi = clamp(v3dPhi - dy * 0.006, 0.15, 1.5);
+lastP = ts[0];
+}else if(ts.length === 2){
+const dist = Math.hypot(ts[0].x - ts[1].x, ts[0].y - ts[1].y);
+const mid = { x: (ts[0].x + ts[1].x) / 2, y: (ts[0].y + ts[1].y) / 2 };
+if(lastDist > 0) v3dRadius = clamp(v3dRadius * (lastDist / dist), 80, 4000);
+if(lastMid){
+// 2本指パン：カメラの右・上方向に平行移動
+const k = v3dRadius * 0.0014;
+const dxm = mid.x - lastMid.x, dym = mid.y - lastMid.y;
+const cosT = Math.cos(v3dTheta), sinT = Math.sin(v3dTheta);
+v3dTarget.x += (-dxm * (-sinT) + dym * cosT * Math.cos(v3dPhi)) * k * -1;
+v3dTarget.z += (-dxm * (cosT) + dym * sinT * Math.cos(v3dPhi)) * k * -1;
+v3dTarget.y += dym * Math.sin(v3dPhi) * k * 0.6;
+}
+lastDist = dist; lastMid = mid;
+}
+}, { passive: false });
+
+cv.addEventListener('touchend', (e) => {
+const ts = getT(e);
+if(ts.length === 1) lastP = ts[0]; else lastP = null;
+if(ts.length < 2){ lastDist = 0; lastMid = null; }
+}, { passive: true });
+
+// PC用（動作確認向け）
+let mDown = false, mLast = null;
+cv.addEventListener('mousedown', (e) => { mDown = true; mLast = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('mousemove', (e) => {
+if(!mDown || !v3dOpen) return;
+v3dTheta += (e.clientX - mLast.x) * 0.006;
+v3dPhi = clamp(v3dPhi - (e.clientY - mLast.y) * 0.006, 0.15, 1.5);
+mLast = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', () => { mDown = false; });
+cv.addEventListener('wheel', (e) => {
+e.preventDefault();
+v3dRadius = clamp(v3dRadius * (e.deltaY > 0 ? 1.08 : 0.93), 80, 4000);
+}, { passive: false });
+}
+
+async function open3DViewer(){
+const ov = el('viewer3d');
+if(!ov) return;
+ov.classList.add('open', 'loading');
+v3dOpen = true;
+
+try{
+const T = await ensureThree();
+
+if(!v3dRenderer){
+const cv = el('canvas3d');
+v3dRenderer = new T.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+v3dRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+v3dScene = new T.Scene();
+v3dScene.background = new T.Color('#FAFAFC');
+v3dCamera = new T.PerspectiveCamera(50, 1, 1, 20000);
+
+v3dScene.add(new T.AmbientLight(0xffffff, 0.85));
+const dl = new T.DirectionalLight(0xffffff, 0.9);
+dl.position.set(1, 2, 1.2);
+v3dScene.add(dl);
+const dl2 = new T.DirectionalLight(0xffffff, 0.35);
+dl2.position.set(-1.2, 1.4, -0.8);
+v3dScene.add(dl2);
+
+v3dSetupControls(cv);
+window.addEventListener('resize', () => { if(v3dOpen) v3dResize(); });
+}
+
+// 2Fが空なら既定は1F表示
+syncActiveFloor();
+const has2F = (floors[1]?.items || []).length > 0;
+v3dMode = has2F ? 'all' : 'f1';
+
+v3dBuildScene();
+
+// カメラ初期位置
+const b = v3dBounds();
+const cx = (b.minX + b.maxX) / 2, cz = (b.minY + b.maxY) / 2;
+const diag = Math.hypot(b.maxX - b.minX, b.maxY - b.minY);
+const levels = (has2F && v3dMode === 'all') ? 2 : 1;
+v3dTarget = { x: cx, y: (V3D_WALL_H * levels) / 2, z: cz };
+v3dRadius = clamp(diag * 1.25 + 120, 200, 4000);
+v3dTheta = Math.PI / 4;
+v3dPhi = 1.05;
+
+v3dResize();
+ov.classList.remove('loading');
+v3dLoop();
+}catch(err){
+console.error(err);
+ov.classList.remove('open', 'loading');
+v3dOpen = false;
+showToast('3Dの読み込みに失敗しました（通信環境をご確認ください）', 2500);
+}
+}
+
+function close3DViewer(){
+v3dOpen = false;
+const ov = el('viewer3d');
+if(ov) ov.classList.remove('open');
+}
+
+async function v3dSaveImage(){
+if(!v3dRenderer) return;
+try{
+v3dUpdateCamera();
+v3dRenderer.render(v3dScene, v3dCamera);
+const dataUrl = v3dRenderer.domElement.toDataURL('image/png');
+const blob = await (await fetch(dataUrl)).blob();
+const file = new File([blob], `${currentTitle}_3D.png`, { type: 'image/png' });
+if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+await navigator.share({ files: [file], title: currentTitle });
+showToast('画像を共有しました', 2500, true);
+}else{
+const a = document.createElement('a');
+a.href = dataUrl;
+a.download = `${currentTitle}_3D.png`;
+a.click();
+showToast('画像を保存しました', 2500, true);
+}
+}catch(e){
+if(e && e.name === 'AbortError') return;
+console.error(e);
+showToast('画像の保存に失敗しました');
+}
+}
+
+/* ============================================================
    v2.0 アダプタ：ドック・シート・mm寸法
    ============================================================ */
 const MM_KEY = "floorplan_show_mm_v1";
@@ -5764,7 +6206,12 @@ if(el('dockAdd')) el('dockAdd').onclick = () => {
 if(isReadOnly){ showToast('閲覧専用です。「コピーして編集」をどうぞ'); return; }
 v2OpenSheet('addSheet');
 };
-if(el('dock3d')) el('dock3d').onclick = () => showToast('3Dパースは次のアップデートで追加予定です🏠');
+if(el('dock3d')) el('dock3d').onclick = () => open3DViewer();
+if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();
+if(el('v3dSaveBtn')) el('v3dSaveBtn').onclick = () => v3dSaveImage();
+if(el('v3dSeg1')) el('v3dSeg1').onclick = () => { v3dMode = 'f1'; if(THREE_M) v3dApplyMode(); };
+if(el('v3dSeg2')) el('v3dSeg2').onclick = () => { v3dMode = 'f2'; if(THREE_M) v3dApplyMode(); };
+if(el('v3dSegAll')) el('v3dSegAll').onclick = () => { v3dMode = 'all'; if(THREE_M) v3dApplyMode(); };
 if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
 if(el('addSheetClose')) el('addSheetClose').onclick = () => v2CloseSheet('addSheet');
 if(el('moreSheetClose')) el('moreSheetClose').onclick = () => v2CloseSheet('moreSheet');
