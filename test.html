@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.0</title>
+<title>間取り検討サイト（Ichijo) v8.1</title>
 
 <style>
 :root{
@@ -1226,6 +1226,10 @@ font-size: 13px; font-weight: 700;
 </label>
 <button class="pill" id="dupSelectedBtn" data-sub="複製" type="button">複製</button>
 <button class="pill danger" id="delSelectedBtn" data-sub="削除" type="button">削除</button>
+<button class="pill" id="thickMinusBtn" data-sub="細く" type="button" style="display:none;">−太さ</button>
+<button class="pill" id="thickPlusBtn" data-sub="太く" type="button" style="display:none;">＋太さ</button>
+<button class="pill" id="openingFlipBtn" data-sub="開く向き" type="button" style="display:none;">反転</button>
+<button class="pill" id="openingHingeBtn" data-sub="左右" type="button" style="display:none;">吊元</button>
 </div>
 
 <!-- ===== v2: ドック ===== -->
@@ -1268,8 +1272,14 @@ font-size: 13px; font-weight: 700;
 <button class="v2cat" id="catFrameEdit" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M9 15l6-6"/></svg><span>外壁を編集</span>
 </button>
-<button class="v2cat soon" type="button" disabled>
-<svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア・窓</span><i>v2.1</i>
+<button class="v2cat" id="catDoor" type="button">
+<svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア</span>
+</button>
+<button class="v2cat" id="catSlide" type="button">
+<svg viewBox="0 0 24 24"><rect x="3" y="8" width="11" height="3.5" rx="1"/><rect x="10" y="12.5" width="11" height="3.5" rx="1"/></svg><span>引き戸</span>
+</button>
+<button class="v2cat" id="catWindow" type="button">
+<svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 12h16"/></svg><span>窓</span>
 </button>
 <button class="v2cat soon" type="button" disabled>
 <svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.2</i>
@@ -1311,7 +1321,7 @@ font-size: 13px; font-weight: 700;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.0 by yuchi🐔</div>
+<div class="v2verline">ver 2.1 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1389,7 +1399,7 @@ font-size: 13px; font-weight: 700;
 <div class="help-icon orange">🎨</div>
 <div class="help-content">
 <b>色・名前の変更</b>
-部屋を選択し、画面下のツールバーから変更。名前変更は部屋を「2回タップ」でも可能。
+部屋を選択すると下に出るバーから変更。名前変更は部屋を「2回タップ」でも可能。
 </div>
 </div>
 </div>
@@ -1402,14 +1412,14 @@ font-size: 13px; font-weight: 700;
 <div class="help-icon gray">1</div>
 <div class="help-content">
 <b>外壁モード</b>
-まずは家の「外枠」を作ります。サイズを決めたら「部屋」モードへ。
+「追加」→「外壁を編集」で家の外枠を作ります。サイズが決まったら「選択」に戻ります。
 </div>
 </div>
 <div class="help-row">
 <div class="help-icon green">2</div>
 <div class="help-content">
 <b>部屋モード</b>
-部屋を追加して配置します。内壁は「内壁」ボタンを押してから2点をタップ。
+「追加」→「部屋」で部屋を置いて配置します。内壁は「追加」→「内壁」から2点をタップ。
 </div>
 </div>
 </div>
@@ -1418,6 +1428,13 @@ font-size: 13px; font-weight: 700;
 <div class="help-section">
 <div class="help-section-title">便利機能</div>
 <div class="help-list">
+<div class="help-row">
+<div class="help-icon orange">🚪</div>
+<div class="help-content">
+<b>ドア・引き戸・窓</b>
+「追加」からドア/引き戸/窓を選び、壁（内壁・外周どちらでも）をタップで設置。選択すると端の○で幅を調整、「反転」で開く向き、「吊元」で左右を変更できます。
+</div>
+</div>
 <div class="help-row">
 <div class="help-icon">🏠</div>
 <div class="help-content">
@@ -1468,6 +1485,7 @@ font-size: 13px; font-weight: 700;
 <input type="color" id="addColorInput" value="#FFF3E0">
 </label>
 
+<label class="chip tiny" style="height:34px; padding:0 10px; flex-shrink:0;"><input type="checkbox" id="contAddChk">連続追加</label>
 <div id="addHint" style="font-size: 12px; color: #666; align-self: center; display: block;">※チップは即追加</div>
 </div>
 
@@ -1571,7 +1589,15 @@ const DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14日（任意） // v2: edita
 const WALL_THICK_KEY = "wallThick_v1";
 let WALL_DEFAULT_THICK = 12;
 const WALL_HANDLE_R = 18;
-const WALL_HIT_PAD = 12;
+const WALL_HIT_PAD = 16;
+
+/* --- v2.1: 建具（ドア・引き戸・窓） --- */
+function isLineType(t){ return t === 'wallLine' || t === 'opening'; }
+const OPENING_LABEL = { door:'ドア', slide:'引き戸', window:'窓' };
+const OPENING_DEFAULT_LEN = { door: 32, slide: 64, window: 64 }; // 1マス=32px=910mm
+let isOpeningPlaceMode = false;
+let openingPlaceKind = 'door';
+let contAddCount = 0;
 const SNAP_ANGLE_DEG = 15;
 
 const AUTOSAVE_DELAY = 1500;
@@ -1723,8 +1749,13 @@ if(it.type === 'wallLine'){
 if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
 if(!it.color) it.color = "#111";
 if(!it.label) it.label = "壁";
-}
-if(it.type !== 'wallLine'){
+}else if(it.type === 'opening'){
+if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
+if(typeof it.swing !== "number") it.swing = 1;
+if(typeof it.hinge !== "number") it.hinge = 0;
+if(!it.kind) it.kind = 'door';
+if(!it.label) it.label = OPENING_LABEL[it.kind] || '建具';
+}else{
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
 }
@@ -1750,7 +1781,7 @@ function quantizeAllToGrid(step){
   if(!step) step = getSnapStep();
   syncActiveFloor();
   floors.forEach(f => (f.items || []).forEach(it => {
-    if(it.type === 'wallLine'){
+    if(isLineType(it.type)){
       it.x1 = getSnapped(it.x1, step);
       it.y1 = getSnapped(it.y1, step);
       it.x2 = getSnapped(it.x2, step);
@@ -2021,8 +2052,18 @@ if(isReadOnly) return;
 if(labelModalMode === "add"){
 addPendingColor = color || addPendingColor || "#FFF3E0";
 el('addColorInput').value = addPendingColor;
-closeLabelModal();
+const cont = !!(el('contAddChk') && el('contAddChk').checked);
+if(!cont) closeLabelModal();
 addRect(name, 4, 4, addPendingColor, 'room');
+// ✅ 連続追加：シートを開いたまま、少しずつずらして置く
+if(cont && selectedItem){
+const st = getSnapStep();
+selectedItem.x += (contAddCount % 4) * st * 2;
+selectedItem.y += Math.floor(contAddCount / 4) * st * 2;
+contAddCount++;
+draw();
+showToast(`${name} を追加（連続追加中）`, 900);
+}
 return;
 }
 el('labelInput').value = name;
@@ -2481,7 +2522,7 @@ if(!slider || !val) return;
 slider.disabled = isReadOnly;
 
 // 壁を選択している時はその壁の太さをスライダーに合わせる（違う値のレイアウト読み込み対策）
-if(selectedItem && selectedItem.type === 'wallLine'){
+if(selectedItem && isLineType(selectedItem.type)){
 const t = Number(selectedItem.thick ?? WALL_DEFAULT_THICK);
 if(Number.isFinite(t)){
 slider.value = String(t);
@@ -2501,7 +2542,7 @@ if(!Number.isFinite(t)) return;
 WALL_DEFAULT_THICK = t;
 
 items.forEach(it => {
-if(it.type !== 'wallLine') return;
+if(!isLineType(it.type)) return;
 if(respectLock && it.locked) return;
 it.thick = t;
 if(!it.color) it.color = "#111";
@@ -2609,6 +2650,85 @@ draw();
 scheduleAutoSave();
 }
 
+/* v2.1: 建具設置モード */
+function setOpeningPlaceMode(on, kind){
+isOpeningPlaceMode = !!on;
+if(kind) openingPlaceKind = kind;
+if(isOpeningPlaceMode){
+if(isWallPlaceMode) setWallPlaceMode(false);
+selectedItem = null;
+}
+updateWorkHint();
+syncBottomBarState();
+draw();
+}
+
+function collectOpeningHosts(){
+const hosts = [];
+items.forEach(it => {
+if(it.type === 'wallLine'){
+if(it.x1 === it.x2 || it.y1 === it.y2){
+hosts.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, thick: (it.thick ?? WALL_DEFAULT_THICK) });
+}
+}else if(it.type === 'frame'){
+const t = 12; // 外周壁（描画10px）より少し太め
+hosts.push({ x1: it.x, y1: it.y, x2: it.x + it.w, y2: it.y, thick: t });
+hosts.push({ x1: it.x, y1: it.y + it.h, x2: it.x + it.w, y2: it.y + it.h, thick: t });
+hosts.push({ x1: it.x, y1: it.y, x2: it.x, y2: it.y + it.h, thick: t });
+hosts.push({ x1: it.x + it.w, y1: it.y, x2: it.x + it.w, y2: it.y + it.h, thick: t });
+}
+});
+return hosts;
+}
+
+function placeOpeningAt(worldP){
+if(isReadOnly) return;
+const snap = getSnapStep();
+const kind = openingPlaceKind || 'door';
+let len = OPENING_DEFAULT_LEN[kind] || GRID_SIZE;
+
+// 最寄りの壁（内壁 or 外周）を探す
+let best = null, bestD = 26 / scale;
+collectOpeningHosts().forEach(h => {
+const d = distPointToSegment(worldP.x, worldP.y, h.x1, h.y1, h.x2, h.y2);
+if(d < bestD){ bestD = d; best = h; }
+});
+
+let op;
+if(best){
+const horiz = (best.y1 === best.y2);
+const lo = horiz ? Math.min(best.x1, best.x2) : Math.min(best.y1, best.y2);
+const hi = horiz ? Math.max(best.x1, best.x2) : Math.max(best.y1, best.y2);
+const hostLen = hi - lo;
+if(hostLen < snap){ showToast("壁が短すぎて設置できません"); return; }
+if(len > hostLen) len = Math.max(snap, Math.floor(hostLen / snap) * snap);
+
+const c = horiz ? worldP.x : worldP.y;
+let start = getSnapped(c - len / 2, snap);
+start = Math.min(Math.max(start, lo), hi - len);
+const fixed = horiz ? best.y1 : best.x1;
+
+op = horiz
+? { type:'opening', kind, x1: start, y1: fixed, x2: start + len, y2: fixed, thick: best.thick, swing: 1, hinge: 0, locked: false }
+: { type:'opening', kind, x1: fixed, y1: start, x2: fixed, y2: start + len, thick: best.thick, swing: 1, hinge: 0, locked: false };
+}else{
+// 近くに壁が無ければタップ位置に水平で置く
+const cx = getSnapped(worldP.x - len / 2, snap);
+const cy = getSnapped(worldP.y, snap);
+op = { type:'opening', kind, x1: cx, y1: cy, x2: cx + len, y2: cy, thick: WALL_DEFAULT_THICK, swing: 1, hinge: 0, locked: false };
+}
+
+pushHistory();
+items.push(op);
+ensureIds();
+normalizeZ();
+selectedItem = op;
+setOpeningPlaceMode(false);
+showToast(`${OPENING_LABEL[kind]}を設置しました（端の○で幅調整）`, 1800);
+scheduleAutoSave();
+draw();
+}
+
 function setWallPlaceMode(on){
 isWallPlaceMode = !!on;
 wallPlaceStart = null;
@@ -2695,7 +2815,7 @@ if(isReadOnly) return;
 if(!it) return;
 pushHistory();
 let n;
-if(it.type === 'wallLine'){
+if(isLineType(it.type)){
 n = { ...it, id: uid(), x1: it.x1 + GRID_SIZE, y1: it.y1 + GRID_SIZE, x2: it.x2 + GRID_SIZE, y2: it.y2 + GRID_SIZE };
 }else{
 n = { ...it, id: uid(), x: it.x + GRID_SIZE, y: it.y + GRID_SIZE };
@@ -2975,7 +3095,7 @@ function mergeOverlappingWalls(preferWall=null){
 
   // 結果も正規化
   items.forEach(it => {
-    if(it && it.type === 'wallLine') normalizeWallEndpoints(it);
+    if(it && isLineType(it.type)) normalizeWallEndpoints(it);
   });
 
   return preferKept;
@@ -3109,7 +3229,7 @@ function getRoomOutOfFrameRects(){
   const frames = items.filter(it => it.type === 'frame');
   if(!frames.length) return [];
 
-  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'frame');
   if(!rooms.length) return [];
 
   const outRects = [];
@@ -3179,7 +3299,7 @@ const chk = document.getElementById('showWarnings');
 }
 
 function getRoomOverlapRects(){
-  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'frame');
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'frame');
   const overlaps = [];
   for(let i=0;i<rooms.length;i++){
     const a = rooms[i];
@@ -3240,7 +3360,7 @@ const chk = document.getElementById('showWarnings');
 
 /* ✅ 修正版: 塗りつぶし専用（グリッドの下に描く） */
 function drawRectFill() {
-const rects = items.filter(i => i.type !== 'wallLine');
+const rects = items.filter(i => i.type !== 'wallLine' && i.type !== 'opening');
 rects.forEach(item => {
 ctx.fillStyle = item.color;
 // 部屋は少し薄く、外枠などは濃く
@@ -3257,7 +3377,7 @@ ctx.fillRect(item.x, item.y, item.w, item.h);
 
 /* ✅ 修正版: 外壁モード時は部屋の枠線・ラベルを非表示にする（完全版） */
 function drawRectStroke() {
-const rects = items.filter(i => i.type !== 'wallLine');
+const rects = items.filter(i => i.type !== 'wallLine' && i.type !== 'opening');
 const mag = isExporting ? 1.8 : 1.0;
 
 // 1. 枠線（Stroke）の描画
@@ -3344,6 +3464,85 @@ ctx.moveTo(wall.x1, wall.y1);
 ctx.lineTo(wall.x2, wall.y2);
 ctx.stroke();
 
+ctx.restore();
+}
+
+/* v2.1: 建具の描画（壁を白く開口してシンボルを描く） */
+function drawOpening(op){
+const x1 = op.x1, y1 = op.y1, x2 = op.x2, y2 = op.y2;
+const len = Math.hypot(x2 - x1, y2 - y1);
+if(len < 0.5) return;
+const t = (op.thick ?? WALL_DEFAULT_THICK);
+const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+const bx = -uy, by = ux;                     // 基本法線
+const sw = (op.swing === -1) ? -1 : 1;
+const nx = bx * sw, ny = by * sw;            // 開く側の法線
+
+ctx.save();
+// 1) 壁の開口（白く抜く）
+ctx.lineCap = "butt";
+ctx.strokeStyle = "#ffffff";
+ctx.lineWidth = (t + 3) / scale;
+ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+// 2) 両端の壁の切り口
+const jh = Math.max(3 / scale, (t * 0.7) / scale);
+ctx.strokeStyle = "#111";
+ctx.lineWidth = 2.5 / scale;
+[[x1, y1], [x2, y2]].forEach(([px, py]) => {
+ctx.beginPath();
+ctx.moveTo(px + bx * jh, py + by * jh);
+ctx.lineTo(px - bx * jh, py - by * jh);
+ctx.stroke();
+});
+
+if(op.kind === 'window'){
+// 窓：二重線
+const off = Math.max(2 / scale, (t * 0.28) / scale);
+ctx.strokeStyle = "#111";
+ctx.lineWidth = 1.6 / scale;
+ctx.beginPath();
+ctx.moveTo(x1 + bx * off, y1 + by * off); ctx.lineTo(x2 + bx * off, y2 + by * off);
+ctx.moveTo(x1 - bx * off, y1 - by * off); ctx.lineTo(x2 - bx * off, y2 - by * off);
+ctx.stroke();
+}else if(op.kind === 'slide'){
+// 引き違い戸：互い違いの2枚
+const off = Math.max(2.2 / scale, (t * 0.35) / scale);
+const ext = len * 0.08;
+ctx.strokeStyle = "#333";
+ctx.lineWidth = 2.2 / scale;
+ctx.beginPath();
+ctx.moveTo(x1 + nx * off, y1 + ny * off);
+ctx.lineTo(x1 + ux * (len / 2 + ext) + nx * off, y1 + uy * (len / 2 + ext) + ny * off);
+ctx.moveTo(x2 - ux * (len / 2 + ext) - nx * off, y2 - uy * (len / 2 + ext) - ny * off);
+ctx.lineTo(x2 - nx * off, y2 - ny * off);
+ctx.stroke();
+}else{
+// 開き戸：扉＋1/4円の軌跡
+const hx = op.hinge ? x2 : x1;
+const hy = op.hinge ? y2 : y1;
+const ox = op.hinge ? x1 : x2;
+const oy = op.hinge ? y1 : y2;
+ctx.strokeStyle = "#444";
+ctx.lineWidth = 2.4 / scale;
+ctx.beginPath();
+ctx.moveTo(hx, hy);
+ctx.lineTo(hx + nx * len, hy + ny * len);
+ctx.stroke();
+
+const a0 = Math.atan2(oy - hy, ox - hx);
+const a1 = Math.atan2(ny, nx);
+let dAng = a1 - a0;
+while(dAng <= -Math.PI) dAng += Math.PI * 2;
+while(dAng > Math.PI) dAng -= Math.PI * 2;
+ctx.strokeStyle = "#999";
+ctx.lineWidth = 1.2 / scale;
+ctx.setLineDash([6 / scale, 5 / scale]);
+ctx.beginPath();
+ctx.arc(hx, hy, len, a0, a1, dAng < 0);
+ctx.stroke();
+ctx.setLineDash([]);
+}
 ctx.restore();
 }
 
@@ -3436,7 +3635,7 @@ return hasOverlap;
 function drawBlueprintGrid(targetItems) {
   // 1. 外枠(frame)または全体の範囲を取得
   const frames = targetItems.filter(i => i.type === 'frame');
-  const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine');
+  const targets = frames.length ? frames : targetItems.filter(i => i.type !== 'wallLine' && i.type !== 'opening');
   if (!targets.length) return;
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -3519,7 +3718,7 @@ function drawMerged(){
 
   // 1. データ整理
   items.forEach((item) => {
-    if(item.type === 'wallLine') return;
+    if(item.type === 'wallLine' || item.type === 'opening') return;
     if (item.type !== 'frame') {
       if (!groups[item.label]) {
         groups[item.label] = {
@@ -3546,7 +3745,7 @@ function drawMerged(){
 
   // 2. 塗りつぶし
   items.forEach(item => {
-    if(item.type === 'wallLine') return;
+    if(item.type === 'wallLine' || item.type === 'opening') return;
     if(item.type === 'frame'){
       ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
     }else{
@@ -3689,6 +3888,7 @@ function drawMerged(){
 
   // 壁描画
   items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
+  items.forEach(it => { if(it.type === 'opening') drawOpening(it); });
 
   // 画像出力時の追加描画
   if (isExporting && gridBounds) {
@@ -3906,6 +4106,7 @@ if(!other || !other.items || other.items.length === 0) return;
 ctx.save();
 const tint = '#5856D6';
 other.items.forEach(it => {
+if(it.type === 'opening') return;
 if(it.type === 'wallLine'){
 ctx.globalAlpha = 0.22;
 ctx.strokeStyle = tint;
@@ -3962,7 +4163,7 @@ if (isMerged) {
 drawMerged();
 
 if (selectedItem && !selectedItem.locked && !isReadOnly) {
-if (selectedItem.type === 'wallLine') {
+if (isLineType(selectedItem.type)) {
 drawWallSelection(selectedItem);
 } else if (selectedItem.type !== 'frame') {
 ctx.strokeStyle = "#007AFF";
@@ -3987,7 +4188,8 @@ drawOverlapHatching();
 drawRectStroke();
 
 items.forEach(it => { if (it.type === 'wallLine') drawWallLine(it); });
-if (selectedItem && selectedItem.type === 'wallLine') drawWallSelection(selectedItem);
+items.forEach(it => { if (it.type === 'opening') drawOpening(it); });
+if (selectedItem && isLineType(selectedItem.type)) drawWallSelection(selectedItem);
 }
 
 // ▼ もう一方のフロアを透かし表示（現在フロアの上に重ねる）
@@ -4015,7 +4217,7 @@ function fitToFrame() {
 resizeCanvas();
 
 const frames = items.filter(i => i.type === 'frame');
-const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine');
+const targets = frames.length ? frames : items.filter(i => i.type !== 'wallLine' && i.type !== 'opening');
 
 if (!targets.length) {
 camera = { x: 0, y: 0 };
@@ -4034,7 +4236,7 @@ maxX = Math.max(maxX, it.x + it.w);
 maxY = Math.max(maxY, it.y + it.h);
 });
 
-items.filter(i => i.type === 'wallLine').forEach(w => {
+items.filter(i => isLineType(i.type)).forEach(w => {
 minX = Math.min(minX, w.x1, w.x2);
 minY = Math.min(minY, w.y1, w.y2);
 maxX = Math.max(maxX, w.x1, w.x2);
@@ -4669,6 +4871,7 @@ return;
 }
 
 editingItem = null;
+contAddCount = 0;
 addPendingColor = addPendingColor || "#FFF3E0";
 openLabelModal("add");
 };
@@ -4907,7 +5110,7 @@ const selectable =
 (isMerged && s.type !== 'frame');
 
 if(selectable){
-if(s.type === 'wallLine'){
+if(isLineType(s.type)){
 const r = wallHitTest(worldP, s);
 if(r && r.hit){ found = s; wallHandle = r.handle; }
 }else{
@@ -4928,6 +5131,12 @@ if(measurePoints.length >= 2) measurePoints = [];
 measurePoints.push({x:mx, y:my});
 updateWorkHint();
 draw();
+return;
+}
+
+// ✅ v2.1: 建具設置モード（タップで設置）
+if(isOpeningPlaceMode && !isReadOnly){
+placeOpeningAt(worldP);
 return;
 }
 
@@ -4976,7 +5185,7 @@ if(!isMerged && it.type !== 'frame') continue;
 // 部屋モード（結合表示）は外枠(frame)は選択しない
 if(isMerged && it.type === 'frame') continue;
 
-if(it.type === 'wallLine'){
+if(isLineType(it.type)){
 const r = wallHitTest(worldP, it);
 if(r.hit) hits.push({ it, wallHandle: r.handle });
 } else {
@@ -5026,7 +5235,7 @@ draw();
 return;
 }
 
-if(found.type === 'wallLine'){
+if(isLineType(found.type)){
 pendingWallHandle = wallHandle;
 if(wallHandle === "p1" || wallHandle === "p2") pendingAction = wallHandle;
 else pendingAction = "moveWall";
@@ -5143,16 +5352,25 @@ return;
 }
 
 if(pendingItem && !pendingItem.locked){
-if(pendingItem.type === 'wallLine'){
+if(isLineType(pendingItem.type)){
 const w = pendingItem;
+const keepAxis = (w.type === 'opening');
 if(pendingAction === "p1"){
 w.x1 = getSnapped(worldP.x, snap);
 w.y1 = getSnapped(worldP.y, snap);
+if(keepAxis){
+if(Math.abs(w.x2 - w.x1) >= Math.abs(w.y2 - w.y1)) w.y1 = w.y2; else w.x1 = w.x2;
+}else{
 applyRightAngleSnap(w, "p1");
+}
 } else if(pendingAction === "p2"){
 w.x2 = getSnapped(worldP.x, snap);
 w.y2 = getSnapped(worldP.y, snap);
+if(keepAxis){
+if(Math.abs(w.x2 - w.x1) >= Math.abs(w.y2 - w.y1)) w.y2 = w.y1; else w.x2 = w.x1;
+}else{
 applyRightAngleSnap(w, "p2");
+}
 } else if(pendingAction === "moveWall"){
 const vx = w.x2 - w.x1;
 const vy = w.y2 - w.y1;
@@ -5321,7 +5539,7 @@ selectedItem = null;
 isExporting = true;
 
 try {
-const targets = items.filter(i => i.type !== 'wallLine');
+const targets = items.filter(i => i.type !== 'wallLine' && i.type !== 'opening');
 if (targets.length === 0) {
 showToast("出力する部屋がありません"); // 通常トースト
 return;
@@ -5335,7 +5553,7 @@ minY = Math.min(minY, it.y);
 maxX = Math.max(maxX, it.x + it.w);
 maxY = Math.max(maxY, it.y + it.h);
 });
-items.filter(i => i.type === 'wallLine').forEach(w => {
+items.filter(i => isLineType(i.type)).forEach(w => {
 minX = Math.min(minX, w.x1, w.x2);
 minY = Math.min(minY, w.y1, w.y2);
 maxX = Math.max(maxX, w.x1, w.x2);
@@ -5439,8 +5657,9 @@ function v2CloseSheet(id){ const m = el(id); if(m) m.style.display = 'none'; }
 function v2SyncDock(){
 const sel = el('dockSelect'), add = el('dockAdd');
 const special = isMeasureMode || isViewMode;
-if(sel) sel.classList.toggle('active', isMerged && !special && !isWallPlaceMode);
-if(add) add.classList.toggle('active', (!isMerged || isWallPlaceMode) && !special);
+const placing = isWallPlaceMode || isOpeningPlaceMode;
+if(sel) sel.classList.toggle('active', isMerged && !special && !placing);
+if(add) add.classList.toggle('active', (!isMerged || placing) && !special);
 }
 
 // モード変化に追従（既存関数をラップ）
@@ -5448,7 +5667,12 @@ const __v2_updateWorkHint = updateWorkHint;
 updateWorkHint = function(){
 __v2_updateWorkHint();
 const h = el('workHint');
-if(h) h.style.display = isReadOnly ? 'none' : '';
+if(h){
+h.style.display = isReadOnly ? 'none' : '';
+if(isOpeningPlaceMode){
+h.innerHTML = `<b>${OPENING_LABEL[openingPlaceKind] || '建具'}設置</b>：壁（内壁・外周どちらでも）をタップして設置`;
+}
+}
 v2SyncDock();
 };
 
@@ -5458,8 +5682,23 @@ syncBottomBarState = function(){
 __v2_syncBottomBarState();
 const defBar = el('defaultBar');
 if(!defBar) return;
-if(isMerged && !selectedItem){
+// 内壁設置中は「↩︎取消」を出すため隠さない
+if(isMerged && !selectedItem && !isWallPlaceMode){
 defBar.style.display = 'none';
+}
+
+// v2.1: 壁・建具を選択中の個別ボタン
+const lineSel = !!(selectedItem && isLineType(selectedItem.type) && !isReadOnly && !selectedItem.locked);
+const opSel = !!(selectedItem && selectedItem.type === 'opening');
+const showFlip = opSel && lineSel && (selectedItem.kind === 'door' || selectedItem.kind === 'slide');
+const showHinge = opSel && lineSel && selectedItem.kind === 'door';
+if(el('thickMinusBtn')) el('thickMinusBtn').style.display = lineSel ? '' : 'none';
+if(el('thickPlusBtn')) el('thickPlusBtn').style.display = lineSel ? '' : 'none';
+if(el('openingFlipBtn')) el('openingFlipBtn').style.display = showFlip ? '' : 'none';
+if(el('openingHingeBtn')) el('openingHingeBtn').style.display = showHinge ? '' : 'none';
+if(opSel){
+if(el('editNameBtn')) el('editNameBtn').style.display = 'none';
+if(el('selectedColorLabel')) el('selectedColorLabel').style.display = 'none';
 }
 };
 
@@ -5468,6 +5707,7 @@ if(el('dockSelect')) el('dockSelect').onclick = () => {
 if(isMeasureMode && el('measureBtn')) el('measureBtn').click();
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(!isMerged && !isReadOnly) setMergedMode(true);
 selectedItem = null;
 syncBottomBarState();
@@ -5490,6 +5730,7 @@ if(m) m.addEventListener('click', (e) => { if(e.target.id === id) v2CloseSheet(i
 // --- 追加シートのカテゴリ ---
 if(el('catRoom')) el('catRoom').onclick = () => {
 v2CloseSheet('addSheet');
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
 if(!isMerged) setMergedMode(true);
@@ -5498,6 +5739,7 @@ if(b) b.click();
 };
 if(el('catWall')) el('catWall').onclick = () => {
 v2CloseSheet('addSheet');
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(!isMerged) setMergedMode(true);
 if(!isWallPlaceMode) setWallPlaceMode(true);
@@ -5505,6 +5747,7 @@ updateWorkHint();
 };
 if(el('catFrameAdd')) el('catFrameAdd').onclick = () => {
 v2CloseSheet('addSheet');
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
 if(isMerged) setMergedMode(false);
@@ -5514,6 +5757,7 @@ updateWorkHint();
 };
 if(el('catFrameEdit')) el('catFrameEdit').onclick = () => {
 v2CloseSheet('addSheet');
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
 if(isMerged) setMergedMode(false);
@@ -5529,6 +5773,44 @@ if(el('showMM')) el('showMM').addEventListener('change', (e) => {
 try{ localStorage.setItem(MM_KEY, e.target.checked ? "1" : "0"); }catch(_){}
 draw();
 });
+
+// --- v2.1: 建具・壁の個別操作 ---
+function v2NudgeThick(d){
+if(!selectedItem || !isLineType(selectedItem.type) || isReadOnly || selectedItem.locked) return;
+pushHistory();
+selectedItem.thick = clamp((selectedItem.thick ?? WALL_DEFAULT_THICK) + d, 4, 28);
+try{ syncWallThickUI(); }catch(_){}
+draw();
+scheduleAutoSave();
+showToast(`太さ ${selectedItem.thick}`, 700);
+}
+if(el('thickMinusBtn')) el('thickMinusBtn').onclick = () => v2NudgeThick(-2);
+if(el('thickPlusBtn')) el('thickPlusBtn').onclick = () => v2NudgeThick(2);
+if(el('openingFlipBtn')) el('openingFlipBtn').onclick = () => {
+if(!selectedItem || selectedItem.type !== 'opening' || isReadOnly) return;
+pushHistory();
+selectedItem.swing = (selectedItem.swing === -1) ? 1 : -1;
+draw();
+scheduleAutoSave();
+};
+if(el('openingHingeBtn')) el('openingHingeBtn').onclick = () => {
+if(!selectedItem || selectedItem.type !== 'opening' || isReadOnly) return;
+pushHistory();
+selectedItem.hinge = selectedItem.hinge ? 0 : 1;
+draw();
+scheduleAutoSave();
+};
+
+const v2StartOpening = (kind) => {
+v2CloseSheet('addSheet');
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(!isMerged) setMergedMode(true);
+setOpeningPlaceMode(true, kind);
+};
+if(el('catDoor')) el('catDoor').onclick = () => v2StartOpening('door');
+if(el('catSlide')) el('catSlide').onclick = () => v2StartOpening('slide');
+if(el('catWindow')) el('catWindow').onclick = () => v2StartOpening('window');
 
 v2SyncDock();
 
