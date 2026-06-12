@@ -1144,7 +1144,9 @@ padding: 10px 16px calc(env(safe-area-inset-bottom) + 14px);
 box-shadow: 0 -10px 30px rgba(0,0,0,.18);
 }
 .grabber{ width: 36px; height: 4.5px; border-radius: 3px; background: #ccc; margin: 0 auto 12px; }
-.v2catgrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.v2catgrid{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 14px; }
+.v2catgrid .v2cat{ flex-direction: column; gap: 5px; padding: 9px 2px 8px; }
+.v2catgrid .v2cat span{ font-size: 10.5px; }
 .v2cat{
 display: flex; align-items: center; gap: 9px;
 background: rgba(120,120,128,.10);
@@ -1230,6 +1232,7 @@ font-size: 13px; font-weight: 700;
 <button class="pill" id="thickPlusBtn" data-sub="太く" type="button" style="display:none;">＋太さ</button>
 <button class="pill" id="openingFlipBtn" data-sub="開く向き" type="button" style="display:none;">反転</button>
 <button class="pill" id="openingHingeBtn" data-sub="左右" type="button" style="display:none;">吊元</button>
+<button class="pill" id="slidePanelsBtn" data-sub="枚数" type="button" style="display:none;">枚数</button>
 </div>
 
 <!-- ===== v2: ドック ===== -->
@@ -1275,8 +1278,14 @@ font-size: 13px; font-weight: 700;
 <button class="v2cat" id="catDoor" type="button">
 <svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア</span>
 </button>
-<button class="v2cat" id="catSlide" type="button">
-<svg viewBox="0 0 24 24"><rect x="3" y="8" width="11" height="3.5" rx="1"/><rect x="10" y="12.5" width="11" height="3.5" rx="1"/></svg><span>引き戸</span>
+<button class="v2cat" id="catSlide1" type="button">
+<svg viewBox="0 0 24 24"><path d="M3 12h7"/><rect x="9" y="10" width="12" height="4" rx="1"/></svg><span>片引き戸</span>
+</button>
+<button class="v2cat" id="catSlide2" type="button">
+<svg viewBox="0 0 24 24"><rect x="3" y="8" width="11" height="3.5" rx="1"/><rect x="10" y="12.5" width="11" height="3.5" rx="1"/></svg><span>引き違い</span>
+</button>
+<button class="v2cat" id="catSlide3" type="button">
+<svg viewBox="0 0 24 24"><rect x="2" y="6.5" width="9" height="3.2" rx="1"/><rect x="7.5" y="10.4" width="9" height="3.2" rx="1"/><rect x="13" y="14.3" width="9" height="3.2" rx="1"/></svg><span>3連</span>
 </button>
 <button class="v2cat" id="catWindow" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 12h16"/></svg><span>窓</span>
@@ -1321,7 +1330,7 @@ font-size: 13px; font-weight: 700;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.1 by yuchi🐔</div>
+<div class="v2verline">ver 2.1.1 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1432,7 +1441,7 @@ font-size: 13px; font-weight: 700;
 <div class="help-icon orange">🚪</div>
 <div class="help-content">
 <b>ドア・引き戸・窓</b>
-「追加」からドア/引き戸/窓を選び、壁（内壁・外周どちらでも）をタップで設置。選択すると端の○で幅を調整、「反転」で開く向き、「吊元」で左右を変更できます。
+「追加」からドア/片引き戸/引き違い/3連/窓を選び、壁（内壁・外周どちらでも）をタップで設置。選択すると端の○で幅、「反転」で開く向き、「吊元」で左右、「枚数」で引き戸の枚数を変更できます。
 </div>
 </div>
 <div class="help-row">
@@ -1594,9 +1603,12 @@ const WALL_HIT_PAD = 16;
 /* --- v2.1: 建具（ドア・引き戸・窓） --- */
 function isLineType(t){ return t === 'wallLine' || t === 'opening'; }
 const OPENING_LABEL = { door:'ドア', slide:'引き戸', window:'窓' };
+const SLIDE_LABEL = { 1:'片引き戸', 2:'引き違い', 3:'3連引き戸' };
+const SLIDE_DEFAULT_LEN = { 1: 32, 2: 64, 3: 96 }; // 910 / 1820 / 2730mm
 const OPENING_DEFAULT_LEN = { door: 32, slide: 64, window: 64 }; // 1マス=32px=910mm
 let isOpeningPlaceMode = false;
 let openingPlaceKind = 'door';
+let openingPlacePanels = 2;
 let contAddCount = 0;
 const SNAP_ANGLE_DEG = 15;
 
@@ -1754,7 +1766,8 @@ if(typeof it.thick !== "number") it.thick = WALL_DEFAULT_THICK;
 if(typeof it.swing !== "number") it.swing = 1;
 if(typeof it.hinge !== "number") it.hinge = 0;
 if(!it.kind) it.kind = 'door';
-if(!it.label) it.label = OPENING_LABEL[it.kind] || '建具';
+if(it.kind === 'slide' && ![1,2,3].includes(it.panels)) it.panels = 2;
+if(!it.label) it.label = (it.kind === 'slide' ? SLIDE_LABEL[it.panels || 2] : OPENING_LABEL[it.kind]) || '建具';
 }else{
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
@@ -2651,9 +2664,10 @@ scheduleAutoSave();
 }
 
 /* v2.1: 建具設置モード */
-function setOpeningPlaceMode(on, kind){
+function setOpeningPlaceMode(on, kind, panels){
 isOpeningPlaceMode = !!on;
 if(kind) openingPlaceKind = kind;
+if([1,2,3].includes(panels)) openingPlacePanels = panels;
 if(isOpeningPlaceMode){
 if(isWallPlaceMode) setWallPlaceMode(false);
 selectedItem = null;
@@ -2685,7 +2699,9 @@ function placeOpeningAt(worldP){
 if(isReadOnly) return;
 const snap = getSnapStep();
 const kind = openingPlaceKind || 'door';
-let len = OPENING_DEFAULT_LEN[kind] || GRID_SIZE;
+let len = (kind === 'slide')
+? (SLIDE_DEFAULT_LEN[openingPlacePanels || 2] || 64)
+: (OPENING_DEFAULT_LEN[kind] || GRID_SIZE);
 
 // 最寄りの壁（内壁 or 外周）を探す
 let best = null, bestD = 26 / scale;
@@ -2718,13 +2734,15 @@ const cy = getSnapped(worldP.y, snap);
 op = { type:'opening', kind, x1: cx, y1: cy, x2: cx + len, y2: cy, thick: WALL_DEFAULT_THICK, swing: 1, hinge: 0, locked: false };
 }
 
+if(kind === 'slide') op.panels = ([1,2,3].includes(openingPlacePanels) ? openingPlacePanels : 2);
 pushHistory();
 items.push(op);
 ensureIds();
 normalizeZ();
 selectedItem = op;
 setOpeningPlaceMode(false);
-showToast(`${OPENING_LABEL[kind]}を設置しました（端の○で幅調整）`, 1800);
+const nm = (kind === 'slide') ? SLIDE_LABEL[op.panels] : OPENING_LABEL[kind];
+showToast(`${nm}を設置しました（端の○で幅調整）`, 1800);
 scheduleAutoSave();
 draw();
 }
@@ -3506,16 +3524,41 @@ ctx.moveTo(x1 + bx * off, y1 + by * off); ctx.lineTo(x2 + bx * off, y2 + by * of
 ctx.moveTo(x1 - bx * off, y1 - by * off); ctx.lineTo(x2 - bx * off, y2 - by * off);
 ctx.stroke();
 }else if(op.kind === 'slide'){
-// 引き違い戸：互い違いの2枚
+const p = (op.panels === 1) ? 1 : (op.panels === 3 ? 3 : 2);
 const off = Math.max(2.2 / scale, (t * 0.35) / scale);
-const ext = len * 0.08;
 ctx.strokeStyle = "#333";
 ctx.lineWidth = 2.2 / scale;
 ctx.beginPath();
+if(p === 1){
+// 片引き戸：1枚パネルが吊元側の壁に引き込まれる
+const ext = len * 0.4;
+if(op.hinge){
+ctx.moveTo(x1 + nx * off, y1 + ny * off);
+ctx.lineTo(x2 + ux * ext + nx * off, y2 + uy * ext + ny * off);
+}else{
+ctx.moveTo(x1 - ux * ext + nx * off, y1 - uy * ext + ny * off);
+ctx.lineTo(x2 + nx * off, y2 + ny * off);
+}
+}else if(p === 3){
+// 3連引き戸：3枚を段違いに
+const seg = len / 3;
+const ext = len * 0.05;
+const offs = [off, 0, -off];
+for(let k = 0; k < 3; k++){
+const o = offs[k];
+const s0 = Math.max(0, seg * k - ext);
+const s1 = Math.min(len, seg * (k + 1) + ext);
+ctx.moveTo(x1 + ux * s0 + nx * o, y1 + uy * s0 + ny * o);
+ctx.lineTo(x1 + ux * s1 + nx * o, y1 + uy * s1 + ny * o);
+}
+}else{
+// 引き違い：互い違いの2枚
+const ext = len * 0.08;
 ctx.moveTo(x1 + nx * off, y1 + ny * off);
 ctx.lineTo(x1 + ux * (len / 2 + ext) + nx * off, y1 + uy * (len / 2 + ext) + ny * off);
 ctx.moveTo(x2 - ux * (len / 2 + ext) - nx * off, y2 - uy * (len / 2 + ext) - ny * off);
 ctx.lineTo(x2 - nx * off, y2 - ny * off);
+}
 ctx.stroke();
 }else{
 // 開き戸：扉＋1/4円の軌跡
@@ -5670,7 +5713,8 @@ const h = el('workHint');
 if(h){
 h.style.display = isReadOnly ? 'none' : '';
 if(isOpeningPlaceMode){
-h.innerHTML = `<b>${OPENING_LABEL[openingPlaceKind] || '建具'}設置</b>：壁（内壁・外周どちらでも）をタップして設置`;
+const nm = (openingPlaceKind === 'slide') ? SLIDE_LABEL[openingPlacePanels || 2] : (OPENING_LABEL[openingPlaceKind] || '建具');
+h.innerHTML = `<b>${nm}設置</b>：壁（内壁・外周どちらでも）をタップして設置`;
 }
 }
 v2SyncDock();
@@ -5691,11 +5735,13 @@ defBar.style.display = 'none';
 const lineSel = !!(selectedItem && isLineType(selectedItem.type) && !isReadOnly && !selectedItem.locked);
 const opSel = !!(selectedItem && selectedItem.type === 'opening');
 const showFlip = opSel && lineSel && (selectedItem.kind === 'door' || selectedItem.kind === 'slide');
-const showHinge = opSel && lineSel && selectedItem.kind === 'door';
+const showHinge = opSel && lineSel && (selectedItem.kind === 'door' || (selectedItem.kind === 'slide' && selectedItem.panels === 1));
+const showPanels = opSel && lineSel && selectedItem.kind === 'slide';
 if(el('thickMinusBtn')) el('thickMinusBtn').style.display = lineSel ? '' : 'none';
 if(el('thickPlusBtn')) el('thickPlusBtn').style.display = lineSel ? '' : 'none';
 if(el('openingFlipBtn')) el('openingFlipBtn').style.display = showFlip ? '' : 'none';
 if(el('openingHingeBtn')) el('openingHingeBtn').style.display = showHinge ? '' : 'none';
+if(el('slidePanelsBtn')) el('slidePanelsBtn').style.display = showPanels ? '' : 'none';
 if(opSel){
 if(el('editNameBtn')) el('editNameBtn').style.display = 'none';
 if(el('selectedColorLabel')) el('selectedColorLabel').style.display = 'none';
@@ -5801,16 +5847,31 @@ draw();
 scheduleAutoSave();
 };
 
-const v2StartOpening = (kind) => {
+const v2StartOpening = (kind, panels) => {
 v2CloseSheet('addSheet');
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
 if(!isMerged) setMergedMode(true);
-setOpeningPlaceMode(true, kind);
+setOpeningPlaceMode(true, kind, panels);
 };
 if(el('catDoor')) el('catDoor').onclick = () => v2StartOpening('door');
-if(el('catSlide')) el('catSlide').onclick = () => v2StartOpening('slide');
+if(el('catSlide1')) el('catSlide1').onclick = () => v2StartOpening('slide', 1);
+if(el('catSlide2')) el('catSlide2').onclick = () => v2StartOpening('slide', 2);
+if(el('catSlide3')) el('catSlide3').onclick = () => v2StartOpening('slide', 3);
 if(el('catWindow')) el('catWindow').onclick = () => v2StartOpening('window');
+
+// 設置後でも枚数を切替（片引き→引き違い→3連→…）
+if(el('slidePanelsBtn')) el('slidePanelsBtn').onclick = () => {
+if(!selectedItem || selectedItem.type !== 'opening' || selectedItem.kind !== 'slide' || isReadOnly) return;
+pushHistory();
+const cur = [1,2,3].includes(selectedItem.panels) ? selectedItem.panels : 2;
+selectedItem.panels = (cur % 3) + 1;
+selectedItem.label = SLIDE_LABEL[selectedItem.panels];
+draw();
+scheduleAutoSave();
+showToast(SLIDE_LABEL[selectedItem.panels], 800);
+syncBottomBarState();
+};
 
 v2SyncDock();
 
