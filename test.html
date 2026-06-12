@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.2</title>
+<title>間取り検討サイト（Ichijo) v8.3</title>
 
 <style>
 :root{
@@ -1211,6 +1211,19 @@ position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
 z-index: 2; font-size: 12px; color: #666; display: none;
 }
 .v3d.loading .v3dload{ display: block; }
+.v3ddock .walk{ background: rgba(10,132,255,.92); color: #fff; }
+.v3ddock .walk.on{ background: rgba(255,159,10,.95); }
+#v3dJoy{
+position: absolute; width: 110px; height: 110px; border-radius: 50%;
+background: rgba(120,120,128,.18); border: 1.5px solid rgba(255,255,255,.75);
+z-index: 3; display: none; transform: translate(-50%,-50%); pointer-events: none;
+backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+#v3dJoyKnob{
+position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radius: 50%;
+background: rgba(255,255,255,.92); box-shadow: 0 2px 8px rgba(0,0,0,.18);
+transform: translate(-50%,-50%);
+}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1308,10 +1321,12 @@ z-index: 2; font-size: 12px; color: #666; display: none;
 <button id="v3dSegAll" type="button" class="active">全体</button>
 </div>
 </div>
-<div class="v3dhint">1本指で回転 ・ ピンチでズーム ・ 2本指で移動</div>
+<div class="v3dhint" id="v3dHint">1本指で回転 ・ ピンチでズーム ・ 2本指で移動</div>
+<div id="v3dJoy"><div id="v3dJoyKnob"></div></div>
 <div class="v3dload">3D読み込み中…</div>
 <div class="v3ddock">
 <button class="back" id="v3dBackBtn" type="button">2Dに戻る</button>
+<button class="walk" id="v3dWalkBtn" type="button">歩く</button>
 <button class="save" id="v3dSaveBtn" type="button">画像保存</button>
 </div>
 </div>
@@ -1350,7 +1365,7 @@ z-index: 2; font-size: 12px; color: #666; display: none;
 <svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 12h16"/></svg><span>窓</span>
 </button>
 <button class="v2cat soon" type="button" disabled>
-<svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.3</i>
+<svg viewBox="0 0 24 24"><path d="M5 11a2 2 0 0 1 2 2v1h10v-1a2 2 0 1 1 4 0v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM6 11V8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3"/></svg><span>家具</span><i>v2.4</i>
 </button>
 </div>
 <button class="v2sheetclose" id="addSheetClose" type="button">閉じる</button>
@@ -1389,7 +1404,7 @@ z-index: 2; font-size: 12px; color: #666; display: none;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.2 by yuchi🐔</div>
+<div class="v2verline">ver 2.3 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1500,7 +1515,7 @@ z-index: 2; font-size: 12px; color: #666; display: none;
 <div class="help-icon">📦</div>
 <div class="help-content">
 <b>3Dパース</b>
-下の「3D」ボタンで白模型の3D表示。1本指で回転、ピンチでズーム、2本指で移動。1F/2F/全体を切り替えて、画像保存もできます（表示には通信が必要です）。
+下の「3D」ボタンで3D表示。1本指で回転、ピンチでズーム、2本指で移動。「歩く」を押すと部屋の中に入って、左半分のスティックで移動・右半分のドラッグで見回せます。ドアは通り抜けOK。1F/2F/全体の切替と画像保存も可能（表示には通信が必要です）。
 </div>
 </div>
 <div class="help-row">
@@ -5766,13 +5781,21 @@ const V3D_WIN_B = 900 * PX_PER_MM;          // 窓下端
 const V3D_WIN_T = 2000 * PX_PER_MM;         // 窓上端
 const V3D_OUTER_T = 6;                      // 外周壁の厚み(px)
 
+const V3D_EYE_H = 1500 * PX_PER_MM;         // 目線高さ 1500mm
 let THREE_M = null;
 let v3dOpen = false;
 let v3dMode = 'all';                        // 'f1' | 'f2' | 'all'
-let v3dRenderer = null, v3dScene = null, v3dCamera = null;
-let v3dRoot = null, v3dFloorGroups = [];
+let v3dRenderer = null, v3dScene = null, v3dCamera = null, v3dDL = null;
+let v3dRoot = null, v3dFloorGroups = [], v3dCeilings = [];
 let v3dTheta = Math.PI / 4, v3dPhi = 1.05, v3dRadius = 600;
 let v3dTarget = { x: 0, y: 0, z: 0 };
+// ウォークスルー
+let v3dWalk = false;
+let v3dWalkFloor = 0;
+let v3dWalkPos = { x: 0, z: 0 };
+let v3dYaw = 0, v3dPitch = 0;
+let v3dJoyVec = { x: 0, y: 0 };
+let v3dLastT = 0;
 
 async function ensureThree(){
 if(THREE_M) return THREE_M;
@@ -5826,6 +5849,62 @@ runs(vMap, false);
 return segs;
 }
 
+/* 床の木目テクスチャ（手続き生成・通信不要） */
+function v3dWoodTexture(T){
+const c = document.createElement('canvas');
+c.width = 256; c.height = 256;
+const g = c.getContext('2d');
+g.fillStyle = '#d9c5a5';
+g.fillRect(0, 0, 256, 256);
+for(let y = 0; y < 256; y += 32){
+const l = 66 + Math.random() * 10 - 5;
+g.fillStyle = `hsl(34, 36%, ${l}%)`;
+g.fillRect(0, y, 256, 30);
+g.fillStyle = 'rgba(120, 90, 60, .35)';
+g.fillRect(0, y + 30, 256, 2);
+g.fillRect(Math.floor(Math.random() * 256), y, 2, 30);
+}
+const tex = new T.CanvasTexture(c);
+tex.wrapS = tex.wrapT = T.RepeatWrapping;
+return tex;
+}
+
+/* 壁セグメントから建具の区間をくり抜く（軸平行のみ） */
+function v3dCutWall(seg, openings){
+const horiz = (seg.y1 === seg.y2);
+const vert = (seg.x1 === seg.x2);
+if(!horiz && !vert) return { solids: [seg], overs: [] };
+const lo = horiz ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
+const hi = horiz ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
+const fixed = horiz ? seg.y1 : seg.x1;
+const sub = (a, b) => horiz
+? { x1: a, y1: fixed, x2: b, y2: fixed }
+: { x1: fixed, y1: a, x2: fixed, y2: b };
+
+const hits = [];
+(openings || []).forEach(op => {
+const oh = (op.y1 === op.y2);
+if(oh !== horiz) return;
+const ofix = horiz ? op.y1 : op.x1;
+if(Math.abs(ofix - fixed) > (seg.t / 2 + 3)) return;
+const a = horiz ? Math.min(op.x1, op.x2) : Math.min(op.y1, op.y2);
+const b = horiz ? Math.max(op.x1, op.x2) : Math.max(op.y1, op.y2);
+const s = Math.max(lo, a), e = Math.min(hi, b);
+if(e - s > 1) hits.push({ s, e, op });
+});
+hits.sort((p, q) => p.s - q.s);
+
+const solids = [], overs = [];
+let cur = lo;
+hits.forEach(({ s, e, op }) => {
+if(s - cur > 0.5) solids.push(sub(cur, s));
+overs.push({ seg: sub(Math.max(cur, s), e), op });
+cur = Math.max(cur, e);
+});
+if(hi - cur > 0.5) solids.push(sub(cur, hi));
+return { solids, overs };
+}
+
 /* 線分→壁ボックス（X-Z平面、Yが高さ） */
 function v3dWallBox(T, seg, t, h, yBase, mat){
 const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
@@ -5838,67 +5917,111 @@ m.rotation.y = -Math.atan2(dy, dx);
 return m;
 }
 
+/* 部分壁ボックス（高さ範囲指定・影あり） */
+function v3dPartBox(T, seg, t, y0, y1, mat, shadow){
+const dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1;
+const len = Math.hypot(dx, dy);
+const h = y1 - y0;
+if(len < 0.5 || h < 0.3) return null;
+const m = new T.Mesh(new T.BoxGeometry(len, h, t), mat);
+m.position.set((seg.x1 + seg.x2) / 2, y0 + h / 2, (seg.y1 + seg.y2) / 2);
+m.rotation.y = -Math.atan2(dy, dx);
+if(shadow !== false){ m.castShadow = true; m.receiveShadow = true; }
+return m;
+}
+
 function v3dBuildFloor(T, group, fItems){
 const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
-wall: new T.MeshLambertMaterial({ color: 0xf5f5f7 }),
-slab: new T.MeshLambertMaterial({ color: 0xe7e7ec }),
-door: new T.MeshLambertMaterial({ color: 0x8b5a2b }),
-slide: new T.MeshLambertMaterial({ color: 0xa57b4f }),
-window: new T.MeshLambertMaterial({ color: 0xbcd8ee, transparent: true, opacity: 0.75 }),
+wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
+slab: new T.MeshLambertMaterial({ color: 0xe3e3e8 }),
+wood: new T.MeshLambertMaterial({ map: v3dWoodTexture(T) }),
+ceil: new T.MeshLambertMaterial({ color: 0xfbfaf7 }),
+trim: new T.MeshLambertMaterial({ color: 0x8b5a2b }),
+glass: new T.MeshLambertMaterial({ color: 0xaed2ee, transparent: true, opacity: 0.45 }),
+sash: new T.MeshLambertMaterial({ color: 0x6d6d72 }),
 });
 const frames = fItems.filter(i => i.type === 'frame');
+const openings = fItems.filter(i => i.type === 'opening');
 const yBase = V3D_SLAB_T;
+const topY = yBase + V3D_WALL_H;
 
-// 床スラブ
+// 床スラブ＋フローリング
 frames.forEach(f => {
-const geo = new T.BoxGeometry(f.w, V3D_SLAB_T, f.h);
-const m = new T.Mesh(geo, mats.slab);
-m.position.set(f.x + f.w / 2, V3D_SLAB_T / 2, f.y + f.h / 2);
-group.add(m);
+const slab = new T.Mesh(new T.BoxGeometry(f.w, V3D_SLAB_T, f.h), mats.slab);
+slab.position.set(f.x + f.w / 2, V3D_SLAB_T / 2, f.y + f.h / 2);
+slab.castShadow = true; slab.receiveShadow = true;
+group.add(slab);
+
+const woodMat = mats.wood.clone();
+if(woodMat.map){
+woodMat.map = mats.wood.map.clone();
+woodMat.map.needsUpdate = true;
+woodMat.map.repeat.set(Math.max(1, f.w / 96), Math.max(1, f.h / 96));
+}
+const board = new T.Mesh(new T.BoxGeometry(f.w, 0.6, f.h), woodMat);
+board.position.set(f.x + f.w / 2, yBase + 0.3, f.y + f.h / 2);
+board.receiveShadow = true;
+group.add(board);
+
+// 天井（歩くモードのときだけ表示）
+const ceil = new T.Mesh(new T.BoxGeometry(f.w, 1, f.h), mats.ceil);
+ceil.position.set(f.x + f.w / 2, topY + 0.5, f.y + f.h / 2);
+ceil.visible = v3dWalk;
+v3dCeilings.push(ceil);
+group.add(ceil);
 });
 
-// 部屋の床色
+// 部屋の床色（うっすら）
 fItems.forEach(it => {
 if(it.type !== 'room') return;
-const geo = new T.BoxGeometry(Math.max(1, it.w - 2), 0.8, Math.max(1, it.h - 2));
-const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#FFF3E0'), transparent: true, opacity: 0.55 });
-const m = new T.Mesh(geo, mat);
-m.position.set(it.x + it.w / 2, yBase + 0.5, it.y + it.h / 2);
+const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#FFF3E0'), transparent: true, opacity: 0.28 });
+const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.5, Math.max(1, it.h - 2)), mat);
+m.position.set(it.x + it.w / 2, yBase + 0.85, it.y + it.h / 2);
 group.add(m);
 });
 
-// 外周壁
-v3dOuterSegs(frames).forEach(seg => {
-const m = v3dWallBox(T, seg, V3D_OUTER_T, V3D_WALL_H, yBase, mats.wall);
-if(m) group.add(m);
-});
-
-// 内壁
+// 壁セグメント（外周＋内壁）を建具でくり抜いて構築
+const segs = [];
+v3dOuterSegs(frames).forEach(s => segs.push({ ...s, t: V3D_OUTER_T }));
 fItems.forEach(it => {
 if(it.type !== 'wallLine') return;
-const t = clamp((it.thick ?? WALL_DEFAULT_THICK) * 0.35, 3, 7);
-const m = v3dWallBox(T, it, t, V3D_WALL_H, yBase, mats.wall);
-if(m) group.add(m);
+segs.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, t: clamp((it.thick ?? WALL_DEFAULT_THICK) * 0.35, 3, 7) });
 });
 
-// 建具（壁から少し突き出す色パネル）
-fItems.forEach(it => {
-if(it.type !== 'opening') return;
-const t = (it.thick ?? WALL_DEFAULT_THICK) * 0.35 + 3;
-let h, y0, mat;
-if(it.kind === 'window'){
-h = V3D_WIN_T - V3D_WIN_B; y0 = yBase + V3D_WIN_B; mat = mats.window;
+segs.forEach(seg => {
+const { solids, overs } = v3dCutWall(seg, openings);
+solids.forEach(s => {
+const m = v3dPartBox(T, s, seg.t, yBase, topY, mats.wall);
+if(m) group.add(m);
+});
+overs.forEach(({ seg: o, op }) => {
+if(op.kind === 'window'){
+// 下壁・上壁・サッシ枠・ガラス
+const sill = v3dPartBox(T, o, seg.t, yBase, yBase + V3D_WIN_B, mats.wall);
+const head = v3dPartBox(T, o, seg.t, yBase + V3D_WIN_T, topY, mats.wall);
+const fb = v3dPartBox(T, o, seg.t + 1, yBase + V3D_WIN_B, yBase + V3D_WIN_B + 1.2, mats.sash, false);
+const ft = v3dPartBox(T, o, seg.t + 1, yBase + V3D_WIN_T - 1.2, yBase + V3D_WIN_T, mats.sash, false);
+const gl = v3dPartBox(T, o, Math.max(1.2, seg.t * 0.25), yBase + V3D_WIN_B, yBase + V3D_WIN_T, mats.glass, false);
+[sill, head, fb, ft, gl].forEach(m => { if(m) group.add(m); });
 }else{
-h = V3D_DOOR_H; y0 = yBase; mat = (it.kind === 'slide') ? mats.slide : mats.door;
-}
-const dx = it.x2 - it.x1, dy = it.y2 - it.y1;
+// ドア・引き戸：開口（通り抜け可）＋垂れ壁＋枠
+const head = v3dPartBox(T, o, seg.t, yBase + V3D_DOOR_H, topY, mats.wall);
+const trim = v3dPartBox(T, o, seg.t + 1.4, yBase + V3D_DOOR_H - 1.4, yBase + V3D_DOOR_H, mats.trim, false);
+if(head) group.add(head);
+if(trim) group.add(trim);
+// 両端の縦枠
+const dx = o.x2 - o.x1, dy = o.y2 - o.y1;
 const len = Math.hypot(dx, dy);
-if(len < 0.5) return;
-const geo = new T.BoxGeometry(len, h, t);
-const m = new T.Mesh(geo, mat);
-m.position.set((it.x1 + it.x2) / 2, y0 + h / 2, (it.y1 + it.y2) / 2);
-m.rotation.y = -Math.atan2(dy, dx);
-group.add(m);
+if(len > 2){
+const ux = dx / len, uy = dy / len;
+[[o.x1, o.y1, 1], [o.x2, o.y2, -1]].forEach(([px, py, dir]) => {
+const j = { x1: px, y1: py, x2: px + ux * 1.4 * dir, y2: py + uy * 1.4 * dir };
+const jm = v3dPartBox(T, j, seg.t + 1.4, yBase, yBase + V3D_DOOR_H, mats.trim, false);
+if(jm) group.add(jm);
+});
+}
+}
+});
 });
 }
 
@@ -5929,6 +6052,7 @@ v3dScene.remove(v3dRoot);
 v3dBuildFloor._mats = null;
 v3dRoot = new T.Group();
 v3dFloorGroups = [];
+v3dCeilings = [];
 syncActiveFloor();
 floors.forEach((f, idx) => {
 const g = new T.Group();
@@ -5974,11 +6098,82 @@ v3dCamera.aspect = w / h;
 v3dCamera.updateProjectionMatrix();
 }
 
-function v3dLoop(){
+function v3dLoop(ts){
 if(!v3dOpen) return;
-v3dUpdateCamera();
+const dt = v3dLastT ? Math.min(0.05, (ts - v3dLastT) / 1000) : 0.016;
+v3dLastT = ts;
+if(v3dWalk) v3dWalkUpdate(dt);
+else v3dUpdateCamera();
 v3dRenderer.render(v3dScene, v3dCamera);
 requestAnimationFrame(v3dLoop);
+}
+
+/* ===== ウォークスルー ===== */
+function v3dWalkBaseY(){
+const g = v3dFloorGroups[v3dWalkFloor];
+return (g ? g.position.y : 0) + V3D_SLAB_T;
+}
+
+function v3dWalkUpdate(dt){
+// ジョイスティックで移動（前後＝-y, 左右＝x）
+const sp = 170; // px/s ≒ 4.8m/s
+const fx = Math.sin(v3dYaw), fz = -Math.cos(v3dYaw);
+const rx = Math.cos(v3dYaw), rz = Math.sin(v3dYaw);
+v3dWalkPos.x += (fx * (-v3dJoyVec.y) + rx * v3dJoyVec.x) * sp * dt;
+v3dWalkPos.z += (fz * (-v3dJoyVec.y) + rz * v3dJoyVec.x) * sp * dt;
+
+const eye = v3dWalkBaseY() + V3D_EYE_H;
+v3dCamera.position.set(v3dWalkPos.x, eye, v3dWalkPos.z);
+const cp = Math.cos(v3dPitch);
+v3dCamera.lookAt(
+v3dWalkPos.x + cp * Math.sin(v3dYaw),
+eye + Math.sin(v3dPitch),
+v3dWalkPos.z - cp * Math.cos(v3dYaw)
+);
+}
+
+function v3dWalkStartPos(){
+// 歩くフロアの一番大きい部屋の中心から（無ければ外枠中心）
+syncActiveFloor();
+const fl = floors[v3dWalkFloor] || floors[0];
+const rooms = (fl.items || []).filter(i => i.type === 'room');
+let best = null;
+rooms.forEach(r => { if(!best || r.w * r.h > best.w * best.h) best = r; });
+if(best) return { x: best.x + best.w / 2, z: best.y + best.h / 2 };
+const fr = (fl.items || []).filter(i => i.type === 'frame');
+if(fr.length) return { x: fr[0].x + fr[0].w / 2, z: fr[0].y + fr[0].h / 2 };
+const b = v3dBounds();
+return { x: (b.minX + b.maxX) / 2, z: (b.minY + b.maxY) / 2 };
+}
+
+function v3dSetWalk(on){
+v3dWalk = !!on;
+v3dCeilings.forEach(c => { c.visible = v3dWalk; });
+const btn = el('v3dWalkBtn');
+if(btn){
+btn.classList.toggle('on', v3dWalk);
+btn.textContent = v3dWalk ? '俯瞰に戻る' : '歩く';
+}
+const hint = el('v3dHint');
+if(hint){
+hint.textContent = v3dWalk
+? '左半分：スティックで移動 ・ 右半分：ドラッグで見回す'
+: '1本指で回転 ・ ピンチでズーム ・ 2本指で移動';
+}
+if(v3dWalk){
+v3dWalkFloor = (v3dMode === 'f2') ? 1 : 0;
+const p = v3dWalkStartPos();
+v3dWalkPos = { x: p.x, z: p.z };
+v3dYaw = v3dTheta + Math.PI; // 俯瞰で見ていた向きに合わせる
+v3dPitch = 0;
+v3dJoyVec = { x: 0, y: 0 };
+v3dCamera.fov = 68;
+}else{
+v3dCamera.fov = 50;
+const joy = el('v3dJoy');
+if(joy) joy.style.display = 'none';
+}
+v3dCamera.updateProjectionMatrix();
 }
 
 function v3dSetupControls(cv){
@@ -5986,8 +6181,57 @@ let touches = [];
 let lastDist = 0, lastMid = null, lastP = null;
 const getT = (e) => [...e.touches].map(t => ({ x: t.clientX, y: t.clientY }));
 
+// 歩行モード用：指のID追跡
+let joyId = null, lookId = null;
+let joyBase = null, lookLast = null;
+const JOY_R = 48;
+
+const walkStart = (e) => {
+for(const t of e.changedTouches){
+if(t.clientX < window.innerWidth * 0.45 && joyId === null){
+joyId = t.identifier;
+joyBase = { x: t.clientX, y: t.clientY };
+const joy = el('v3dJoy'), knob = el('v3dJoyKnob');
+if(joy){ joy.style.display = 'block'; joy.style.left = t.clientX + 'px'; joy.style.top = t.clientY + 'px'; }
+if(knob){ knob.style.transform = 'translate(-50%,-50%)'; }
+}else if(lookId === null){
+lookId = t.identifier;
+lookLast = { x: t.clientX, y: t.clientY };
+}
+}
+};
+const walkMove = (e) => {
+for(const t of e.changedTouches){
+if(t.identifier === joyId && joyBase){
+let dx = t.clientX - joyBase.x, dy = t.clientY - joyBase.y;
+const d = Math.hypot(dx, dy);
+if(d > JOY_R){ dx = dx / d * JOY_R; dy = dy / d * JOY_R; }
+v3dJoyVec = { x: dx / JOY_R, y: dy / JOY_R };
+const knob = el('v3dJoyKnob');
+if(knob) knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+}else if(t.identifier === lookId && lookLast){
+v3dYaw += (t.clientX - lookLast.x) * 0.0045;
+v3dPitch = clamp(v3dPitch - (t.clientY - lookLast.y) * 0.0040, -1.2, 1.2);
+lookLast = { x: t.clientX, y: t.clientY };
+}
+}
+};
+const walkEnd = (e) => {
+for(const t of e.changedTouches){
+if(t.identifier === joyId){
+joyId = null; joyBase = null;
+v3dJoyVec = { x: 0, y: 0 };
+const joy = el('v3dJoy');
+if(joy) joy.style.display = 'none';
+}else if(t.identifier === lookId){
+lookId = null; lookLast = null;
+}
+}
+};
+
 cv.addEventListener('touchstart', (e) => {
 e.preventDefault();
+if(v3dWalk){ walkStart(e); return; }
 touches = getT(e);
 if(touches.length === 1){ lastP = touches[0]; }
 if(touches.length === 2){
@@ -5998,6 +6242,7 @@ lastMid = { x: (touches[0].x + touches[1].x) / 2, y: (touches[0].y + touches[1].
 
 cv.addEventListener('touchmove', (e) => {
 e.preventDefault();
+if(v3dWalk){ walkMove(e); return; }
 const ts = getT(e);
 if(ts.length === 1 && lastP){
 const dx = ts[0].x - lastP.x, dy = ts[0].y - lastP.y;
@@ -6022,18 +6267,25 @@ lastDist = dist; lastMid = mid;
 }, { passive: false });
 
 cv.addEventListener('touchend', (e) => {
+if(v3dWalk){ walkEnd(e); return; }
 const ts = getT(e);
 if(ts.length === 1) lastP = ts[0]; else lastP = null;
 if(ts.length < 2){ lastDist = 0; lastMid = null; }
 }, { passive: true });
+cv.addEventListener('touchcancel', (e) => { if(v3dWalk) walkEnd(e); }, { passive: true });
 
 // PC用（動作確認向け）
 let mDown = false, mLast = null;
 cv.addEventListener('mousedown', (e) => { mDown = true; mLast = { x: e.clientX, y: e.clientY }; });
 window.addEventListener('mousemove', (e) => {
 if(!mDown || !v3dOpen) return;
+if(v3dWalk){
+v3dYaw += (e.clientX - mLast.x) * 0.0045;
+v3dPitch = clamp(v3dPitch - (e.clientY - mLast.y) * 0.0040, -1.2, 1.2);
+}else{
 v3dTheta += (e.clientX - mLast.x) * 0.006;
 v3dPhi = clamp(v3dPhi - (e.clientY - mLast.y) * 0.006, 0.15, 1.5);
+}
 mLast = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('mouseup', () => { mDown = false; });
@@ -6060,11 +6312,15 @@ v3dScene = new T.Scene();
 v3dScene.background = new T.Color('#FAFAFC');
 v3dCamera = new T.PerspectiveCamera(50, 1, 1, 20000);
 
-v3dScene.add(new T.AmbientLight(0xffffff, 0.85));
-const dl = new T.DirectionalLight(0xffffff, 0.9);
-dl.position.set(1, 2, 1.2);
-v3dScene.add(dl);
-const dl2 = new T.DirectionalLight(0xffffff, 0.35);
+v3dRenderer.shadowMap.enabled = true;
+v3dRenderer.shadowMap.type = T.PCFSoftShadowMap;
+v3dScene.add(new T.AmbientLight(0xffffff, 0.7));
+v3dDL = new T.DirectionalLight(0xffffff, 1.0);
+v3dDL.castShadow = true;
+v3dDL.shadow.mapSize.width = 1024;
+v3dDL.shadow.mapSize.height = 1024;
+v3dScene.add(v3dDL);
+const dl2 = new T.DirectionalLight(0xffffff, 0.3);
 dl2.position.set(-1.2, 1.4, -0.8);
 v3dScene.add(dl2);
 
@@ -6089,9 +6345,22 @@ v3dRadius = clamp(diag * 1.25 + 120, 200, 4000);
 v3dTheta = Math.PI / 4;
 v3dPhi = 1.05;
 
+// 影用ライトの範囲を間取りサイズに合わせる
+if(v3dDL){
+v3dDL.position.set(cx + diag * 0.7, V3D_WALL_H * 3 + diag * 0.8, cz + diag * 0.5);
+v3dDL.target.position.set(cx, 0, cz);
+v3dScene.add(v3dDL.target);
+const sc = v3dDL.shadow.camera;
+sc.left = -diag; sc.right = diag; sc.top = diag; sc.bottom = -diag;
+sc.near = 1; sc.far = diag * 4 + 1000;
+sc.updateProjectionMatrix();
+}
+
+if(v3dWalk) v3dSetWalk(false);
 v3dResize();
 ov.classList.remove('loading');
-v3dLoop();
+v3dLastT = 0;
+requestAnimationFrame(v3dLoop);
 }catch(err){
 console.error(err);
 ov.classList.remove('open', 'loading');
@@ -6101,6 +6370,7 @@ showToast('3Dの読み込みに失敗しました（通信環境をご確認く�
 }
 
 function close3DViewer(){
+if(v3dWalk) v3dSetWalk(false);
 v3dOpen = false;
 const ov = el('viewer3d');
 if(ov) ov.classList.remove('open');
@@ -6209,9 +6479,20 @@ v2OpenSheet('addSheet');
 if(el('dock3d')) el('dock3d').onclick = () => open3DViewer();
 if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();
 if(el('v3dSaveBtn')) el('v3dSaveBtn').onclick = () => v3dSaveImage();
-if(el('v3dSeg1')) el('v3dSeg1').onclick = () => { v3dMode = 'f1'; if(THREE_M) v3dApplyMode(); };
-if(el('v3dSeg2')) el('v3dSeg2').onclick = () => { v3dMode = 'f2'; if(THREE_M) v3dApplyMode(); };
-if(el('v3dSegAll')) el('v3dSegAll').onclick = () => { v3dMode = 'all'; if(THREE_M) v3dApplyMode(); };
+const v3dSegTap = (mode) => {
+v3dMode = mode;
+if(!THREE_M) return;
+v3dApplyMode();
+if(v3dWalk){
+v3dWalkFloor = (mode === 'f2') ? 1 : 0;
+const p = v3dWalkStartPos();
+v3dWalkPos = { x: p.x, z: p.z };
+}
+};
+if(el('v3dSeg1')) el('v3dSeg1').onclick = () => v3dSegTap('f1');
+if(el('v3dSeg2')) el('v3dSeg2').onclick = () => v3dSegTap('f2');
+if(el('v3dSegAll')) el('v3dSegAll').onclick = () => v3dSegTap('all');
+if(el('v3dWalkBtn')) el('v3dWalkBtn').onclick = () => v3dSetWalk(!v3dWalk);
 if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
 if(el('addSheetClose')) el('addSheetClose').onclick = () => v2CloseSheet('addSheet');
 if(el('moreSheetClose')) el('moreSheetClose').onclick = () => v2CloseSheet('moreSheet');
