@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.4</title>
+<title>間取り検討サイト（Ichijo) v8.6</title>
 
 <style>
 :root{
@@ -1243,6 +1243,68 @@ position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radiu
 background: rgba(255,255,255,.92); box-shadow: 0 2px 8px rgba(0,0,0,.18);
 transform: translate(-50%,-50%);
 }
+/* ===== v2.5: 電気計画 ===== */
+.elecv{
+position: fixed; inset: 0; z-index: 650; background: #F2F2F7;
+display: none; flex-direction: column;
+}
+.elecv.open{ display: flex; }
+.elechead{
+flex-shrink: 0; height: calc(env(safe-area-inset-top) + 52px);
+padding: env(safe-area-inset-top) 12px 0;
+background: rgba(255,255,255,.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+border-bottom: .5px solid var(--glass-border, rgba(60,60,67,.16));
+display: flex; align-items: center; justify-content: space-between;
+}
+.elechead .t{ font-size: 14px; font-weight: 800; }
+.elechead .t small{ font-size: 11px; color: #8a8a8e; font-weight: 600; }
+.elechead button{ height: 34px; padding: 0 14px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(120,120,128,.14); }
+.elecbody{ flex: 1; overflow-y: auto; padding: 12px 12px calc(env(safe-area-inset-bottom) + 24px); -webkit-overflow-scrolling: touch; }
+.elecrooms{ display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+.elecrooms::-webkit-scrollbar{ display: none; }
+.elecrooms button{ flex-shrink: 0; font-size: 12px; padding: 8px 14px; border-radius: 14px; border: .5px solid rgba(60,60,67,.16); background: #fff; }
+.elecrooms button.on{ background: var(--accent); color: #fff; font-weight: 700; border-color: transparent; }
+.electools{
+position: sticky; top: 0; z-index: 5;
+display: flex; gap: 6px; flex-wrap: wrap;
+background: rgba(255,255,255,.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+border: .5px solid rgba(60,60,67,.16); border-radius: 16px; padding: 8px; margin-bottom: 8px;
+}
+.electools button{
+display: flex; align-items: center; gap: 4px;
+font-size: 10.5px; padding: 7px 9px; border-radius: 11px; border: .5px solid rgba(60,60,67,.16); background: #fff; height: auto;
+}
+.electools button.on{ color: #fff; font-weight: 700; border-color: transparent; }
+.electools .sym{ font-weight: 800; }
+.elechint{ font-size: 10px; color: #8a8a8e; margin: 0 4px 10px; }
+.elecselbar{
+position: sticky; top: 52px; z-index: 5;
+display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+background: rgba(10,132,255,.10); border: 1px solid rgba(10,132,255,.4);
+border-radius: 14px; padding: 7px 9px; margin-bottom: 10px; font-size: 11px;
+}
+.elecselbar b{ margin-right: 2px; }
+.elecselbar button{ font-size: 10.5px; padding: 6px 9px; border-radius: 10px; background: #fff; border: .5px solid rgba(60,60,67,.2); height: auto; }
+.elecselbar button.danger{ background: rgba(224,74,47,.92); color: #fff; border-color: transparent; }
+.elecwall{
+background: #fff; border: .5px solid rgba(60,60,67,.16); border-radius: 16px;
+padding: 10px 10px 6px; margin-bottom: 12px;
+}
+.elecwall h4{ font-size: 12px; font-weight: 800; margin: 0 0 1px; }
+.elecwall .meta{ font-size: 10px; color: #8a8a8e; margin-bottom: 6px; }
+.elecwall svg{ width: 100%; height: auto; display: block; }
+.eleccounts{
+background: #fff; border: .5px solid rgba(60,60,67,.16); border-radius: 16px;
+padding: 10px 14px; font-size: 11.5px; line-height: 2;
+}
+/* ===== v2.6: レイヤー切替 ===== */
+.v2layerseg{ flex-shrink: 0; height: 26px; padding: 2px; }
+.v2layerseg .seg-btn{ height: 22px; min-width: 38px; padding: 0 8px; font-size: 10px; }
+.v2layerseg .seg-btn.active{ background: #5856D6; color: #fff; }
+.v2grouptag{
+font-size: 10px; font-weight: 800; color: #8a8a8e;
+margin: 2px 2px 7px; letter-spacing: .04em;
+}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1264,6 +1326,10 @@ transform: translate(-50%,-50%);
 </div>
 </div>
 <div class="v2row v2row-sub">
+<div class="segment v2layerseg" role="tablist" id="layerSeg" aria-label="編集レイヤー切替">
+<button class="seg-btn active" id="layerPlanBtn" type="button">間取り</button>
+<button class="seg-btn" id="layerIntBtn" type="button">内装</button>
+</div>
 <div class="summary">
 <span>延床 <b id="totalTsubo">0.00</b>坪</span>
 <span id="jouWrap"><b id="totalJou">0.0</b>畳</span>
@@ -1330,6 +1396,22 @@ transform: translate(-50%,-50%);
 </button>
 </div>
 
+<!-- ===== v2.5: 電気計画 ===== -->
+<div class="elecv" id="elecView">
+<div class="elechead">
+<span class="t">⚡ 電気計画 <small id="elecFloorName"></small></span>
+<button id="elecCloseBtn" type="button">閉じる</button>
+</div>
+<div class="elecbody">
+<div class="elecrooms" id="elecRooms"></div>
+<div class="electools" id="elecToolsBar"></div>
+<div class="elechint">壁をタップで配置（横50mm刻み・標準高さに自動）／ 記号をタップで選択して微調整</div>
+<div id="elecSelBar" class="elecselbar" style="display:none;"></div>
+<div id="elecWalls"></div>
+<div class="eleccounts" id="elecCounts"></div>
+</div>
+</div>
+
 <!-- ===== v2.2: 3Dパース ===== -->
 <div class="v3d" id="viewer3d">
 <canvas id="canvas3d"></canvas>
@@ -1360,6 +1442,7 @@ transform: translate(-50%,-50%);
 <div class="modal sheet v2sheet">
 <div class="grabber"></div>
 <h3 style="margin:0 0 10px; text-align:left;">追加</h3>
+<div class="v2grouptag">🏠 間取り（部屋・壁）</div>
 <div class="v2catgrid">
 <button class="v2cat" id="catRoom" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg><span>部屋</span>
@@ -1373,6 +1456,9 @@ transform: translate(-50%,-50%);
 <button class="v2cat" id="catFrameEdit" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M9 15l6-6"/></svg><span>外壁を編集</span>
 </button>
+</div>
+<div class="v2grouptag">🛋 内装（建具・家具）</div>
+<div class="v2catgrid">
 <button class="v2cat" id="catDoor" type="button">
 <svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア</span>
 </button>
@@ -1410,6 +1496,7 @@ transform: translate(-50%,-50%);
 <label class="chip tiny"><input type="checkbox" id="showMM" checked>mm寸法</label>
 <label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告</label>
 <label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
+<label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
 </div>
 <div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
 <span class="lbl">壁太さ</span>
@@ -1421,6 +1508,7 @@ transform: translate(-50%,-50%);
 <div class="v2actiongrid">
 <button class="v2action" id="downloadImageBtn" type="button" style="background:rgba(52,199,89,.92); color:#fff;">画像保存</button>
 <button class="v2action" id="shareBtn" type="button" style="background:var(--accent); color:#fff;">共有</button>
+<button class="v2action" id="elecPlanBtn" type="button" style="background:rgba(255,159,10,.95); color:#fff;">⚡ 電気計画</button>
 </div>
 
 <div style="display:none;" aria-hidden="true">
@@ -1428,7 +1516,7 @@ transform: translate(-50%,-50%);
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.4 by yuchi🐔</div>
+<div class="v2verline">ver 2.6 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1535,6 +1623,20 @@ transform: translate(-50%,-50%);
 <div class="help-section">
 <div class="help-section-title">便利機能</div>
 <div class="help-list">
+<div class="help-row">
+<div class="help-icon">🔀</div>
+<div class="help-content">
+<b>間取り／内装モード</b>
+上部の切替で編集対象が変わります。「間取り」では部屋・壁だけが触れて家具や電気記号は薄く表示、「内装」では建具・家具だけが触れて部屋を誤って動かしません。「追加」で選んだものに応じて自動でも切り替わります。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">⚡</div>
+<div class="help-content">
+<b>電気計画（コンセント・スイッチ）</b>
+「他」→「電気計画」で部屋を選ぶと、4面の壁の展開図が表示されます（ドア・窓は間取りから自動反映）。ツールを選んで壁をタップで配置、記号タップで高さ・位置の微調整。平面図にも記号が表示され、保存・共有にも含まれます。
+</div>
+</div>
 <div class="help-row">
 <div class="help-icon">🛋</div>
 <div class="help-content">
@@ -1741,6 +1843,34 @@ let openingPlaceKind = 'door';
 let openingPlacePanels = 2;
 let contAddCount = 0;
 
+/* --- v2.6: 編集レイヤー（間取り/内装） --- */
+const LAYER_KEY = 'floorplan_edit_layer_v1';
+let editLayer = 'plan'; // 'plan'=間取り（部屋・壁） / 'interior'=内装（建具・家具・電気）
+try{
+const lv = localStorage.getItem(LAYER_KEY);
+if(lv === 'interior') editLayer = 'interior';
+}catch(_){}
+
+function setEditLayer(l, silent){
+const next = (l === 'interior') ? 'interior' : 'plan';
+if(next === editLayer){ updateLayerUI(); return; }
+editLayer = next;
+try{ localStorage.setItem(LAYER_KEY, editLayer); }catch(_){}
+selectedItem = null;
+editingItem = null;
+updateLayerUI();
+syncBottomBarState();
+updateWorkHint();
+draw();
+if(!silent) showToast(editLayer === 'plan' ? '間取りモード：部屋・壁を編集' : '内装モード：建具・家具・電気を編集', 1300);
+}
+
+function updateLayerUI(){
+const p = el('layerPlanBtn'), n = el('layerIntBtn');
+if(p) p.classList.toggle('active', editLayer === 'plan');
+if(n) n.classList.toggle('active', editLayer === 'interior');
+}
+
 /* --- v2.4: 家具（mm指定・干渉確認用） --- */
 const FURN_SNAP = 2; // 約57mm刻みの微細スナップ
 const mm2px = (mm) => mm * GRID_SIZE / 910;
@@ -1769,8 +1899,8 @@ const SMALL_ROOM_MAX_MASU = 4;
 
 // state
 let floors = [
-{ name: '1F', items: [] },
-{ name: '2F', items: [] }
+{ name: '1F', items: [], elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 let activeFloor = 0;
 let items = floors[0].items;
@@ -1786,7 +1916,8 @@ function serializeFloors(){
 syncActiveFloor();
 return floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
-items: (f.items || []).map(it => ({...it}))
+items: (f.items || []).map(it => ({...it})),
+elec: (f.elec || []).map(e => ({...e}))
 }));
 }
 function floorsPayload(){
@@ -2053,15 +2184,16 @@ function restore(s){
 if(Array.isArray(s.floors)){
 floors = s.floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
-items: (f.items || []).map(it => ({...it}))
+items: (f.items || []).map(it => ({...it})),
+elec: (f.elec || []).map(e => ({...e}))
 }));
-while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [] });
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [] });
 activeFloor = Number.isInteger(s.activeFloor) ? clamp(s.activeFloor, 0, floors.length - 1) : 0;
 }else{
 // 旧形式（単一フロア）からの自動移行
 floors = [
-{ name: '1F', items: (s.items || []).map(it => ({...it})) },
-{ name: '2F', items: [] }
+{ name: '1F', items: (s.items || []).map(it => ({...it})), elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 activeFloor = 0;
 }
@@ -3743,21 +3875,22 @@ ctx.restore();
 
 /* v2.4: 家具の描画 */
 function drawFurn(it){
+const LA = (editLayer === 'plan' && !isExporting) ? 0.35 : 1; // 間取りモードでは薄く
 ctx.save();
 ctx.fillStyle = it.color || "#E3E3E9";
-ctx.globalAlpha = 0.92;
+ctx.globalAlpha = 0.92 * LA;
 ctx.fillRect(it.x, it.y, it.w, it.h);
-ctx.globalAlpha = 1;
+ctx.globalAlpha = LA;
 ctx.strokeStyle = "#55555c";
 ctx.lineWidth = 1.6 / scale;
 ctx.strokeRect(it.x, it.y, it.w, it.h);
-ctx.globalAlpha = 0.3;
+ctx.globalAlpha = 0.3 * LA;
 ctx.lineWidth = 0.8 / scale;
 ctx.beginPath();
 ctx.moveTo(it.x, it.y);
 ctx.lineTo(it.x + it.w, it.y + it.h);
 ctx.stroke();
-ctx.globalAlpha = 1;
+ctx.globalAlpha = LA;
 
 const fs = Math.max(7, Math.min(12, Math.min(it.w, it.h) * 0.30)) / scale;
 ctx.fillStyle = "#3c3c40";
@@ -4115,6 +4248,7 @@ function drawMerged(){
   items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
   items.forEach(it => { if(it.type === 'opening') drawOpening(it); });
   items.forEach(it => { if(it.type === 'furn') drawFurn(it); });
+  drawElecSymbols();
 
   // 画像出力時の追加描画
   if (isExporting && gridBounds) {
@@ -4749,15 +4883,16 @@ const data = snap.data();
 if(Array.isArray(data.floors)){
 floors = data.floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
-items: (f.items || []).map(it => ({...it}))
+items: (f.items || []).map(it => ({...it})),
+elec: (f.elec || []).map(e => ({...e}))
 }));
-while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [] });
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [] });
 activeFloor = Number.isInteger(data.activeFloor) ? clamp(data.activeFloor, 0, floors.length - 1) : 0;
 }else{
 // 旧形式（単一フロア）からの自動移行
 floors = [
-{ name: '1F', items: (data.items || []).map(it => ({...it})) },
-{ name: '2F', items: [] }
+{ name: '1F', items: (data.items || []).map(it => ({...it})), elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 activeFloor = 0;
 }
@@ -5411,6 +5546,10 @@ if(!isMerged && it.type !== 'frame') continue;
 // 部屋モード（結合表示）は外枠(frame)は選択しない
 if(isMerged && it.type === 'frame') continue;
 
+// ✅ レイヤー制御：間取りモードでは家具・建具に触れない／内装モードでは部屋・内壁に触れない
+if(isMerged && editLayer === 'plan' && (it.type === 'furn' || it.type === 'opening')) continue;
+if(isMerged && editLayer === 'interior' && (it.type === 'room' || it.type === 'wallLine')) continue;
+
 if(isLineType(it.type)){
 const r = wallHitTest(worldP, it);
 if(r.hit) hits.push({ it, wallHandle: r.handle });
@@ -5872,6 +6011,324 @@ draw();
 el('downloadImageBtn').onclick = downloadImage;
 
 
+
+/* ============================================================
+   v2.5: 電気計画（コンセント・スイッチ）
+   ============================================================ */
+const ELEC_TOOLS = [
+{ id:'out2', sym:'⌀2',  name:'コンセント2口', h:250,  color:'#0A84FF' },
+{ id:'out4', sym:'⌀4',  name:'コンセント4口', h:250,  color:'#0A66D6' },
+{ id:'sw',   sym:'S',   name:'スイッチ',      h:1200, color:'#34C759' },
+{ id:'sw3',  sym:'S3',  name:'3路スイッチ',   h:1200, color:'#2AA34A' },
+{ id:'tv',   sym:'TV',  name:'TV端子',        h:250,  color:'#FF9F0A' },
+{ id:'lan',  sym:'LAN', name:'LAN',           h:250,  color:'#BF5AF2' },
+{ id:'ac',   sym:'AC',  name:'エアコン用',    h:1900, color:'#FF453A' },
+];
+const ELEC_WALL_NAMES = ['北側の壁', '東側の壁', '南側の壁', '西側の壁'];
+const ELEC_CEIL_MM = 2400;
+let elecRoomId = null;
+let elecToolId = 'out2';
+let elecSelId = null;
+
+function getElecList(){
+syncActiveFloor();
+const fl = floors[activeFloor];
+if(!fl.elec) fl.elec = [];
+return fl.elec;
+}
+
+function elecRoomsOfFloor(){
+syncActiveFloor();
+return (floors[activeFloor].items || []).filter(i => i.type === 'room');
+}
+
+/* 展開図のmm座標 → 平面のpx座標（壁wi: 0北/1東/2南/3西、左原点は室内から見た左） */
+function elecToWorld(room, wi, xmm){
+const xp = mm2px(xmm);
+switch(wi){
+case 0: return { x: room.x + xp, y: room.y };
+case 1: return { x: room.x + room.w, y: room.y + xp };
+case 2: return { x: room.x + room.w - xp, y: room.y + room.h };
+case 3: return { x: room.x, y: room.y + room.h - xp };
+}
+return null;
+}
+
+function elecWallLenMm(room, wi){
+return px2mm((wi === 0 || wi === 2) ? room.w : room.h);
+}
+
+/* その壁にある建具（間取りデータから自動反映） */
+function elecOpeningsOn(room, wi){
+const TOL = 10;
+const out = [];
+syncActiveFloor();
+(floors[activeFloor].items || []).forEach(op => {
+if(op.type !== 'opening') return;
+const horizOp = (op.y1 === op.y2);
+let fromPx = null, wPx = 0;
+if(wi === 0 || wi === 2){
+if(!horizOp) return;
+const edgeY = (wi === 0) ? room.y : room.y + room.h;
+if(Math.abs(op.y1 - edgeY) > TOL) return;
+const a = Math.max(room.x, Math.min(op.x1, op.x2));
+const b = Math.min(room.x + room.w, Math.max(op.x1, op.x2));
+if(b - a < 2) return;
+fromPx = (wi === 0) ? (a - room.x) : ((room.x + room.w) - b);
+wPx = b - a;
+}else{
+if(horizOp) return;
+const edgeX = (wi === 1) ? room.x + room.w : room.x;
+if(Math.abs(op.x1 - edgeX) > TOL) return;
+const a = Math.max(room.y, Math.min(op.y1, op.y2));
+const b = Math.min(room.y + room.h, Math.max(op.y1, op.y2));
+if(b - a < 2) return;
+fromPx = (wi === 1) ? (a - room.y) : ((room.y + room.h) - b);
+wPx = b - a;
+}
+const win = (op.kind === 'window');
+out.push({
+fromMm: px2mm(fromPx), wMm: px2mm(wPx),
+b: win ? 900 : 0, t: 2000,
+label: win ? '窓' : (op.kind === 'slide' ? (SLIDE_LABEL[op.panels || 2] || '引き戸') : 'ドア'),
+win
+});
+});
+return out;
+}
+
+function elecRoomById(id){
+return elecRoomsOfFloor().find(r => r.id === id) || null;
+}
+
+function elecRenderRooms(){
+const wrap = el('elecRooms');
+if(!wrap) return;
+wrap.innerHTML = '';
+const rooms = elecRoomsOfFloor();
+const seen = {};
+rooms.forEach(r => {
+seen[r.label] = (seen[r.label] || 0) + 1;
+const b = document.createElement('button');
+b.type = 'button';
+const n = rooms.filter(x => x.label === r.label).length > 1 ? `${r.label}${seen[r.label]}` : r.label;
+b.textContent = n;
+if(r.id === elecRoomId) b.classList.add('on');
+b.onclick = () => { elecRoomId = r.id; elecSelId = null; elecRenderAll(); };
+wrap.appendChild(b);
+});
+if(rooms.length === 0){
+wrap.innerHTML = '<span style="font-size:12px;color:#8a8a8e;padding:6px;">このフロアに部屋がありません。先に2D画面で部屋を置いてください。</span>';
+}
+}
+
+function elecRenderTools(){
+const wrap = el('elecToolsBar');
+if(!wrap) return;
+wrap.innerHTML = '';
+ELEC_TOOLS.forEach(t => {
+const b = document.createElement('button');
+b.type = 'button';
+b.innerHTML = `<span class="sym" style="color:${t.id === elecToolId ? '#fff' : t.color};">${t.sym}</span>${t.name}`;
+if(t.id === elecToolId){ b.classList.add('on'); b.style.background = t.color; }
+b.onclick = () => { elecToolId = t.id; elecSelId = null; elecRenderTools(); elecRenderSelBar(); };
+wrap.appendChild(b);
+});
+}
+
+function elecRenderSelBar(){
+const bar = el('elecSelBar');
+if(!bar) return;
+const list = getElecList();
+const d = list.find(x => x.id === elecSelId);
+if(!d){ bar.style.display = 'none'; return; }
+const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+bar.style.display = 'flex';
+bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> FL+${d.h} / 左から${d.x}mm
+<button data-act="hup" type="button">高さ+50</button>
+<button data-act="hdn" type="button">高さ−50</button>
+<button data-act="xl" type="button">←50</button>
+<button data-act="xr" type="button">→50</button>
+<button data-act="del" class="danger" type="button">削除</button>`;
+}
+
+function elecAdjust(act){
+if(isReadOnly) return;
+const list = getElecList();
+const d = list.find(x => x.id === elecSelId);
+if(!d) return;
+const room = elecRoomById(d.roomId);
+const lenMm = room ? elecWallLenMm(room, d.wall) : 99999;
+pushHistory();
+if(act === 'hup') d.h = Math.min(ELEC_CEIL_MM - 100, d.h + 50);
+if(act === 'hdn') d.h = Math.max(100, d.h - 50);
+if(act === 'xl') d.x = Math.max(50, d.x - 50);
+if(act === 'xr') d.x = Math.min(lenMm - 50, d.x + 50);
+if(act === 'del'){
+const i = list.indexOf(d);
+if(i >= 0) list.splice(i, 1);
+elecSelId = null;
+}
+elecRenderWalls();
+elecRenderSelBar();
+elecRenderCounts();
+draw();
+scheduleAutoSave();
+}
+
+function elecWallSvg(room, wi){
+const W = Math.max(300, elecWallLenMm(room, wi));
+const H = ELEC_CEIL_MM;
+const list = getElecList().filter(d => d.roomId === room.id && d.wall === wi);
+let s = `<svg viewBox="-70 -50 ${W + 140} ${H + 130}" data-wall="${wi}">`;
+s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#FBF8F2" stroke="#3a3a3e" stroke-width="16"/>`;
+s += `<line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="#3a3a3e" stroke-width="26"/>`;
+elecOpeningsOn(room, wi).forEach(o => {
+const oy = H - o.t, oh = o.t - o.b;
+const fill = o.win ? '#D5E8F5' : '#E8D9C8';
+const stroke = o.win ? '#3a78a8' : '#8B5A2B';
+s += `<rect x="${o.fromMm}" y="${oy}" width="${o.wMm}" height="${oh}" fill="${fill}" stroke="${stroke}" stroke-width="10"/>`;
+s += `<text x="${o.fromMm + o.wMm / 2}" y="${oy + oh / 2}" font-size="78" fill="${stroke}" text-anchor="middle" dominant-baseline="middle">${o.label}</text>`;
+});
+list.forEach(d => {
+const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+const y = H - d.h;
+const sel = (d.id === elecSelId);
+s += `<g class="edev" data-id="${d.id}" style="cursor:pointer;">`;
+s += `<line x1="${d.x}" y1="${H}" x2="${d.x}" y2="${y + 70}" stroke="${t.color}" stroke-width="6" stroke-dasharray="20,15" opacity=".4"/>`;
+s += `<circle cx="${d.x}" cy="${y}" r="86" fill="${sel ? t.color : '#fff'}" stroke="${t.color}" stroke-width="${sel ? 16 : 12}"/>`;
+s += `<text x="${d.x}" y="${y + 8}" font-size="66" font-weight="800" fill="${sel ? '#fff' : t.color}" text-anchor="middle" dominant-baseline="middle">${t.sym}</text>`;
+s += `<text x="${d.x}" y="${y - 122}" font-size="54" fill="#7a7a80" text-anchor="middle">FL+${d.h}</text>`;
+s += `</g>`;
+});
+s += `</svg>`;
+return s;
+}
+
+function elecRenderWalls(){
+const wrap = el('elecWalls');
+if(!wrap) return;
+wrap.innerHTML = '';
+const room = elecRoomById(elecRoomId);
+if(!room) return;
+for(let wi = 0; wi < 4; wi++){
+const card = document.createElement('div');
+card.className = 'elecwall';
+const cnt = getElecList().filter(d => d.roomId === room.id && d.wall === wi).length;
+card.innerHTML = `<h4>${room.label} ｜ ${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個 ・ 室内から見た展開図</div>${elecWallSvg(room, wi)}`;
+wrap.appendChild(card);
+
+const svg = card.querySelector('svg');
+if(!svg) continue;
+svg.addEventListener('click', (e) => {
+const dev = e.target.closest('.edev');
+if(dev){
+elecSelId = dev.dataset.id;
+elecRenderWalls();
+elecRenderSelBar();
+return;
+}
+if(isReadOnly){ showToast('閲覧モードでは編集できません'); return; }
+let p;
+try{
+const pt = svg.createSVGPoint();
+pt.x = e.clientX; pt.y = e.clientY;
+p = pt.matrixTransform(svg.getScreenCTM().inverse());
+}catch(_){ return; }
+const lenMm = elecWallLenMm(room, wi);
+if(p.x < 0 || p.x > lenMm || p.y < 0 || p.y > ELEC_CEIL_MM) return;
+const tool = ELEC_TOOLS.find(t => t.id === elecToolId) || ELEC_TOOLS[0];
+pushHistory();
+const d = {
+id: uid(), kind: tool.id, roomId: room.id, wall: wi,
+x: clamp(Math.round(p.x / 50) * 50, 50, lenMm - 50),
+h: tool.h
+};
+getElecList().push(d);
+elecSelId = d.id;
+elecRenderWalls();
+elecRenderSelBar();
+elecRenderCounts();
+draw();
+scheduleAutoSave();
+});
+}
+}
+
+function elecRenderCounts(){
+const wrap = el('elecCounts');
+if(!wrap) return;
+const list = getElecList();
+const room = elecRoomById(elecRoomId);
+const cRoom = {}, cAll = {};
+list.forEach(d => {
+cAll[d.kind] = (cAll[d.kind] || 0) + 1;
+if(room && d.roomId === room.id) cRoom[d.kind] = (cRoom[d.kind] || 0) + 1;
+});
+const line = (c) => ELEC_TOOLS.filter(t => c[t.id])
+.map(t => `<span style="color:${t.color}; font-weight:800;">${t.sym}</span> ${t.name}×${c[t.id]}`)
+.join('　') || 'なし';
+wrap.innerHTML = `<b>📋 ${room ? room.label : ''} の集計</b><br>${line(cRoom)}<br><b>📋 ${floors[activeFloor].name} 全体</b><br>${line(cAll)}`;
+}
+
+function elecRenderAll(){
+elecRenderRooms();
+elecRenderTools();
+elecRenderSelBar();
+elecRenderWalls();
+elecRenderCounts();
+}
+
+function openElecPlanner(){
+syncActiveFloor();
+const fn = el('elecFloorName');
+if(fn) fn.textContent = `（${floors[activeFloor].name}）`;
+const rooms = elecRoomsOfFloor();
+if(!elecRoomById(elecRoomId)) elecRoomId = rooms.length ? rooms[0].id : null;
+elecSelId = null;
+elecRenderAll();
+el('elecView').classList.add('open');
+}
+
+function closeElecPlanner(){
+el('elecView').classList.remove('open');
+draw();
+}
+
+/* 平面図への記号表示 */
+function drawElecSymbols(){
+const cb = el('showElec');
+if(cb && !cb.checked) return;
+if(isExporting === undefined ? false : false){ /* 画像出力にも含める */ }
+syncActiveFloor();
+const fl = floors[activeFloor];
+if(!fl || !fl.elec || fl.elec.length === 0) return;
+const byId = {};
+items.forEach(i => { if(i.type === 'room') byId[i.id] = i; });
+ctx.save();
+ctx.globalAlpha = (editLayer === 'plan' && !isExporting) ? 0.3 : 1;
+fl.elec.forEach(d => {
+const room = byId[d.roomId];
+if(!room) return;
+const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+const p = elecToWorld(room, d.wall, d.x);
+if(!p) return;
+const r = 4.5 / scale;
+ctx.beginPath();
+ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+ctx.fillStyle = '#fff';
+ctx.fill();
+ctx.lineWidth = 1.6 / scale;
+ctx.strokeStyle = t.color;
+ctx.stroke();
+ctx.fillStyle = t.color;
+ctx.font = `700 ${5.2 / scale}px -apple-system, "Hiragino Sans", sans-serif`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(t.sym, p.x, p.y);
+});
+ctx.restore();
+}
 
 /* ============================================================
    v2.2: 3Dパースビューア（Three.js / 白模型）
@@ -6638,6 +7095,7 @@ if(m) m.addEventListener('click', (e) => { if(e.target.id === id) v2CloseSheet(i
 // --- 追加シートのカテゴリ ---
 if(el('catRoom')) el('catRoom').onclick = () => {
 v2CloseSheet('addSheet');
+setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
@@ -6647,6 +7105,7 @@ if(b) b.click();
 };
 if(el('catWall')) el('catWall').onclick = () => {
 v2CloseSheet('addSheet');
+setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(!isMerged) setMergedMode(true);
@@ -6655,6 +7114,7 @@ updateWorkHint();
 };
 if(el('catFrameAdd')) el('catFrameAdd').onclick = () => {
 v2CloseSheet('addSheet');
+setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
@@ -6665,6 +7125,7 @@ updateWorkHint();
 };
 if(el('catFrameEdit')) el('catFrameEdit').onclick = () => {
 v2CloseSheet('addSheet');
+setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
@@ -6786,8 +7247,34 @@ scheduleAutoSave();
 if(el('furnSizeBtn')) el('furnSizeBtn').onclick = () => {
 if(selectedItem && selectedItem.type === 'furn') openFurnModal(selectedItem);
 };
+if(el('layerPlanBtn')) el('layerPlanBtn').onclick = () => setEditLayer('plan');
+if(el('layerIntBtn')) el('layerIntBtn').onclick = () => setEditLayer('interior');
+updateLayerUI();
+
+if(el('elecPlanBtn')) el('elecPlanBtn').onclick = () => {
+v2CloseSheet('moreSheet');
+openElecPlanner();
+};
+if(el('elecCloseBtn')) el('elecCloseBtn').onclick = closeElecPlanner;
+if(el('elecSelBar')) el('elecSelBar').addEventListener('click', (e) => {
+const b = e.target.closest('button[data-act]');
+if(b) elecAdjust(b.dataset.act);
+});
+const ELEC_SHOW_KEY = 'floorplan_show_elec_v1';
+if(el('showElec')){
+try{
+const v = localStorage.getItem(ELEC_SHOW_KEY);
+if(v !== null) el('showElec').checked = (v === '1');
+}catch(_){}
+el('showElec').addEventListener('change', (e) => {
+try{ localStorage.setItem(ELEC_SHOW_KEY, e.target.checked ? '1' : '0'); }catch(_){}
+draw();
+});
+}
+
 if(el('catFurn')) el('catFurn').onclick = () => {
 v2CloseSheet('addSheet');
+setEditLayer('interior', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
@@ -6797,6 +7284,7 @@ openFurnModal(null);
 
 const v2StartOpening = (kind, panels) => {
 v2CloseSheet('addSheet');
+setEditLayer('interior', true);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
 if(!isMerged) setMergedMode(true);
