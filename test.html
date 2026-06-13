@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.7</title>
+<title>間取り検討サイト（Ichijo) v8.8</title>
 
 <style>
 :root{
@@ -1292,6 +1292,12 @@ padding: 10px 10px 6px; margin-bottom: 12px;
 }
 .elecwall h4{ font-size: 12px; font-weight: 800; margin: 0 0 1px; }
 .elecwall .meta{ font-size: 10px; color: #8a8a8e; margin-bottom: 6px; }
+.elechdr{ display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.elechdr .mini{ flex-shrink: 0; width: 60px; height: 60px; }
+.elechdr .mini svg{ width: 100%; height: 100%; display: block; }
+.elechdr .txt{ min-width: 0; }
+.elechdr h4{ margin: 0; }
+.elechdr .meta{ margin: 2px 0 0; }
 .elecwall svg{ width: 100%; height: auto; display: block; }
 .eleccounts{
 background: #fff; border: .5px solid rgba(60,60,67,.16); border-radius: 16px;
@@ -1518,7 +1524,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.7 by yuchi🐔</div>
+<div class="v2verline">ver 2.8 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1643,7 +1649,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">⚡</div>
 <div class="help-content">
 <b>電気計画（コンセント・スイッチ）</b>
-「他」→「電気計画」で部屋を選ぶと、4面の壁の展開図が表示されます（ドア・窓は間取りから自動反映）。ツールを選んで壁をタップで配置、記号タップで高さ・位置の微調整。平面図にも記号が表示され、保存・共有にも含まれます。
+「他」→「電気計画」で部屋を選ぶと、4面の壁の展開図が表示されます（ドア・窓は間取りから自動反映）。各壁カードの左上に部屋のミニ平面図が出て、編集中の壁が青くハイライトされるので、どの壁かが一目で分かります。ツールを選んで壁をタップで配置、記号タップで微調整。平面図にも記号が表示され、保存・共有にも含まれます。
 </div>
 </div>
 <div class="help-row">
@@ -6277,6 +6283,50 @@ if(near && wMm > 30) out.push({ fromMm, wMm, h: (f.fh || (f.type === 'stair' ? 2
 return out;
 }
 
+/* v2.8: 部屋のミニ平面図（該当する壁を青くハイライト） */
+function elecMiniSvg(room, wi){
+const pad = 14;
+const maxW = 100 - pad * 2, maxH = 100 - pad * 2;
+const rw = room.w, rh = room.h;
+const k = Math.min(maxW / rw, maxH / rh);
+const w = rw * k, h = rh * k;
+const ox = (100 - w) / 2, oy = (100 - h) / 2;
+// 各壁辺の座標（0:北上 1:東右 2:南下 3:西左）
+const edges = [
+[ox, oy, ox + w, oy],
+[ox + w, oy, ox + w, oy + h],
+[ox, oy + h, ox + w, oy + h],
+[ox, oy, ox, oy + h],
+];
+let s = `<svg viewBox="0 0 100 100" aria-hidden="true">`;
+s += `<rect x="${ox}" y="${oy}" width="${w}" height="${h}" fill="#F4F1EA" stroke="#c9c4b8" stroke-width="2"/>`;
+// 全壁を薄いグレーで、選択壁だけ太い青で
+edges.forEach((e, i) => {
+const on = (i === wi);
+s += `<line x1="${e[0]}" y1="${e[1]}" x2="${e[2]}" y2="${e[3]}" stroke="${on ? '#007AFF' : '#b6b1a5'}" stroke-width="${on ? 6 : 3}" stroke-linecap="round"/>`;
+});
+// 配置済み器具の点
+getElecList().filter(d => d.roomId === room.id).forEach(d => {
+const lenMm = elecWallLenMm(room, d.wall);
+const frac = Math.max(0, Math.min(1, d.x / lenMm));
+const e = edges[d.wall];
+const px = e[0] + (e[2] - e[0]) * frac;
+const py = e[1] + (e[3] - e[1]) * frac;
+const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+s += `<circle cx="${px}" cy="${py}" r="${d.wall === wi ? 4 : 2.6}" fill="${t.color}" stroke="#fff" stroke-width="1"/>`;
+});
+// 室内側を示す「内」マーク（選択壁の内向き矢印）
+const ec = edges[wi];
+const mx = (ec[0] + ec[2]) / 2, my = (ec[1] + ec[3]) / 2;
+const cx = ox + w / 2, cy = oy + h / 2;
+const dx = cx - mx, dy = cy - my, dl = Math.hypot(dx, dy) || 1;
+const ax = mx + dx / dl * 12, ay = my + dy / dl * 12;
+s += `<line x1="${mx}" y1="${my}" x2="${ax}" y2="${ay}" stroke="#007AFF" stroke-width="2"/>`;
+s += `<circle cx="${ax}" cy="${ay}" r="2.4" fill="#007AFF"/>`;
+s += `</svg>`;
+return s;
+}
+
 function elecWallSvg(room, wi){
 const W = Math.max(300, elecWallLenMm(room, wi));
 const H = ELEC_CEIL_MM;
@@ -6323,7 +6373,7 @@ const card = document.createElement('div');
 card.className = 'elecwall';
 const cnt = getElecList().filter(d => d.roomId === room.id && d.wall === wi).length;
 const fcnt = elecFurnOn(room, wi).length;
-card.innerHTML = `<h4>${room.label} ｜ ${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""} ・ 室内から見た展開図</div>${elecWallSvg(room, wi)}`;
+card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvg(room, wi)}</div><div class="txt"><h4>${room.label} ｜ ${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecWallSvg(room, wi)}`;
 wrap.appendChild(card);
 
 const svg = card.querySelector('svg');
