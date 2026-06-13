@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.1</title>
+<title>間取り検討サイト（Ichijo) v9.2</title>
 
 <style>
 :root{
@@ -1529,7 +1529,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.1 by yuchi🐔</div>
+<div class="v2verline">ver 3.2 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1640,7 +1640,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">🪜</div>
 <div class="help-content">
 <b>家具の回転・階段（かね折れ対応）</b>
-階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは下り口の角に廻り段（段数2〜5）、続く直線部の段数はサイズから自動計算。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
+階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
 <div class="help-row">
@@ -1925,7 +1925,7 @@ const FURN_PRESETS = [
 { n:'テレビボード',   w:1500, d:420,  h:450 },
 { n:'本棚',          w:900,  d:300,  h:1800 },
 { n:'階段(直線)',    w:910,  d:3640, h:3000, stair:true },
-{ n:'階段(かね折れL)', w:1820, d:2730, h:3000, stair:true },
+{ n:'階段(かね折れ)',  w:2730, d:1820, h:3000, stair:true },
 ];
 let furnEditTarget = null;
 const SNAP_ANGLE_DEG = 15;
@@ -3940,33 +3940,38 @@ treads.push({ poly: [[0, y0], [w, y0], [w, y1], [0, y1]], cx: w / 2, cy: (y0 + y
 }
 return { treads, n, up: [0, -1] };
 }
-// かね折れ：下り口(下辺)側の角に廻り段。コーナーは右下の正方形領域。
-const cs = Math.min(w, h) * 0.5;          // コーナー正方形の一辺
-const cornerX0 = w - cs, cornerY0 = h - cs; // 右下にコーナー（mirrorで左下へ反転）
+// かね折れ：入口側（左端）で廻り段（扇形）→ 90°向きを変えて横一直線で上り切る
+// dir=0 の基準では「下から入って左端で曲がり、右へ直線で上る」横長レイアウト。
 const wn = Math.max(2, Math.min(5, winders));
-// 廻り段：コーナー正方形を扇状に wn 分割（中心は内側の角）
-const pivotX = cornerX0, pivotY = cornerY0;
+const cs = Math.min(h, w * 0.45);         // 廻り段ゾーンの幅（入口側）
+// --- 廻り段：左端、ピボットは下辺の左角(0,h)。上向き(-90°)→右向き(0°)へ扇状に ---
+const pivotX = 0, pivotY = h;
 for(let i = 0; i < wn; i++){
-const a0 = (Math.PI / 2) * (i / wn);
-const a1 = (Math.PI / 2) * ((i + 1) / wn);
-const R = cs;
+const a0 = -Math.PI / 2 + (Math.PI / 2) * (i / wn);
+const a1 = -Math.PI / 2 + (Math.PI / 2) * ((i + 1) / wn);
+const R = Math.max(cs, h);
+const p1 = [Math.cos(a0) * R, Math.sin(a0) * R];
+const p2 = [Math.cos(a1) * R, Math.sin(a1) * R];
+// 扇をゾーン[0,cs]×[0,h]にクランプ
+const cl = (p) => [Math.max(0, Math.min(cs, pivotX + p[0])), Math.max(0, Math.min(h, pivotY + p[1]))];
+const v1 = cl(p1), v2 = cl(p2);
 treads.push({ poly: [
 [mx(pivotX), pivotY],
-[mx(pivotX + R * Math.cos(a0)), pivotY + R * Math.sin(a0)],
-[mx(pivotX + R * Math.cos(a1)), pivotY + R * Math.sin(a1)]
-], cx: mx(pivotX + R * 0.6 * Math.cos((a0 + a1) / 2)), cy: pivotY + R * 0.6 * Math.sin((a0 + a1) / 2), winder: true });
+[mx(v1[0]), v1[1]],
+[mx(v2[0]), v2[1]],
+[mx(cs), pivotY]
+], cx: mx(cs * 0.55), cy: h - h * 0.5 * ((i + 0.5) / wn), winder: true });
 }
-// 直線部：コーナーの上に向かって
-const straightX0 = cornerX0;
+// --- 直線部：x=cs から右端へ、縦スライスの段（右へ上る） ---
 const stepDepth = mm2px(235);
-const availH = cornerY0;
-let n = Math.max(2, Math.round(availH / stepDepth));
+const availW = w - cs;
+let n = Math.max(2, Math.round(availW / stepDepth));
 for(let i = 0; i < n; i++){
-const y0 = cornerY0 - availH * (i + 1) / n, y1 = cornerY0 - availH * i / n;
-const xa = mx(straightX0), xb = mx(w);
-treads.push({ poly: [[Math.min(xa,xb), y0], [Math.max(xa,xb), y0], [Math.max(xa,xb), y1], [Math.min(xa,xb), y1]], cx: (xa + xb) / 2, cy: (y0 + y1) / 2 });
+const x0 = cs + availW * i / n, x1 = cs + availW * (i + 1) / n;
+const xa = mx(x0), xb = mx(x1);
+treads.push({ poly: [[Math.min(xa,xb), 0], [Math.max(xa,xb), 0], [Math.max(xa,xb), h], [Math.min(xa,xb), h]], cx: (xa + xb) / 2, cy: h / 2 });
 }
-return { treads, n: wn + n, up: [0, -1], kane: true, cs };
+return { treads, n: wn + n, up: [mirror ? -1 : 1, 0], kane: true, cs };
 }
 
 /* ローカル座標をdir回転で実座標へ */
