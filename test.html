@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.3</title>
+<title>間取り検討サイト（Ichijo) v9.4</title>
 
 <style>
 :root{
@@ -1529,7 +1529,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.3 by yuchi🐔</div>
+<div class="v2verline">ver 3.4 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -6821,6 +6821,8 @@ const lh = swap ? it.w : it.h;
 const info = stairTreads(lw, lh, it.shape || 'straight', it.winders || 3, !!it.mirror);
 const steps = info.treads.length;
 const stepH = totalRise / steps;
+// 各段は「薄い踏み板」を階段状に積む（実際の階段の見え方に近づける）
+const board = Math.max(mm2px(45), Math.min(stepH, mm2px(180))); // 踏み板厚
 info.treads.forEach((tr, i) => {
 const pts = tr.poly.map(p => {
 const lx = swap ? p[1] : p[0];
@@ -6828,25 +6830,15 @@ const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(it, lx, ly);
 });
 const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
-let minX = Math.min(...xs), maxX = Math.max(...xs);
-let minZ = Math.min(...zs), maxZ = Math.max(...zs);
-const hh = stepH * (i + 1);
-if(tr.winder){
-// 廻り段：三角の重心に小さめブロック（平面図の扇形と位置を合わせる）
-const cL = swap ? [tr.cy, tr.cx] : [tr.cx, tr.cy];
-const c = stairLocalToWorld(it, cL[0], cL[1]);
-const sz = Math.max(4, Math.min(maxX - minX, maxZ - minZ) * 0.85);
-const m = new T.Mesh(new T.BoxGeometry(sz, hh, sz), matS);
-m.position.set(c[0], yBase + hh / 2, c[1]);
+const minX = Math.min(...xs), maxX = Math.max(...xs);
+const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+const bw = Math.max(3, maxX - minX);
+const bd = Math.max(3, maxZ - minZ);
+const top = stepH * (i + 1);          // この段の上面の高さ
+const m = new T.Mesh(new T.BoxGeometry(bw, board, bd), matS);
+m.position.set((minX + maxX) / 2, yBase + top - board / 2, (minZ + maxZ) / 2);
 m.castShadow = true; m.receiveShadow = true;
 group.add(m);
-}else{
-const bw = Math.max(2, maxX - minX), bd = Math.max(2, maxZ - minZ);
-const m = new T.Mesh(new T.BoxGeometry(bw, hh, bd), matS);
-m.position.set((minX + maxX) / 2, yBase + hh / 2, (minZ + maxZ) / 2);
-m.castShadow = true; m.receiveShadow = true;
-group.add(m);
-}
 });
 });
 
