@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.8</title>
+<title>間取り検討サイト（Ichijo) v9.1</title>
 
 <style>
 :root{
@@ -1511,6 +1511,11 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
 <span id="wallThickVal" class="val">12</span>
 </div>
+<div class="chip tiny" id="ceilChip" title="3D・天井高さ" style="gap:6px;">
+<span class="lbl" style="font-size:11px;">3D天井高</span>
+<input type="number" id="ceilMmInput" inputmode="numeric" value="2400" style="width:64px; border:none; background:transparent; font-size:12px; text-align:right;">
+<span style="font-size:11px; color:#8a8a8e;">mm</span>
+</div>
 
 <div class="v2group-label">アクション</div>
 <div class="v2actiongrid">
@@ -1524,7 +1529,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.8 by yuchi🐔</div>
+<div class="v2verline">ver 3.1 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1634,8 +1639,8 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-row">
 <div class="help-icon">🪜</div>
 <div class="help-content">
-<b>家具の回転・階段</b>
-家具を選んで「回転」で90°向き変更（▽が正面）。「追加」→「家具」の階段プリセットで階段を配置でき、「回転」で上り方向を変えられます。3Dではステップ状に立ち上がります。「他」の「家具」チェックで表示ON/OFF。
+<b>家具の回転・階段（かね折れ対応）</b>
+階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは下り口の角に廻り段（段数2〜5）、続く直線部の段数はサイズから自動計算。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
 <div class="help-row">
@@ -1716,6 +1721,25 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <input type="number" id="furnW" placeholder="幅mm" inputmode="numeric" style="flex:1; min-width:0;">
 <input type="number" id="furnD" placeholder="奥行mm" inputmode="numeric" style="flex:1; min-width:0;">
 <input type="number" id="furnH" placeholder="高さmm" inputmode="numeric" style="flex:1; min-width:0;">
+</div>
+<div id="stairOpts" style="display:none; margin:2px 0 10px;">
+<div style="display:flex; gap:6px; margin-bottom:8px;">
+<button class="pill" id="stShapeStraight" type="button" style="flex:1;">直線</button>
+<button class="pill" id="stShapeKane" type="button" style="flex:1;">かね折れ</button>
+</div>
+<div id="stWinderRow" style="display:none; align-items:center; gap:8px; margin-bottom:8px;">
+<span style="font-size:12px; color:#555;">廻り段数</span>
+<button class="pill" id="stWinderMinus" type="button" style="padding:6px 12px;">−</button>
+<b id="stWinderVal" style="min-width:24px; text-align:center;">3</b>
+<button class="pill" id="stWinderPlus" type="button" style="padding:6px 12px;">＋</button>
+<span style="font-size:11px; color:#8a8a8e;">段</span>
+</div>
+<div id="stMirrorRow" style="display:none; align-items:center; gap:8px; margin-bottom:4px;">
+<span style="font-size:12px; color:#555;">曲がる向き</span>
+<button class="pill" id="stMirrorR" type="button" style="flex:1;">右に曲がる</button>
+<button class="pill" id="stMirrorL" type="button" style="flex:1;">左に曲がる</button>
+</div>
+<div style="font-size:10.5px; color:#8a8a8e; line-height:1.5;">※ 横入りなど入口の向きは、配置後に「回転」ボタンで合わせられます</div>
 </div>
 <div id="furnChips" style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;"></div>
 <div style="display:flex; gap:8px;">
@@ -1900,8 +1924,8 @@ const FURN_PRESETS = [
 { n:'デスク',        w:1200, d:600,  h:720 },
 { n:'テレビボード',   w:1500, d:420,  h:450 },
 { n:'本棚',          w:900,  d:300,  h:1800 },
-{ n:'階段(直)',      w:910,  d:2730, h:0, stair:true },
-{ n:'階段(L字)',     w:1820, d:1820, h:0, stair:true },
+{ n:'階段(直線)',    w:910,  d:3640, h:3000, stair:true },
+{ n:'階段(かね折れL)', w:1820, d:2730, h:3000, stair:true },
 ];
 let furnEditTarget = null;
 const SNAP_ANGLE_DEG = 15;
@@ -2071,6 +2095,10 @@ if(typeof it.fh !== "number") it.fh = 700;
 if(!it.color) it.color = "#EAE6DC";
 if(!it.label) it.label = "階段";
 if(typeof it.dir !== "number") it.dir = 0; // 0:上向き踏面
+if(typeof it.fh !== "number") it.fh = 3000; // 階高(mm)：床から上階の床まで
+if(!it.shape) it.shape = 'straight';        // 'straight' | 'kane'（かね折れ）
+if(typeof it.winders !== "number") it.winders = 3; // 廻り段数
+if(typeof it.mirror !== "boolean") it.mirror = false; // 曲がる向き（false:右 / true:左）
 }else{
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
@@ -3895,52 +3923,125 @@ ctx.restore();
 }
 
 /* v2.7: 階段の描画（踏み板＋上り方向矢印） */
+/* 階段の段割りを計算 → 各踏み板のポリゴンと進行情報を返す
+   座標系：ローカル(0,0)-(w,h)。dir=0基準（下り口が下辺中央、上り方向＝上）で生成し、
+   呼び出し側で it.dir に応じて回転する。 */
+function stairTreads(w, h, shape, winders, mirror){
+const treads = [];
+const colW = Math.min(w, h) * (shape === 'kane' ? 0.5 : 1); // かね折れは半分が直線幅
+const mx = (x) => mirror ? (w - x) : x; // 曲がる向きの左右反転
+if(shape !== 'kane'){
+// 直線：下→上に均等。1段≒踏面235mm相当だが、見やすさ優先で h を均等割り
+const stepDepth = mm2px(235);
+let n = Math.max(3, Math.round(h / stepDepth));
+for(let i = 0; i < n; i++){
+const y0 = h - h * (i + 1) / n, y1 = h - h * i / n;
+treads.push({ poly: [[0, y0], [w, y0], [w, y1], [0, y1]], cx: w / 2, cy: (y0 + y1) / 2 });
+}
+return { treads, n, up: [0, -1] };
+}
+// かね折れ：下り口(下辺)側の角に廻り段。コーナーは右下の正方形領域。
+const cs = Math.min(w, h) * 0.5;          // コーナー正方形の一辺
+const cornerX0 = w - cs, cornerY0 = h - cs; // 右下にコーナー（mirrorで左下へ反転）
+const wn = Math.max(2, Math.min(5, winders));
+// 廻り段：コーナー正方形を扇状に wn 分割（中心は内側の角）
+const pivotX = cornerX0, pivotY = cornerY0;
+for(let i = 0; i < wn; i++){
+const a0 = (Math.PI / 2) * (i / wn);
+const a1 = (Math.PI / 2) * ((i + 1) / wn);
+const R = cs;
+treads.push({ poly: [
+[mx(pivotX), pivotY],
+[mx(pivotX + R * Math.cos(a0)), pivotY + R * Math.sin(a0)],
+[mx(pivotX + R * Math.cos(a1)), pivotY + R * Math.sin(a1)]
+], cx: mx(pivotX + R * 0.6 * Math.cos((a0 + a1) / 2)), cy: pivotY + R * 0.6 * Math.sin((a0 + a1) / 2), winder: true });
+}
+// 直線部：コーナーの上に向かって
+const straightX0 = cornerX0;
+const stepDepth = mm2px(235);
+const availH = cornerY0;
+let n = Math.max(2, Math.round(availH / stepDepth));
+for(let i = 0; i < n; i++){
+const y0 = cornerY0 - availH * (i + 1) / n, y1 = cornerY0 - availH * i / n;
+const xa = mx(straightX0), xb = mx(w);
+treads.push({ poly: [[Math.min(xa,xb), y0], [Math.max(xa,xb), y0], [Math.max(xa,xb), y1], [Math.min(xa,xb), y1]], cx: (xa + xb) / 2, cy: (y0 + y1) / 2 });
+}
+return { treads, n: wn + n, up: [0, -1], kane: true, cs };
+}
+
+/* ローカル座標をdir回転で実座標へ */
+function stairLocalToWorld(it, lx, ly){
+const w = it.w, h = it.h, d = it.dir || 0;
+let rx, ry;
+if(d === 0){ rx = lx; ry = ly; }
+else if(d === 1){ rx = h - ly; ry = lx; }      // 90°時計回り
+else if(d === 2){ rx = w - lx; ry = h - ly; }   // 180°
+else { rx = ly; ry = w - lx; }                  // 270°
+return [it.x + rx, it.y + ry];
+}
+
 function drawStair(it){
 const fc = el('showFurn');
 if(fc && !fc.checked && !isExporting) return;
 const LA = (editLayer === 'plan' && !isExporting) ? 0.4 : 1;
 ctx.save();
 ctx.globalAlpha = LA;
+
+// 外形
 ctx.fillStyle = it.color || "#EAE6DC";
 ctx.fillRect(it.x, it.y, it.w, it.h);
 ctx.strokeStyle = "#8a7f66";
 ctx.lineWidth = 1.6 / scale;
 ctx.strokeRect(it.x, it.y, it.w, it.h);
 
-const horiz = (it.dir === 1 || it.dir === 3); // 踏面の向き
-const n = 9;
+// dir=0基準でローカル生成（90/270°のときは幅高さを入替えて計算）
+const swap = (it.dir === 1 || it.dir === 3);
+const lw = swap ? it.h : it.w;
+const lh = swap ? it.w : it.h;
+const info = stairTreads(lw, lh, it.shape || 'straight', it.winders || 3, !!it.mirror);
+
+// 踏み板
 ctx.lineWidth = 1.1 / scale;
-ctx.strokeStyle = "#a99f86";
-for(let i = 1; i < n; i++){
+info.treads.forEach((tr, idx) => {
 ctx.beginPath();
-if(!horiz){
-const y = it.y + it.h * i / n;
-ctx.moveTo(it.x, y); ctx.lineTo(it.x + it.w, y);
-}else{
-const x = it.x + it.w * i / n;
-ctx.moveTo(x, it.y); ctx.lineTo(x, it.y + it.h);
-}
+tr.poly.forEach((p, i) => {
+// ローカル(lw,lh基準) → it基準へ：swap時は (lx,ly)=(ly,lx) で戻す
+const lx = swap ? p[1] : p[0];
+const ly = swap ? p[0] : p[1];
+const wp = stairLocalToWorld(it, lx, ly);
+if(i === 0) ctx.moveTo(wp[0], wp[1]); else ctx.lineTo(wp[0], wp[1]);
+});
+ctx.closePath();
+ctx.fillStyle = tr.winder ? "rgba(180,150,90,.16)" : "rgba(0,0,0,0)";
+ctx.fill();
+ctx.strokeStyle = tr.winder ? "#b08b4a" : "#a99f86";
 ctx.stroke();
-}
-// 上り矢印
-ctx.strokeStyle = "#6a6052";
-ctx.fillStyle = "#6a6052";
+});
+
+// 上り矢印（最後の段＝上り切り側へ）
+const startTr = info.treads[0];
+const endTr = info.treads[info.treads.length - 1];
+const sL = swap ? [startTr.cy, startTr.cx] : [startTr.cx, startTr.cy];
+const eL = swap ? [endTr.cy, endTr.cx] : [endTr.cx, endTr.cy];
+const sW = stairLocalToWorld(it, sL[0], sL[1]);
+const eW = stairLocalToWorld(it, eL[0], eL[1]);
+ctx.strokeStyle = "#6a6052"; ctx.fillStyle = "#6a6052";
 ctx.lineWidth = 2 / scale;
-const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
-const ax = horiz ? it.w * 0.34 : 0, ay = horiz ? 0 : it.h * 0.34;
+ctx.beginPath(); ctx.moveTo(sW[0], sW[1]); ctx.lineTo(eW[0], eW[1]); ctx.stroke();
+const ang = Math.atan2(eW[1] - sW[1], eW[0] - sW[0]);
+const ah = Math.min(it.w, it.h) * 0.1;
 ctx.beginPath();
-ctx.moveTo(cx - ax, cy - ay); ctx.lineTo(cx + ax, cy + ay); ctx.stroke();
-const ah = Math.min(it.w, it.h) * 0.12;
-ctx.beginPath();
-if(!horiz){ ctx.moveTo(cx, cy + ay); ctx.lineTo(cx - ah, cy + ay - ah); ctx.lineTo(cx + ah, cy + ay - ah); }
-else { ctx.moveTo(cx + ax, cy); ctx.lineTo(cx + ax - ah, cy - ah); ctx.lineTo(cx + ax - ah, cy + ah); }
+ctx.moveTo(eW[0], eW[1]);
+ctx.lineTo(eW[0] - ah * Math.cos(ang - 0.5), eW[1] - ah * Math.sin(ang - 0.5));
+ctx.lineTo(eW[0] - ah * Math.cos(ang + 0.5), eW[1] - ah * Math.sin(ang + 0.5));
 ctx.closePath(); ctx.fill();
 
-const fs = Math.max(7, Math.min(11, Math.min(it.w, it.h) * 0.24)) / scale;
+const fs = Math.max(7, Math.min(11, Math.min(it.w, it.h) * 0.22)) / scale;
 ctx.fillStyle = "#5a5247";
 ctx.font = `600 ${fs}px -apple-system, "Hiragino Sans", sans-serif`;
 ctx.textAlign = "center"; ctx.textBaseline = "middle";
-ctx.fillText(it.label || "階段", cx, it.y + fs * 1.1);
+const lbl = (it.label || "階段") + (it.shape === 'kane' ? `（かね折れ ${info.n}段）` : `（${info.n}段）`);
+ctx.fillText(lbl, it.x + it.w / 2, it.y + fs * 1.1);
 ctx.restore();
 }
 
@@ -6500,7 +6601,8 @@ ctx.restore();
    v2.2: 3Dパースビューア（Three.js / 白模型）
    ============================================================ */
 const PX_PER_MM = GRID_SIZE / 910;          // 1px = 約28.4mm
-const V3D_WALL_H = 2400 * PX_PER_MM;        // 壁高さ 2400mm
+let CEIL_MM = 2400;                          // 天井高(mm) 設定で変更可
+let V3D_WALL_H = CEIL_MM * PX_PER_MM;        // 壁高さ
 const V3D_SLAB_T = 200 * PX_PER_MM;         // 床スラブ
 const V3D_DOOR_H = 2000 * PX_PER_MM;        // 建具高さ
 const V3D_WIN_B = 900 * PX_PER_MM;          // 窓下端
@@ -6508,6 +6610,11 @@ const V3D_WIN_T = 2000 * PX_PER_MM;         // 窓上端
 const V3D_OUTER_T = 6;                      // 外周壁の厚み(px)
 
 const V3D_EYE_H = 1500 * PX_PER_MM;         // 目線高さ 1500mm
+const CEIL_KEY = 'floorplan_ceil_mm_v1';
+try{
+const cv = parseInt(localStorage.getItem(CEIL_KEY), 10);
+if(cv >= 2000 && cv <= 3600){ CEIL_MM = cv; V3D_WALL_H = CEIL_MM * PX_PER_MM; }
+}catch(_){}
 let THREE_M = null;
 let v3dOpen = false;
 let v3dMode = 'all';                        // 'f1' | 'f2' | 'all'
@@ -6700,28 +6807,32 @@ group.add(ceil);
 // 階段（ステップ状）
 fItems.forEach(it => {
 if(it.type !== 'stair') return;
-const steps = 10;
-const stepH = (V3D_WALL_H + V3D_SLAB_T) / steps;
-const horiz = (it.dir === 1 || it.dir === 3);
+const riseMm = (typeof it.fh === 'number' && it.fh > 0) ? it.fh : 3000;
+const totalRise = riseMm * PX_PER_MM;
 const matS = new T.MeshLambertMaterial({ color: new T.Color('#d8cdb6') });
-for(let i = 0; i < steps; i++){
-let bw, bd, bx, bz;
-const frac = (i + 1) / steps;
-if(!horiz){
-bw = it.w; bd = it.h / steps;
-bx = it.x + it.w / 2;
-bz = (it.dir === 2) ? (it.y + it.h - it.h * frac + bd / 2) : (it.y + it.h * i / steps + bd / 2);
-}else{
-bw = it.w / steps; bd = it.h;
-bz = it.y + it.h / 2;
-bx = (it.dir === 3) ? (it.x + it.w - it.w * frac + bw / 2) : (it.x + it.w * i / steps + bw / 2);
-}
+const swap = (it.dir === 1 || it.dir === 3);
+const lw = swap ? it.h : it.w;
+const lh = swap ? it.w : it.h;
+const info = stairTreads(lw, lh, it.shape || 'straight', it.winders || 3, !!it.mirror);
+const steps = info.treads.length;
+const stepH = totalRise / steps;
+info.treads.forEach((tr, i) => {
+// 踏み板のローカル外接矩形 → it座標へ4点変換し平均/範囲を算出
+const pts = tr.poly.map(p => {
+const lx = swap ? p[1] : p[0];
+const ly = swap ? p[0] : p[1];
+return stairLocalToWorld(it, lx, ly);
+});
+const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+const minX = Math.min(...xs), maxX = Math.max(...xs);
+const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+const bw = Math.max(2, maxX - minX), bd = Math.max(2, maxZ - minZ);
 const hh = stepH * (i + 1);
 const m = new T.Mesh(new T.BoxGeometry(bw, hh, bd), matS);
-m.position.set(bx, yBase + hh / 2, bz);
+m.position.set((minX + maxX) / 2, yBase + hh / 2, (minZ + maxZ) / 2);
 m.castShadow = true; m.receiveShadow = true;
 group.add(m);
-}
+});
 });
 
 // 家具（干渉確認用ボックス）
@@ -6810,6 +6921,7 @@ return { minX, minY, maxX, maxY };
 
 function v3dBuildScene(){
 const T = THREE_M;
+V3D_WALL_H = CEIL_MM * PX_PER_MM; // 設定を反映
 if(v3dRoot){
 v3dDisposeGroup(v3dRoot);
 v3dScene.remove(v3dRoot);
@@ -6879,13 +6991,37 @@ const g = v3dFloorGroups[v3dWalkFloor];
 return (g ? g.position.y : 0) + V3D_SLAB_T;
 }
 
+function v3dWalkFrames(){
+syncActiveFloor();
+const fl = floors[v3dWalkFloor] || floors[0];
+return (fl.items || []).filter(i => i.type === 'frame');
+}
+
+/* 点が外枠（frame群）の内側にあるか（少し内側マージン） */
+function v3dInsideFrames(x, z, margin){
+const frs = v3dWalkFrames();
+if(!frs.length) return true;
+for(const f of frs){
+if(x >= f.x + margin && x <= f.x + f.w - margin &&
+z >= f.y + margin && z <= f.y + f.h - margin) return true;
+}
+return false;
+}
+
 function v3dWalkUpdate(dt){
 // ジョイスティックで移動（前後＝-y, 左右＝x）
 const sp = 170; // px/s ≒ 4.8m/s
 const fx = Math.sin(v3dYaw), fz = -Math.cos(v3dYaw);
 const rx = Math.cos(v3dYaw), rz = Math.sin(v3dYaw);
-v3dWalkPos.x += (fx * (-v3dJoyVec.y) + rx * v3dJoyVec.x) * sp * dt;
-v3dWalkPos.z += (fz * (-v3dJoyVec.y) + rz * v3dJoyVec.x) * sp * dt;
+const mvx = (fx * (-v3dJoyVec.y) + rx * v3dJoyVec.x) * sp * dt;
+const mvz = (fz * (-v3dJoyVec.y) + rz * v3dJoyVec.x) * sp * dt;
+
+// 外壁を貫通しないように軸ごとに判定（壁ぎわで止まる）
+const margin = V3D_OUTER_T + 6;
+const nx = v3dWalkPos.x + mvx;
+const nz = v3dWalkPos.z + mvz;
+if(v3dInsideFrames(nx, v3dWalkPos.z, margin)) v3dWalkPos.x = nx;
+if(v3dInsideFrames(v3dWalkPos.x, nz, margin)) v3dWalkPos.z = nz;
 
 const eye = v3dWalkBaseY() + V3D_EYE_H;
 v3dCamera.position.set(v3dWalkPos.x, eye, v3dWalkPos.z);
@@ -7366,14 +7502,38 @@ scheduleAutoSave();
 };
 
 /* --- v2.4: 家具 --- */
+let stairDraft = { shape: 'straight', winders: 3, mirror: false };
+function syncStairOpts(){
+const opts = el('stairOpts');
+const isS = (furnEditTarget && furnEditTarget.type === 'stair');
+const willStair = isS || /階段/.test(el('furnName').value || '');
+if(opts) opts.style.display = willStair ? 'block' : 'none';
+const kane = (stairDraft.shape === 'kane');
+if(el('stShapeStraight')) el('stShapeStraight').style.background = kane ? '' : 'rgba(10,132,255,.92)';
+if(el('stShapeStraight')) el('stShapeStraight').style.color = kane ? '' : '#fff';
+if(el('stShapeKane')) el('stShapeKane').style.background = kane ? 'rgba(10,132,255,.92)' : '';
+if(el('stShapeKane')) el('stShapeKane').style.color = kane ? '#fff' : '';
+if(el('stWinderRow')) el('stWinderRow').style.display = kane ? 'flex' : 'none';
+if(el('stMirrorRow')) el('stMirrorRow').style.display = kane ? 'flex' : 'none';
+if(el('stWinderVal')) el('stWinderVal').textContent = String(stairDraft.winders);
+const mr = stairDraft.mirror;
+if(el('stMirrorR')){ el('stMirrorR').style.background = mr ? '' : 'rgba(10,132,255,.92)'; el('stMirrorR').style.color = mr ? '' : '#fff'; }
+if(el('stMirrorL')){ el('stMirrorL').style.background = mr ? 'rgba(10,132,255,.92)' : ''; el('stMirrorL').style.color = mr ? '#fff' : ''; }
+}
+
 function openFurnModal(target){
 furnEditTarget = target || null;
 const t = el('furnModalTitle');
 if(t) t.textContent = target ? '家具のサイズ変更' : '家具を追加';
+stairDraft = {
+shape: (target && target.shape) ? target.shape : 'straight',
+winders: (target && target.winders) ? target.winders : 3,
+mirror: !!(target && target.mirror)
+};
 el('furnName').value = target ? (target.label || '') : '';
 el('furnW').value = target ? px2mm(target.w) : '';
 el('furnD').value = target ? px2mm(target.h) : '';
-el('furnH').value = target ? (target.fh || 700) : '';
+el('furnH').value = target ? (target.fh || (target.type === 'stair' ? 3000 : 700)) : '';
 const wrap = el('furnChips');
 if(wrap && !wrap._built){
 wrap._built = true;
@@ -7388,10 +7548,13 @@ el('furnName').value = p.n;
 el('furnW').value = p.w;
 el('furnD').value = p.d;
 el('furnH').value = p.h;
+if(/階段/.test(p.n) && p.n.includes('L')) stairDraft.shape = 'kane';
+syncStairOpts();
 };
 wrap.appendChild(b);
 });
 }
+syncStairOpts();
 el('furnModal').style.display = 'flex';
 }
 
@@ -7400,6 +7563,13 @@ el('furnModal').style.display = 'none';
 furnEditTarget = null;
 }
 
+if(el('furnName')) el('furnName').addEventListener('input', syncStairOpts);
+if(el('stShapeStraight')) el('stShapeStraight').onclick = () => { stairDraft.shape = 'straight'; syncStairOpts(); };
+if(el('stShapeKane')) el('stShapeKane').onclick = () => { stairDraft.shape = 'kane'; syncStairOpts(); };
+if(el('stWinderMinus')) el('stWinderMinus').onclick = () => { stairDraft.winders = Math.max(2, stairDraft.winders - 1); syncStairOpts(); };
+if(el('stWinderPlus')) el('stWinderPlus').onclick = () => { stairDraft.winders = Math.min(5, stairDraft.winders + 1); syncStairOpts(); };
+if(el('stMirrorR')) el('stMirrorR').onclick = () => { stairDraft.mirror = false; syncStairOpts(); };
+if(el('stMirrorL')) el('stMirrorL').onclick = () => { stairDraft.mirror = true; syncStairOpts(); };
 if(el('furnCancelBtn')) el('furnCancelBtn').onclick = closeFurnModal;
 if(el('furnModal')) el('furnModal').addEventListener('click', (e) => { if(e.target === el('furnModal')) closeFurnModal(); });
 if(el('furnOkBtn')) el('furnOkBtn').onclick = () => {
@@ -7417,14 +7587,23 @@ if(furnEditTarget){
 furnEditTarget.label = name;
 furnEditTarget.w = mm2px(wmm);
 furnEditTarget.h = mm2px(dmm);
+if(furnEditTarget.type === 'stair'){
+furnEditTarget.shape = stairDraft.shape;
+furnEditTarget.winders = stairDraft.winders;
+furnEditTarget.mirror = stairDraft.mirror;
+furnEditTarget.fh = Math.max(2000, Math.min(3600, Number(el('furnH').value) || 3000));
+}else{
 furnEditTarget.fh = hmm;
+}
 selectedItem = furnEditTarget;
 }else{
 const wx = -camera.x / scale;
 const wy = -camera.y / scale;
 const it = isStair ? {
 type: 'stair', label: name, dir: 0,
+shape: stairDraft.shape, winders: stairDraft.winders, mirror: stairDraft.mirror,
 w: mm2px(wmm), h: mm2px(dmm),
+fh: Math.max(2000, Math.min(3600, Number(el('furnH').value) || 3000)),
 x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
 y: getSnapped(wy, FURN_SNAP) - mm2px(dmm) / 2,
 color: "#EAE6DC", locked: false
@@ -7486,6 +7665,21 @@ if(el('elecSelBar')) el('elecSelBar').addEventListener('click', (e) => {
 const b = e.target.closest('button[data-act]');
 if(b) elecAdjust(b.dataset.act);
 });
+if(el('ceilMmInput')){
+el('ceilMmInput').value = String(CEIL_MM);
+const applyCeil = () => {
+let v = parseInt(el('ceilMmInput').value, 10);
+if(isNaN(v)) return;
+v = Math.max(2000, Math.min(3600, Math.round(v / 10) * 10));
+CEIL_MM = v;
+el('ceilMmInput').value = String(v);
+try{ localStorage.setItem(CEIL_KEY, String(v)); }catch(_){}
+if(v3dOpen){ v3dBuildScene(); }
+showToast(`3D天井高 ${v}mm`, 900);
+};
+el('ceilMmInput').addEventListener('change', applyCeil);
+el('ceilMmInput').addEventListener('blur', applyCeil);
+}
 const FURN_SHOW_KEY = 'floorplan_show_furn_v1';
 if(el('showFurn')){
 try{ const v = localStorage.getItem(FURN_SHOW_KEY); if(v !== null) el('showFurn').checked = (v === '1'); }catch(_){}
