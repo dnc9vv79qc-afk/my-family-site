@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v8.6</title>
+<title>間取り検討サイト（Ichijo) v8.7</title>
 
 <style>
 :root{
@@ -1371,6 +1371,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <button class="pill" id="openingFlipBtn" data-sub="開く向き" type="button" style="display:none;">反転</button>
 <button class="pill" id="openingHingeBtn" data-sub="左右" type="button" style="display:none;">吊元</button>
 <button class="pill" id="slidePanelsBtn" data-sub="枚数" type="button" style="display:none;">枚数</button>
+<button class="pill" id="furnRotateBtn" data-sub="90°回す" type="button" style="display:none;">回転</button>
 <button class="pill" id="furnSizeBtn" data-sub="mm指定" type="button" style="display:none;">サイズ</button>
 </div>
 
@@ -1496,6 +1497,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <label class="chip tiny"><input type="checkbox" id="showMM" checked>mm寸法</label>
 <label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告</label>
 <label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
+<label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
 <label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
 </div>
 <div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
@@ -1516,7 +1518,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 2.6 by yuchi🐔</div>
+<div class="v2verline">ver 2.7 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1624,6 +1626,13 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-section-title">便利機能</div>
 <div class="help-list">
 <div class="help-row">
+<div class="help-icon">🪜</div>
+<div class="help-content">
+<b>家具の回転・階段</b>
+家具を選んで「回転」で90°向き変更（▽が正面）。「追加」→「家具」の階段プリセットで階段を配置でき、「回転」で上り方向を変えられます。3Dではステップ状に立ち上がります。「他」の「家具」チェックで表示ON/OFF。
+</div>
+</div>
+<div class="help-row">
 <div class="help-icon">🔀</div>
 <div class="help-content">
 <b>間取り／内装モード</b>
@@ -1648,7 +1657,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">📦</div>
 <div class="help-content">
 <b>3Dパース</b>
-下の「3D」ボタンで3D表示。1本指で回転、ピンチでズーム、2本指で移動。「歩く」を押すと部屋の中に入って、左半分のスティックで移動・右半分のドラッグで見回せます。ドアは通り抜けOK。1F/2F/全体の切替と画像保存も可能（表示には通信が必要です）。
+下の「3D」ボタンで3D表示。壁は「外周」と「内壁を引いた所」だけが立ち上がり、内壁の無い部屋の境目は3Dでも通り抜けできます（ドア・引き戸・窓の開口もくり抜き表示）。1本指で回転、ピンチでズーム、2本指で移動。「歩く」を押すと部屋の中に入って、左半分のスティックで移動・右半分のドラッグで見回せます。ドアは通り抜けOK。1F/2F/全体の切替と画像保存も可能（表示には通信が必要です）。
 </div>
 </div>
 <div class="help-row">
@@ -1885,6 +1894,8 @@ const FURN_PRESETS = [
 { n:'デスク',        w:1200, d:600,  h:720 },
 { n:'テレビボード',   w:1500, d:420,  h:450 },
 { n:'本棚',          w:900,  d:300,  h:1800 },
+{ n:'階段(直)',      w:910,  d:2730, h:0, stair:true },
+{ n:'階段(L字)',     w:1820, d:1820, h:0, stair:true },
 ];
 let furnEditTarget = null;
 const SNAP_ANGLE_DEG = 15;
@@ -2050,6 +2061,10 @@ if(!it.label) it.label = (it.kind === 'slide' ? SLIDE_LABEL[it.panels || 2] : OP
 if(!it.color) it.color = "#E3E3E9";
 if(!it.label) it.label = "家具";
 if(typeof it.fh !== "number") it.fh = 700;
+}else if(it.type === 'stair'){
+if(!it.color) it.color = "#EAE6DC";
+if(!it.label) it.label = "階段";
+if(typeof it.dir !== "number") it.dir = 0; // 0:上向き踏面
 }else{
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
@@ -2076,7 +2091,7 @@ function quantizeAllToGrid(step){
   if(!step) step = getSnapStep();
   syncActiveFloor();
   floors.forEach(f => (f.items || []).forEach(it => {
-    if(it.type === 'furn') return; // 家具はmm精度を保持
+    if(it.type === 'furn' || it.type === 'stair') return; // 家具・階段はmm精度を保持
     if(isLineType(it.type)){
       it.x1 = getSnapped(it.x1, step);
       it.y1 = getSnapped(it.y1, step);
@@ -3531,7 +3546,7 @@ function getRoomOutOfFrameRects(){
   const frames = items.filter(it => it.type === 'frame');
   if(!frames.length) return [];
 
-  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'furn' && it.type !== 'frame');
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'furn' && it.type !== 'stair' && it.type !== 'frame');
   if(!rooms.length) return [];
 
   const outRects = [];
@@ -3601,7 +3616,7 @@ const chk = document.getElementById('showWarnings');
 }
 
 function getRoomOverlapRects(){
-  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'furn' && it.type !== 'frame');
+  const rooms = items.filter(it => it.type !== 'wallLine' && it.type !== 'opening' && it.type !== 'furn' && it.type !== 'stair' && it.type !== 'frame');
   const overlaps = [];
   for(let i=0;i<rooms.length;i++){
     const a = rooms[i];
@@ -3873,8 +3888,60 @@ ctx.setLineDash([]);
 ctx.restore();
 }
 
+/* v2.7: 階段の描画（踏み板＋上り方向矢印） */
+function drawStair(it){
+const fc = el('showFurn');
+if(fc && !fc.checked && !isExporting) return;
+const LA = (editLayer === 'plan' && !isExporting) ? 0.4 : 1;
+ctx.save();
+ctx.globalAlpha = LA;
+ctx.fillStyle = it.color || "#EAE6DC";
+ctx.fillRect(it.x, it.y, it.w, it.h);
+ctx.strokeStyle = "#8a7f66";
+ctx.lineWidth = 1.6 / scale;
+ctx.strokeRect(it.x, it.y, it.w, it.h);
+
+const horiz = (it.dir === 1 || it.dir === 3); // 踏面の向き
+const n = 9;
+ctx.lineWidth = 1.1 / scale;
+ctx.strokeStyle = "#a99f86";
+for(let i = 1; i < n; i++){
+ctx.beginPath();
+if(!horiz){
+const y = it.y + it.h * i / n;
+ctx.moveTo(it.x, y); ctx.lineTo(it.x + it.w, y);
+}else{
+const x = it.x + it.w * i / n;
+ctx.moveTo(x, it.y); ctx.lineTo(x, it.y + it.h);
+}
+ctx.stroke();
+}
+// 上り矢印
+ctx.strokeStyle = "#6a6052";
+ctx.fillStyle = "#6a6052";
+ctx.lineWidth = 2 / scale;
+const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+const ax = horiz ? it.w * 0.34 : 0, ay = horiz ? 0 : it.h * 0.34;
+ctx.beginPath();
+ctx.moveTo(cx - ax, cy - ay); ctx.lineTo(cx + ax, cy + ay); ctx.stroke();
+const ah = Math.min(it.w, it.h) * 0.12;
+ctx.beginPath();
+if(!horiz){ ctx.moveTo(cx, cy + ay); ctx.lineTo(cx - ah, cy + ay - ah); ctx.lineTo(cx + ah, cy + ay - ah); }
+else { ctx.moveTo(cx + ax, cy); ctx.lineTo(cx + ax - ah, cy - ah); ctx.lineTo(cx + ax - ah, cy + ah); }
+ctx.closePath(); ctx.fill();
+
+const fs = Math.max(7, Math.min(11, Math.min(it.w, it.h) * 0.24)) / scale;
+ctx.fillStyle = "#5a5247";
+ctx.font = `600 ${fs}px -apple-system, "Hiragino Sans", sans-serif`;
+ctx.textAlign = "center"; ctx.textBaseline = "middle";
+ctx.fillText(it.label || "階段", cx, it.y + fs * 1.1);
+ctx.restore();
+}
+
 /* v2.4: 家具の描画 */
 function drawFurn(it){
+const fc = el('showFurn');
+if(fc && !fc.checked && !isExporting) return;
 const LA = (editLayer === 'plan' && !isExporting) ? 0.35 : 1; // 間取りモードでは薄く
 ctx.save();
 ctx.fillStyle = it.color || "#E3E3E9";
@@ -3890,6 +3957,18 @@ ctx.beginPath();
 ctx.moveTo(it.x, it.y);
 ctx.lineTo(it.x + it.w, it.y + it.h);
 ctx.stroke();
+ctx.globalAlpha = LA;
+// 正面マーカー（下辺＝正面を示す小三角）
+ctx.globalAlpha = 0.5 * LA;
+ctx.fillStyle = "#55555c";
+const mw = Math.min(it.w, it.h) * 0.18;
+const mcx = it.x + it.w / 2, mby = it.y + it.h;
+ctx.beginPath();
+ctx.moveTo(mcx - mw, mby);
+ctx.lineTo(mcx + mw, mby);
+ctx.lineTo(mcx, mby - mw);
+ctx.closePath();
+ctx.fill();
 ctx.globalAlpha = LA;
 
 const fs = Math.max(7, Math.min(12, Math.min(it.w, it.h) * 0.30)) / scale;
@@ -4076,7 +4155,7 @@ function drawMerged(){
 
   // 1. データ整理
   items.forEach((item) => {
-    if(item.type === 'wallLine' || item.type === 'opening' || item.type === 'furn') return;
+    if(item.type === 'wallLine' || item.type === 'opening' || item.type === 'furn' || item.type === 'stair') return;
     if (item.type !== 'frame') {
       if (!groups[item.label]) {
         groups[item.label] = {
@@ -4103,7 +4182,7 @@ function drawMerged(){
 
   // 2. 塗りつぶし
   items.forEach(item => {
-    if(item.type === 'wallLine' || item.type === 'opening' || item.type === 'furn') return;
+    if(item.type === 'wallLine' || item.type === 'opening' || item.type === 'furn' || item.type === 'stair') return;
     if(item.type === 'frame'){
       ctx.globalAlpha = 1.0; ctx.fillStyle = "#ffffff";
     }else{
@@ -4247,6 +4326,7 @@ function drawMerged(){
   // 壁描画
   items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
   items.forEach(it => { if(it.type === 'opening') drawOpening(it); });
+  items.forEach(it => { if(it.type === 'stair') drawStair(it); });
   items.forEach(it => { if(it.type === 'furn') drawFurn(it); });
   drawElecSymbols();
 
@@ -5547,7 +5627,7 @@ if(!isMerged && it.type !== 'frame') continue;
 if(isMerged && it.type === 'frame') continue;
 
 // ✅ レイヤー制御：間取りモードでは家具・建具に触れない／内装モードでは部屋・内壁に触れない
-if(isMerged && editLayer === 'plan' && (it.type === 'furn' || it.type === 'opening')) continue;
+if(isMerged && editLayer === 'plan' && (it.type === 'furn' || it.type === 'stair' || it.type === 'opening')) continue;
 if(isMerged && editLayer === 'interior' && (it.type === 'room' || it.type === 'wallLine')) continue;
 
 if(isLineType(it.type)){
@@ -6144,7 +6224,8 @@ const d = list.find(x => x.id === elecSelId);
 if(!d){ bar.style.display = 'none'; return; }
 const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
 bar.style.display = 'flex';
-bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> FL+${d.h} / 左から${d.x}mm
+const rm = elecRoomById(d.roomId);
+bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> ${rm ? rm.label : ''}・${ELEC_WALL_NAMES[d.wall]} / FL+${d.h} / 左${d.x}mm
 <button data-act="hup" type="button">高さ+50</button>
 <button data-act="hdn" type="button">高さ−50</button>
 <button data-act="xl" type="button">←50</button>
@@ -6176,6 +6257,26 @@ draw();
 scheduleAutoSave();
 }
 
+/* その壁に接する家具を展開図用に抽出（壁沿い±450mm） */
+function elecFurnOn(room, wi){
+const TOL = mm2px(450);
+const out = [];
+syncActiveFloor();
+(floors[activeFloor].items || []).forEach(f => {
+if(f.type !== 'furn' && f.type !== 'stair') return;
+const fx2 = f.x + f.w, fy2 = f.y + f.h;
+// 部屋と重なっているもののみ
+if(fx2 < room.x || f.x > room.x + room.w || fy2 < room.y || f.y > room.y + room.h) return;
+let near = false, fromMm = 0, wMm = 0;
+if(wi === 0){ if(f.y - room.y < TOL){ near = true; fromMm = px2mm(Math.max(room.x, f.x) - room.x); wMm = px2mm(Math.min(room.x + room.w, fx2) - Math.max(room.x, f.x)); } }
+else if(wi === 2){ if((room.y + room.h) - fy2 < TOL){ near = true; fromMm = px2mm((room.x + room.w) - Math.min(room.x + room.w, fx2)); wMm = px2mm(Math.min(room.x + room.w, fx2) - Math.max(room.x, f.x)); } }
+else if(wi === 1){ if((room.x + room.w) - fx2 < TOL){ near = true; fromMm = px2mm(Math.max(room.y, f.y) - room.y); wMm = px2mm(Math.min(room.y + room.h, fy2) - Math.max(room.y, f.y)); } }
+else if(wi === 3){ if(f.x - room.x < TOL){ near = true; fromMm = px2mm((room.y + room.h) - Math.min(room.y + room.h, fy2)); wMm = px2mm(Math.min(room.y + room.h, fy2) - Math.max(room.y, f.y)); } }
+if(near && wMm > 30) out.push({ fromMm, wMm, h: (f.fh || (f.type === 'stair' ? 2400 : 700)), label: f.label, stair: f.type === 'stair' });
+});
+return out;
+}
+
 function elecWallSvg(room, wi){
 const W = Math.max(300, elecWallLenMm(room, wi));
 const H = ELEC_CEIL_MM;
@@ -6183,6 +6284,12 @@ const list = getElecList().filter(d => d.roomId === room.id && d.wall === wi);
 let s = `<svg viewBox="-70 -50 ${W + 140} ${H + 130}" data-wall="${wi}">`;
 s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#FBF8F2" stroke="#3a3a3e" stroke-width="16"/>`;
 s += `<line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="#3a3a3e" stroke-width="26"/>`;
+// 壁沿いの家具（薄い実線ボックス）
+elecFurnOn(room, wi).forEach(fo => {
+const fh = Math.min(H, Math.max(120, fo.h));
+s += `<rect x="${fo.fromMm}" y="${H - fh}" width="${fo.wMm}" height="${fh}" fill="${fo.stair ? 'rgba(216,205,182,.5)' : 'rgba(120,120,128,.16)'}" stroke="${fo.stair ? '#a99f86' : '#9a9aa0'}" stroke-width="8" stroke-dasharray="22,14"/>`;
+s += `<text x="${fo.fromMm + fo.wMm / 2}" y="${H - fh / 2}" font-size="58" fill="#7a7a80" text-anchor="middle" dominant-baseline="middle">${fo.label}</text>`;
+});
 elecOpeningsOn(room, wi).forEach(o => {
 const oy = H - o.t, oh = o.t - o.b;
 const fill = o.win ? '#D5E8F5' : '#E8D9C8';
@@ -6215,7 +6322,8 @@ for(let wi = 0; wi < 4; wi++){
 const card = document.createElement('div');
 card.className = 'elecwall';
 const cnt = getElecList().filter(d => d.roomId === room.id && d.wall === wi).length;
-card.innerHTML = `<h4>${room.label} ｜ ${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個 ・ 室内から見た展開図</div>${elecWallSvg(room, wi)}`;
+const fcnt = elecFurnOn(room, wi).length;
+card.innerHTML = `<h4>${room.label} ｜ ${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""} ・ 室内から見た展開図</div>${elecWallSvg(room, wi)}`;
 wrap.appendChild(card);
 
 const svg = card.querySelector('svg');
@@ -6314,6 +6422,14 @@ const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
 const p = elecToWorld(room, d.wall, d.x);
 if(!p) return;
 const r = 4.5 / scale;
+// 部屋の内側へ向くティック（向きが一目で分かる）
+const inv = { 0:[0,1], 1:[-1,0], 2:[0,-1], 3:[1,0] }[d.wall] || [0,1];
+ctx.strokeStyle = t.color;
+ctx.lineWidth = 1.6 / scale;
+ctx.beginPath();
+ctx.moveTo(p.x, p.y);
+ctx.lineTo(p.x + inv[0] * r * 1.7, p.y + inv[1] * r * 1.7);
+ctx.stroke();
 ctx.beginPath();
 ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
 ctx.fillStyle = '#fff';
@@ -6529,6 +6645,33 @@ ceil.position.set(f.x + f.w / 2, topY + 0.5, f.y + f.h / 2);
 ceil.visible = v3dWalk;
 v3dCeilings.push(ceil);
 group.add(ceil);
+});
+
+// 階段（ステップ状）
+fItems.forEach(it => {
+if(it.type !== 'stair') return;
+const steps = 10;
+const stepH = (V3D_WALL_H + V3D_SLAB_T) / steps;
+const horiz = (it.dir === 1 || it.dir === 3);
+const matS = new T.MeshLambertMaterial({ color: new T.Color('#d8cdb6') });
+for(let i = 0; i < steps; i++){
+let bw, bd, bx, bz;
+const frac = (i + 1) / steps;
+if(!horiz){
+bw = it.w; bd = it.h / steps;
+bx = it.x + it.w / 2;
+bz = (it.dir === 2) ? (it.y + it.h - it.h * frac + bd / 2) : (it.y + it.h * i / steps + bd / 2);
+}else{
+bw = it.w / steps; bd = it.h;
+bz = it.y + it.h / 2;
+bx = (it.dir === 3) ? (it.x + it.w - it.w * frac + bw / 2) : (it.x + it.w * i / steps + bw / 2);
+}
+const hh = stepH * (i + 1);
+const m = new T.Mesh(new T.BoxGeometry(bw, hh, bd), matS);
+m.position.set(bx, yBase + hh / 2, bz);
+m.castShadow = true; m.receiveShadow = true;
+group.add(m);
+}
 });
 
 // 家具（干渉確認用ボックス）
@@ -7044,7 +7187,9 @@ if(el('openingFlipBtn')) el('openingFlipBtn').style.display = showFlip ? '' : 'n
 if(el('openingHingeBtn')) el('openingHingeBtn').style.display = showHinge ? '' : 'none';
 if(el('slidePanelsBtn')) el('slidePanelsBtn').style.display = showPanels ? '' : 'none';
 const furnSel = !!(selectedItem && selectedItem.type === 'furn') && !isReadOnly;
+const stairSel = !!(selectedItem && selectedItem.type === 'stair') && !isReadOnly;
 if(el('furnSizeBtn')) el('furnSizeBtn').style.display = furnSel ? '' : 'none';
+if(el('furnRotateBtn')) el('furnRotateBtn').style.display = (furnSel || stairSel) ? '' : 'none';
 if(opSel){
 if(el('editNameBtn')) el('editNameBtn').style.display = 'none';
 if(el('selectedColorLabel')) el('selectedColorLabel').style.display = 'none';
@@ -7212,6 +7357,7 @@ const name = (el('furnName').value || '家具').trim() || '家具';
 const wmm = Math.max(50, Math.min(6000, Number(el('furnW').value) || 0));
 const dmm = Math.max(50, Math.min(6000, Number(el('furnD').value) || 0));
 const hmm = Math.max(50, Math.min(2400, Number(el('furnH').value) || 700));
+const isStair = /階段/.test(name);
 if(!Number(el('furnW').value) || !Number(el('furnD').value)){
 showToast('幅と奥行（mm）を入力してください');
 return;
@@ -7226,7 +7372,13 @@ selectedItem = furnEditTarget;
 }else{
 const wx = -camera.x / scale;
 const wy = -camera.y / scale;
-const it = {
+const it = isStair ? {
+type: 'stair', label: name, dir: 0,
+w: mm2px(wmm), h: mm2px(dmm),
+x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
+y: getSnapped(wy, FURN_SNAP) - mm2px(dmm) / 2,
+color: "#EAE6DC", locked: false
+} : {
 type: 'furn', label: name,
 w: mm2px(wmm), h: mm2px(dmm), fh: hmm,
 x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
@@ -7247,6 +7399,30 @@ scheduleAutoSave();
 if(el('furnSizeBtn')) el('furnSizeBtn').onclick = () => {
 if(selectedItem && selectedItem.type === 'furn') openFurnModal(selectedItem);
 };
+if(el('furnRotateBtn')) el('furnRotateBtn').onclick = () => {
+const it = selectedItem;
+if(it && it.type === 'stair' && !isReadOnly){
+pushHistory();
+it.dir = ((it.dir || 0) + 1) % 4;
+const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+const nw = it.h, nh = it.w; it.w = nw; it.h = nh;
+it.x = getSnapped(cx - nw / 2, FURN_SNAP);
+it.y = getSnapped(cy - nh / 2, FURN_SNAP);
+draw(); scheduleAutoSave(); showToast('階段を回転', 800);
+return;
+}
+if(!it || it.type !== 'furn' || isReadOnly) return;
+pushHistory();
+const cx = it.x + it.w / 2, cy = it.y + it.h / 2;  // 中心を保って90°回転
+const nw = it.h, nh = it.w;
+it.w = nw; it.h = nh;
+it.x = getSnapped(cx - nw / 2, FURN_SNAP);
+it.y = getSnapped(cy - nh / 2, FURN_SNAP);
+it.rotated = !it.rotated;
+draw();
+scheduleAutoSave();
+showToast('90°回転しました', 800);
+};
 if(el('layerPlanBtn')) el('layerPlanBtn').onclick = () => setEditLayer('plan');
 if(el('layerIntBtn')) el('layerIntBtn').onclick = () => setEditLayer('interior');
 updateLayerUI();
@@ -7260,6 +7436,14 @@ if(el('elecSelBar')) el('elecSelBar').addEventListener('click', (e) => {
 const b = e.target.closest('button[data-act]');
 if(b) elecAdjust(b.dataset.act);
 });
+const FURN_SHOW_KEY = 'floorplan_show_furn_v1';
+if(el('showFurn')){
+try{ const v = localStorage.getItem(FURN_SHOW_KEY); if(v !== null) el('showFurn').checked = (v === '1'); }catch(_){}
+el('showFurn').addEventListener('change', (e) => {
+try{ localStorage.setItem(FURN_SHOW_KEY, e.target.checked ? '1' : '0'); }catch(_){}
+draw();
+});
+}
 const ELEC_SHOW_KEY = 'floorplan_show_elec_v1';
 if(el('showElec')){
 try{
