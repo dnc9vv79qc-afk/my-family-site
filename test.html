@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.2</title>
+<title>間取り検討サイト（Ichijo) v9.3</title>
 
 <style>
 :root{
@@ -1529,7 +1529,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.2 by yuchi🐔</div>
+<div class="v2verline">ver 3.3 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1640,7 +1640,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">🪜</div>
 <div class="help-content">
 <b>家具の回転・階段（かね折れ対応）</b>
-階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
+階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
 <div class="help-row">
@@ -2125,7 +2125,7 @@ function quantizeAllToGrid(step){
   if(!step) step = getSnapStep();
   syncActiveFloor();
   floors.forEach(f => (f.items || []).forEach(it => {
-    if(it.type === 'furn' || it.type === 'stair') return; // 家具・階段はmm精度を保持
+    if(it.type === 'furn') return; // 家具のみmm精度を保持（階段は0.5マスに揃える）
     if(isLineType(it.type)){
       it.x1 = getSnapped(it.x1, step);
       it.y1 = getSnapped(it.y1, step);
@@ -6822,21 +6822,31 @@ const info = stairTreads(lw, lh, it.shape || 'straight', it.winders || 3, !!it.m
 const steps = info.treads.length;
 const stepH = totalRise / steps;
 info.treads.forEach((tr, i) => {
-// 踏み板のローカル外接矩形 → it座標へ4点変換し平均/範囲を算出
 const pts = tr.poly.map(p => {
 const lx = swap ? p[1] : p[0];
 const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(it, lx, ly);
 });
 const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
-const minX = Math.min(...xs), maxX = Math.max(...xs);
-const minZ = Math.min(...zs), maxZ = Math.max(...zs);
-const bw = Math.max(2, maxX - minX), bd = Math.max(2, maxZ - minZ);
+let minX = Math.min(...xs), maxX = Math.max(...xs);
+let minZ = Math.min(...zs), maxZ = Math.max(...zs);
 const hh = stepH * (i + 1);
+if(tr.winder){
+// 廻り段：三角の重心に小さめブロック（平面図の扇形と位置を合わせる）
+const cL = swap ? [tr.cy, tr.cx] : [tr.cx, tr.cy];
+const c = stairLocalToWorld(it, cL[0], cL[1]);
+const sz = Math.max(4, Math.min(maxX - minX, maxZ - minZ) * 0.85);
+const m = new T.Mesh(new T.BoxGeometry(sz, hh, sz), matS);
+m.position.set(c[0], yBase + hh / 2, c[1]);
+m.castShadow = true; m.receiveShadow = true;
+group.add(m);
+}else{
+const bw = Math.max(2, maxX - minX), bd = Math.max(2, maxZ - minZ);
 const m = new T.Mesh(new T.BoxGeometry(bw, hh, bd), matS);
 m.position.set((minX + maxX) / 2, yBase + hh / 2, (minZ + maxZ) / 2);
 m.castShadow = true; m.receiveShadow = true;
 group.add(m);
+}
 });
 });
 
@@ -7593,6 +7603,9 @@ furnEditTarget.label = name;
 furnEditTarget.w = mm2px(wmm);
 furnEditTarget.h = mm2px(dmm);
 if(furnEditTarget.type === 'stair'){
+const gs = getSnapStep();
+furnEditTarget.w = Math.max(gs, getSnapped(mm2px(wmm), gs));
+furnEditTarget.h = Math.max(gs, getSnapped(mm2px(dmm), gs));
 furnEditTarget.shape = stairDraft.shape;
 furnEditTarget.winders = stairDraft.winders;
 furnEditTarget.mirror = stairDraft.mirror;
@@ -7604,15 +7617,20 @@ selectedItem = furnEditTarget;
 }else{
 const wx = -camera.x / scale;
 const wy = -camera.y / scale;
-const it = isStair ? {
+const it = isStair ? (() => {
+const gs = getSnapStep();                       // 0.5マス
+const sw = Math.max(gs, getSnapped(mm2px(wmm), gs));
+const sh = Math.max(gs, getSnapped(mm2px(dmm), gs));
+return {
 type: 'stair', label: name, dir: 0,
 shape: stairDraft.shape, winders: stairDraft.winders, mirror: stairDraft.mirror,
-w: mm2px(wmm), h: mm2px(dmm),
+w: sw, h: sh,
 fh: Math.max(2000, Math.min(3600, Number(el('furnH').value) || 3000)),
-x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
-y: getSnapped(wy, FURN_SNAP) - mm2px(dmm) / 2,
+x: getSnapped(wx - sw / 2, gs),
+y: getSnapped(wy - sh / 2, gs),
 color: "#EAE6DC", locked: false
-} : {
+};
+})() : {
 type: 'furn', label: name,
 w: mm2px(wmm), h: mm2px(dmm), fh: hmm,
 x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
