@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.5.1</title>
+<title>間取り検討サイト（Ichijo) v9.6</title>
 
 <style>
 :root{
@@ -1262,7 +1262,7 @@ display: flex; align-items: center; justify-content: space-between;
 .elecbody{ flex: 1; overflow-y: auto; padding: 12px 12px calc(env(safe-area-inset-bottom) + 24px); -webkit-overflow-scrolling: touch; }
 .elecrooms{ display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
 .elecrooms::-webkit-scrollbar{ display: none; }
-.elecrooms button{ flex-shrink: 0; font-size: 12px; padding: 8px 14px; border-radius: 14px; border: .5px solid rgba(60,60,67,.16); background: #fff; }
+.elecrooms button{ flex-shrink: 0; font-size: 12px; padding: 8px 14px; border-radius: 14px; border: .5px solid rgba(60,60,67,.16); background: #fff; color: #333; }
 .elecrooms button.on{ background: var(--accent); color: #fff; font-weight: 700; border-color: transparent; }
 .electools{
 position: sticky; top: 0; z-index: 5;
@@ -1293,7 +1293,7 @@ padding: 10px 10px 6px; margin-bottom: 12px;
 .elecwall h4{ font-size: 12px; font-weight: 800; margin: 0 0 1px; }
 .elecwall .meta{ font-size: 10px; color: #8a8a8e; margin-bottom: 6px; }
 .elechdr{ display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.elechdr .mini{ flex-shrink: 0; width: 60px; height: 60px; }
+.elechdr .mini{ flex-shrink: 0; width: 74px; height: 74px; }
 .elechdr .mini svg{ width: 100%; height: 100%; display: block; }
 .elechdr .txt{ min-width: 0; }
 .elechdr h4{ margin: 0; }
@@ -1412,7 +1412,12 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="elecbody">
 <div class="elecrooms" id="elecRooms"></div>
 <div class="electools" id="elecToolsBar"></div>
-<div class="elechint">壁をタップで配置（横50mm刻み・標準高さに自動）／ 記号をタップで選択して微調整</div>
+<div class="elecdefh" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 4px 8px; font-size:11px; color:#555;">
+<span>標準高さ</span>
+<label style="display:flex; align-items:center; gap:4px;">⌀<input type="number" id="elecDefOut" inputmode="numeric" style="width:58px; text-align:right; font-size:12px;">mm</label>
+<label style="display:flex; align-items:center; gap:4px;">S<input type="number" id="elecDefSw" inputmode="numeric" style="width:58px; text-align:right; font-size:12px;">mm</label>
+</div>
+<div class="elechint">壁をタップで配置（横50mm刻み）／ 記号をタップで選択して高さ・位置を微調整</div>
 <div id="elecSelBar" class="elecselbar" style="display:none;"></div>
 <div id="elecWalls"></div>
 <div class="eleccounts" id="elecCounts"></div>
@@ -1533,7 +1538,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.5 by yuchi🐔</div>
+<div class="v2verline">ver 3.6 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1673,7 +1678,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">⚡</div>
 <div class="help-content">
 <b>電気計画（コンセント・スイッチ）</b>
-「他」→「電気計画」で部屋を選ぶと、4面の壁の展開図が表示されます（ドア・窓は間取りから自動反映）。各壁カードの左上に部屋のミニ平面図が出て、編集中の壁が青くハイライトされるので、どの壁かが一目で分かります。ツールを選んで壁をタップで配置、記号タップで微調整。平面図にも記号が表示され、保存・共有にも含まれます。
+「他」→「電気計画」で部屋を選ぶと、4面の壁の展開図が表示されます（ドア・窓は間取りから自動反映）。各壁カードの左上に部屋のミニ平面図が出て、編集中の壁が青くハイライトされるので、どの壁かが一目で分かります。コンセント／スイッチを選んで壁をタップで配置。標準高さは上部で設定でき、記号をタップして個別に高さ・位置も変えられます。平面図にも記号が表示され、保存・共有にも含まれます。
 </div>
 </div>
 <div class="help-row">
@@ -6254,19 +6259,24 @@ el('downloadImageBtn').onclick = downloadImage;
 /* ============================================================
    v2.5: 電気計画（コンセント・スイッチ）
    ============================================================ */
+const ELEC_DEFAULT_H = { out: 250, sw: 1200 };
+try{
+const dh = JSON.parse(localStorage.getItem('floorplan_elec_defh_v1') || 'null');
+if(dh && typeof dh.out === 'number') ELEC_DEFAULT_H.out = dh.out;
+if(dh && typeof dh.sw === 'number') ELEC_DEFAULT_H.sw = dh.sw;
+}catch(_){}
+function elecToolH(id){ return (id === 'sw') ? ELEC_DEFAULT_H.sw : ELEC_DEFAULT_H.out; }
 const ELEC_TOOLS = [
-{ id:'out2', sym:'⌀2',  name:'コンセント2口', h:250,  color:'#0A84FF' },
-{ id:'out4', sym:'⌀4',  name:'コンセント4口', h:250,  color:'#0A66D6' },
-{ id:'sw',   sym:'S',   name:'スイッチ',      h:1200, color:'#34C759' },
-{ id:'sw3',  sym:'S3',  name:'3路スイッチ',   h:1200, color:'#2AA34A' },
-{ id:'tv',   sym:'TV',  name:'TV端子',        h:250,  color:'#FF9F0A' },
-{ id:'lan',  sym:'LAN', name:'LAN',           h:250,  color:'#BF5AF2' },
-{ id:'ac',   sym:'AC',  name:'エアコン用',    h:1900, color:'#FF453A' },
+{ id:'out', sym:'⌀', name:'コンセント', get h(){ return ELEC_DEFAULT_H.out; }, color:'#0A84FF' },
+{ id:'sw',  sym:'S', name:'スイッチ',   get h(){ return ELEC_DEFAULT_H.sw; },  color:'#34C759' },
 ];
+// 旧データ互換：古い種別を2種へ寄せる
+const ELEC_KIND_ALIAS = { out2:'out', out4:'out', tv:'out', lan:'out', ac:'out', sw3:'sw' };
+function elecToolOf(kind){ const k = ELEC_KIND_ALIAS[kind] || kind; return ELEC_TOOLS.find(t => t.id === k) || ELEC_TOOLS[0]; }
 const ELEC_WALL_NAMES = ['北側の壁', '東側の壁', '南側の壁', '西側の壁'];
 const ELEC_CEIL_MM = 2400;
 let elecRoomId = null;
-let elecToolId = 'out2';
+let elecToolId = 'out';
 let elecSelId = null;
 
 function getElecList(){
@@ -6381,7 +6391,7 @@ if(!bar) return;
 const list = getElecList();
 const d = list.find(x => x.id === elecSelId);
 if(!d){ bar.style.display = 'none'; return; }
-const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+const t = elecToolOf(d.kind);
 bar.style.display = 'flex';
 const rm = elecRoomById(d.roomId);
 bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> ${rm ? rm.label : ''}・${ELEC_WALL_NAMES[d.wall]} / FL+${d.h} / 左${d.x}mm
@@ -6418,7 +6428,7 @@ scheduleAutoSave();
 
 /* その壁に接する家具を展開図用に抽出（壁沿い±450mm） */
 function elecFurnOn(room, wi){
-const TOL = mm2px(450);
+const TOL = mm2px(120); // 壁にしっかり接している家具のみ
 const out = [];
 syncActiveFloor();
 (floors[activeFloor].items || []).forEach(f => {
@@ -6436,46 +6446,59 @@ if(near && wMm > 30) out.push({ fromMm, wMm, h: (f.fh || (f.type === 'stair' ? 2
 return out;
 }
 
-/* v2.8: 部屋のミニ平面図（該当する壁を青くハイライト） */
+/* v3.6: フロア全体のミニ平面図（現在の部屋＋壁を青ハイライト・位置関係が分かる） */
 function elecMiniSvg(room, wi){
-const pad = 14;
-const maxW = 100 - pad * 2, maxH = 100 - pad * 2;
-const rw = room.w, rh = room.h;
-const k = Math.min(maxW / rw, maxH / rh);
-const w = rw * k, h = rh * k;
-const ox = (100 - w) / 2, oy = (100 - h) / 2;
-// 各壁辺の座標（0:北上 1:東右 2:南下 3:西左）
-const edges = [
-[ox, oy, ox + w, oy],
-[ox + w, oy, ox + w, oy + h],
-[ox, oy + h, ox + w, oy + h],
-[ox, oy, ox, oy + h],
-];
+syncActiveFloor();
+const fl = floors[activeFloor];
+const rooms = (fl.items || []).filter(i => i.type === 'room');
+const frames = (fl.items || []).filter(i => i.type === 'frame');
+// フロア全体のbbox（外枠優先）
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+const acc = (x, y, w, h) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h); };
+(frames.length ? frames : rooms).forEach(r => acc(r.x, r.y, r.w, r.h));
+if(!isFinite(minX)) acc(room.x, room.y, room.w, room.h);
+const pad = 8;
+const bw = maxX - minX, bh = maxY - minY;
+const k = Math.min((100 - pad * 2) / bw, (100 - pad * 2) / bh);
+const sw = bw * k, sh = bh * k;
+const ox = (100 - sw) / 2, oy = (100 - sh) / 2;
+const X = (x) => ox + (x - minX) * k;
+const Y = (y) => oy + (y - minY) * k;
+
 let s = `<svg viewBox="0 0 100 100" aria-hidden="true">`;
-s += `<rect x="${ox}" y="${oy}" width="${w}" height="${h}" fill="#F4F1EA" stroke="#c9c4b8" stroke-width="2"/>`;
-// 全壁を薄いグレーで、選択壁だけ太い青で
-edges.forEach((e, i) => {
-const on = (i === wi);
-s += `<line x1="${e[0]}" y1="${e[1]}" x2="${e[2]}" y2="${e[3]}" stroke="${on ? '#007AFF' : '#b6b1a5'}" stroke-width="${on ? 6 : 3}" stroke-linecap="round"/>`;
+// 外枠
+frames.forEach(f => { s += `<rect x="${X(f.x)}" y="${Y(f.y)}" width="${f.w*k}" height="${f.h*k}" fill="#FBF8F2" stroke="#c9c4b8" stroke-width="1.2"/>`; });
+// 全部屋（薄いグレー）
+rooms.forEach(r => {
+const cur = (r.id === room.id);
+s += `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w*k}" height="${r.h*k}" fill="${cur ? 'rgba(0,122,255,.12)' : 'rgba(120,120,128,.07)'}" stroke="${cur ? '#007AFF' : '#cfcabd'}" stroke-width="${cur ? 1.6 : 0.8}"/>`;
 });
-// 配置済み器具の点
+// 現在の壁を青く太く
+const ex = [
+[X(room.x), Y(room.y), X(room.x+room.w), Y(room.y)],
+[X(room.x+room.w), Y(room.y), X(room.x+room.w), Y(room.y+room.h)],
+[X(room.x), Y(room.y+room.h), X(room.x+room.w), Y(room.y+room.h)],
+[X(room.x), Y(room.y), X(room.x), Y(room.y+room.h)],
+][wi];
+s += `<line x1="${ex[0]}" y1="${ex[1]}" x2="${ex[2]}" y2="${ex[3]}" stroke="#007AFF" stroke-width="3.5" stroke-linecap="round"/>`;
+// 室内側マーク
+const mx = (ex[0]+ex[2])/2, my = (ex[1]+ex[3])/2;
+const cx = X(room.x+room.w/2), cy = Y(room.y+room.h/2);
+const dx = cx-mx, dy = cy-my, dl = Math.hypot(dx,dy)||1;
+s += `<circle cx="${mx+dx/dl*6}" cy="${my+dy/dl*6}" r="2.2" fill="#007AFF"/>`;
+// この部屋の器具点
 getElecList().filter(d => d.roomId === room.id).forEach(d => {
 const lenMm = elecWallLenMm(room, d.wall);
 const frac = Math.max(0, Math.min(1, d.x / lenMm));
-const e = edges[d.wall];
-const px = e[0] + (e[2] - e[0]) * frac;
-const py = e[1] + (e[3] - e[1]) * frac;
-const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
-s += `<circle cx="${px}" cy="${py}" r="${d.wall === wi ? 4 : 2.6}" fill="${t.color}" stroke="#fff" stroke-width="1"/>`;
+const e = [
+[X(room.x), Y(room.y), X(room.x+room.w), Y(room.y)],
+[X(room.x+room.w), Y(room.y), X(room.x+room.w), Y(room.y+room.h)],
+[X(room.x), Y(room.y+room.h), X(room.x+room.w), Y(room.y+room.h)],
+[X(room.x), Y(room.y), X(room.x), Y(room.y+room.h)],
+][d.wall];
+const px = e[0]+(e[2]-e[0])*frac, py = e[1]+(e[3]-e[1])*frac;
+s += `<circle cx="${px}" cy="${py}" r="1.8" fill="${elecToolOf(d.kind).color}" stroke="#fff" stroke-width="0.6"/>`;
 });
-// 室内側を示す「内」マーク（選択壁の内向き矢印）
-const ec = edges[wi];
-const mx = (ec[0] + ec[2]) / 2, my = (ec[1] + ec[3]) / 2;
-const cx = ox + w / 2, cy = oy + h / 2;
-const dx = cx - mx, dy = cy - my, dl = Math.hypot(dx, dy) || 1;
-const ax = mx + dx / dl * 12, ay = my + dy / dl * 12;
-s += `<line x1="${mx}" y1="${my}" x2="${ax}" y2="${ay}" stroke="#007AFF" stroke-width="2"/>`;
-s += `<circle cx="${ax}" cy="${ay}" r="2.4" fill="#007AFF"/>`;
 s += `</svg>`;
 return s;
 }
@@ -6501,7 +6524,7 @@ s += `<rect x="${o.fromMm}" y="${oy}" width="${o.wMm}" height="${oh}" fill="${fi
 s += `<text x="${o.fromMm + o.wMm / 2}" y="${oy + oh / 2}" font-size="78" fill="${stroke}" text-anchor="middle" dominant-baseline="middle">${o.label}</text>`;
 });
 list.forEach(d => {
-const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+const t = elecToolOf(d.kind);
 const y = H - d.h;
 const sel = (d.id === elecSelId);
 s += `<g class="edev" data-id="${d.id}" style="cursor:pointer;">`;
@@ -6553,7 +6576,7 @@ pushHistory();
 const d = {
 id: uid(), kind: tool.id, roomId: room.id, wall: wi,
 x: clamp(Math.round(p.x / 50) * 50, 50, lenMm - 50),
-h: tool.h
+h: elecToolH(tool.id)
 };
 getElecList().push(d);
 elecSelId = d.id;
@@ -6594,6 +6617,8 @@ function openElecPlanner(){
 syncActiveFloor();
 const fn = el('elecFloorName');
 if(fn) fn.textContent = `（${floors[activeFloor].name}）`;
+if(el('elecDefOut')) el('elecDefOut').value = ELEC_DEFAULT_H.out;
+if(el('elecDefSw')) el('elecDefSw').value = ELEC_DEFAULT_H.sw;
 const rooms = elecRoomsOfFloor();
 if(!elecRoomById(elecRoomId)) elecRoomId = rooms.length ? rooms[0].id : null;
 elecSelId = null;
@@ -6621,7 +6646,7 @@ ctx.globalAlpha = (editLayer === 'plan' && !isExporting) ? 0.3 : 1;
 fl.elec.forEach(d => {
 const room = byId[d.roomId];
 if(!room) return;
-const t = ELEC_TOOLS.find(x => x.id === d.kind) || ELEC_TOOLS[0];
+const t = elecToolOf(d.kind);
 const p = elecToWorld(room, d.wall, d.x);
 if(!p) return;
 const r = 4.5 / scale;
@@ -7755,6 +7780,19 @@ v2CloseSheet('moreSheet');
 openElecPlanner();
 };
 if(el('elecCloseBtn')) el('elecCloseBtn').onclick = closeElecPlanner;
+const saveDefH = () => { try{ localStorage.setItem('floorplan_elec_defh_v1', JSON.stringify(ELEC_DEFAULT_H)); }catch(_){} };
+if(el('elecDefOut')){
+el('elecDefOut').addEventListener('change', (e) => {
+let v = parseInt(e.target.value, 10);
+if(!isNaN(v)){ ELEC_DEFAULT_H.out = Math.max(0, Math.min(2400, Math.round(v/10)*10)); e.target.value = ELEC_DEFAULT_H.out; saveDefH(); elecRenderWalls(); }
+});
+}
+if(el('elecDefSw')){
+el('elecDefSw').addEventListener('change', (e) => {
+let v = parseInt(e.target.value, 10);
+if(!isNaN(v)){ ELEC_DEFAULT_H.sw = Math.max(0, Math.min(2400, Math.round(v/10)*10)); e.target.value = ELEC_DEFAULT_H.sw; saveDefH(); elecRenderWalls(); }
+});
+}
 if(el('elecSelBar')) el('elecSelBar').addEventListener('click', (e) => {
 const b = e.target.closest('button[data-act]');
 if(b) elecAdjust(b.dataset.act);
