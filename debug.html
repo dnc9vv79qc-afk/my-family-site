@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v10.0</title>
+<title>間取り検討サイト（Ichijo) v10.1</title>
 
 <style>
 :root{
@@ -1554,7 +1554,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 4.0 by yuchi🐔</div>
+<div class="v2verline">ver 4.1 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1687,7 +1687,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">🔀</div>
 <div class="help-content">
 <b>窓の高さ・下がり天井</b>
-窓を選んで「窓高」で腰窓・掃出し・高窓・地窓などを切り替え（3Dと電気展開図に反映）。部屋を選んで「下天」で下がり天井（2200/2000/1800mm）を設定でき、3Dの歩行中にその高さで天井が下がります。引き戸は枚数（片引き/引違い/3連）が3Dにも反映されます。電気計画では、間に壁の無い隣接ブロックは自動で1部屋に結合され、外周の壁だけが展開図に並びます（「＋」付きが結合部屋）。
+窓を選んで「窓高」でプリセット（腰窓/掃出し/高窓/地窓/大窓）の選択＋幅・下端・上端のmm直接指定ができます（3Dと電気展開図に反映）。部屋を選んで「下天」で下がり天井（2200/2000/1800mm）を設定でき、3Dの歩行中にその高さで天井が下がります。引き戸は枚数（片引き/引違い/3連）が3Dにも反映されます。電気計画では、間に壁の無い隣接ブロックは自動で1部屋に結合され、外周の壁だけが展開図に並びます（「＋」付きが結合部屋）。
 </div>
 </div>
 <div class="help-row">
@@ -1804,6 +1804,24 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div style="display:flex; gap:8px;">
 <button class="pill" id="furnCancelBtn" type="button" style="flex:1;">キャンセル</button>
 <button class="pill" id="furnOkBtn" type="button" style="flex:1; background:rgba(10,132,255,.92); color:#fff;">OK</button>
+</div>
+</div>
+</div>
+
+<div id="winModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">窓のサイズ・高さ</h3>
+<div style="font-size:12px;color:#666;margin-bottom:10px;">プリセットを選ぶか、mmで直接指定できます。</div>
+<div id="winChips" style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;"></div>
+<div style="display:flex; gap:8px; margin-bottom:6px;">
+<label style="flex:1; font-size:11px; color:#555;">幅mm<input type="number" id="winW" inputmode="numeric" style="width:100%; text-align:right;"></label>
+<label style="flex:1; font-size:11px; color:#555;">下端mm<input type="number" id="winB2" inputmode="numeric" style="width:100%; text-align:right;"></label>
+<label style="flex:1; font-size:11px; color:#555;">上端mm<input type="number" id="winT2" inputmode="numeric" style="width:100%; text-align:right;"></label>
+</div>
+<div style="font-size:10.5px;color:#8a8a8e;margin-bottom:12px;">下端＝床から窓の下まで／上端＝床から窓の上まで（mm）</div>
+<div style="display:flex; gap:8px;">
+<button class="pill" id="winCancelBtn" type="button" style="flex:1;">キャンセル</button>
+<button class="pill" id="winOkBtn" type="button" style="flex:1; background:rgba(10,132,255,.92); color:#fff;">OK</button>
 </div>
 </div>
 </div>
@@ -6450,6 +6468,144 @@ return edges;
 }
 
 /* 展開図のmm座標 → 平面のpx座標（壁wi: 0北/1東/2南/3西、左原点は室内から見た左） */
+/* === v4.1: ユニットの外周をセルベースで抽出（3Dの外壁と同じ挙動） === */
+function elecUnitPerimeter(unit){
+const sub = 16;
+const cells = new Set();
+unit.members.forEach(r => {
+for(let x = r.x; x < r.x + r.w - 0.5; x += sub)
+for(let y = r.y; y < r.y + r.h - 0.5; y += sub) cells.add(Math.round(x) + "," + Math.round(y));
+});
+const hMap = new Map(), vMap = new Map();
+const addE = (map, k, v) => { if(!map.has(k)) map.set(k, new Set()); map.get(k).add(v); };
+cells.forEach(key => {
+const [x, y] = key.split(',').map(Number);
+if(!cells.has(x + "," + (y - sub))) addE(hMap, y + "|d", x);       // 上辺：室内は下(down)
+if(!cells.has(x + "," + (y + sub))) addE(hMap, (y + sub) + "|u", x); // 下辺：室内は上(up)
+if(!cells.has((x - sub) + "," + y)) addE(vMap, x + "|r", y);        // 左辺：室内は右(right)
+if(!cells.has((x + sub) + "," + y)) addE(vMap, (x + sub) + "|l", y);// 右辺：室内は左(left)
+});
+const segs = [];
+const runs = (map, horiz) => {
+map.forEach((set, key) => {
+const [fixedStr, dir] = key.split("|");
+const fixed = Number(fixedStr);
+const arr = [...set].sort((a, b) => a - b);
+let s = null, prev = null;
+const push = (a, b) => {
+let seg;
+if(horiz){ const ny = (dir === "d") ? 1 : -1; seg = { x1: a, y1: fixed, x2: b, y2: fixed, nx: 0, ny }; }
+else { const nx = (dir === "r") ? 1 : -1; seg = { x1: fixed, y1: a, x2: fixed, y2: b, nx, ny: 0 }; }
+segs.push(seg);
+};
+arr.forEach(v => {
+if(s === null){ s = v; prev = v; return; }
+if(v === prev + sub){ prev = v; return; }
+push(s, prev + sub); s = v; prev = v;
+});
+if(s !== null) push(s, prev + sub);
+});
+};
+runs(hMap, true);
+runs(vMap, false);
+return segs.map(s => {
+const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
+let name, ox, oy, ux, uy;
+if(s.ny === 1){ name = '北側の壁'; ox = Math.min(s.x1, s.x2); oy = s.y1; ux = 1; uy = 0; }
+else if(s.ny === -1){ name = '南側の壁'; ox = Math.max(s.x1, s.x2); oy = s.y1; ux = -1; uy = 0; }
+else if(s.nx === 1){ name = '西側の壁'; ox = s.x1; oy = Math.max(s.y1, s.y2); ux = 0; uy = -1; }
+else { name = '東側の壁'; ox = s.x1; oy = Math.min(s.y1, s.y2); ux = 0; uy = 1; }
+return { ...s, len, name, ox, oy, ux, uy };
+}).filter(s => s.len > 4);
+}
+
+function elecSegToWorld(seg, xmm){ const p = mm2px(xmm); return { x: seg.ox + seg.ux * p, y: seg.oy + seg.uy * p }; }
+function elecWorldToSegX(seg, wx, wy){ return px2mm((wx - seg.ox) * seg.ux + (wy - seg.oy) * seg.uy); }
+function elecSegLenMm(seg){ return px2mm(seg.len); }
+
+/* 旧形式デバイス {roomId,wall,x} を 世界座標 {wx,wy,nx,ny} に遅延変換 */
+function elecEnsureWorld(d){
+if(typeof d.wx === 'number' && typeof d.wy === 'number') return true;
+if(d.roomId === undefined || d.wall === undefined) return false;
+const room = elecRoomById(d.roomId);
+if(!room) return false;
+const p = elecToWorld(room, d.wall, d.x || 0);
+if(!p) return false;
+d.wx = p.x; d.wy = p.y;
+const nrm = { 0:[0,1], 1:[-1,0], 2:[0,-1], 3:[1,0] }[d.wall] || [0,1];
+d.nx = nrm[0]; d.ny = nrm[1];
+return true;
+}
+
+function elecOpeningsOnSeg(seg){
+const tol = mm2px(14); const out = [];
+const horiz = (seg.y1 === seg.y2);
+syncActiveFloor();
+(floors[activeFloor].items || []).forEach(op => {
+if(op.type !== 'opening') return;
+const oh = (op.y1 === op.y2);
+if(oh !== horiz) return;
+if(horiz){ if(Math.abs(op.y1 - seg.y1) > tol) return; }
+else { if(Math.abs(op.x1 - seg.x1) > tol) return; }
+const p1 = (op.x1 - seg.ox) * seg.ux + (op.y1 - seg.oy) * seg.uy;
+const p2 = (op.x2 - seg.ox) * seg.ux + (op.y2 - seg.oy) * seg.uy;
+const a = Math.max(0, Math.min(p1, p2)), b = Math.min(seg.len, Math.max(p1, p2));
+if(b - a < 2) return;
+const win = (op.kind === 'window');
+out.push({ fromMm: px2mm(a), wMm: px2mm(b - a),
+b: win ? (typeof op.winB === 'number' ? op.winB : 900) : 0,
+t: win ? (typeof op.winT === 'number' ? op.winT : 2000) : 2000,
+label: win ? '窓' : (op.kind === 'slide' ? (SLIDE_LABEL[op.panels || 2] || '引き戸') : (op.kind === 'fold' ? '折れ戸' : 'ドア')),
+win });
+});
+return out;
+}
+
+function elecFurnOnSeg(seg){
+const TOL = mm2px(120); const out = [];
+const horiz = (seg.y1 === seg.y2);
+syncActiveFloor();
+(floors[activeFloor].items || []).forEach(f => {
+if(f.type !== 'furn' && f.type !== 'stair') return;
+const fx2 = f.x + f.w, fy2 = f.y + f.h;
+if(horiz){
+const Y = seg.y1;
+const dist = (seg.ny > 0) ? Math.abs(f.y - Y) : Math.abs(fy2 - Y);
+if(dist > TOL) return;
+const lo = Math.max(Math.min(seg.x1, seg.x2), f.x), hi = Math.min(Math.max(seg.x1, seg.x2), fx2);
+if(hi - lo < mm2px(80)) return;
+const pa = (lo - seg.ox) * seg.ux, pb = (hi - seg.ox) * seg.ux;
+out.push({ fromMm: px2mm(Math.min(pa, pb)), wMm: px2mm(Math.abs(pb - pa)), h: (f.fh || (f.type === 'stair' ? 2400 : 700)), label: f.label, stair: f.type === 'stair' });
+}else{
+const X = seg.x1;
+const dist = (seg.nx > 0) ? Math.abs(f.x - X) : Math.abs(fx2 - X);
+if(dist > TOL) return;
+const lo = Math.max(Math.min(seg.y1, seg.y2), f.y), hi = Math.min(Math.max(seg.y1, seg.y2), fy2);
+if(hi - lo < mm2px(80)) return;
+const pa = (lo - seg.oy) * seg.uy, pb = (hi - seg.oy) * seg.uy;
+out.push({ fromMm: px2mm(Math.min(pa, pb)), wMm: px2mm(Math.abs(pb - pa)), h: (f.fh || (f.type === 'stair' ? 2400 : 700)), label: f.label, stair: f.type === 'stair' });
+}
+});
+return out;
+}
+
+function elecDevicesOnSeg(seg){
+const tol = mm2px(140);
+return getElecList().filter(d => {
+if(!elecEnsureWorld(d)) return false;
+if(d.nx * seg.nx + d.ny * seg.ny < 0.5) return false;
+if(seg.y1 === seg.y2){
+if(Math.abs(d.wy - seg.y1) > tol) return false;
+const a = Math.min(seg.x1, seg.x2), b = Math.max(seg.x1, seg.x2);
+return d.wx >= a - tol && d.wx <= b + tol;
+}else{
+if(Math.abs(d.wx - seg.x1) > tol) return false;
+const a = Math.min(seg.y1, seg.y2), b = Math.max(seg.y1, seg.y2);
+return d.wy >= a - tol && d.wy <= b + tol;
+}
+});
+}
+
 function elecToWorld(room, wi, xmm){
 const xp = mm2px(xmm);
 switch(wi){
@@ -6554,8 +6710,7 @@ const d = list.find(x => x.id === elecSelId);
 if(!d){ bar.style.display = 'none'; return; }
 const t = elecToolOf(d.kind);
 bar.style.display = 'flex';
-const rm = elecRoomById(d.roomId);
-bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> ${rm ? rm.label : ''}・${ELEC_WALL_NAMES[d.wall]} / FL+${d.h} / 左${d.x}mm
+bar.innerHTML = `<b style="color:${t.color};">${t.sym} ${t.name}</b> FL+${d.h}
 <button data-act="hup" type="button">高さ+50</button>
 <button data-act="hdn" type="button">高さ−50</button>
 <button data-act="xl" type="button">←50</button>
@@ -6568,13 +6723,26 @@ if(isReadOnly) return;
 const list = getElecList();
 const d = list.find(x => x.id === elecSelId);
 if(!d) return;
-const room = elecRoomById(d.roomId);
-const lenMm = room ? elecWallLenMm(room, d.wall) : 99999;
+elecEnsureWorld(d);
 pushHistory();
 if(act === 'hup') d.h = Math.min(ELEC_CEIL_MM - 100, d.h + 50);
 if(act === 'hdn') d.h = Math.max(100, d.h - 50);
-if(act === 'xl') d.x = Math.max(50, d.x - 50);
-if(act === 'xr') d.x = Math.min(lenMm - 50, d.x + 50);
+// 左右：その器具が乗っているセグメントの方向に沿って±50mm
+if(act === 'xl' || act === 'xr'){
+const unit = elecCurrentUnit();
+const segs = unit ? elecUnitPerimeter(unit) : [];
+let best = null, bestDist = 1e9;
+segs.forEach(seg => {
+const dist = (seg.y1 === seg.y2) ? Math.abs(d.wy - seg.y1) : Math.abs(d.wx - seg.x1);
+if((d.nx * seg.nx + d.ny * seg.ny) >= 0.5 && dist < bestDist){ bestDist = dist; best = seg; }
+});
+if(best){
+const step = mm2px(50) * (act === 'xr' ? 1 : -1);
+let nx = d.wx + best.ux * step, ny = d.wy + best.uy * step;
+const px = (nx - best.ox) * best.ux + (ny - best.oy) * best.uy;
+if(px >= mm2px(50) && px <= best.len - mm2px(50)){ d.wx = nx; d.wy = ny; }
+}
+}
 if(act === 'del'){
 const i = list.indexOf(d);
 if(i >= 0) list.splice(i, 1);
@@ -6705,15 +6873,13 @@ if(!wrap) return;
 wrap.innerHTML = '';
 const unit = elecCurrentUnit();
 if(!unit) return;
-const edges = elecUnitExteriorEdges(unit);
-const multi = unit.members.length > 1;
-edges.forEach(({ room, wi }) => {
+const segs = elecUnitPerimeter(unit);
+segs.forEach((seg, si) => {
 const card = document.createElement('div');
 card.className = 'elecwall';
-const cnt = getElecList().filter(d => d.roomId === room.id && d.wall === wi).length;
-const fcnt = elecFurnOn(room, wi).length;
-const sub = multi ? `${room.label}｜` : '';
-card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvg(room, wi)}</div><div class="txt"><h4>${sub}${ELEC_WALL_NAMES[wi]}</h4><div class="meta">長さ ${elecWallLenMm(room, wi)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecWallSvg(room, wi)}`;
+const cnt = elecDevicesOnSeg(seg).length;
+const fcnt = elecFurnOnSeg(seg).length;
+card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvgSeg(unit, seg)}</div><div class="txt"><h4>${seg.name}</h4><div class="meta">長さ ${elecSegLenMm(seg)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecSegSvg(seg)}`;
 wrap.appendChild(card);
 
 const svg = card.querySelector('svg');
@@ -6733,15 +6899,13 @@ const pt = svg.createSVGPoint();
 pt.x = e.clientX; pt.y = e.clientY;
 p = pt.matrixTransform(svg.getScreenCTM().inverse());
 }catch(_){ return; }
-const lenMm = elecWallLenMm(room, wi);
+const lenMm = elecSegLenMm(seg);
 if(p.x < 0 || p.x > lenMm || p.y < 0 || p.y > ELEC_CEIL_MM) return;
 const tool = ELEC_TOOLS.find(t => t.id === elecToolId) || ELEC_TOOLS[0];
 pushHistory();
-const d = {
-id: uid(), kind: tool.id, roomId: room.id, wall: wi,
-x: clamp(Math.round(p.x / 50) * 50, 50, lenMm - 50),
-h: elecToolH(tool.id)
-};
+const xmm = clamp(Math.round(p.x / 50) * 50, 50, lenMm - 50);
+const w = elecSegToWorld(seg, xmm);
+const d = { id: uid(), kind: tool.id, wx: w.x, wy: w.y, nx: seg.nx, ny: seg.ny, h: elecToolH(tool.id) };
 getElecList().push(d);
 elecSelId = d.id;
 elecRenderWalls();
@@ -6751,6 +6915,77 @@ draw();
 scheduleAutoSave();
 });
 });
+if(segs.length === 0){
+wrap.innerHTML = '<div style="font-size:12px;color:#8a8a8e;padding:12px;">壁が見つかりません。</div>';
+}
+}
+
+/* セグメントの展開図SVG */
+function elecSegSvg(seg){
+const W = Math.max(300, elecSegLenMm(seg));
+const H = ELEC_CEIL_MM;
+let s = `<svg viewBox="-70 -50 ${W + 140} ${H + 130}">`;
+s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#FBF8F2" stroke="#3a3a3e" stroke-width="16"/>`;
+s += `<line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="#3a3a3e" stroke-width="26"/>`;
+elecFurnOnSeg(seg).forEach(fo => {
+const fh = Math.min(H, Math.max(120, fo.h));
+s += `<rect x="${fo.fromMm}" y="${H - fh}" width="${fo.wMm}" height="${fh}" fill="${fo.stair ? 'rgba(216,205,182,.5)' : 'rgba(120,120,128,.16)'}" stroke="${fo.stair ? '#a99f86' : '#9a9aa0'}" stroke-width="8" stroke-dasharray="22,14"/>`;
+s += `<text x="${fo.fromMm + fo.wMm / 2}" y="${H - fh / 2}" font-size="58" fill="#7a7a80" text-anchor="middle" dominant-baseline="middle">${fo.label}</text>`;
+});
+elecOpeningsOnSeg(seg).forEach(o => {
+const oy = H - o.t, oh = o.t - o.b;
+const fill = o.win ? '#D5E8F5' : '#E8D9C8';
+const stroke = o.win ? '#3a78a8' : '#8B5A2B';
+s += `<rect x="${o.fromMm}" y="${oy}" width="${o.wMm}" height="${oh}" fill="${fill}" stroke="${stroke}" stroke-width="10"/>`;
+s += `<text x="${o.fromMm + o.wMm / 2}" y="${oy + oh / 2}" font-size="78" fill="${stroke}" text-anchor="middle" dominant-baseline="middle">${o.label}</text>`;
+});
+elecDevicesOnSeg(seg).forEach(d => {
+const t = elecToolOf(d.kind);
+let xmm = elecWorldToSegX(seg, d.wx, d.wy);
+xmm = Math.max(0, Math.min(elecSegLenMm(seg), xmm));
+const y = H - d.h;
+const sel = (d.id === elecSelId);
+s += `<g class="edev" data-id="${d.id}" style="cursor:pointer;">`;
+s += `<line x1="${xmm}" y1="${H}" x2="${xmm}" y2="${y + 70}" stroke="${t.color}" stroke-width="6" stroke-dasharray="20,15" opacity=".4"/>`;
+s += `<circle cx="${xmm}" cy="${y}" r="86" fill="${sel ? t.color : '#fff'}" stroke="${t.color}" stroke-width="${sel ? 16 : 12}"/>`;
+s += `<text x="${xmm}" y="${y + 8}" font-size="66" font-weight="800" fill="${sel ? '#fff' : t.color}" text-anchor="middle" dominant-baseline="middle">${t.sym}</text>`;
+s += `<text x="${xmm}" y="${y - 122}" font-size="54" fill="#7a7a80" text-anchor="middle">FL+${d.h}</text>`;
+s += `</g>`;
+});
+s += `</svg>`;
+return s;
+}
+
+/* セグメント用ミニ平面図（フロア全体＋現在セグメントを青ハイライト） */
+function elecMiniSvgSeg(unit, seg){
+syncActiveFloor();
+const fl = floors[activeFloor];
+const rooms = (fl.items || []).filter(i => i.type === 'room');
+const frames = (fl.items || []).filter(i => i.type === 'frame');
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+const acc = (x, y, w, h) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h); };
+(frames.length ? frames : rooms).forEach(r => acc(r.x, r.y, r.w, r.h));
+if(!isFinite(minX)) return '<svg viewBox="0 0 100 100"></svg>';
+const pad = 8, bw = maxX - minX, bh = maxY - minY;
+const k = Math.min((100 - pad * 2) / bw, (100 - pad * 2) / bh);
+const ox = (100 - bw * k) / 2, oy = (100 - bh * k) / 2;
+const X = (x) => ox + (x - minX) * k, Y = (y) => oy + (y - minY) * k;
+const memberIds = unit.members.map(m => m.id);
+let s = `<svg viewBox="0 0 100 100" aria-hidden="true">`;
+frames.forEach(f => { s += `<rect x="${X(f.x)}" y="${Y(f.y)}" width="${f.w*k}" height="${f.h*k}" fill="#FBF8F2" stroke="#c9c4b8" stroke-width="1.2"/>`; });
+rooms.forEach(r => {
+const cur = memberIds.includes(r.id);
+s += `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w*k}" height="${r.h*k}" fill="${cur ? 'rgba(0,122,255,.12)' : 'rgba(120,120,128,.07)'}" stroke="${cur ? '#4a90e2' : '#cfcabd'}" stroke-width="${cur ? 1.2 : 0.7}"/>`;
+});
+s += `<line x1="${X(seg.x1)}" y1="${Y(seg.y1)}" x2="${X(seg.x2)}" y2="${Y(seg.y2)}" stroke="#007AFF" stroke-width="3.5" stroke-linecap="round"/>`;
+const mx = (X(seg.x1) + X(seg.x2)) / 2, my = (Y(seg.y1) + Y(seg.y2)) / 2;
+s += `<circle cx="${mx + seg.nx * 5}" cy="${my + seg.ny * 5}" r="2.2" fill="#007AFF"/>`;
+elecDevicesOnSeg(seg).forEach(d => {
+const t = elecToolOf(d.kind);
+s += `<circle cx="${X(d.wx)}" cy="${Y(d.wy)}" r="1.8" fill="${t.color}" stroke="#fff" stroke-width="0.6"/>`;
+});
+s += `</svg>`;
+return s;
 }
 
 function elecRenderCounts(){
@@ -6758,11 +6993,13 @@ const wrap = el('elecCounts');
 if(!wrap) return;
 const list = getElecList();
 const unit = elecCurrentUnit();
-const memberIds = unit ? unit.members.map(m => m.id) : [];
+const segs = unit ? elecUnitPerimeter(unit) : [];
+const onUnit = new Set();
+segs.forEach(seg => elecDevicesOnSeg(seg).forEach(d => onUnit.add(d.id)));
 const cRoom = {}, cAll = {};
 list.forEach(d => {
 cAll[d.kind] = (cAll[d.kind] || 0) + 1;
-if(memberIds.includes(d.roomId)) cRoom[d.kind] = (cRoom[d.kind] || 0) + 1;
+if(onUnit.has(d.id)) cRoom[d.kind] = (cRoom[d.kind] || 0) + 1;
 });
 const line = (c) => ELEC_TOOLS.filter(t => c[t.id])
 .map(t => `<span style="color:${t.color}; font-weight:800;">${t.sym}</span> ${t.name}×${c[t.id]}`)
@@ -6809,14 +7046,11 @@ items.forEach(i => { if(i.type === 'room') byId[i.id] = i; });
 ctx.save();
 ctx.globalAlpha = (editLayer === 'plan' && !isExporting) ? 0.3 : 1;
 fl.elec.forEach(d => {
-const room = byId[d.roomId];
-if(!room) return;
+if(!elecEnsureWorld(d)) return;
 const t = elecToolOf(d.kind);
-const p = elecToWorld(room, d.wall, d.x);
-if(!p) return;
+const p = { x: d.wx, y: d.wy };
 const r = 4.5 / scale;
-// 部屋の内側へ向くティック（向きが一目で分かる）
-const inv = { 0:[0,1], 1:[-1,0], 2:[0,-1], 3:[1,0] }[d.wall] || [0,1];
+const inv = [d.nx || 0, d.ny || 1];
 ctx.strokeStyle = t.color;
 ctx.lineWidth = 1.6 / scale;
 ctx.beginPath();
@@ -7126,10 +7360,13 @@ if(it.type !== 'room' || it.void) return;
 if(!(it.ceilMm > 0)) return;
 const dh = it.ceilMm * PX_PER_MM;
 if(dh >= V3D_WALL_H) return;
-const c = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), mm2px(60), Math.max(1, it.h - 2)), mats.ceil);
-c.position.set(it.x + it.w / 2, yBase + dh, it.y + it.h / 2);
+// 下端(dh)から上の天井(topY)までを塊で塞ぐ＝しっかり下がった下がり天井
+const blockH = topY - (yBase + dh);
+const c = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), blockH, Math.max(1, it.h - 2)), mats.ceil);
+c.position.set(it.x + it.w / 2, (yBase + dh) + blockH / 2, it.y + it.h / 2);
 c.visible = v3dWalk;
 c.receiveShadow = true;
+c.castShadow = true;
 v3dCeilings.push(c);
 group.add(c);
 });
@@ -8184,9 +8421,53 @@ if(el('catFold')) el('catFold').onclick = () => v2StartOpening('fold');
 if(el('catWindow')) el('catWindow').onclick = () => v2StartOpening('window');
 
 // 設置後でも枚数を切替（片引き→引き違い→3連→…）
+function openWinModal(){
+const it = selectedItem;
+if(!it || it.type !== 'opening' || it.kind !== 'window') return;
+const len = Math.hypot(it.x2 - it.x1, it.y2 - it.y1);
+el('winW').value = px2mm(len);
+el('winB2').value = (typeof it.winB === 'number' ? it.winB : 900);
+el('winT2').value = (typeof it.winT === 'number' ? it.winT : 2000);
+const wrap = el('winChips');
+if(wrap && !wrap._built){
+wrap._built = true;
+WIN_PRESETS.forEach(p => {
+const b = document.createElement('button');
+b.type = 'button'; b.className = 'chip tiny'; b.style.height = '30px';
+b.textContent = `${p.n}`;
+b.onclick = () => { el('winB2').value = p.b; el('winT2').value = p.t; };
+wrap.appendChild(b);
+});
+}
+el('winModal').style.display = 'flex';
+}
+if(el('winCancelBtn')) el('winCancelBtn').onclick = () => { el('winModal').style.display = 'none'; };
+if(el('winModal')) el('winModal').addEventListener('click', (e) => { if(e.target === el('winModal')) el('winModal').style.display = 'none'; });
+if(el('winOkBtn')) el('winOkBtn').onclick = () => {
+const it = selectedItem;
+if(!it || it.type !== 'opening' || it.kind !== 'window'){ el('winModal').style.display = 'none'; return; }
+const wmm = Math.max(300, Math.min(8000, Number(el('winW').value) || px2mm(Math.hypot(it.x2-it.x1, it.y2-it.y1))));
+let bmm = Math.max(0, Math.min(2200, Number(el('winB2').value) || 0));
+let tmm = Math.max(bmm + 100, Math.min(2400, Number(el('winT2').value) || 2000));
+pushHistory();
+it.winB = bmm; it.winT = tmm;
+// 幅変更：始点を保持して壁方向に伸縮（0.5マス丸め）
+const horiz = (it.y1 === it.y2);
+const gs = getSnapStep();
+const wpx = Math.max(gs, getSnapped(mm2px(wmm), gs));
+const sgn = horiz ? Math.sign(it.x2 - it.x1 || 1) : Math.sign(it.y2 - it.y1 || 1);
+if(horiz) it.x2 = it.x1 + sgn * wpx; else it.y2 = it.y1 + sgn * wpx;
+el('winModal').style.display = 'none';
+draw(); scheduleAutoSave();
+showToast(`窓 幅${wmm} / 下端${bmm} / 上端${tmm}`, 1600);
+};
 if(el('winHeightBtn')) el('winHeightBtn').onclick = () => {
 const it = selectedItem;
 if(!it || it.kind !== 'window' || isReadOnly) return;
+openWinModal();
+return;
+// （以下は旧プリセット巡回・未使用）
+// eslint-disable-next-line
 const cur = WIN_PRESETS.findIndex(p => p.b === it.winB && p.t === it.winT);
 const nx = WIN_PRESETS[(cur + 1) % WIN_PRESETS.length];
 pushHistory();
