@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.4</title>
+<title>間取り検討サイト（Ichijo) v9.5</title>
 
 <style>
 :root{
@@ -1440,6 +1440,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="v3ddock">
 <button class="back" id="v3dBackBtn" type="button">2Dに戻る</button>
 <button class="walk" id="v3dWalkBtn" type="button">歩く</button>
+<button class="back" id="v3dClipBtn" type="button" style="display:none;">壁すり抜け</button>
 <button class="save" id="v3dSaveBtn" type="button">画像保存</button>
 </div>
 </div>
@@ -1477,6 +1478,9 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 </button>
 <button class="v2cat" id="catSlide3" type="button">
 <svg viewBox="0 0 24 24"><rect x="2" y="6.5" width="9" height="3.2" rx="1"/><rect x="7.5" y="10.4" width="9" height="3.2" rx="1"/><rect x="13" y="14.3" width="9" height="3.2" rx="1"/></svg><span>3連</span>
+</button>
+<button class="v2cat" id="catFold" type="button">
+<svg viewBox="0 0 24 24"><path d="M4 5l4 3-4 3 4 3-4 3"/><path d="M12 5l4 3-4 3 4 3-4 3" opacity=".6"/></svg><span>折れ戸</span>
 </button>
 <button class="v2cat" id="catWindow" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 12h16"/></svg><span>窓</span>
@@ -1529,7 +1533,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.4 by yuchi🐔</div>
+<div class="v2verline">ver 3.5 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1639,7 +1643,21 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-row">
 <div class="help-icon">🪜</div>
 <div class="help-content">
+<b>家具の設置高さ</b>
+「追加」→「家具」の「設置高さ(床から)」で、吊り棚やエアコンなど床から浮いた家具の高さを指定できます。3Dにその高さで表示されます。
+</div>
+<div class="help-row">
+<div class="help-icon orange">🚪</div>
+<div class="help-content">
+<b>折れ戸・3Dの扉</b>
+「追加」に折れ戸が増えました。ドア・引き戸・折れ戸は3Dでも扉パネルが表示されます（通り抜けは可）。歩行中は「壁すり抜け」ボタンで壁判定をON/OFFできます。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">🪜</div>
+<div class="help-content">
 <b>家具の回転・階段（かね折れ対応）</b>
+階段は配置後に選択して「サイズ」から形（直線/かね折れ）・廻り段数・曲がる向き・大きさ・階高を後から変更できます。
 階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
@@ -1721,6 +1739,11 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <input type="number" id="furnW" placeholder="幅mm" inputmode="numeric" style="flex:1; min-width:0;">
 <input type="number" id="furnD" placeholder="奥行mm" inputmode="numeric" style="flex:1; min-width:0;">
 <input type="number" id="furnH" placeholder="高さmm" inputmode="numeric" style="flex:1; min-width:0;">
+</div>
+<div id="furnGlRow" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+<span style="font-size:12px; color:#555; white-space:nowrap;">設置高さ(床から)</span>
+<input type="number" id="furnGl" placeholder="0" inputmode="numeric" value="0" style="width:80px; text-align:right;">
+<span style="font-size:11px; color:#8a8a8e;">mm（吊り棚等）</span>
 </div>
 <div id="stairOpts" style="display:none; margin:2px 0 10px;">
 <div style="display:flex; gap:6px; margin-bottom:8px;">
@@ -1873,10 +1896,10 @@ const WALL_HIT_PAD = 16;
 
 /* --- v2.1: 建具（ドア・引き戸・窓） --- */
 function isLineType(t){ return t === 'wallLine' || t === 'opening'; }
-const OPENING_LABEL = { door:'ドア', slide:'引き戸', window:'窓' };
+const OPENING_LABEL = { door:'ドア', slide:'引き戸', fold:'折れ戸', window:'窓' };
 const SLIDE_LABEL = { 1:'片引き戸', 2:'引き違い', 3:'3連引き戸' };
 const SLIDE_DEFAULT_LEN = { 1: 32, 2: 64, 3: 96 }; // 910 / 1820 / 2730mm
-const OPENING_DEFAULT_LEN = { door: 32, slide: 64, window: 64 }; // 1マス=32px=910mm
+const OPENING_DEFAULT_LEN = { door: 32, slide: 64, fold: 64, window: 64 }; // 1マス=32px=910mm
 let isOpeningPlaceMode = false;
 let openingPlaceKind = 'door';
 let openingPlacePanels = 2;
@@ -2091,6 +2114,7 @@ if(!it.label) it.label = (it.kind === 'slide' ? SLIDE_LABEL[it.panels || 2] : OP
 if(!it.color) it.color = "#E3E3E9";
 if(!it.label) it.label = "家具";
 if(typeof it.fh !== "number") it.fh = 700;
+if(typeof it.gl !== "number") it.gl = 0; // 設置高さ(床から/mm)
 }else if(it.type === 'stair'){
 if(!it.color) it.color = "#EAE6DC";
 if(!it.label) it.label = "階段";
@@ -3891,6 +3915,28 @@ ctx.moveTo(x1 + nx * off, y1 + ny * off);
 ctx.lineTo(x1 + ux * (len / 2 + ext) + nx * off, y1 + uy * (len / 2 + ext) + ny * off);
 ctx.moveTo(x2 - ux * (len / 2 + ext) - nx * off, y2 - uy * (len / 2 + ext) - ny * off);
 ctx.lineTo(x2 - nx * off, y2 - ny * off);
+}
+ctx.stroke();
+}else if(op.kind === 'fold'){
+// 折れ戸：複数パネルがジグザグに折れる
+const panels = 4;
+const off = Math.max(3 / scale, (t * 0.45) / scale);
+const sw = (op.swing === -1) ? -1 : 1;
+const dnx = bx * sw, dny = by * sw;
+ctx.strokeStyle = "#5a4a3a";
+ctx.lineWidth = 2.2 / scale;
+ctx.beginPath();
+const seg = len / panels;
+let cxp = op.hinge ? x2 : x1;
+let cyp = op.hinge ? y2 : y1;
+const dir = op.hinge ? -1 : 1;
+ctx.moveTo(cxp, cyp);
+for(let k = 0; k < panels; k++){
+const peak = (k % 2 === 0) ? 1 : 0.0;
+const mxp = cxp + ux * seg * dir + dnx * off * peak;
+const myp = cyp + uy * seg * dir + dny * off * peak;
+ctx.lineTo(mxp, myp);
+cxp = mxp; cyp = myp;
 }
 ctx.stroke();
 }else{
@@ -6282,7 +6328,7 @@ const win = (op.kind === 'window');
 out.push({
 fromMm: px2mm(fromPx), wMm: px2mm(wPx),
 b: win ? 900 : 0, t: 2000,
-label: win ? '窓' : (op.kind === 'slide' ? (SLIDE_LABEL[op.panels || 2] || '引き戸') : 'ドア'),
+label: win ? '窓' : (op.kind === 'slide' ? (SLIDE_LABEL[op.panels || 2] || '引き戸') : (op.kind === 'fold' ? '折れ戸' : 'ドア')),
 win
 });
 });
@@ -6634,6 +6680,7 @@ let v3dWalkPos = { x: 0, z: 0 };
 let v3dYaw = 0, v3dPitch = 0;
 let v3dJoyVec = { x: 0, y: 0 };
 let v3dLastT = 0;
+let v3dNoClip = false;
 
 async function ensureThree(){
 if(THREE_M) return THREE_M;
@@ -6846,9 +6893,10 @@ group.add(m);
 fItems.forEach(it => {
 if(it.type !== 'furn') return;
 const hh = Math.max(2, (it.fh || 700) * PX_PER_MM);
+const gl = Math.max(0, (it.gl || 0) * PX_PER_MM);
 const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#C9C9D2') });
 const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w), hh, Math.max(1, it.h)), mat);
-m.position.set(it.x + it.w / 2, yBase + hh / 2 + 0.7, it.y + it.h / 2);
+m.position.set(it.x + it.w / 2, yBase + gl + hh / 2 + 0.7, it.y + it.h / 2);
 m.castShadow = true;
 m.receiveShadow = true;
 group.add(m);
@@ -6887,12 +6935,11 @@ const ft = v3dPartBox(T, o, seg.t + 1, yBase + V3D_WIN_T - 1.2, yBase + V3D_WIN_
 const gl = v3dPartBox(T, o, Math.max(1.2, seg.t * 0.25), yBase + V3D_WIN_B, yBase + V3D_WIN_T, mats.glass, false);
 [sill, head, fb, ft, gl].forEach(m => { if(m) group.add(m); });
 }else{
-// ドア・引き戸：開口（通り抜け可）＋垂れ壁＋枠
+// ドア・引き戸・折れ戸：開口＋垂れ壁＋枠＋扉パネル
 const head = v3dPartBox(T, o, seg.t, yBase + V3D_DOOR_H, topY, mats.wall);
 const trim = v3dPartBox(T, o, seg.t + 1.4, yBase + V3D_DOOR_H - 1.4, yBase + V3D_DOOR_H, mats.trim, false);
 if(head) group.add(head);
 if(trim) group.add(trim);
-// 両端の縦枠
 const dx = o.x2 - o.x1, dy = o.y2 - o.y1;
 const len = Math.hypot(dx, dy);
 if(len > 2){
@@ -6902,6 +6949,24 @@ const j = { x1: px, y1: py, x2: px + ux * 1.4 * dir, y2: py + uy * 1.4 * dir };
 const jm = v3dPartBox(T, j, seg.t + 1.4, yBase, yBase + V3D_DOOR_H, mats.trim, false);
 if(jm) group.add(jm);
 });
+// 扉パネル（薄板）：種類で見た目を変える
+const leafMat = mats.door3d || (mats.door3d = new T.MeshLambertMaterial({ color: 0xcdb79a }));
+const panelT = Math.max(1.5, seg.t * 0.3);
+if(op.kind === 'slide'){
+// 引き戸：開口の半分を塞ぐ板（引き残し表現）
+const half = { x1: o.x1, y1: o.y1, x2: o.x1 + ux * len * 0.5, y2: o.y1 + uy * len * 0.5 };
+const pm = v3dPartBox(T, half, panelT, yBase + mm2px(20), yBase + V3D_DOOR_H, leafMat, false);
+if(pm) group.add(pm);
+}else if(op.kind === 'fold'){
+// 折れ戸：少し折れた2枚
+const a = { x1: o.x1, y1: o.y1, x2: o.x1 + ux * len * 0.5, y2: o.y1 + uy * len * 0.5 };
+const b = { x1: o.x1 + ux * len * 0.5, y1: o.y1 + uy * len * 0.5, x2: o.x2, y2: o.y2 };
+[a, b].forEach(sgmt => { const pm = v3dPartBox(T, sgmt, panelT, yBase + mm2px(20), yBase + V3D_DOOR_H, leafMat, false); if(pm) group.add(pm); });
+}else{
+// 開き戸：閉じた状態の板（開口を塞ぐ薄板）
+const pm = v3dPartBox(T, o, panelT, yBase + mm2px(20), yBase + V3D_DOOR_H, leafMat, false);
+if(pm) group.add(pm);
+}
 }
 }
 });
@@ -7024,11 +7089,11 @@ const mvx = (fx * (-v3dJoyVec.y) + rx * v3dJoyVec.x) * sp * dt;
 const mvz = (fz * (-v3dJoyVec.y) + rz * v3dJoyVec.x) * sp * dt;
 
 // 外壁を貫通しないように軸ごとに判定（壁ぎわで止まる）
-const margin = V3D_OUTER_T + 6;
+const margin = V3D_OUTER_T + 4;
 const nx = v3dWalkPos.x + mvx;
 const nz = v3dWalkPos.z + mvz;
-if(v3dInsideFrames(nx, v3dWalkPos.z, margin)) v3dWalkPos.x = nx;
-if(v3dInsideFrames(v3dWalkPos.x, nz, margin)) v3dWalkPos.z = nz;
+if(v3dNoClip || v3dInsideFrames(nx, v3dWalkPos.z, margin)) v3dWalkPos.x = nx;
+if(v3dNoClip || v3dInsideFrames(v3dWalkPos.x, nz, margin)) v3dWalkPos.z = nz;
 
 const eye = v3dWalkBaseY() + V3D_EYE_H;
 v3dCamera.position.set(v3dWalkPos.x, eye, v3dWalkPos.z);
@@ -7071,6 +7136,8 @@ hint.textContent = v3dWalk
 if(v3dAmb) v3dAmb.intensity = v3dWalk ? 1.15 : 0.8;
 const joyEl = el('v3dJoy');
 if(joyEl) joyEl.style.display = v3dWalk ? 'block' : 'none';
+const clipB = el('v3dClipBtn');
+if(clipB) clipB.style.display = v3dWalk ? '' : 'none';
 const tut = el('v3dTut');
 if(tut){
 tut.style.display = v3dWalk ? 'flex' : 'none';
@@ -7381,7 +7448,7 @@ if(el('openingHingeBtn')) el('openingHingeBtn').style.display = showHinge ? '' :
 if(el('slidePanelsBtn')) el('slidePanelsBtn').style.display = showPanels ? '' : 'none';
 const furnSel = !!(selectedItem && selectedItem.type === 'furn') && !isReadOnly;
 const stairSel = !!(selectedItem && selectedItem.type === 'stair') && !isReadOnly;
-if(el('furnSizeBtn')) el('furnSizeBtn').style.display = furnSel ? '' : 'none';
+if(el('furnSizeBtn')) el('furnSizeBtn').style.display = (furnSel || stairSel) ? '' : 'none';
 if(el('furnRotateBtn')) el('furnRotateBtn').style.display = (furnSel || stairSel) ? '' : 'none';
 if(opSel){
 if(el('editNameBtn')) el('editNameBtn').style.display = 'none';
@@ -7422,6 +7489,12 @@ if(el('v3dSeg1')) el('v3dSeg1').onclick = () => v3dSegTap('f1');
 if(el('v3dSeg2')) el('v3dSeg2').onclick = () => v3dSegTap('f2');
 if(el('v3dSegAll')) el('v3dSegAll').onclick = () => v3dSegTap('all');
 if(el('v3dWalkBtn')) el('v3dWalkBtn').onclick = () => v3dSetWalk(!v3dWalk);
+if(el('v3dClipBtn')) el('v3dClipBtn').onclick = () => {
+v3dNoClip = !v3dNoClip;
+const b = el('v3dClipBtn');
+if(b){ b.textContent = v3dNoClip ? '壁あり' : '壁すり抜け'; b.classList.toggle('on', v3dNoClip); }
+showToast(v3dNoClip ? '壁をすり抜けて移動できます' : '壁で止まります', 1200);
+};
 if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
 if(el('addSheetClose')) el('addSheetClose').onclick = () => v2CloseSheet('addSheet');
 if(el('moreSheetClose')) el('moreSheetClose').onclick = () => v2CloseSheet('moreSheet');
@@ -7515,6 +7588,8 @@ const opts = el('stairOpts');
 const isS = (furnEditTarget && furnEditTarget.type === 'stair');
 const willStair = isS || /階段/.test(el('furnName').value || '');
 if(opts) opts.style.display = willStair ? 'block' : 'none';
+if(el('furnGlRow')) el('furnGlRow').style.display = willStair ? 'none' : 'flex';
+if(el('furnH')) el('furnH').placeholder = willStair ? '階高mm' : '高さmm';
 const kane = (stairDraft.shape === 'kane');
 if(el('stShapeStraight')) el('stShapeStraight').style.background = kane ? '' : 'rgba(10,132,255,.92)';
 if(el('stShapeStraight')) el('stShapeStraight').style.color = kane ? '' : '#fff';
@@ -7541,6 +7616,7 @@ el('furnName').value = target ? (target.label || '') : '';
 el('furnW').value = target ? px2mm(target.w) : '';
 el('furnD').value = target ? px2mm(target.h) : '';
 el('furnH').value = target ? (target.fh || (target.type === 'stair' ? 3000 : 700)) : '';
+if(el('furnGl')) el('furnGl').value = (target && typeof target.gl === 'number') ? target.gl : 0;
 const wrap = el('furnChips');
 if(wrap && !wrap._built){
 wrap._built = true;
@@ -7604,6 +7680,7 @@ furnEditTarget.mirror = stairDraft.mirror;
 furnEditTarget.fh = Math.max(2000, Math.min(3600, Number(el('furnH').value) || 3000));
 }else{
 furnEditTarget.fh = hmm;
+furnEditTarget.gl = Math.max(0, Math.min(2400, Number(el('furnGl').value) || 0));
 }
 selectedItem = furnEditTarget;
 }else{
@@ -7625,6 +7702,7 @@ color: "#EAE6DC", locked: false
 })() : {
 type: 'furn', label: name,
 w: mm2px(wmm), h: mm2px(dmm), fh: hmm,
+gl: Math.max(0, Math.min(2400, Number(el('furnGl').value) || 0)),
 x: getSnapped(wx, FURN_SNAP) - mm2px(wmm) / 2,
 y: getSnapped(wy, FURN_SNAP) - mm2px(dmm) / 2,
 color: "#E3E3E9", locked: false
@@ -7641,7 +7719,7 @@ draw();
 scheduleAutoSave();
 };
 if(el('furnSizeBtn')) el('furnSizeBtn').onclick = () => {
-if(selectedItem && selectedItem.type === 'furn') openFurnModal(selectedItem);
+if(selectedItem && (selectedItem.type === 'furn' || selectedItem.type === 'stair')) openFurnModal(selectedItem);
 };
 if(el('furnRotateBtn')) el('furnRotateBtn').onclick = () => {
 const it = selectedItem;
@@ -7737,6 +7815,7 @@ if(el('catDoor')) el('catDoor').onclick = () => v2StartOpening('door');
 if(el('catSlide1')) el('catSlide1').onclick = () => v2StartOpening('slide', 1);
 if(el('catSlide2')) el('catSlide2').onclick = () => v2StartOpening('slide', 2);
 if(el('catSlide3')) el('catSlide3').onclick = () => v2StartOpening('slide', 3);
+if(el('catFold')) el('catFold').onclick = () => v2StartOpening('fold');
 if(el('catWindow')) el('catWindow').onclick = () => v2StartOpening('window');
 
 // 設置後でも枚数を切替（片引き→引き違い→3連→…）
