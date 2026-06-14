@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v9.6</title>
+<title>間取り検討サイト（Ichijo) v9.7</title>
 
 <style>
 :root{
@@ -1200,6 +1200,18 @@ display: flex; align-items: center; justify-content: center; gap: 10px; padding:
 .v3ddock button{ height: 40px; border-radius: 13px; font-size: 12.5px; font-weight: 700; padding: 0 16px; }
 .v3ddock .back{ background: rgba(120,120,128,.16); color: var(--text); }
 .v3ddock .save{ background: rgba(52,199,89,.92); color: #fff; }
+#v3dRoomBar{
+position: absolute; left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 62px);
+z-index: 3; display: none; gap: 6px; overflow-x: auto; padding: 4px 2px;
+scrollbar-width: none;
+}
+#v3dRoomBar::-webkit-scrollbar{ display: none; }
+#v3dRoomBar button{
+flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 7px 12px; border-radius: 13px;
+background: rgba(255,255,255,.9); border: .5px solid rgba(60,60,67,.18); color: #333;
+backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.v3d.walking #v3dRoomBar{ display: flex; }
 .v3dhint{
 position: absolute; bottom: calc(env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%);
 z-index: 2; font-size: 10px; color: #8a8a8e;
@@ -1377,6 +1389,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <button class="pill" id="openingFlipBtn" data-sub="開く向き" type="button" style="display:none;">反転</button>
 <button class="pill" id="openingHingeBtn" data-sub="左右" type="button" style="display:none;">吊元</button>
 <button class="pill" id="slidePanelsBtn" data-sub="枚数" type="button" style="display:none;">枚数</button>
+<button class="pill" id="voidToggleBtn" data-sub="2Fの床を抜く" type="button" style="display:none;">吹抜</button>
 <button class="pill" id="furnRotateBtn" data-sub="90°回す" type="button" style="display:none;">回転</button>
 <button class="pill" id="furnSizeBtn" data-sub="mm指定" type="button" style="display:none;">サイズ</button>
 </div>
@@ -1436,6 +1449,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 </div>
 </div>
 <div class="v3dhint" id="v3dHint">1本指で回転 ・ ピンチでズーム ・ 2本指で移動</div>
+<div id="v3dRoomBar"></div>
 <div id="v3dJoy"><div id="v3dJoyKnob"></div></div>
 <div id="v3dTut">
 <div class="zone zl"><span>🕹</span>左下のスティック<br>を触って移動</div>
@@ -1538,7 +1552,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 3.6 by yuchi🐔</div>
+<div class="v2verline">ver 3.7 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1665,6 +1679,13 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <b>家具の回転・階段（かね折れ対応）</b>
 階段は配置後に選択して「サイズ」から形（直線/かね折れ）・廻り段数・曲がる向き・大きさ・階高を後から変更できます。
 階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">🔀</div>
+<div class="help-content">
+<b>吹き抜け・3Dの移動</b>
+部屋を選んで「吹抜」を押すと、その部屋は吹き抜けになり、3D（全体表示）で2Fの床が抜けて1Fが見えます。3Dの「歩く」中は上部に部屋名が並び、タップするとその部屋へ瞬間移動できます。
 </div>
 </div>
 <div class="help-row">
@@ -2132,6 +2153,7 @@ if(typeof it.mirror !== "boolean") it.mirror = false; // 曲がる向き（false
 }else{
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
+if(typeof it.void !== "boolean") it.void = false;
 }
 }));
 }
@@ -3974,6 +3996,36 @@ ctx.setLineDash([]);
 ctx.restore();
 }
 
+/* v3.7: 吹き抜け部屋のハッチング表示 */
+function drawVoidOverlay(){
+const voids = items.filter(it => it.type === 'room' && it.void);
+if(voids.length === 0) return;
+ctx.save();
+voids.forEach(r => {
+ctx.strokeStyle = 'rgba(88,86,214,.55)';
+ctx.lineWidth = 1.2 / scale;
+ctx.setLineDash([]);
+ctx.strokeRect(r.x, r.y, r.w, r.h);
+// 斜線ハッチ
+ctx.beginPath();
+const step = 18;
+for(let d = -r.h; d < r.w; d += step){
+const x0 = r.x + Math.max(0, d), y0 = r.y + Math.max(0, -d);
+const x1 = r.x + Math.min(r.w, d + r.h), y1 = r.y + Math.min(r.h, r.w - d);
+ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+}
+ctx.globalAlpha = 0.35;
+ctx.stroke();
+ctx.globalAlpha = 1;
+const fs = Math.max(8, Math.min(13, Math.min(r.w, r.h) * 0.2)) / scale;
+ctx.fillStyle = 'rgba(88,86,214,.9)';
+ctx.font = `700 ${fs}px -apple-system, "Hiragino Sans", sans-serif`;
+ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+ctx.fillText('吹抜', r.x + r.w / 2, r.y + r.h - fs);
+});
+ctx.restore();
+}
+
 /* v2.7: 階段の描画（踏み板＋上り方向矢印） */
 /* 階段の段割りを計算 → 各踏み板のポリゴンと進行情報を返す
    座標系：ローカル(0,0)-(w,h)。dir=0基準（下り口が下辺中央、上り方向＝上）で生成し、
@@ -4490,6 +4542,7 @@ function drawMerged(){
   // 壁描画
   items.forEach(it => { if(it.type === 'wallLine') drawWallLine(it); });
   items.forEach(it => { if(it.type === 'opening') drawOpening(it); });
+  drawVoidOverlay();
   items.forEach(it => { if(it.type === 'stair') drawStair(it); });
   items.forEach(it => { if(it.type === 'furn') drawFurn(it); });
   drawElecSymbols();
@@ -6856,30 +6909,57 @@ const openings = fItems.filter(i => i.type === 'opening');
 const yBase = V3D_SLAB_T;
 const topY = yBase + V3D_WALL_H;
 
-// 床スラブ＋フローリング
+// 床スラブ＋フローリング（吹き抜けがある場合はタイル化して穴をあける）
+const voids = fItems.filter(it => it.type === 'room' && it.void);
+const inVoid = (cx, cz) => voids.some(v => cx >= v.x && cx <= v.x + v.w && cz >= v.y && cz <= v.y + v.h);
 frames.forEach(f => {
+if(voids.length === 0){
 const slab = new T.Mesh(new T.BoxGeometry(f.w, V3D_SLAB_T, f.h), mats.slab);
 slab.position.set(f.x + f.w / 2, V3D_SLAB_T / 2, f.y + f.h / 2);
 slab.castShadow = true; slab.receiveShadow = true;
 group.add(slab);
-
 const woodMat = mats.wood.clone();
-if(woodMat.map){
-woodMat.map = mats.wood.map.clone();
-woodMat.map.needsUpdate = true;
-woodMat.map.repeat.set(Math.max(1, f.w / 96), Math.max(1, f.h / 96));
-}
+if(woodMat.map){ woodMat.map = mats.wood.map.clone(); woodMat.map.needsUpdate = true; woodMat.map.repeat.set(Math.max(1, f.w / 96), Math.max(1, f.h / 96)); }
 const board = new T.Mesh(new T.BoxGeometry(f.w, 0.6, f.h), woodMat);
 board.position.set(f.x + f.w / 2, yBase + 0.3, f.y + f.h / 2);
 board.receiveShadow = true;
 group.add(board);
-
-// 天井（歩くモードのときだけ表示）
+}else{
+// タイル（1マス）で床を敷き、吹き抜け範囲はスキップ
+const tile = GRID_SIZE;
+for(let tx = f.x; tx < f.x + f.w - 0.5; tx += tile){
+for(let tz = f.y; tz < f.y + f.h - 0.5; tz += tile){
+const tw = Math.min(tile, f.x + f.w - tx);
+const td = Math.min(tile, f.y + f.h - tz);
+if(inVoid(tx + tw / 2, tz + td / 2)) continue; // 吹き抜け部分は床を作らない
+const slab = new T.Mesh(new T.BoxGeometry(tw, V3D_SLAB_T, td), mats.slab);
+slab.position.set(tx + tw / 2, V3D_SLAB_T / 2, tz + td / 2);
+slab.receiveShadow = true;
+group.add(slab);
+const board = new T.Mesh(new T.BoxGeometry(tw, 0.6, td), mats.wood);
+board.position.set(tx + tw / 2, yBase + 0.3, tz + td / 2);
+board.receiveShadow = true;
+group.add(board);
+}
+}
+}
+// 天井（歩くモードのときだけ表示）— 吹き抜け部分も天井は抜く
+if(voids.length === 0){
 const ceil = new T.Mesh(new T.BoxGeometry(f.w, 1, f.h), mats.ceil);
 ceil.position.set(f.x + f.w / 2, topY + 0.5, f.y + f.h / 2);
-ceil.visible = v3dWalk;
-v3dCeilings.push(ceil);
-group.add(ceil);
+ceil.visible = v3dWalk; v3dCeilings.push(ceil); group.add(ceil);
+}else{
+const tile = GRID_SIZE;
+for(let tx = f.x; tx < f.x + f.w - 0.5; tx += tile){
+for(let tz = f.y; tz < f.y + f.h - 0.5; tz += tile){
+const tw = Math.min(tile, f.x + f.w - tx), td = Math.min(tile, f.y + f.h - tz);
+if(inVoid(tx + tw / 2, tz + td / 2)) continue;
+const c = new T.Mesh(new T.BoxGeometry(tw, 1, td), mats.ceil);
+c.position.set(tx + tw / 2, topY + 0.5, tz + td / 2);
+c.visible = v3dWalk; v3dCeilings.push(c); group.add(c);
+}
+}
+}
 });
 
 // 階段（ステップ状）
@@ -6931,6 +7011,7 @@ group.add(m);
 // 部屋の床色（うっすら）
 fItems.forEach(it => {
 if(it.type !== 'room') return;
+if(it.void) return; // 吹き抜けは床なし
 const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#FFF3E0'), transparent: true, opacity: 0.28 });
 const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.5, Math.max(1, it.h - 2)), mat);
 m.position.set(it.x + it.w / 2, yBase + 0.85, it.y + it.h / 2);
@@ -7145,9 +7226,43 @@ const b = v3dBounds();
 return { x: (b.minX + b.maxX) / 2, z: (b.minY + b.maxY) / 2 };
 }
 
+function v3dWarpToRoom(room){
+if(!room) return;
+v3dWalkPos = { x: room.x + room.w / 2, z: room.y + room.h / 2 };
+showToast(`${room.label} へ移動`, 900);
+}
+
+function v3dRenderRoomBar(){
+const bar = el('v3dRoomBar');
+if(!bar) return;
+bar.innerHTML = '';
+syncActiveFloor();
+const fl = floors[v3dWalkFloor] || floors[activeFloor];
+const rooms = (fl.items || []).filter(i => i.type === 'room' && !i.void);
+const seen = {};
+rooms.forEach(r => {
+seen[r.label] = (seen[r.label] || 0) + 1;
+const b = document.createElement('button');
+b.type = 'button';
+const dup = rooms.filter(x => x.label === r.label).length > 1;
+b.textContent = dup ? `${r.label}${seen[r.label]}` : r.label;
+b.onclick = () => v3dWarpToRoom(r);
+bar.appendChild(b);
+});
+if(rooms.length === 0){
+const span = document.createElement('span');
+span.style.cssText = 'font-size:11px;color:#8a8a8e;padding:6px;';
+span.textContent = '部屋がありません';
+bar.appendChild(span);
+}
+}
+
 function v3dSetWalk(on){
 v3dWalk = !!on;
 v3dCeilings.forEach(c => { c.visible = v3dWalk; });
+const ov = el('viewer3d');
+if(ov) ov.classList.toggle('walking', v3dWalk);
+if(v3dWalk) v3dRenderRoomBar();
 const btn = el('v3dWalkBtn');
 if(btn){
 btn.classList.toggle('on', v3dWalk);
@@ -7472,6 +7587,13 @@ if(el('thickPlusBtn')) el('thickPlusBtn').style.display = lineSel ? '' : 'none';
 if(el('openingFlipBtn')) el('openingFlipBtn').style.display = showFlip ? '' : 'none';
 if(el('openingHingeBtn')) el('openingHingeBtn').style.display = showHinge ? '' : 'none';
 if(el('slidePanelsBtn')) el('slidePanelsBtn').style.display = showPanels ? '' : 'none';
+const roomSel = !!(selectedItem && selectedItem.type === 'room') && !isReadOnly;
+if(el('voidToggleBtn')){
+el('voidToggleBtn').style.display = roomSel ? '' : 'none';
+const on = roomSel && selectedItem.void;
+el('voidToggleBtn').style.background = on ? 'rgba(88,86,214,.92)' : '';
+el('voidToggleBtn').style.color = on ? '#fff' : '';
+}
 const furnSel = !!(selectedItem && selectedItem.type === 'furn') && !isReadOnly;
 const stairSel = !!(selectedItem && selectedItem.type === 'stair') && !isReadOnly;
 if(el('furnSizeBtn')) el('furnSizeBtn').style.display = (furnSel || stairSel) ? '' : 'none';
@@ -7509,6 +7631,7 @@ if(v3dWalk){
 v3dWalkFloor = (mode === 'f2') ? 1 : 0;
 const p = v3dWalkStartPos();
 v3dWalkPos = { x: p.x, z: p.z };
+v3dRenderRoomBar();
 }
 };
 if(el('v3dSeg1')) el('v3dSeg1').onclick = () => v3dSegTap('f1');
@@ -7746,6 +7869,16 @@ scheduleAutoSave();
 };
 if(el('furnSizeBtn')) el('furnSizeBtn').onclick = () => {
 if(selectedItem && (selectedItem.type === 'furn' || selectedItem.type === 'stair')) openFurnModal(selectedItem);
+};
+if(el('voidToggleBtn')) el('voidToggleBtn').onclick = () => {
+const it = selectedItem;
+if(!it || it.type !== 'room' || isReadOnly) return;
+pushHistory();
+it.void = !it.void;
+draw();
+scheduleAutoSave();
+syncBottomBarState();
+showToast(it.void ? '吹き抜けにしました（2Fの床が抜けます）' : '吹き抜けを解除しました', 1500);
 };
 if(el('furnRotateBtn')) el('furnRotateBtn').onclick = () => {
 const it = selectedItem;
