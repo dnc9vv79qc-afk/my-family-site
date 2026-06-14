@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v10.1</title>
+<title>間取り検討サイト（Ichijo) v10.2</title>
 
 <style>
 :root{
@@ -1391,6 +1391,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <button class="pill" id="slidePanelsBtn" data-sub="枚数" type="button" style="display:none;">枚数</button>
 <button class="pill" id="winHeightBtn" data-sub="窓の高さ" type="button" style="display:none;">窓高</button>
 <button class="pill" id="voidToggleBtn" data-sub="2Fの床を抜く" type="button" style="display:none;">吹抜</button>
+<button class="pill" id="wpBtn" data-sub="3Dに反映" type="button" style="display:none;">壁紙</button>
 <button class="pill" id="ceilDropBtn" data-sub="下がり天井" type="button" style="display:none;">下天</button>
 <button class="pill" id="furnRotateBtn" data-sub="90°回す" type="button" style="display:none;">回転</button>
 <button class="pill" id="furnSizeBtn" data-sub="mm指定" type="button" style="display:none;">サイズ</button>
@@ -1554,7 +1555,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 4.1 by yuchi🐔</div>
+<div class="v2verline">ver 4.2 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1693,6 +1694,13 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-row">
 <div class="help-icon">🏠</div>
 <div class="help-content">
+<b>壁紙（サンゲツのスクショ等）</b>
+部屋を選んで「壁紙」を押し、画像を選ぶとその部屋の壁紙になり、3Dの壁に貼られます（歩行モードで確認）。画像は軽く縮小して保存・共有されます。もう一度「壁紙」で削除や貼り替えができます。
+</div>
+</div>
+<div class="help-row">
+<div class="help-icon">🕳️</div>
+<div class="help-content">
 <b>吹き抜け・3Dの移動</b>
 部屋を選んで「吹抜」を押すと、その部屋は吹き抜けになり、3D（全体表示）で2Fの床が抜けて1Fが見えます。3Dの「歩く」中は上部に部屋名が並び、タップするとその部屋へ瞬間移動できます。
 </div>
@@ -1808,6 +1816,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 </div>
 </div>
 
+<input type="file" id="wpFile" accept="image/*" style="display:none;">
 <div id="winModal" class="modal-overlay">
 <div class="modal sheet">
 <h3 style="margin:0 0 6px;">窓のサイズ・高さ</h3>
@@ -1907,6 +1916,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import {
 getFirestore, collection, addDoc, getDoc, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
@@ -1919,6 +1929,8 @@ measurementId: "G-PW24JY2LBP"
 };
 
 const app = initializeApp(firebaseConfig);
+let fbStorage = null;
+try{ fbStorage = getStorage(app); }catch(_){ fbStorage = null; }
 const db = getFirestore(app);
 
 const el = (id) => document.getElementById(id);
@@ -2186,6 +2198,8 @@ if(typeof it.mirror !== "boolean") it.mirror = false; // 曲がる向き（false
 if(!it.color) it.color = "#FFF3E0";
 if(!it.label) it.label = "部屋";
 if(typeof it.void !== "boolean") it.void = false;
+if(typeof it.wp !== "string") it.wp = "";       // 壁紙サムネ(dataURL)
+if(typeof it.wpUrl !== "string") it.wpUrl = ""; // Storage原本URL(任意)
 if(typeof it.ceilMm !== "number") it.ceilMm = 0; // 0=標準天井、>0で下がり天井(mm)
 }
 }));
@@ -4027,6 +4041,40 @@ ctx.stroke();
 ctx.setLineDash([]);
 }
 ctx.restore();
+}
+
+/* 壁紙：画像を縮小してdataURL化（軽量・Firestoreで共有可） */
+function wpDownscale(file, maxPx, quality){
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => {
+const img = new Image();
+img.onload = () => {
+let w = img.width, h = img.height;
+const sc = Math.min(1, maxPx / Math.max(w, h));
+w = Math.round(w * sc); h = Math.round(h * sc);
+const c = document.createElement('canvas');
+c.width = w; c.height = h;
+c.getContext('2d').drawImage(img, 0, 0, w, h);
+try{ resolve(c.toDataURL('image/jpeg', quality)); }catch(e){ reject(e); }
+};
+img.onerror = reject;
+img.src = reader.result;
+};
+reader.onerror = reject;
+reader.readAsDataURL(file);
+});
+}
+
+/* 壁紙：Storageへ原本をベストエフォートでアップロード */
+async function wpUploadStorage(file, roomId){
+try{
+if(!fbStorage) return '';
+const path = `wallpapers/${roomId}-${Date.now()}.jpg`;
+const r = storageRef(fbStorage, path);
+await uploadBytes(r, file);
+return await getDownloadURL(r);
+}catch(_){ return ''; }
 }
 
 /* v3.7: 吹き抜け部屋のハッチング表示 */
@@ -6470,53 +6518,44 @@ return edges;
 /* 展開図のmm座標 → 平面のpx座標（壁wi: 0北/1東/2南/3西、左原点は室内から見た左） */
 /* === v4.1: ユニットの外周をセルベースで抽出（3Dの外壁と同じ挙動） === */
 function elecUnitPerimeter(unit){
-const sub = 16;
-const cells = new Set();
-unit.members.forEach(r => {
-for(let x = r.x; x < r.x + r.w - 0.5; x += sub)
-for(let y = r.y; y < r.y + r.h - 0.5; y += sub) cells.add(Math.round(x) + "," + Math.round(y));
-});
-const hMap = new Map(), vMap = new Map();
-const addE = (map, k, v) => { if(!map.has(k)) map.set(k, new Set()); map.get(k).add(v); };
-cells.forEach(key => {
-const [x, y] = key.split(',').map(Number);
-if(!cells.has(x + "," + (y - sub))) addE(hMap, y + "|d", x);       // 上辺：室内は下(down)
-if(!cells.has(x + "," + (y + sub))) addE(hMap, (y + sub) + "|u", x); // 下辺：室内は上(up)
-if(!cells.has((x - sub) + "," + y)) addE(vMap, x + "|r", y);        // 左辺：室内は右(right)
-if(!cells.has((x + sub) + "," + y)) addE(vMap, (x + sub) + "|l", y);// 右辺：室内は左(left)
-});
+// 各部屋ブロックの「外側に面した辺」を1枚の壁として出す。
+// 同ユニットの別ブロックが内側から覆っている部分（=内部の壁）は除外。
+const members = unit.members;
+const eps = 2;
 const segs = [];
-const runs = (map, horiz) => {
-map.forEach((set, key) => {
-const [fixedStr, dir] = key.split("|");
-const fixed = Number(fixedStr);
-const arr = [...set].sort((a, b) => a - b);
-let s = null, prev = null;
-const push = (a, b) => {
+members.forEach(R => {
+for(let wi = 0; wi < 4; wi++){
+const horiz = (wi === 0 || wi === 2);
+const Y = (wi === 0) ? R.y : (wi === 2) ? (R.y + R.h) : null;
+const X = (wi === 3) ? R.x : (wi === 1) ? (R.x + R.w) : null;
+const full = horiz ? [R.x, R.x + R.w] : [R.y, R.y + R.h];
+const covered = [];
+members.forEach(S => {
+if(S === R) return;
+if(wi === 0){ if(Math.abs((S.y + S.h) - R.y) <= eps){ const a = Math.max(R.x, S.x), b = Math.min(R.x + R.w, S.x + S.w); if(b - a > eps) covered.push([a, b]); } }
+else if(wi === 2){ if(Math.abs(S.y - (R.y + R.h)) <= eps){ const a = Math.max(R.x, S.x), b = Math.min(R.x + R.w, S.x + S.w); if(b - a > eps) covered.push([a, b]); } }
+else if(wi === 1){ if(Math.abs(S.x - (R.x + R.w)) <= eps){ const a = Math.max(R.y, S.y), b = Math.min(R.y + R.h, S.y + S.h); if(b - a > eps) covered.push([a, b]); } }
+else { if(Math.abs((S.x + S.w) - R.x) <= eps){ const a = Math.max(R.y, S.y), b = Math.min(R.y + R.h, S.y + S.h); if(b - a > eps) covered.push([a, b]); } }
+});
+covered.sort((p, q) => p[0] - q[0]);
+let cur = full[0];
+const ext = [];
+covered.forEach(([a, b]) => { if(a > cur + eps) ext.push([cur, Math.min(a, full[1])]); cur = Math.max(cur, b); });
+if(cur < full[1] - eps) ext.push([cur, full[1]]);
+ext.forEach(([wa, wb]) => {
+if(wb - wa < eps) return;
 let seg;
-if(horiz){ const ny = (dir === "d") ? 1 : -1; seg = { x1: a, y1: fixed, x2: b, y2: fixed, nx: 0, ny }; }
-else { const nx = (dir === "r") ? 1 : -1; seg = { x1: fixed, y1: a, x2: fixed, y2: b, nx, ny: 0 }; }
+if(wi === 0) seg = { x1: wa, y1: Y, x2: wb, y2: Y, nx: 0, ny: 1, ox: wa, oy: Y, ux: 1, uy: 0, name: '北側の壁' };
+else if(wi === 2) seg = { x1: wa, y1: Y, x2: wb, y2: Y, nx: 0, ny: -1, ox: wb, oy: Y, ux: -1, uy: 0, name: '南側の壁' };
+else if(wi === 3) seg = { x1: X, y1: wa, x2: X, y2: wb, nx: 1, ny: 0, ox: X, oy: wb, ux: 0, uy: -1, name: '西側の壁' };
+else seg = { x1: X, y1: wa, x2: X, y2: wb, nx: -1, ny: 0, ox: X, oy: wa, ux: 0, uy: 1, name: '東側の壁' };
+seg.len = wb - wa;
+seg.room = R;
 segs.push(seg);
-};
-arr.forEach(v => {
-if(s === null){ s = v; prev = v; return; }
-if(v === prev + sub){ prev = v; return; }
-push(s, prev + sub); s = v; prev = v;
 });
-if(s !== null) push(s, prev + sub);
+}
 });
-};
-runs(hMap, true);
-runs(vMap, false);
-return segs.map(s => {
-const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
-let name, ox, oy, ux, uy;
-if(s.ny === 1){ name = '北側の壁'; ox = Math.min(s.x1, s.x2); oy = s.y1; ux = 1; uy = 0; }
-else if(s.ny === -1){ name = '南側の壁'; ox = Math.max(s.x1, s.x2); oy = s.y1; ux = -1; uy = 0; }
-else if(s.nx === 1){ name = '西側の壁'; ox = s.x1; oy = Math.max(s.y1, s.y2); ux = 0; uy = -1; }
-else { name = '東側の壁'; ox = s.x1; oy = Math.min(s.y1, s.y2); ux = 0; uy = 1; }
-return { ...s, len, name, ox, oy, ux, uy };
-}).filter(s => s.len > 4);
+return segs.filter(s => s.len > 4);
 }
 
 function elecSegToWorld(seg, xmm){ const p = mm2px(xmm); return { x: seg.ox + seg.ux * p, y: seg.oy + seg.uy * p }; }
@@ -6879,7 +6918,8 @@ const card = document.createElement('div');
 card.className = 'elecwall';
 const cnt = elecDevicesOnSeg(seg).length;
 const fcnt = elecFurnOnSeg(seg).length;
-card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvgSeg(unit, seg)}</div><div class="txt"><h4>${seg.name}</h4><div class="meta">長さ ${elecSegLenMm(seg)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecSegSvg(seg)}`;
+const sub = (unit.members.length > 1 && seg.room) ? `${seg.room.label}｜` : '';
+card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvgSeg(unit, seg)}</div><div class="txt"><h4>${sub}${seg.name}</h4><div class="meta">長さ ${elecSegLenMm(seg)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecSegSvg(seg)}`;
 wrap.appendChild(card);
 
 const svg = card.querySelector('svg');
@@ -7159,6 +7199,22 @@ runs(vMap, false);
 return segs;
 }
 
+/* 壁紙テクスチャ（dataURL/URLから・CORS不要のdataURL推奨） */
+const v3dWpCache = {};
+function v3dWpTexture(T, url){
+if(!url) return null;
+if(v3dWpCache[url]) return v3dWpCache[url];
+try{
+const loader = new T.TextureLoader();
+loader.crossOrigin = 'anonymous';
+const tex = loader.load(url);
+tex.wrapS = tex.wrapT = T.RepeatWrapping;
+tex.repeat.set(2.4, 1.8);
+v3dWpCache[url] = tex;
+return tex;
+}catch(_){ return null; }
+}
+
 /* 床の木目テクスチャ（手続き生成・通信不要） */
 function v3dWoodTexture(T){
 const c = document.createElement('canvas');
@@ -7369,6 +7425,25 @@ c.receiveShadow = true;
 c.castShadow = true;
 v3dCeilings.push(c);
 group.add(c);
+});
+
+// 壁紙（部屋の内側に薄い壁ライナーを貼る）
+fItems.forEach(it => {
+if(it.type !== 'room' || it.void || !it.wp) return;
+const tex = v3dWpTexture(T, it.wp);
+if(!tex) return;
+const top = (it.ceilMm > 0 && it.ceilMm * PX_PER_MM < V3D_WALL_H) ? it.ceilMm * PX_PER_MM : V3D_WALL_H;
+const inset = 1.2;
+const mkLiner = (w, d, cx, cz) => {
+const m = new T.Mesh(new T.BoxGeometry(w, top, d), new T.MeshLambertMaterial({ map: tex }));
+m.position.set(cx, yBase + top / 2, cz);
+m.receiveShadow = true;
+group.add(m);
+};
+mkLiner(Math.max(1, it.w - 2), 1.0, it.x + it.w / 2, it.y + inset);              // 北
+mkLiner(Math.max(1, it.w - 2), 1.0, it.x + it.w / 2, it.y + it.h - inset);       // 南
+mkLiner(1.0, Math.max(1, it.h - 2), it.x + inset, it.y + it.h / 2);              // 西
+mkLiner(1.0, Math.max(1, it.h - 2), it.x + it.w - inset, it.y + it.h / 2);       // 東
 });
 
 // 部屋の床色（うっすら）
@@ -8007,6 +8082,12 @@ const on = roomSel && selectedItem.void;
 el('voidToggleBtn').style.background = on ? 'rgba(88,86,214,.92)' : '';
 el('voidToggleBtn').style.color = on ? '#fff' : '';
 }
+if(el('wpBtn')){
+el('wpBtn').style.display = roomSel ? '' : 'none';
+const won = roomSel && selectedItem.wp;
+el('wpBtn').style.background = won ? 'rgba(255,149,0,.92)' : '';
+el('wpBtn').style.color = won ? '#fff' : '';
+}
 if(el('ceilDropBtn')){
 el('ceilDropBtn').style.display = roomSel ? '' : 'none';
 const on = roomSel && selectedItem.ceilMm > 0;
@@ -8310,6 +8391,35 @@ scheduleAutoSave();
 syncBottomBarState();
 showToast(it.void ? '吹き抜けにしました（2Fの床が抜けます）' : '吹き抜けを解除しました', 1500);
 };
+if(el('wpBtn')) el('wpBtn').onclick = () => {
+const it = selectedItem;
+if(!it || it.type !== 'room' || isReadOnly) return;
+if(it.wp){
+if(confirm('壁紙を削除しますか？\n（キャンセルすると別の画像を選べます）')){
+pushHistory(); it.wp = ''; it.wpUrl = '';
+draw(); scheduleAutoSave(); syncBottomBarState();
+showToast('壁紙を削除しました');
+return;
+}
+}
+const fi = el('wpFile');
+if(fi){ fi.value = ''; fi.dataset.room = it.id; fi.click(); }
+};
+if(el('wpFile')) el('wpFile').addEventListener('change', async (e) => {
+const file = e.target.files && e.target.files[0];
+if(!file) return;
+const roomId = el('wpFile').dataset.room;
+const room = items.find(i => i.id === roomId && i.type === 'room');
+if(!room){ showToast('部屋が見つかりません'); return; }
+try{
+const dataUrl = await wpDownscale(file, 720, 0.72);
+pushHistory();
+room.wp = dataUrl;
+draw(); scheduleAutoSave(); syncBottomBarState();
+showToast('壁紙を設定しました（3Dで確認）', 1800);
+wpUploadStorage(file, roomId).then(url => { if(url){ room.wpUrl = url; scheduleAutoSave(); } }).catch(() => {});
+}catch(err){ showToast('画像の読み込みに失敗しました'); }
+});
 if(el('furnRotateBtn')) el('furnRotateBtn').onclick = () => {
 const it = selectedItem;
 if(it && it.type === 'stair' && !isReadOnly){
