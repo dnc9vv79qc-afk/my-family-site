@@ -1427,6 +1427,9 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 </div>
 <div class="elecbody">
 <div class="elecrooms" id="elecRooms"></div>
+<label class="elecmerge" style="display:flex; align-items:center; gap:6px; font-size:11px; color:#555; margin:0 4px 10px;">
+<input type="checkbox" id="elecMergeToggle" style="width:15px; height:15px;"> 隣接した部屋を結合して表示（OFF＝部屋ごとに設定）
+</label>
 <div class="electools" id="elecToolsBar"></div>
 <div class="elecdefh" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 4px 8px; font-size:11px; color:#555;">
 <span>標準高さ</span>
@@ -1849,9 +1852,9 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <label style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:10px;color:#444;">
 <input type="checkbox" id="wpSameName" checked style="width:17px;height:17px;"> 同じ部屋名すべてに反映
 </label>
-<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;margin-bottom:5px;">
-お気に入り（タップで適用）<span style="flex:1;"></span>
-<input type="checkbox" id="wpFavToCeil" style="width:15px;height:15px;"> 天井に
+<div style="font-size:11px;color:#666;margin-bottom:5px;">お気に入り（タップで適用）</div>
+<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#666;margin-bottom:6px;">
+<input type="checkbox" id="wpFavToCeil" style="width:15px;height:15px;"> お気に入りを「天井」に貼る（OFF＝壁に貼る）
 </label>
 <div id="wpFavs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:46px;"></div>
 <button class="pill" id="wpCloseBtn" type="button" style="width:100%;background:rgba(10,132,255,.92);color:#fff;">閉じる</button>
@@ -6551,6 +6554,7 @@ const ELEC_KIND_ALIAS = { out2:'out', out4:'out', tv:'out', lan:'out', ac:'out',
 function elecToolOf(kind){ const k = ELEC_KIND_ALIAS[kind] || kind; return ELEC_TOOLS.find(t => t.id === k) || ELEC_TOOLS[0]; }
 const ELEC_WALL_NAMES = ['北側の壁', '東側の壁', '南側の壁', '西側の壁'];
 const ELEC_CEIL_MM = 2400;
+let elecMerge = false;        // false=部屋ごと（既定） / true=隣接部屋を結合
 let elecRoomId = null;
 let elecToolId = 'out';
 let elecSelId = null;
@@ -6611,6 +6615,10 @@ return true;
 /* フロアの部屋を隣接ブロックごとに結合した「ユニット」一覧 */
 function elecUnitsOfFloor(){
 const rooms = elecRoomsOfFloor();
+if(!elecMerge){
+// 部屋ごと：1部屋＝1ユニット（結合しない）
+return rooms.map(r => ({ id: r.id, label: r.label, members: [r] }));
+}
 const n = rooms.length;
 const parent = rooms.map((_, i) => i);
 const find = (x) => { while(parent[x] !== x){ parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
@@ -7046,6 +7054,43 @@ return s;
 }
 
 /* ユニットの間取り図に壁(辺)を並べ、タップで選ぶピッカー */
+/* 外周セグメント（始点終点を持つ線分の集合）を端点で連結し、
+   閉じたポリゴン頂点列（穴あき＝複数ループに対応）にして返す */
+function elecPerimeterPolys(segs){
+const EPS = 1.5;
+const key = (x, y) => `${Math.round(x / EPS)},${Math.round(y / EPS)}`;
+// 各端点から出る辺を引けるよう、無向グラフにする
+const edges = segs.map(s => ({ a: [s.x1, s.y1], b: [s.x2, s.y2], used: false }));
+const adj = {};
+edges.forEach((e, i) => {
+const ka = key(e.a[0], e.a[1]), kb = key(e.b[0], e.b[1]);
+(adj[ka] = adj[ka] || []).push({ i, to: 'b' });
+(adj[kb] = adj[kb] || []).push({ i, to: 'a' });
+});
+const polys = [];
+edges.forEach((start, si) => {
+if(start.used) return;
+const poly = [];
+let cur = start, from = 'a';
+let guard = 0;
+while(cur && !cur.used && guard++ < edges.length + 2){
+cur.used = true;
+const p0 = (from === 'a') ? cur.a : cur.b;
+const p1 = (from === 'a') ? cur.b : cur.a;
+poly.push(p0);
+// 次の辺：p1 を端点に持つ未使用の辺を探す
+const k = key(p1[0], p1[1]);
+const cand = (adj[k] || []).find(c => !edges[c.i].used);
+if(!cand){ poly.push(p1); break; }
+const ne = edges[cand.i];
+from = (cand.to === 'b') ? 'a' : 'b'; // candがneのどちら側に接続しているか
+cur = ne;
+}
+if(poly.length >= 3) polys.push(poly);
+});
+return polys;
+}
+
 function elecFaceMapSvg(unit, segs){
 const W = 300, H = 200, pad = 26;
 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -7054,7 +7099,17 @@ const k = Math.min((W - pad * 2) / (maxX - minX), (H - pad * 2) / (maxY - minY))
 const ox = (W - (maxX - minX) * k) / 2 - minX * k, oy = (H - (maxY - minY) * k) / 2 - minY * k;
 const X = x => ox + x * k, Y = y => oy + y * k;
 let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">`;
-unit.members.forEach(r => { s += `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w*k}" height="${r.h*k}" fill="rgba(0,122,255,.06)" stroke="#cfcabd" stroke-width="1"/>`; });
+// 外枠だけを1枚のポリゴンとして塗る（内部の仕切り＝細かい四角は描かない）
+const _polys = elecPerimeterPolys(segs);
+if(_polys.length){
+_polys.forEach(poly => {
+const pts = poly.map(p => `${X(p[0])},${Y(p[1])}`).join(' ');
+s += `<polygon points="${pts}" fill="rgba(0,122,255,.06)" stroke="none"/>`;
+});
+}else{
+// フォールバック：従来どおり部屋ごとに塗る
+unit.members.forEach(r => { s += `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w*k}" height="${r.h*k}" fill="rgba(0,122,255,.06)" stroke="none"/>`; });
+}
 segs.forEach((seg, i) => {
 const cnt = elecDevicesOnSeg(seg).length;
 const sel = (i === elecSegIdx);
@@ -7236,6 +7291,7 @@ const fn = el('elecFloorName');
 if(fn) fn.textContent = `（${floors[activeFloor].name}）`;
 if(el('elecDefOut')) el('elecDefOut').value = ELEC_DEFAULT_H.out;
 if(el('elecDefSw')) el('elecDefSw').value = ELEC_DEFAULT_H.sw;
+if(el('elecMergeToggle')) el('elecMergeToggle').checked = elecMerge;
 const units = elecUnitsOfFloor();
 if(!units.find(u => u.id === elecRoomId)) elecRoomId = units.length ? units[0].id : null;
 elecSelId = null;
@@ -7417,18 +7473,51 @@ groupRun(samp, (a, b) => out.push({ side: 'e', cx: room.x + room.w - 3, cz: (a +
 return out.filter(s => (s.w > 2 || s.d > 2));
 }
 
-/* 壁紙テクスチャ（dataURL/URLから・CORS不要のdataURL推奨） */
-const v3dWpCache = {};
-function v3dWpTexture(T, url){
-if(!url) return null;
+/* 壁紙テクスチャ（dataURL/URLから・CORS不要のdataURL推奨）
+   面ごとに実寸へ合わせて repeat を設定し、横長の壁での引き伸ばし（歪み）を防ぐ */
+const v3dWpCache = {};   // url -> ベーステクスチャ
+const v3dWpAspect = {};  // url -> 画像の縦/横比（読込完了後に判明）
+const v3dWpPending = {}; // url -> 読込待ちのクローン [{tex,lenPx,hPx}]
+const WP_TILE_PX = mm2px(1000); // 1リピート ≒ 横1000mm を基準に実寸タイリング
+function v3dWpApplyRepeat(tex, lenPx, hPx, asp){
+const tileW = WP_TILE_PX;
+const tileH = WP_TILE_PX * (asp || 1); // 画像の縦横比を保って歪ませない
+tex.repeat.set(Math.max(0.05, lenPx / tileW), Math.max(0.05, hPx / tileH));
+tex.needsUpdate = true;
+}
+function v3dWpBase(T, url){
 if(v3dWpCache[url]) return v3dWpCache[url];
-try{
 const loader = new T.TextureLoader();
 loader.crossOrigin = 'anonymous';
-const tex = loader.load(url);
+const base = loader.load(url, (tx) => {
+const img = tx.image;
+if(img && img.width){
+const asp = img.height / img.width;
+v3dWpAspect[url] = asp;
+(v3dWpPending[url] || []).forEach(p => v3dWpApplyRepeat(p.tex, p.lenPx, p.hPx, asp));
+v3dWpPending[url] = [];
+}
+});
+base.wrapS = base.wrapT = T.RepeatWrapping;
+v3dWpCache[url] = base;
+return base;
+}
+function v3dWpTexture(T, url, lenPx, hPx){
+if(!url) return null;
+try{
+const base = v3dWpBase(T, url);
+const tex = base.clone();        // 面ごとに repeat を変えるためクローン（画像データは共有）
 tex.wrapS = tex.wrapT = T.RepeatWrapping;
-tex.repeat.set(2.4, 1.8);
-v3dWpCache[url] = tex;
+tex.needsUpdate = true;
+const L = (lenPx > 0) ? lenPx : WP_TILE_PX;
+const Hh = (hPx > 0) ? hPx : WP_TILE_PX;
+const asp = v3dWpAspect[url];
+if(typeof asp === 'number'){
+v3dWpApplyRepeat(tex, L, Hh, asp);
+}else{
+v3dWpApplyRepeat(tex, L, Hh, 1); // 暫定。画像読込後に正しい縦横比へ補正
+(v3dWpPending[url] = v3dWpPending[url] || []).push({ tex, lenPx: L, hPx: Hh });
+}
 return tex;
 }catch(_){ return null; }
 }
@@ -7519,7 +7608,7 @@ const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
 wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
 slab: new T.MeshLambertMaterial({ color: 0xe3e3e8 }),
 wood: new T.MeshLambertMaterial({ map: v3dWoodTexture(T) }),
-ceil: new T.MeshLambertMaterial({ color: 0xfbfaf7 }),
+ceil: new T.MeshLambertMaterial({ color: 0xdedbd2, side: T.DoubleSide }),
 trim: new T.MeshLambertMaterial({ color: 0x8b5a2b }),
 glass: new T.MeshLambertMaterial({ color: 0xaed2ee, transparent: true, opacity: 0.45 }),
 sash: new T.MeshLambertMaterial({ color: 0x6d6d72 }),
@@ -7567,8 +7656,8 @@ group.add(board);
 const ceilVoids = voids.concat(upperVoids || []);
 const inCeilVoid = (cx, cz) => ceilVoids.some(v => cx >= v.x && cx <= v.x + v.w && cz >= v.y && cz <= v.y + v.h);
 if(ceilVoids.length === 0){
-const ceil = new T.Mesh(new T.BoxGeometry(f.w, 1, f.h), mats.ceil);
-ceil.position.set(f.x + f.w / 2, topY + 0.5, f.y + f.h / 2);
+const ceil = new T.Mesh(new T.BoxGeometry(f.w + V3D_OUTER_T, 2, f.h + V3D_OUTER_T), mats.ceil);
+ceil.position.set(f.x + f.w / 2, topY - 0.4, f.y + f.h / 2);
 ceil.visible = v3dWalk; v3dCeilings.push(ceil); group.add(ceil);
 }else{
 const tile = GRID_SIZE;
@@ -7576,8 +7665,8 @@ for(let tx = f.x; tx < f.x + f.w - 0.5; tx += tile){
 for(let tz = f.y; tz < f.y + f.h - 0.5; tz += tile){
 const tw = Math.min(tile, f.x + f.w - tx), td = Math.min(tile, f.y + f.h - tz);
 if(inCeilVoid(tx + tw / 2, tz + td / 2)) continue;
-const c = new T.Mesh(new T.BoxGeometry(tw, 1, td), mats.ceil);
-c.position.set(tx + tw / 2, topY + 0.5, tz + td / 2);
+const c = new T.Mesh(new T.BoxGeometry(tw + 0.6, 2, td + 0.6), mats.ceil);
+c.position.set(tx + tw / 2, topY - 0.4, tz + td / 2);
 c.visible = v3dWalk; v3dCeilings.push(c); group.add(c);
 }
 }
@@ -7659,7 +7748,7 @@ if(it.wp || anySide){
 v3dRoomWallSpans(it, fItems).forEach(sp => {
 const url = (sides[sp.side]) ? sides[sp.side] : it.wp;
 if(!url) return;
-const tex = v3dWpTexture(T, url);
+const tex = v3dWpTexture(T, url, Math.max(sp.w, sp.d), top);
 if(!tex) return;
 const m = new T.Mesh(new T.BoxGeometry(sp.w, top, sp.d), new T.MeshLambertMaterial({ map: tex }));
 m.position.set(sp.cx, yBase + top / 2, sp.cz);
@@ -7668,10 +7757,10 @@ group.add(m);
 });
 }
 if(it.wpCeil){
-const ctex = v3dWpTexture(T, it.wpCeil);
+const ctex = v3dWpTexture(T, it.wpCeil, it.w, it.h);
 if(ctex){
 const m = new T.Mesh(new T.BoxGeometry(it.w, 0.8, it.h), new T.MeshLambertMaterial({ map: ctex }));
-m.position.set(it.x + it.w / 2, yBase + top - 0.6, it.y + it.h / 2);
+m.position.set(it.x + it.w / 2, yBase + top - 1.4, it.y + it.h / 2);
 m.visible = v3dWalk; v3dCeilings.push(m); // 俯瞰では非表示
 group.add(m);
 }
@@ -7993,7 +8082,7 @@ hint.textContent = v3dWalk
 ? '左下スティック：移動 ・ 画面をなぞる：見回す'
 : '1本指で回転 ・ ピンチでズーム ・ 2本指で移動';
 }
-if(v3dAmb) v3dAmb.intensity = v3dWalk ? 1.15 : 0.8;
+if(v3dAmb) v3dAmb.intensity = v3dWalk ? 0.7 : 0.8;
 const joyEl = el('v3dJoy');
 if(joyEl) joyEl.style.display = v3dWalk ? 'block' : 'none';
 const clipB = el('v3dClipBtn');
@@ -8701,6 +8790,16 @@ v2CloseSheet('moreSheet');
 openElecPlanner();
 };
 if(el('elecCloseBtn')) el('elecCloseBtn').onclick = closeElecPlanner;
+if(el('elecMergeToggle')){
+el('elecMergeToggle').checked = elecMerge;
+el('elecMergeToggle').addEventListener('change', (e) => {
+elecMerge = !!e.target.checked;
+elecSelId = null; elecSegIdx = null;
+const units = elecUnitsOfFloor();
+if(!units.find(u => u.id === elecRoomId)) elecRoomId = units.length ? units[0].id : null;
+elecRenderAll();
+});
+}
 const saveDefH = () => { try{ localStorage.setItem('floorplan_elec_defh_v1', JSON.stringify(ELEC_DEFAULT_H)); }catch(_){} };
 if(el('elecDefOut')){
 el('elecDefOut').addEventListener('change', (e) => {
