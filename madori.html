@@ -8449,6 +8449,7 @@ group.add(m);
 fItems.forEach(it => {
 if(it.type !== 'room' || it.void) return;
 if(!(it.ceilMm > 0)) return;
+if(it.wpCeil) return; // 天井材がある部屋は貼り材面を優先して見せる
 const dh = it.ceilMm * PX_PER_MM;
 if(dh >= V3D_WALL_H) return;
 // 下端(dh)から上の天井(topY)までを塊で塞ぐ＝しっかり下がった下がり天井
@@ -8670,7 +8671,10 @@ v3dFloorGroups[idx] = g;
 v3dRoot.add(g);
 });
 v3dScene.add(v3dRoot);
-if(v3dCeilings.some(c => c.userData && c.userData.ceilingKind !== 'base')) v3dShowCeiling = true;
+if(v3dCeilings.some(c => c.userData && c.userData.ceilingKind !== 'base')){
+v3dShowCeiling = true;
+if(v3dMode === 'all') v3dMode = (activeFloor === 1) ? 'f2' : 'f1';
+}
 v3dApplyMode();
 v3dSyncCeilingVisibility();
 }
@@ -9217,6 +9221,10 @@ if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();
 if(el('v3dSaveBtn')) el('v3dSaveBtn').onclick = () => v3dSaveImage();
 if(el('v3dCeilBtn')) el('v3dCeilBtn').onclick = () => {
 v3dShowCeiling = !v3dShowCeiling;
+if(v3dShowCeiling && v3dMode === 'all'){
+v3dMode = (activeFloor === 1) ? 'f2' : 'f1';
+v3dApplyMode();
+}
 v3dSyncCeilingVisibility();
 showToast(v3dShowCeiling ? '天井材を表示します' : '天井材を非表示にしました', 1100);
 };
