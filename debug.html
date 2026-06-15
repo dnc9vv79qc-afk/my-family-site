@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v10.6</title>
+<title>間取り検討サイト（Ichijo) v10.7</title>
 
 <style>
 :root{
@@ -1555,7 +1555,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 4.6 by yuchi🐔</div>
+<div class="v2verline">ver 4.7 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1688,7 +1688,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">🔀</div>
 <div class="help-content">
 <b>窓の高さ・下がり天井</b>
-窓を選んで「窓高」でプリセット（腰窓/掃出し/高窓/地窓/大窓）の選択＋幅・下端・上端のmm直接指定ができます（3Dと電気展開図に反映）。部屋を選んで「下天」で下がり天井（2200/2000/1800mm）を設定でき、3Dの歩行中にその高さで天井が下がります。引き戸は枚数（片引き/引違い/3連）が3Dにも反映されます。電気計画では、間に壁の無い隣接ブロックは自動で1部屋に結合され、外周の壁だけが展開図に並びます（「＋」付きが結合部屋）。
+窓を選んで「窓高」でプリセット（腰窓/掃出し/高窓/地窓/大窓）の選択＋幅・下端・上端のmm直接指定ができます（3Dと電気展開図に反映）。部屋を選んで「下天」で下がり天井（2200/2000/1800mm）を設定でき、3Dの歩行中にその高さで天井が下がります。引き戸は枚数（片引き/引違い/3連）が3Dにも反映されます。電気計画では、部屋を選ぶと間取り図が出るので、配線したい壁をタップするとその壁だけ展開図が開きます。間に壁の無い隣接ブロックは自動で1部屋に結合されます（「＋」付きが結合部屋）。
 </div>
 </div>
 <div class="help-row">
@@ -6554,6 +6554,7 @@ const ELEC_CEIL_MM = 2400;
 let elecRoomId = null;
 let elecToolId = 'out';
 let elecSelId = null;
+let elecSegIdx = null; // 選択中の壁(辺)インデックス
 
 function getElecList(){
 syncActiveFloor();
@@ -6857,7 +6858,7 @@ const dup = units.filter(x => x.label === u.label).length > 1;
 const multi = (u.members.length > 1) ? '＋' : '';
 b.textContent = (dup ? `${u.label}${seen[u.label]}` : u.label) + multi;
 if(u.id === elecRoomId) b.classList.add('on');
-b.onclick = () => { elecRoomId = u.id; elecSelId = null; elecRenderAll(); };
+b.onclick = () => { elecRoomId = u.id; elecSelId = null; elecSegIdx = null; elecRenderAll(); };
 wrap.appendChild(b);
 });
 if(units.length === 0){
@@ -7044,32 +7045,41 @@ s += `</svg>`;
 return s;
 }
 
-function elecRenderWalls(){
-const wrap = el('elecWalls');
-if(!wrap) return;
-wrap.innerHTML = '';
-const unit = elecCurrentUnit();
-if(!unit) return;
-const segs = elecUnitPerimeter(unit);
-segs.forEach((seg, si) => {
+/* ユニットの間取り図に壁(辺)を並べ、タップで選ぶピッカー */
+function elecFaceMapSvg(unit, segs){
+const W = 300, H = 200, pad = 26;
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+unit.members.forEach(r => { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.w); maxY = Math.max(maxY, r.y + r.h); });
+const k = Math.min((W - pad * 2) / (maxX - minX), (H - pad * 2) / (maxY - minY));
+const ox = (W - (maxX - minX) * k) / 2 - minX * k, oy = (H - (maxY - minY) * k) / 2 - minY * k;
+const X = x => ox + x * k, Y = y => oy + y * k;
+let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">`;
+unit.members.forEach(r => { s += `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w*k}" height="${r.h*k}" fill="rgba(0,122,255,.06)" stroke="#cfcabd" stroke-width="1"/>`; });
+segs.forEach((seg, i) => {
+const cnt = elecDevicesOnSeg(seg).length;
+const sel = (i === elecSegIdx);
+s += `<line x1="${X(seg.x1)}" y1="${Y(seg.y1)}" x2="${X(seg.x2)}" y2="${Y(seg.y2)}" stroke="${sel ? '#007AFF' : (cnt ? '#FF9F0A' : '#9aa0a6')}" stroke-width="${sel ? 9 : 6}" stroke-linecap="round"/>`;
+s += `<line data-seg="${i}" x1="${X(seg.x1)}" y1="${Y(seg.y1)}" x2="${X(seg.x2)}" y2="${Y(seg.y2)}" stroke="rgba(0,0,0,0)" stroke-width="22" style="cursor:pointer;"/>`;
+if(cnt){ const mx = (X(seg.x1) + X(seg.x2)) / 2 + seg.nx * 8, my = (Y(seg.y1) + Y(seg.y2)) / 2 + seg.ny * 8; s += `<circle cx="${mx}" cy="${my}" r="7.5" fill="#FF9F0A"/><text x="${mx}" y="${my+3}" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">${cnt}</text>`; }
+});
+s += `</svg>`;
+return s;
+}
+
+/* 1つの壁(辺)の展開図カードを描く */
+function elecRenderSegCard(wrap, unit, seg){
 const card = document.createElement('div');
 card.className = 'elecwall';
 const cnt = elecDevicesOnSeg(seg).length;
 const fcnt = elecFurnOnSeg(seg).length;
 const sub = (unit.members.length > 1 && seg.room) ? `${seg.room.label}｜` : '';
-card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvgSeg(unit, seg)}</div><div class="txt"><h4>${sub}${seg.name}</h4><div class="meta">長さ ${elecSegLenMm(seg)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>青い辺がこの壁（●印が室内側）</div></div></div>${elecSegSvg(seg)}`;
+card.innerHTML = `<div class="elechdr"><div class="mini">${elecMiniSvgSeg(unit, seg)}</div><div class="txt"><h4>${sub}${seg.name}</h4><div class="meta">長さ ${elecSegLenMm(seg)}mm ・ 器具 ${cnt}個${fcnt ? ` ・ 家具 ${fcnt}` : ""}<br>壁をタップで配置 ・ 記号タップで選択</div></div></div>${elecSegSvg(seg)}`;
 wrap.appendChild(card);
-
 const svg = card.querySelector('svg');
 if(!svg) return;
 svg.addEventListener('click', (e) => {
 const dev = e.target.closest('.edev');
-if(dev){
-elecSelId = dev.dataset.id;
-elecRenderWalls();
-elecRenderSelBar();
-return;
-}
+if(dev){ elecSelId = dev.dataset.id; elecRenderWalls(); elecRenderSelBar(); return; }
 if(isReadOnly){ showToast('閲覧モードでは編集できません'); return; }
 let p;
 try{
@@ -7092,10 +7102,37 @@ elecRenderCounts();
 draw();
 scheduleAutoSave();
 });
-});
-if(segs.length === 0){
-wrap.innerHTML = '<div style="font-size:12px;color:#8a8a8e;padding:12px;">壁が見つかりません。</div>';
 }
+
+function elecRenderWalls(){
+const wrap = el('elecWalls');
+if(!wrap) return;
+wrap.innerHTML = '';
+const unit = elecCurrentUnit();
+if(!unit){ wrap.innerHTML = '<div style="font-size:12px;color:#8a8a8e;padding:12px;">部屋がありません。</div>'; return; }
+const segs = elecUnitPerimeter(unit);
+if(segs.length === 0){ wrap.innerHTML = '<div style="font-size:12px;color:#8a8a8e;padding:12px;">壁が見つかりません。</div>'; return; }
+
+if(elecSegIdx == null || !segs[elecSegIdx]){
+// 壁(辺)ピッカー
+const box = document.createElement('div');
+box.className = 'elecwall';
+box.innerHTML = `<div style="font-size:13px;font-weight:700;margin-bottom:3px;">配線する壁を選ぶ</div><div style="font-size:11px;color:#8a8a8e;margin-bottom:8px;">間取り図で壁をタップ（オレンジ=配線済みの数）</div>${elecFaceMapSvg(unit, segs)}`;
+wrap.appendChild(box);
+const svg = box.querySelector('svg');
+if(svg) svg.addEventListener('click', (e) => { const t = e.target.closest('[data-seg]'); if(t){ elecSegIdx = parseInt(t.dataset.seg, 10); elecSelId = null; elecRenderWalls(); } });
+return;
+}
+
+// 選択中の壁だけ展開図を出す
+const back = document.createElement('button');
+back.className = 'pill';
+back.type = 'button';
+back.textContent = '← 壁を選び直す';
+back.style.cssText = 'margin-bottom:10px;font-size:12px;padding:7px 14px;';
+back.onclick = () => { elecSegIdx = null; elecSelId = null; elecRenderWalls(); };
+wrap.appendChild(back);
+elecRenderSegCard(wrap, unit, segs[elecSegIdx]);
 }
 
 /* セグメントの展開図SVG */
@@ -7202,6 +7239,7 @@ if(el('elecDefSw')) el('elecDefSw').value = ELEC_DEFAULT_H.sw;
 const units = elecUnitsOfFloor();
 if(!units.find(u => u.id === elecRoomId)) elecRoomId = units.length ? units[0].id : null;
 elecSelId = null;
+elecSegIdx = null;
 elecRenderAll();
 el('elecView').classList.add('open');
 }
