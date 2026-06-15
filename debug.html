@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v10.4</title>
+<title>間取り検討サイト（Ichijo) v10.5</title>
 
 <style>
 :root{
@@ -1555,7 +1555,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 4.4 by yuchi🐔</div>
+<div class="v2verline">ver 4.5 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1673,7 +1673,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon orange">🚪</div>
 <div class="help-content">
 <b>折れ戸・3Dの扉</b>
-「追加」に折れ戸が増えました。ドア・引き戸・折れ戸は3Dでも扉パネル（取っ手付き・開き戸は少し開いた状態）で表示されます。壁を引いていない開口部に置いた扉も3Dに出ます。歩行中は「壁すり抜け」ボタンで壁判定をON/OFFできます。
+「追加」に折れ戸が増えました。ドア・引き戸・折れ戸は3Dでも扉パネル（取っ手付き・開き戸は少し開いた状態）で表示されます。壁を引いていない開口部に置いた扉も3Dに出ます。歩行中は「壁すり抜け」ボタンで壁判定をON/OFFでき、2本指ピンチで視野角（広角〜望遠）を変えられます。
 </div>
 </div>
 <div class="help-row">
@@ -1844,13 +1844,17 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div style="display:flex; gap:5px; margin-top:5px;">
 <button class="pill" id="wpCeilPick" type="button" style="flex:1;font-size:11px;padding:6px 0;">画像</button>
 <button class="pill" id="wpCeilClear" type="button" style="flex:1;font-size:11px;padding:6px 0;">外す</button>
+<button class="pill" id="wpCeilFav" type="button" style="flex:1;font-size:11px;padding:6px 0;">★保存</button>
 </div>
 </div>
 </div>
 <label style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:10px;color:#444;">
 <input type="checkbox" id="wpSameName" checked style="width:17px;height:17px;"> 同じ部屋名すべてに反映
 </label>
-<div style="font-size:11px;color:#666;margin-bottom:5px;">お気に入り（タップで壁に適用）</div>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;margin-bottom:5px;">
+お気に入り（タップで適用）<span style="flex:1;"></span>
+<input type="checkbox" id="wpFavToCeil" style="width:15px;height:15px;"> 天井に
+</label>
 <div id="wpFavs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:46px;"></div>
 <button class="pill" id="wpCloseBtn" type="button" style="width:100%;background:rgba(10,132,255,.92);color:#fff;">閉じる</button>
 </div>
@@ -4143,7 +4147,7 @@ const b = document.createElement('button');
 b.type = 'button';
 b.style.cssText = 'width:46px;height:46px;border-radius:8px;border:1px solid #ccc;background-size:cover;background-position:center;flex-shrink:0;';
 b.style.backgroundImage = `url(${u})`;
-b.onclick = () => { const rr = wpCurRoom(); if(rr){ wpApply(rr, wpWallTarget(), u, el('wpSameName') ? el('wpSameName').checked : true); renderWpModal(); showToast(wpFace === 'base' ? '壁紙を適用' : wpFaceLabel(wpFace) + 'に適用'); } };
+b.onclick = () => { const rr = wpCurRoom(); if(rr){ const toCeil = el('wpFavToCeil') && el('wpFavToCeil').checked; wpApply(rr, toCeil ? 'ceil' : wpWallTarget(), u, el('wpSameName') ? el('wpSameName').checked : true); renderWpModal(); showToast(toCeil ? '天井に適用' : (wpFace === 'base' ? '壁紙を適用' : wpFaceLabel(wpFace) + 'に適用')); } };
 fv.appendChild(b);
 });
 }
@@ -7252,6 +7256,8 @@ let v3dMode = 'all';                        // 'f1' | 'f2' | 'all'
 let v3dRenderer = null, v3dScene = null, v3dCamera = null, v3dDL = null, v3dAmb = null;
 let v3dRoot = null, v3dFloorGroups = [], v3dCeilings = [];
 let v3dTheta = Math.PI / 4, v3dPhi = 1.05, v3dRadius = 600;
+let v3dWalkFov = 72;        // 歩行時の視野角（人間に近い既定）
+let v3dWalkPinchDist = 0;
 let v3dTarget = { x: 0, y: 0, z: 0 };
 // ウォークスルー
 let v3dWalk = false;
@@ -7322,6 +7328,9 @@ const walls = fItems.filter(i => i.type === 'wallLine');
 const inFrame = (x, y) => frames.some(f => x >= f.x - 0.5 && x <= f.x + f.w + 0.5 && y >= f.y - 0.5 && y <= f.y + f.h + 0.5);
 const wallH = (x, y) => walls.some(w => w.y1 === w.y2 && Math.abs(w.y1 - y) <= 7 && Math.min(w.x1, w.x2) <= x + 1 && Math.max(w.x1, w.x2) >= x - 1);
 const wallV = (x, y) => walls.some(w => w.x1 === w.x2 && Math.abs(w.x1 - x) <= 7 && Math.min(w.y1, w.y2) <= y + 1 && Math.max(w.y1, w.y2) >= y - 1);
+const ops = fItems.filter(i => i.type === 'opening');
+const opH = (x, y) => ops.some(o => o.y1 === o.y2 && Math.abs(o.y1 - y) <= 10 && Math.min(o.x1, o.x2) <= x && Math.max(o.x1, o.x2) >= x);
+const opV = (x, y) => ops.some(o => o.x1 === o.x2 && Math.abs(o.x1 - x) <= 10 && Math.min(o.y1, o.y2) <= y && Math.max(o.y1, o.y2) >= y);
 const out = [];
 const groupRun = (samples, makeBox) => {
 let s = null, prev = null;
@@ -7334,19 +7343,19 @@ if(s !== null) makeBox(s, prev + sub);
 let samp;
 // 北 (y=room.y)
 samp = [];
-for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y - 8) || wallH(mx, room.y)) }); }
+for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y - 8) || wallH(mx, room.y)) && !opH(mx, room.y) }); }
 groupRun(samp, (a, b) => out.push({ side: 'n', cx: (a + Math.min(b, room.x + room.w)) / 2, cz: room.y + 3, w: Math.min(b, room.x + room.w) - a, d: 1 }));
 // 南
 samp = [];
-for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y + room.h + 8) || wallH(mx, room.y + room.h)) }); }
+for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y + room.h + 8) || wallH(mx, room.y + room.h)) && !opH(mx, room.y + room.h) }); }
 groupRun(samp, (a, b) => out.push({ side: 's', cx: (a + Math.min(b, room.x + room.w)) / 2, cz: room.y + room.h - 3, w: Math.min(b, room.x + room.w) - a, d: 1 }));
 // 西 (x=room.x)
 samp = [];
-for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x - 8, my) || wallV(room.x, my)) }); }
+for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x - 8, my) || wallV(room.x, my)) && !opV(room.x, my) }); }
 groupRun(samp, (a, b) => out.push({ side: 'w', cx: room.x + 3, cz: (a + Math.min(b, room.y + room.h)) / 2, w: 1, d: Math.min(b, room.y + room.h) - a }));
 // 東
 samp = [];
-for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x + room.w + 8, my) || wallV(room.x + room.w, my)) }); }
+for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x + room.w + 8, my) || wallV(room.x + room.w, my)) && !opV(room.x + room.w, my) }); }
 groupRun(samp, (a, b) => out.push({ side: 'e', cx: room.x + room.w - 3, cz: (a + Math.min(b, room.y + room.h)) / 2, w: 1, d: Math.min(b, room.y + room.h) - a }));
 return out.filter(s => (s.w > 2 || s.d > 2));
 }
@@ -7448,7 +7457,7 @@ if(shadow !== false){ m.castShadow = true; m.receiveShadow = true; }
 return m;
 }
 
-function v3dBuildFloor(T, group, fItems){
+function v3dBuildFloor(T, group, fItems, upperVoids){
 const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
 wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
 slab: new T.MeshLambertMaterial({ color: 0xe3e3e8 }),
@@ -7497,8 +7506,10 @@ group.add(board);
 }
 }
 }
-// 天井（歩くモードのときだけ表示）— 吹き抜け部分も天井は抜く
-if(voids.length === 0){
+// 天井（歩くモードのときだけ表示）— 自階＋上階の吹き抜けの下を抜く
+const ceilVoids = voids.concat(upperVoids || []);
+const inCeilVoid = (cx, cz) => ceilVoids.some(v => cx >= v.x && cx <= v.x + v.w && cz >= v.y && cz <= v.y + v.h);
+if(ceilVoids.length === 0){
 const ceil = new T.Mesh(new T.BoxGeometry(f.w, 1, f.h), mats.ceil);
 ceil.position.set(f.x + f.w / 2, topY + 0.5, f.y + f.h / 2);
 ceil.visible = v3dWalk; v3dCeilings.push(ceil); group.add(ceil);
@@ -7507,7 +7518,7 @@ const tile = GRID_SIZE;
 for(let tx = f.x; tx < f.x + f.w - 0.5; tx += tile){
 for(let tz = f.y; tz < f.y + f.h - 0.5; tz += tile){
 const tw = Math.min(tile, f.x + f.w - tx), td = Math.min(tile, f.y + f.h - tz);
-if(inVoid(tx + tw / 2, tz + td / 2)) continue;
+if(inCeilVoid(tx + tw / 2, tz + td / 2)) continue;
 const c = new T.Mesh(new T.BoxGeometry(tw, 1, td), mats.ceil);
 c.position.set(tx + tw / 2, topY + 0.5, tz + td / 2);
 c.visible = v3dWalk; v3dCeilings.push(c); group.add(c);
@@ -7602,8 +7613,9 @@ group.add(m);
 if(it.wpCeil){
 const ctex = v3dWpTexture(T, it.wpCeil);
 if(ctex){
-const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.8, Math.max(1, it.h - 2)), new T.MeshLambertMaterial({ map: ctex }));
+const m = new T.Mesh(new T.BoxGeometry(it.w, 0.8, it.h), new T.MeshLambertMaterial({ map: ctex }));
 m.position.set(it.x + it.w / 2, yBase + top - 0.6, it.y + it.h / 2);
+m.visible = v3dWalk; v3dCeilings.push(m); // 俯瞰では非表示
 group.add(m);
 }
 }
@@ -7762,7 +7774,8 @@ syncActiveFloor();
 floors.forEach((f, idx) => {
 const g = new T.Group();
 g.position.y = idx * (V3D_WALL_H + V3D_SLAB_T);
-v3dBuildFloor(T, g, f.items || []);
+const up = (floors[idx + 1] && floors[idx + 1].items) ? floors[idx + 1].items.filter(it => it.type === 'room' && it.void) : [];
+v3dBuildFloor(T, g, f.items || [], up);
 v3dFloorGroups[idx] = g;
 v3dRoot.add(g);
 });
@@ -7943,7 +7956,7 @@ v3dWalkPos = { x: p.x, z: p.z };
 v3dYaw = v3dTheta + Math.PI; // 俯瞰で見ていた向きに合わせる
 v3dPitch = 0;
 v3dJoyVec = { x: 0, y: 0 };
-v3dCamera.fov = 68;
+v3dCamera.fov = v3dWalkFov;
 }else{
 v3dCamera.fov = 50;
 }
@@ -8022,7 +8035,21 @@ lastMid = { x: (touches[0].x + touches[1].x) / 2, y: (touches[0].y + touches[1].
 
 cv.addEventListener('touchmove', (e) => {
 e.preventDefault();
-if(v3dWalk){ walkMove(e); return; }
+if(v3dWalk){
+const tw = getT(e);
+if(tw.length === 2){
+const d = Math.hypot(tw[0].x - tw[1].x, tw[0].y - tw[1].y);
+if(v3dWalkPinchDist > 0){
+v3dWalkFov = clamp(v3dWalkFov * (v3dWalkPinchDist / d), 35, 105);
+v3dCamera.fov = v3dWalkFov;
+v3dCamera.updateProjectionMatrix();
+}
+v3dWalkPinchDist = d;
+return;
+}
+v3dWalkPinchDist = 0;
+walkMove(e); return;
+}
 const ts = getT(e);
 if(ts.length === 1 && lastP){
 const dx = ts[0].x - lastP.x, dy = ts[0].y - lastP.y;
@@ -8047,6 +8074,7 @@ lastDist = dist; lastMid = mid;
 }, { passive: false });
 
 cv.addEventListener('touchend', (e) => {
+v3dWalkPinchDist = 0;
 if(v3dWalk){ walkEnd(e); return; }
 const ts = getT(e);
 if(ts.length === 1) lastP = ts[0]; else lastP = null;
@@ -8564,6 +8592,7 @@ if(el('wpCeilPick')) el('wpCeilPick').onclick = () => { wpFileTarget = 'ceil'; c
 if(el('wpWallClear')) el('wpWallClear').onclick = () => { const r = wpCurRoom(); if(r){ wpApply(r, wpWallTarget(), '', el('wpSameName').checked); renderWpModal(); showToast(wpFace === 'base' ? '壁紙を外しました' : 'ベースに戻しました'); } };
 if(el('wpCeilClear')) el('wpCeilClear').onclick = () => { const r = wpCurRoom(); if(r){ wpApply(r, 'ceil', '', el('wpSameName').checked); renderWpModal(); } };
 if(el('wpWallFav')) el('wpWallFav').onclick = () => { const r = wpCurRoom(); if(!r) return; const u = wpEffectiveWallUrl(r); if(u){ wpAddFav(u); renderWpModal(); showToast('お気に入りに保存'); } };
+if(el('wpCeilFav')) el('wpCeilFav').onclick = () => { const r = wpCurRoom(); if(r && r.wpCeil){ wpAddFav(r.wpCeil); renderWpModal(); showToast('天井をお気に入りに保存'); } };
 if(el('wpCloseBtn')) el('wpCloseBtn').onclick = () => { el('wpModal').style.display = 'none'; };
 document.querySelectorAll('.wpface').forEach(b => { b.onclick = () => { wpFace = b.dataset.face; renderWpModal(); }; });
 if(el('wpModal')) el('wpModal').addEventListener('click', (e) => { if(e.target === el('wpModal')) el('wpModal').style.display = 'none'; });
