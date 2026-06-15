@@ -1876,16 +1876,20 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="grabber"></div>
 <h3 style="margin:0 0 10px; text-align:left;">設定・その他</h3>
 
-<div class="v2group-label">表示</div>
+<div class="v2group-label">基本表示</div>
 <div class="v2chiprow">
 <label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
 <label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
 <label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
 <label class="chip tiny"><input type="checkbox" id="showMM" checked>mm寸法</label>
-<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告</label>
-<label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
 <label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
 <label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
+</div>
+
+<div class="v2group-label">解析・補助</div>
+<div class="v2chiprow">
+<label class="chip tiny"><input type="checkbox" id="showWarnings" checked>警告</label>
+<label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
 <label class="chip tiny" title="窓からの直射光と天空光を重ねて表示"><input type="checkbox" id="showDaylight">採光</label>
 </div>
 <div class="daylight-controls" id="daylightControls">
@@ -1920,8 +1924,10 @@ border-bottom-color: rgba(235,235,245,.12);
 <span style="font-size:11px; color:#8a8a8e;">mm</span>
 </div>
 
-<div class="v2group-label">アクション</div>
+<div class="v2group-label">保存・共有</div>
 <div class="v2actiongrid">
+<button class="v2action" id="openLayoutsBtn2" type="button" style="background:rgba(120,120,128,.16); color:var(--text);">保存一覧</button>
+<button class="v2action" id="saveAsBtn2" type="button" style="background:rgba(120,120,128,.16); color:var(--text);">別名保存</button>
 <button class="v2action" id="downloadImageBtn" type="button" style="background:rgba(52,199,89,.92); color:#fff;">画像保存</button>
 <button class="v2action" id="shareBtn" type="button" style="background:var(--accent); color:#fff;">共有</button>
 <button class="v2action" id="elecPlanBtn" type="button" style="background:rgba(255,159,10,.95); color:#fff;">⚡ 電気計画</button>
@@ -6206,14 +6212,19 @@ alert("コピーしました");
 el('closeShareModalBtn').onclick = () => el('shareModal').style.display = 'none';
 el('shareModal').onclick = (e) => { if(e.target.id === 'shareModal') el('shareModal').style.display = 'none'; };
 
-el('openLayoutsBtn').onclick = () => {
+function openLayoutsModal(){
 renderLayoutList();
 el('layoutsModal').style.display = 'flex';
+}
+el('openLayoutsBtn').onclick = openLayoutsModal;
+if(el('openLayoutsBtn2')) el('openLayoutsBtn2').onclick = () => {
+v2CloseSheet('moreSheet');
+openLayoutsModal();
 };
 el('layoutsCloseBtn').onclick = () => el('layoutsModal').style.display = 'none';
 el('layoutsModal').onclick = (e) => { if(e.target.id === 'layoutsModal') el('layoutsModal').style.display = 'none'; };
 
-el('saveAsBtn').onclick = async () => {
+async function saveLayoutAsNew(){
 if(isReadOnly){
 await copyThisLayoutToEditable();
 return;
@@ -6233,6 +6244,11 @@ history.replaceState(null, "", newUrl);
 
 upsertLayoutMeta(layoutId, { title: currentTitle, updatedAt: Date.now() });
 alert("別名で保存しました（新しいURLになりました）");
+}
+el('saveAsBtn').onclick = saveLayoutAsNew;
+if(el('saveAsBtn2')) el('saveAsBtn2').onclick = async () => {
+v2CloseSheet('moreSheet');
+await saveLayoutAsNew();
 };
 
 
@@ -8002,9 +8018,11 @@ let v3dLastT = 0;
 let v3dNoClip = false;
 
 function v3dSyncCeilingVisibility(){
+const hasFinish = v3dCeilings.some(c => c.userData && c.userData.ceilingKind !== 'base');
 v3dCeilings.forEach(c => {
 const kind = c.userData ? c.userData.ceilingKind : '';
-c.visible = v3dWalk || (v3dShowCeiling && kind !== 'base');
+if(kind === 'base') c.visible = v3dWalk && !(v3dShowCeiling && hasFinish);
+else c.visible = v3dWalk || v3dShowCeiling;
 });
 const btn = el('v3dCeilBtn');
 if(btn){
@@ -8447,10 +8465,12 @@ group.add(m);
 if(it.wpCeil){
 const ctex = v3dWpTexture(T, it.wpCeil, it.w, it.h);
 if(ctex){
-const mat = new T.MeshLambertMaterial({ map: ctex, side: T.DoubleSide });
-const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.45, Math.max(1, it.h - 2)), mat);
-m.position.set(it.x + it.w / 2, yBase + top - 2.8, it.y + it.h / 2);
+const mat = new T.MeshBasicMaterial({ map: ctex, side: T.DoubleSide, toneMapped: false });
+const m = new T.Mesh(new T.PlaneGeometry(Math.max(1, it.w - 3), Math.max(1, it.h - 3)), mat);
+m.rotation.x = -Math.PI / 2;
+m.position.set(it.x + it.w / 2, yBase + top - 3.2, it.y + it.h / 2);
 m.userData.ceilingKind = 'finish';
+m.renderOrder = 20;
 m.visible = false; v3dCeilings.push(m);
 group.add(m);
 }
@@ -8616,6 +8636,7 @@ v3dFloorGroups[idx] = g;
 v3dRoot.add(g);
 });
 v3dScene.add(v3dRoot);
+if(v3dCeilings.some(c => c.userData && c.userData.ceilingKind !== 'base')) v3dShowCeiling = true;
 v3dApplyMode();
 v3dSyncCeilingVisibility();
 }
