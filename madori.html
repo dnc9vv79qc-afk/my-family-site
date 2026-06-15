@@ -1197,7 +1197,7 @@ background: rgba(255,255,255,.88); backdrop-filter: blur(14px); -webkit-backdrop
 border: .5px solid rgba(60,60,67,.16);
 display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 10px;
 }
-.v3ddock button{ height: 40px; border-radius: 13px; font-size: 12.5px; font-weight: 700; padding: 0 16px; }
+.v3ddock button{ flex: 1; min-width: 0; height: 40px; border-radius: 13px; font-size: 12.5px; font-weight: 700; padding: 0 10px; }
 .v3ddock .back{ background: rgba(120,120,128,.16); color: var(--text); }
 .v3ddock .save{ background: rgba(52,199,89,.92); color: #fff; }
 #v3dRoomBar{
@@ -1225,6 +1225,7 @@ z-index: 2; font-size: 12px; color: #666; display: none;
 .v3d.loading .v3dload{ display: block; }
 .v3ddock .walk{ background: rgba(10,132,255,.92); color: #fff; }
 .v3ddock .walk.on{ background: rgba(255,159,10,.95); }
+.v3ddock .back.on{ background: rgba(88,86,214,.92); color: #fff; }
 #v3dJoy{
 position: absolute; width: 118px; height: 118px; border-radius: 50%;
 left: 26px; bottom: calc(env(safe-area-inset-bottom) + 96px);
@@ -1773,6 +1774,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="v3ddock">
 <button class="back" id="v3dBackBtn" type="button">2Dに戻る</button>
 <button class="walk" id="v3dWalkBtn" type="button">歩く</button>
+<button class="back" id="v3dCeilBtn" type="button">天井</button>
 <button class="back" id="v3dClipBtn" type="button" style="display:none;">壁すり抜け</button>
 <button class="save" id="v3dSaveBtn" type="button">画像保存</button>
 </div>
@@ -7765,6 +7767,7 @@ let v3dOpen = false;
 let v3dMode = 'all';                        // 'f1' | 'f2' | 'all'
 let v3dRenderer = null, v3dScene = null, v3dCamera = null, v3dDL = null, v3dAmb = null;
 let v3dRoot = null, v3dFloorGroups = [], v3dCeilings = [];
+let v3dShowCeiling = false;
 let v3dTheta = Math.PI / 4, v3dPhi = 1.05, v3dRadius = 600;
 let v3dWalkFov = 72;        // 歩行時の視野角（人間に近い既定）
 let v3dWalkPinchDist = 0;
@@ -7778,6 +7781,18 @@ let v3dYaw = 0, v3dPitch = 0;
 let v3dJoyVec = { x: 0, y: 0 };
 let v3dLastT = 0;
 let v3dNoClip = false;
+
+function v3dSyncCeilingVisibility(){
+v3dCeilings.forEach(c => {
+const kind = c.userData ? c.userData.ceilingKind : '';
+c.visible = v3dWalk || (v3dShowCeiling && kind !== 'base');
+});
+const btn = el('v3dCeilBtn');
+if(btn){
+btn.classList.toggle('on', v3dShowCeiling);
+btn.textContent = v3dShowCeiling ? '天井ON' : '天井';
+}
+}
 
 async function ensureThree(){
 if(THREE_M) return THREE_M;
@@ -8096,7 +8111,8 @@ if(ceilVoids.length === 0){
 const ceil = new T.Mesh(new T.BoxGeometry(f.w + V3D_OUTER_T, 2, f.h + V3D_OUTER_T), mats.ceil);
 ceil.position.set(f.x + f.w / 2, topY - 0.4, f.y + f.h / 2);
 ceil.receiveShadow = true;
-ceil.visible = v3dWalk; v3dCeilings.push(ceil); group.add(ceil);
+ceil.userData.ceilingKind = 'base';
+ceil.visible = false; v3dCeilings.push(ceil); group.add(ceil);
 }else{
 const tile = GRID_SIZE;
 for(let tx = f.x; tx < f.x + f.w - 0.5; tx += tile){
@@ -8105,7 +8121,8 @@ const tw = Math.min(tile, f.x + f.w - tx), td = Math.min(tile, f.y + f.h - tz);
 if(inCeilVoid(tx + tw / 2, tz + td / 2)) continue;
 const c = new T.Mesh(new T.BoxGeometry(tw + 0.6, 2, td + 0.6), mats.ceil);
 c.position.set(tx + tw / 2, topY - 0.4, tz + td / 2);
-c.visible = v3dWalk; v3dCeilings.push(c); group.add(c);
+c.userData.ceilingKind = 'base';
+c.visible = false; v3dCeilings.push(c); group.add(c);
 }
 }
 }
@@ -8167,7 +8184,8 @@ if(dh >= V3D_WALL_H) return;
 const blockH = topY - (yBase + dh);
 const c = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), blockH, Math.max(1, it.h - 2)), mats.ceil);
 c.position.set(it.x + it.w / 2, (yBase + dh) + blockH / 2, it.y + it.h / 2);
-c.visible = v3dWalk;
+c.userData.ceilingKind = 'drop';
+c.visible = false;
 c.receiveShadow = true;
 c.castShadow = true;
 v3dCeilings.push(c);
@@ -8210,9 +8228,11 @@ group.add(m);
 if(it.wpCeil){
 const ctex = v3dWpTexture(T, it.wpCeil, it.w, it.h);
 if(ctex){
-const m = new T.Mesh(new T.BoxGeometry(it.w, 0.8, it.h), new T.MeshLambertMaterial({ map: ctex }));
-m.position.set(it.x + it.w / 2, yBase + top - 1.4, it.y + it.h / 2);
-m.visible = v3dWalk; v3dCeilings.push(m); // 俯瞰では非表示
+const mat = new T.MeshLambertMaterial({ map: ctex, side: T.DoubleSide });
+const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.45, Math.max(1, it.h - 2)), mat);
+m.position.set(it.x + it.w / 2, yBase + top - 2.8, it.y + it.h / 2);
+m.userData.ceilingKind = 'finish';
+m.visible = false; v3dCeilings.push(m);
 group.add(m);
 }
 }
@@ -8378,6 +8398,7 @@ v3dRoot.add(g);
 });
 v3dScene.add(v3dRoot);
 v3dApplyMode();
+v3dSyncCeilingVisibility();
 }
 
 function v3dApplyMode(){
@@ -8518,7 +8539,7 @@ bar.appendChild(span);
 
 function v3dSetWalk(on){
 v3dWalk = !!on;
-v3dCeilings.forEach(c => { c.visible = v3dWalk; });
+v3dSyncCeilingVisibility();
 const ov = el('viewer3d');
 if(ov) ov.classList.toggle('walking', v3dWalk);
 if(v3dWalk) v3dRenderRoomBar();
@@ -8920,6 +8941,11 @@ v2OpenSheet('addSheet');
 if(el('dock3d')) el('dock3d').onclick = () => open3DViewer();
 if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();
 if(el('v3dSaveBtn')) el('v3dSaveBtn').onclick = () => v3dSaveImage();
+if(el('v3dCeilBtn')) el('v3dCeilBtn').onclick = () => {
+v3dShowCeiling = !v3dShowCeiling;
+v3dSyncCeilingVisibility();
+showToast(v3dShowCeiling ? '天井材を表示します' : '天井材を非表示にしました', 1100);
+};
 const v3dSegTap = (mode) => {
 v3dMode = mode;
 if(!THREE_M) return;
