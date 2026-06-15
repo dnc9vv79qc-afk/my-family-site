@@ -1162,6 +1162,44 @@ box-shadow: none;
 .v2group-label{ font-size: 11px; font-weight: 800; color: #888; margin: 6px 0 7px; }
 .v2chiprow{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .v2chiprow .chip.tiny{ height: 30px; padding: 0 10px; font-size: 11.5px; }
+.daylight-controls{
+display: grid;
+grid-template-columns: 1.35fr .8fr .8fr;
+gap: 8px;
+margin: -2px 0 12px;
+}
+.daylight-field{
+min-width: 0;
+height: 42px;
+border-radius: 14px;
+background: rgba(120,120,128,.10);
+border: .5px solid rgba(60,60,67,.12);
+display: flex;
+align-items: center;
+gap: 7px;
+padding: 0 10px;
+font-size: 11px;
+font-weight: 800;
+color: var(--text);
+}
+.daylight-field input[type="range"]{
+min-width: 0;
+width: 100%;
+}
+.daylight-field select{
+min-width: 0;
+width: 100%;
+border: none;
+background: transparent;
+color: var(--text);
+font: inherit;
+outline: none;
+}
+#daylightNorthVal{
+min-width: 28px;
+text-align: right;
+color: var(--muted);
+}
 .v2wallchip{ height: 32px !important; width: 100%; margin-bottom: 12px; }
 .v2actiongrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .v2action{ height: 46px; border-radius: 14px; font-size: 13px; font-weight: 800; }
@@ -1584,6 +1622,10 @@ right: 8px;
 width: 44px;
 font-size: 8.5px;
 }
+
+.daylight-controls{
+grid-template-columns: 1fr;
+}
 }
 
 @media (prefers-color-scheme: dark){
@@ -1845,6 +1887,27 @@ border-bottom-color: rgba(235,235,245,.12);
 <label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
 <label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
 <label class="chip tiny" title="窓からの直射光と天空光を重ねて表示"><input type="checkbox" id="showDaylight">採光</label>
+</div>
+<div class="daylight-controls" id="daylightControls">
+<label class="daylight-field">北向き
+<input type="range" id="daylightNorth" min="0" max="359" step="15" value="0">
+<span id="daylightNorthVal">上</span>
+</label>
+<label class="daylight-field">季節
+<select id="daylightSeason">
+<option value="spring">春</option>
+<option value="summer">夏</option>
+<option value="autumn">秋</option>
+<option value="winter">冬</option>
+</select>
+</label>
+<label class="daylight-field">時間
+<select id="daylightTime">
+<option value="morning">朝</option>
+<option value="noon">昼</option>
+<option value="evening">夕方</option>
+</select>
+</label>
 </div>
 <div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
 <span class="lbl">壁太さ</span>
@@ -4676,14 +4739,46 @@ else if(Math.abs(op.x1 - (r.x + r.w)) <= tol) out.push({ room: r, nx: -1, ny: 0 
 return out;
 }
 
+function daylightSettings(){
+const north = clamp(parseInt(el('daylightNorth')?.value || '0', 10) || 0, 0, 359);
+const season = el('daylightSeason')?.value || 'spring';
+const time = el('daylightTime')?.value || 'noon';
+return { north, season, time };
+}
+
+function daylightSeasonSpec(season){
+if(season === 'summer') return { label: '夏', direct: 1.08, sky: 1.05, depth: 0.82, spread: 1.18 };
+if(season === 'winter') return { label: '冬', direct: 0.72, sky: 0.78, depth: 1.42, spread: 0.78 };
+if(season === 'autumn') return { label: '秋', direct: 0.86, sky: 0.90, depth: 1.05, spread: 0.95 };
+return { label: '春', direct: 0.92, sky: 0.96, depth: 1.0, spread: 1.0 };
+}
+
+function daylightTimeSpec(time){
+if(time === 'morning') return { label: '朝', bearing: 110, direct: 0.72, depth: 1.22 };
+if(time === 'evening') return { label: '夕方', bearing: 250, direct: 0.68, depth: 1.28 };
+return { label: '昼', bearing: 180, direct: 1.0, depth: 0.9 };
+}
+
+function daylightBearingVector(bearingDeg, northDeg){
+const a = (northDeg + bearingDeg) * Math.PI / 180;
+return { x: Math.sin(a), y: -Math.cos(a) };
+}
+
+function daylightNorthLabel(deg){
+const labels = ['上', '右上', '右', '右下', '下', '左下', '左', '左上'];
+return labels[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+}
+
 function drawDaylightOverlay(){
 const cb = el('showDaylight');
 if(cb && !cb.checked) return;
 const windows = items.filter(i => i.type === 'opening' && i.kind === 'window');
 if(!windows.length) return;
 
-// 画面上=北、右=東。午後寄りの南西光を既定にする。
-const sunFrom = { x: -0.48, y: 0.88 };      // 建物から見た太陽方向
+const ds = daylightSettings();
+const ss = daylightSeasonSpec(ds.season);
+const ts = daylightTimeSpec(ds.time);
+const sunFrom = daylightBearingVector(ts.bearing, ds.north); // 建物から見た太陽方向
 const rayDir = { x: -sunFrom.x, y: -sunFrom.y }; // 光が室内へ進む方向
 
 ctx.save();
@@ -4710,7 +4805,7 @@ const midY = (op.y1 + op.y2) / 2;
 // 天空光: 窓から室内へ柔らかく広がる青白い拡散光。直射が入らない北窓でも効く。
 const skyDepth = Math.min(Math.max(room.w, room.h), mm2px(5200));
 const skySpread = len * 0.55;
-const skyAlpha = clamp(0.10 * heightFactor * widthFactor, 0.05, 0.22);
+const skyAlpha = clamp(0.10 * ss.sky * heightFactor * widthFactor, 0.05, 0.24);
 let grad = ctx.createLinearGradient(midX, midY, midX + nx * skyDepth, midY + ny * skyDepth);
 grad.addColorStop(0, `rgba(142,207,255,${skyAlpha})`);
 grad.addColorStop(0.52, `rgba(170,220,255,${skyAlpha * 0.42})`);
@@ -4730,9 +4825,9 @@ const sunHit = clamp(outwardX * sunFrom.x + outwardY * sunFrom.y, 0, 1);
 const entersRoom = clamp(nx * rayDir.x + ny * rayDir.y, 0, 1);
 const direct = sunHit * entersRoom;
 if(direct > 0.08){
-const directDepth = Math.min(Math.max(room.w, room.h) * 1.15, mm2px(7600));
-const beamSpread = len * (0.16 + 0.18 * direct);
-const directAlpha = clamp(0.18 * direct * heightFactor * widthFactor, 0.04, 0.28);
+const directDepth = Math.min(Math.max(room.w, room.h) * 1.15 * ss.depth * ts.depth, mm2px(9000));
+const beamSpread = len * (0.16 + 0.18 * direct) * ss.spread;
+const directAlpha = clamp(0.18 * direct * ss.direct * ts.direct * heightFactor * widthFactor, 0.04, 0.30);
 grad = ctx.createLinearGradient(midX, midY, midX + rayDir.x * directDepth, midY + rayDir.y * directDepth);
 grad.addColorStop(0, `rgba(255,207,77,${directAlpha})`);
 grad.addColorStop(0.62, `rgba(255,226,124,${directAlpha * 0.36})`);
@@ -4761,7 +4856,7 @@ ctx.textBaseline = 'top';
 const frames = items.filter(i => i.type === 'frame');
 const anchor = frames[0] || items.find(i => i.type === 'room');
 if(anchor){
-const txt = '採光: 黄=直射 / 青=天空光';
+const txt = `採光: ${ss.label}${ts.label} / 北=${daylightNorthLabel(ds.north)} / 黄=直射 青=天空光`;
 const x = anchor.x, y = anchor.y - 24 / scale;
 ctx.strokeText(txt, x, y);
 ctx.fillText(txt, x, y);
@@ -9467,16 +9562,52 @@ draw();
 });
 }
 const DAYLIGHT_SHOW_KEY = 'floorplan_show_daylight_v1';
+const DAYLIGHT_NORTH_KEY = 'floorplan_daylight_north_v1';
+const DAYLIGHT_SEASON_KEY = 'floorplan_daylight_season_v1';
+const DAYLIGHT_TIME_KEY = 'floorplan_daylight_time_v1';
+function syncDaylightControls(){
+const north = el('daylightNorth');
+const val = el('daylightNorthVal');
+if(north && val) val.textContent = daylightNorthLabel(parseInt(north.value || '0', 10) || 0);
+const panel = el('daylightControls');
+const show = el('showDaylight');
+if(panel && show) panel.style.opacity = show.checked ? '1' : '.52';
+}
 if(el('showDaylight')){
 try{
 const v = localStorage.getItem(DAYLIGHT_SHOW_KEY);
 if(v !== null) el('showDaylight').checked = (v === '1');
+const n = localStorage.getItem(DAYLIGHT_NORTH_KEY);
+if(n !== null && el('daylightNorth')) el('daylightNorth').value = String(clamp(parseInt(n, 10) || 0, 0, 359));
+const s = localStorage.getItem(DAYLIGHT_SEASON_KEY);
+if(s && el('daylightSeason')) el('daylightSeason').value = s;
+const t = localStorage.getItem(DAYLIGHT_TIME_KEY);
+if(t && el('daylightTime')) el('daylightTime').value = t;
 }catch(_){}
 el('showDaylight').addEventListener('change', (e) => {
 try{ localStorage.setItem(DAYLIGHT_SHOW_KEY, e.target.checked ? '1' : '0'); }catch(_){}
+syncDaylightControls();
 draw();
 showToast(e.target.checked ? '採光を表示（黄=直射 / 青=天空光）' : '採光を非表示', 1200);
 });
+['daylightNorth','daylightSeason','daylightTime'].forEach(id => {
+const input = el(id);
+if(!input) return;
+input.addEventListener('input', () => {
+try{
+if(id === 'daylightNorth') localStorage.setItem(DAYLIGHT_NORTH_KEY, input.value);
+if(id === 'daylightSeason') localStorage.setItem(DAYLIGHT_SEASON_KEY, input.value);
+if(id === 'daylightTime') localStorage.setItem(DAYLIGHT_TIME_KEY, input.value);
+}catch(_){}
+syncDaylightControls();
+draw();
+});
+input.addEventListener('change', () => {
+syncDaylightControls();
+draw();
+});
+});
+syncDaylightControls();
 }
 
 if(el('catFurn')) el('catFurn').onclick = () => {
