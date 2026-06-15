@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討サイト（Ichijo) v10.2</title>
+<title>間取り検討サイト（Ichijo) v10.4</title>
 
 <style>
 :root{
@@ -1555,7 +1555,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="segment tiny"><button class="seg-btn" id="segEdit" type="button">外壁</button><button class="seg-btn active" id="segMerge" type="button">部屋</button></div>
 </div>
 
-<div class="v2verline">ver 4.2 by yuchi🐔</div>
+<div class="v2verline">ver 4.4 by yuchi🐔</div>
 <button class="v2sheetclose" id="moreSheetClose" type="button">閉じる</button>
 </div>
 </div>
@@ -1695,7 +1695,7 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 <div class="help-icon">🏠</div>
 <div class="help-content">
 <b>壁紙（サンゲツのスクショ等）</b>
-部屋を選んで「壁紙」を押し、画像を選ぶとその部屋の壁紙になり、3Dの壁に貼られます（歩行モードで確認）。画像は軽く縮小して保存・共有されます。もう一度「壁紙」で削除や貼り替えができます。
+部屋を選んで「壁紙」を押すと、壁・天井それぞれに画像を貼れます（実際の壁面に反映）。「全体」で4面まとめて、北/東/南/西を選べばその1面だけアクセントクロスにでき、「外す」でベースに戻せます。「同じ部屋名すべてに反映」で同名の部屋まとめて、★保存でお気に入り登録して別の部屋にもすぐ貼れます。画像は軽く縮小して保存・共有されます。
 </div>
 </div>
 <div class="help-row">
@@ -1817,6 +1817,44 @@ margin: 2px 2px 7px; letter-spacing: .04em;
 </div>
 
 <input type="file" id="wpFile" accept="image/*" style="display:none;">
+<div id="wpModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 style="margin:0 0 8px;">壁紙・天井 <span id="wpRoomName" style="font-size:13px;color:#666;"></span></h3>
+<div style="display:flex; gap:12px; margin-bottom:10px;">
+<div style="flex:1.4;">
+<div id="wpWallLabel" style="font-size:11px;color:#666;margin-bottom:4px;">壁（全体）</div>
+<div style="display:flex; gap:4px; margin-bottom:5px;">
+<button class="pill wpface" data-face="base" type="button" style="flex:1;font-size:11px;padding:5px 0;">全体</button>
+<button class="pill wpface" data-face="n" type="button" style="flex:1;font-size:11px;padding:5px 0;">北</button>
+<button class="pill wpface" data-face="e" type="button" style="flex:1;font-size:11px;padding:5px 0;">東</button>
+<button class="pill wpface" data-face="s" type="button" style="flex:1;font-size:11px;padding:5px 0;">南</button>
+<button class="pill wpface" data-face="w" type="button" style="flex:1;font-size:11px;padding:5px 0;">西</button>
+</div>
+<div id="wpWallThumb" style="height:60px;border-radius:8px;border:1px solid #ddd;background:#f4f1ea;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa;">なし</div>
+<div style="display:flex; gap:5px; margin-top:5px;">
+<button class="pill" id="wpWallPick" type="button" style="flex:1;font-size:11px;padding:6px 0;">画像</button>
+<button class="pill" id="wpWallClear" type="button" style="flex:1;font-size:11px;padding:6px 0;">外す</button>
+<button class="pill" id="wpWallFav" type="button" style="flex:1;font-size:11px;padding:6px 0;">★保存</button>
+</div>
+<div id="wpFaceHint" style="font-size:10px;color:#8a8a8e;margin-top:4px;min-height:13px;"></div>
+</div>
+<div style="flex:1;">
+<div style="font-size:11px;color:#666;margin-bottom:4px;">天井</div>
+<div id="wpCeilThumb" style="height:64px;border-radius:8px;border:1px solid #ddd;background:#f4f1ea;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa;">なし</div>
+<div style="display:flex; gap:5px; margin-top:5px;">
+<button class="pill" id="wpCeilPick" type="button" style="flex:1;font-size:11px;padding:6px 0;">画像</button>
+<button class="pill" id="wpCeilClear" type="button" style="flex:1;font-size:11px;padding:6px 0;">外す</button>
+</div>
+</div>
+</div>
+<label style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:10px;color:#444;">
+<input type="checkbox" id="wpSameName" checked style="width:17px;height:17px;"> 同じ部屋名すべてに反映
+</label>
+<div style="font-size:11px;color:#666;margin-bottom:5px;">お気に入り（タップで壁に適用）</div>
+<div id="wpFavs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:46px;"></div>
+<button class="pill" id="wpCloseBtn" type="button" style="width:100%;background:rgba(10,132,255,.92);color:#fff;">閉じる</button>
+</div>
+</div>
 <div id="winModal" class="modal-overlay">
 <div class="modal sheet">
 <h3 style="margin:0 0 6px;">窓のサイズ・高さ</h3>
@@ -2200,6 +2238,9 @@ if(!it.label) it.label = "部屋";
 if(typeof it.void !== "boolean") it.void = false;
 if(typeof it.wp !== "string") it.wp = "";       // 壁紙サムネ(dataURL)
 if(typeof it.wpUrl !== "string") it.wpUrl = ""; // Storage原本URL(任意)
+if(typeof it.wpCeil !== "string") it.wpCeil = ""; // 天井材(dataURL)
+if(typeof it.wpSides !== "object" || !it.wpSides) it.wpSides = { n:"", e:"", s:"", w:"" }; // 面ごとのアクセント
+else { ["n","e","s","w"].forEach(k => { if(typeof it.wpSides[k] !== "string") it.wpSides[k] = ""; }); }
 if(typeof it.ceilMm !== "number") it.ceilMm = 0; // 0=標準天井、>0で下がり天井(mm)
 }
 }));
@@ -4041,6 +4082,71 @@ ctx.stroke();
 ctx.setLineDash([]);
 }
 ctx.restore();
+}
+
+/* 壁紙モーダル制御 */
+let wpModalRoomId = null, wpFileTarget = 'wall', wpFace = 'base';
+function wpCurRoom(){ return items.find(i => i.id === wpModalRoomId && i.type === 'room'); }
+function wpFaceLabel(f){ return { base:'全体', n:'北面', e:'東面', s:'南面', w:'西面' }[f] || '全体'; }
+function wpEffectiveWallUrl(r){
+if(wpFace === 'base') return r.wp;
+return (r.wpSides && r.wpSides[wpFace]) ? r.wpSides[wpFace] : '';
+}
+function wpWallTarget(){ return (wpFace === 'base') ? 'wall' : ('side:' + wpFace); }
+function openWpModal(){
+const it = selectedItem;
+if(!it || it.type !== 'room') return;
+wpModalRoomId = it.id;
+wpFace = 'base';
+if(el('wpRoomName')) el('wpRoomName').textContent = `（${it.label}）`;
+renderWpModal();
+if(el('wpModal')) el('wpModal').style.display = 'flex';
+}
+function wpApply(room, kind, dataUrl, sameName){
+pushHistory();
+const targets = sameName ? items.filter(i => i.type === 'room' && i.label === room.label) : [room];
+targets.forEach(r => {
+if(kind === 'ceil') r.wpCeil = dataUrl;
+else if(kind && kind.indexOf('side:') === 0){
+if(!r.wpSides) r.wpSides = { n:"", e:"", s:"", w:"" };
+r.wpSides[kind.split(':')[1]] = dataUrl;
+}
+else r.wp = dataUrl;
+});
+draw(); scheduleAutoSave(); syncBottomBarState();
+}
+function wpFavs(){ try{ return JSON.parse(localStorage.getItem('floorplan_wp_favs_v1') || '[]'); }catch(_){ return []; } }
+function wpAddFav(dataUrl){ if(!dataUrl) return; let f = wpFavs().filter(x => x !== dataUrl); f.unshift(dataUrl); f = f.slice(0, 12); try{ localStorage.setItem('floorplan_wp_favs_v1', JSON.stringify(f)); }catch(_){} }
+function renderWpModal(){
+const r = wpCurRoom();
+if(!r) return;
+const setThumb = (id, url) => { const e = el(id); if(!e) return; if(url){ e.style.backgroundImage = `url(${url})`; e.textContent = ''; } else { e.style.backgroundImage = 'none'; e.textContent = 'なし'; } };
+setThumb('wpWallThumb', wpEffectiveWallUrl(r));
+setThumb('wpCeilThumb', r.wpCeil);
+if(el('wpWallLabel')) el('wpWallLabel').textContent = `壁（${wpFaceLabel(wpFace)}）`;
+document.querySelectorAll('.wpface').forEach(b => {
+const on = (b.dataset.face === wpFace);
+b.style.background = on ? 'rgba(10,132,255,.92)' : '';
+b.style.color = on ? '#fff' : '';
+});
+if(el('wpFaceHint')){
+if(wpFace === 'base') el('wpFaceHint').textContent = '4面まとめて。面を選ぶとアクセントクロスにできます';
+else el('wpFaceHint').textContent = (r.wpSides && r.wpSides[wpFace]) ? 'この面はアクセント中。「外す」でベースに戻る' : 'ベースと同じ。画像を選ぶとこの面だけ変わる';
+}
+const fv = el('wpFavs');
+if(fv){
+fv.innerHTML = '';
+const favs = wpFavs();
+if(!favs.length){ fv.innerHTML = '<span style="font-size:11px;color:#8a8a8e;">まだありません。壁紙を「★保存」すると増えます</span>'; }
+favs.forEach(u => {
+const b = document.createElement('button');
+b.type = 'button';
+b.style.cssText = 'width:46px;height:46px;border-radius:8px;border:1px solid #ccc;background-size:cover;background-position:center;flex-shrink:0;';
+b.style.backgroundImage = `url(${u})`;
+b.onclick = () => { const rr = wpCurRoom(); if(rr){ wpApply(rr, wpWallTarget(), u, el('wpSameName') ? el('wpSameName').checked : true); renderWpModal(); showToast(wpFace === 'base' ? '壁紙を適用' : wpFaceLabel(wpFace) + 'に適用'); } };
+fv.appendChild(b);
+});
+}
 }
 
 /* 壁紙：画像を縮小してdataURL化（軽量・Firestoreで共有可） */
@@ -6440,19 +6546,28 @@ return (floors[activeFloor].items || []).filter(i => i.type === 'room');
 
 /* 2つの部屋ブロックの共有境界に内壁(wallLine)があるか */
 function elecEdgeHasWall(a, b){
+// 共有境界に「内壁 または 建具(扉・窓)」が少しでも乗っていれば仕切り有り=別部屋
 const eps = 4;
-const walls = (floors[activeFloor].items || []).filter(i => i.type === 'wallLine');
+const fl = floors[activeFloor].items || [];
+const walls = fl.filter(i => i.type === 'wallLine');
+const ops = fl.filter(i => i.type === 'opening');
 if(Math.abs((a.x + a.w) - b.x) <= eps || Math.abs((b.x + b.w) - a.x) <= eps){
 const bx = (Math.abs((a.x + a.w) - b.x) <= eps) ? (a.x + a.w) : b.x;
 const y0 = Math.max(a.y, b.y), y1 = Math.min(a.y + a.h, b.y + b.h);
-return walls.some(w => w.x1 === w.x2 && Math.abs(w.x1 - bx) <= eps &&
-Math.min(w.y1, w.y2) <= y0 + eps && Math.max(w.y1, w.y2) >= y1 - eps);
+const hitW = walls.some(w => w.x1 === w.x2 && Math.abs(w.x1 - bx) <= eps &&
+Math.min(w.y1, w.y2) < y1 - eps && Math.max(w.y1, w.y2) > y0 + eps);
+const hitO = ops.some(o => Math.abs(o.x1 - bx) <= eps && Math.abs(o.x2 - bx) <= eps &&
+Math.min(o.y1, o.y2) < y1 - eps && Math.max(o.y1, o.y2) > y0 + eps);
+return hitW || hitO;
 }
 if(Math.abs((a.y + a.h) - b.y) <= eps || Math.abs((b.y + b.h) - a.y) <= eps){
 const by = (Math.abs((a.y + a.h) - b.y) <= eps) ? (a.y + a.h) : b.y;
 const x0 = Math.max(a.x, b.x), x1 = Math.min(a.x + a.w, b.x + b.w);
-return walls.some(w => w.y1 === w.y2 && Math.abs(w.y1 - by) <= eps &&
-Math.min(w.x1, w.x2) <= x0 + eps && Math.max(w.x1, w.x2) >= x1 - eps);
+const hitW = walls.some(w => w.y1 === w.y2 && Math.abs(w.y1 - by) <= eps &&
+Math.min(w.x1, w.x2) < x1 - eps && Math.max(w.x1, w.x2) > x0 + eps);
+const hitO = ops.some(o => Math.abs(o.y1 - by) <= eps && Math.abs(o.y2 - by) <= eps &&
+Math.min(o.x1, o.x2) < x1 - eps && Math.max(o.x1, o.x2) > x0 + eps);
+return hitW || hitO;
 }
 return false;
 }
@@ -7199,6 +7314,43 @@ runs(vMap, false);
 return segs;
 }
 
+/* 部屋の周囲で「実際に壁がある区間」を抽出（外壁 or 内壁）。壁紙を壁表面に貼るため */
+function v3dRoomWallSpans(room, fItems){
+const sub = 16;
+const frames = fItems.filter(i => i.type === 'frame');
+const walls = fItems.filter(i => i.type === 'wallLine');
+const inFrame = (x, y) => frames.some(f => x >= f.x - 0.5 && x <= f.x + f.w + 0.5 && y >= f.y - 0.5 && y <= f.y + f.h + 0.5);
+const wallH = (x, y) => walls.some(w => w.y1 === w.y2 && Math.abs(w.y1 - y) <= 7 && Math.min(w.x1, w.x2) <= x + 1 && Math.max(w.x1, w.x2) >= x - 1);
+const wallV = (x, y) => walls.some(w => w.x1 === w.x2 && Math.abs(w.x1 - x) <= 7 && Math.min(w.y1, w.y2) <= y + 1 && Math.max(w.y1, w.y2) >= y - 1);
+const out = [];
+const groupRun = (samples, makeBox) => {
+let s = null, prev = null;
+samples.forEach(({ v, on }) => {
+if(on){ if(s === null){ s = v; prev = v; } else prev = v; }
+else { if(s !== null){ makeBox(s, prev + sub); s = null; } }
+});
+if(s !== null) makeBox(s, prev + sub);
+};
+let samp;
+// 北 (y=room.y)
+samp = [];
+for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y - 8) || wallH(mx, room.y)) }); }
+groupRun(samp, (a, b) => out.push({ side: 'n', cx: (a + Math.min(b, room.x + room.w)) / 2, cz: room.y + 3, w: Math.min(b, room.x + room.w) - a, d: 1 }));
+// 南
+samp = [];
+for(let x = room.x; x < room.x + room.w - 0.5; x += sub){ const mx = x + sub / 2; samp.push({ v: x, on: (!inFrame(mx, room.y + room.h + 8) || wallH(mx, room.y + room.h)) }); }
+groupRun(samp, (a, b) => out.push({ side: 's', cx: (a + Math.min(b, room.x + room.w)) / 2, cz: room.y + room.h - 3, w: Math.min(b, room.x + room.w) - a, d: 1 }));
+// 西 (x=room.x)
+samp = [];
+for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x - 8, my) || wallV(room.x, my)) }); }
+groupRun(samp, (a, b) => out.push({ side: 'w', cx: room.x + 3, cz: (a + Math.min(b, room.y + room.h)) / 2, w: 1, d: Math.min(b, room.y + room.h) - a }));
+// 東
+samp = [];
+for(let y = room.y; y < room.y + room.h - 0.5; y += sub){ const my = y + sub / 2; samp.push({ v: y, on: (!inFrame(room.x + room.w + 8, my) || wallV(room.x + room.w, my)) }); }
+groupRun(samp, (a, b) => out.push({ side: 'e', cx: room.x + room.w - 3, cz: (a + Math.min(b, room.y + room.h)) / 2, w: 1, d: Math.min(b, room.y + room.h) - a }));
+return out.filter(s => (s.w > 2 || s.d > 2));
+}
+
 /* 壁紙テクスチャ（dataURL/URLから・CORS不要のdataURL推奨） */
 const v3dWpCache = {};
 function v3dWpTexture(T, url){
@@ -7427,23 +7579,34 @@ v3dCeilings.push(c);
 group.add(c);
 });
 
-// 壁紙（部屋の内側に薄い壁ライナーを貼る）
+// 壁紙：実際に壁がある面だけに、壁表面とそろえて貼る ＋ 天井材
 fItems.forEach(it => {
-if(it.type !== 'room' || it.void || !it.wp) return;
-const tex = v3dWpTexture(T, it.wp);
-if(!tex) return;
+if(it.type !== 'room' || it.void) return;
+const _sd = it.wpSides || {};
+if(!it.wp && !it.wpCeil && !_sd.n && !_sd.e && !_sd.s && !_sd.w) return;
 const top = (it.ceilMm > 0 && it.ceilMm * PX_PER_MM < V3D_WALL_H) ? it.ceilMm * PX_PER_MM : V3D_WALL_H;
-const inset = 1.2;
-const mkLiner = (w, d, cx, cz) => {
-const m = new T.Mesh(new T.BoxGeometry(w, top, d), new T.MeshLambertMaterial({ map: tex }));
-m.position.set(cx, yBase + top / 2, cz);
+const sides = it.wpSides || {};
+const anySide = sides.n || sides.e || sides.s || sides.w;
+if(it.wp || anySide){
+v3dRoomWallSpans(it, fItems).forEach(sp => {
+const url = (sides[sp.side]) ? sides[sp.side] : it.wp;
+if(!url) return;
+const tex = v3dWpTexture(T, url);
+if(!tex) return;
+const m = new T.Mesh(new T.BoxGeometry(sp.w, top, sp.d), new T.MeshLambertMaterial({ map: tex }));
+m.position.set(sp.cx, yBase + top / 2, sp.cz);
 m.receiveShadow = true;
 group.add(m);
-};
-mkLiner(Math.max(1, it.w - 2), 1.0, it.x + it.w / 2, it.y + inset);              // 北
-mkLiner(Math.max(1, it.w - 2), 1.0, it.x + it.w / 2, it.y + it.h - inset);       // 南
-mkLiner(1.0, Math.max(1, it.h - 2), it.x + inset, it.y + it.h / 2);              // 西
-mkLiner(1.0, Math.max(1, it.h - 2), it.x + it.w - inset, it.y + it.h / 2);       // 東
+});
+}
+if(it.wpCeil){
+const ctex = v3dWpTexture(T, it.wpCeil);
+if(ctex){
+const m = new T.Mesh(new T.BoxGeometry(Math.max(1, it.w - 2), 0.8, Math.max(1, it.h - 2)), new T.MeshLambertMaterial({ map: ctex }));
+m.position.set(it.x + it.w / 2, yBase + top - 0.6, it.y + it.h / 2);
+group.add(m);
+}
+}
 });
 
 // 部屋の床色（うっすら）
@@ -8394,30 +8557,28 @@ showToast(it.void ? '吹き抜けにしました（2Fの床が抜けます）' :
 if(el('wpBtn')) el('wpBtn').onclick = () => {
 const it = selectedItem;
 if(!it || it.type !== 'room' || isReadOnly) return;
-if(it.wp){
-if(confirm('壁紙を削除しますか？\n（キャンセルすると別の画像を選べます）')){
-pushHistory(); it.wp = ''; it.wpUrl = '';
-draw(); scheduleAutoSave(); syncBottomBarState();
-showToast('壁紙を削除しました');
-return;
-}
-}
-const fi = el('wpFile');
-if(fi){ fi.value = ''; fi.dataset.room = it.id; fi.click(); }
+openWpModal();
 };
+if(el('wpWallPick')) el('wpWallPick').onclick = () => { wpFileTarget = wpWallTarget(); const fi = el('wpFile'); if(fi){ fi.value = ''; fi.click(); } };
+if(el('wpCeilPick')) el('wpCeilPick').onclick = () => { wpFileTarget = 'ceil'; const fi = el('wpFile'); if(fi){ fi.value = ''; fi.click(); } };
+if(el('wpWallClear')) el('wpWallClear').onclick = () => { const r = wpCurRoom(); if(r){ wpApply(r, wpWallTarget(), '', el('wpSameName').checked); renderWpModal(); showToast(wpFace === 'base' ? '壁紙を外しました' : 'ベースに戻しました'); } };
+if(el('wpCeilClear')) el('wpCeilClear').onclick = () => { const r = wpCurRoom(); if(r){ wpApply(r, 'ceil', '', el('wpSameName').checked); renderWpModal(); } };
+if(el('wpWallFav')) el('wpWallFav').onclick = () => { const r = wpCurRoom(); if(!r) return; const u = wpEffectiveWallUrl(r); if(u){ wpAddFav(u); renderWpModal(); showToast('お気に入りに保存'); } };
+if(el('wpCloseBtn')) el('wpCloseBtn').onclick = () => { el('wpModal').style.display = 'none'; };
+document.querySelectorAll('.wpface').forEach(b => { b.onclick = () => { wpFace = b.dataset.face; renderWpModal(); }; });
+if(el('wpModal')) el('wpModal').addEventListener('click', (e) => { if(e.target === el('wpModal')) el('wpModal').style.display = 'none'; });
 if(el('wpFile')) el('wpFile').addEventListener('change', async (e) => {
 const file = e.target.files && e.target.files[0];
 if(!file) return;
-const roomId = el('wpFile').dataset.room;
-const room = items.find(i => i.id === roomId && i.type === 'room');
+const room = wpCurRoom();
 if(!room){ showToast('部屋が見つかりません'); return; }
 try{
 const dataUrl = await wpDownscale(file, 720, 0.72);
-pushHistory();
-room.wp = dataUrl;
-draw(); scheduleAutoSave(); syncBottomBarState();
-showToast('壁紙を設定しました（3Dで確認）', 1800);
-wpUploadStorage(file, roomId).then(url => { if(url){ room.wpUrl = url; scheduleAutoSave(); } }).catch(() => {});
+wpApply(room, wpFileTarget, dataUrl, el('wpSameName').checked);
+if(wpFileTarget === 'wall') wpAddFav(dataUrl);
+renderWpModal();
+showToast(wpFileTarget === 'ceil' ? '天井に設定しました（3D）' : '壁紙を設定しました（3D）', 1700);
+if(wpFileTarget === 'wall') wpUploadStorage(file, room.id).then(url => { if(url){ room.wpUrl = url; scheduleAutoSave(); } }).catch(() => {});
 }catch(err){ showToast('画像の読み込みに失敗しました'); }
 });
 if(el('furnRotateBtn')) el('furnRotateBtn').onclick = () => {
