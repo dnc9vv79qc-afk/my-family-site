@@ -1844,6 +1844,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <label class="chip tiny" title="もう一方のフロアを透かして表示"><input type="checkbox" id="showUnderlay" checked>重ね</label>
 <label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
 <label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
+<label class="chip tiny" title="窓からの直射光と天空光を重ねて表示"><input type="checkbox" id="showDaylight">採光</label>
 </div>
 <div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
 <span class="lbl">壁太さ</span>
@@ -4650,6 +4651,124 @@ ctx.fillText('吹抜', r.x + r.w / 2, r.y + r.h - fs);
 ctx.restore();
 }
 
+/* v3.8: 窓からの採光オーバーレイ（近似）
+   画面上=北として、南西寄りの直射光 + 全方位の天空光を窓ごとに描く。 */
+function daylightWindowRooms(op){
+const rooms = items.filter(i => i.type === 'room' && !i.void);
+const out = [];
+const tol = 10;
+const horiz = (op.y1 === op.y2);
+rooms.forEach(r => {
+if(horiz){
+const a = Math.max(r.x, Math.min(op.x1, op.x2));
+const b = Math.min(r.x + r.w, Math.max(op.x1, op.x2));
+if(b - a < 3) return;
+if(Math.abs(op.y1 - r.y) <= tol) out.push({ room: r, nx: 0, ny: 1 });
+else if(Math.abs(op.y1 - (r.y + r.h)) <= tol) out.push({ room: r, nx: 0, ny: -1 });
+}else{
+const a = Math.max(r.y, Math.min(op.y1, op.y2));
+const b = Math.min(r.y + r.h, Math.max(op.y1, op.y2));
+if(b - a < 3) return;
+if(Math.abs(op.x1 - r.x) <= tol) out.push({ room: r, nx: 1, ny: 0 });
+else if(Math.abs(op.x1 - (r.x + r.w)) <= tol) out.push({ room: r, nx: -1, ny: 0 });
+}
+});
+return out;
+}
+
+function drawDaylightOverlay(){
+const cb = el('showDaylight');
+if(cb && !cb.checked) return;
+const windows = items.filter(i => i.type === 'opening' && i.kind === 'window');
+if(!windows.length) return;
+
+// 画面上=北、右=東。午後寄りの南西光を既定にする。
+const sunFrom = { x: -0.48, y: 0.88 };      // 建物から見た太陽方向
+const rayDir = { x: -sunFrom.x, y: -sunFrom.y }; // 光が室内へ進む方向
+
+ctx.save();
+ctx.globalCompositeOperation = 'multiply';
+
+windows.forEach(op => {
+const len = Math.hypot(op.x2 - op.x1, op.y2 - op.y1);
+if(len < 2) return;
+const ux = (op.x2 - op.x1) / len;
+const uy = (op.y2 - op.y1) / len;
+const heightMm = Math.max(300, (typeof op.winT === 'number' ? op.winT : 2000) - (typeof op.winB === 'number' ? op.winB : 900));
+const heightFactor = clamp(heightMm / 1500, 0.35, 1.2);
+const widthFactor = clamp(len / (GRID_SIZE * 2), 0.55, 1.8);
+
+daylightWindowRooms(op).forEach(({ room, nx, ny }) => {
+ctx.save();
+ctx.beginPath();
+ctx.rect(room.x, room.y, room.w, room.h);
+ctx.clip();
+
+const midX = (op.x1 + op.x2) / 2;
+const midY = (op.y1 + op.y2) / 2;
+
+// 天空光: 窓から室内へ柔らかく広がる青白い拡散光。直射が入らない北窓でも効く。
+const skyDepth = Math.min(Math.max(room.w, room.h), mm2px(5200));
+const skySpread = len * 0.55;
+const skyAlpha = clamp(0.10 * heightFactor * widthFactor, 0.05, 0.22);
+let grad = ctx.createLinearGradient(midX, midY, midX + nx * skyDepth, midY + ny * skyDepth);
+grad.addColorStop(0, `rgba(142,207,255,${skyAlpha})`);
+grad.addColorStop(0.52, `rgba(170,220,255,${skyAlpha * 0.42})`);
+grad.addColorStop(1, 'rgba(255,255,255,0)');
+ctx.fillStyle = grad;
+ctx.beginPath();
+ctx.moveTo(op.x1, op.y1);
+ctx.lineTo(op.x2, op.y2);
+ctx.lineTo(op.x2 + nx * skyDepth + ux * skySpread, op.y2 + ny * skyDepth + uy * skySpread);
+ctx.lineTo(op.x1 + nx * skyDepth - ux * skySpread, op.y1 + ny * skyDepth - uy * skySpread);
+ctx.closePath();
+ctx.fill();
+
+// 直射光: 窓の外向き法線が太陽方向を向いている時だけ追加。
+const outwardX = -nx, outwardY = -ny;
+const sunHit = clamp(outwardX * sunFrom.x + outwardY * sunFrom.y, 0, 1);
+const entersRoom = clamp(nx * rayDir.x + ny * rayDir.y, 0, 1);
+const direct = sunHit * entersRoom;
+if(direct > 0.08){
+const directDepth = Math.min(Math.max(room.w, room.h) * 1.15, mm2px(7600));
+const beamSpread = len * (0.16 + 0.18 * direct);
+const directAlpha = clamp(0.18 * direct * heightFactor * widthFactor, 0.04, 0.28);
+grad = ctx.createLinearGradient(midX, midY, midX + rayDir.x * directDepth, midY + rayDir.y * directDepth);
+grad.addColorStop(0, `rgba(255,207,77,${directAlpha})`);
+grad.addColorStop(0.62, `rgba(255,226,124,${directAlpha * 0.36})`);
+grad.addColorStop(1, 'rgba(255,255,255,0)');
+ctx.fillStyle = grad;
+ctx.beginPath();
+ctx.moveTo(op.x1, op.y1);
+ctx.lineTo(op.x2, op.y2);
+ctx.lineTo(op.x2 + rayDir.x * directDepth + ux * beamSpread, op.y2 + rayDir.y * directDepth + uy * beamSpread);
+ctx.lineTo(op.x1 + rayDir.x * directDepth - ux * beamSpread, op.y1 + rayDir.y * directDepth - uy * beamSpread);
+ctx.closePath();
+ctx.fill();
+}
+
+ctx.restore();
+});
+});
+
+ctx.globalCompositeOperation = 'source-over';
+ctx.fillStyle = 'rgba(0,0,0,.62)';
+ctx.strokeStyle = 'rgba(255,255,255,.90)';
+ctx.lineWidth = 3 / scale;
+ctx.font = `800 ${11 / scale}px -apple-system, "Hiragino Sans", sans-serif`;
+ctx.textAlign = 'left';
+ctx.textBaseline = 'top';
+const frames = items.filter(i => i.type === 'frame');
+const anchor = frames[0] || items.find(i => i.type === 'room');
+if(anchor){
+const txt = '採光: 黄=直射 / 青=天空光';
+const x = anchor.x, y = anchor.y - 24 / scale;
+ctx.strokeText(txt, x, y);
+ctx.fillText(txt, x, y);
+}
+ctx.restore();
+}
+
 /* v2.7: 階段の描画（踏み板＋上り方向矢印） */
 /* 階段の段割りを計算 → 各踏み板のポリゴンと進行情報を返す
    座標系：ローカル(0,0)-(w,h)。dir=0基準（下り口が下辺中央、上り方向＝上）で生成し、
@@ -5475,6 +5594,7 @@ if (selectedItem && isLineType(selectedItem.type)) drawWallSelection(selectedIte
 
 // ▼ もう一方のフロアを透かし表示（現在フロアの上に重ねる）
 drawFloorUnderlay();
+drawDaylightOverlay();
 
 // 3. オーバーレイ描画
 if (isMeasureMode) drawMeasurement();
@@ -5612,7 +5732,7 @@ renderPresetChips();
 
 // ✅ 表示系トグルは即時反映（再描画）
 
-['showJou','showTsubo','showM2','showWarnings'].forEach(id => {
+['showJou','showTsubo','showM2','showWarnings','showDaylight'].forEach(id => {
 
   const cb = el(id);
   if(cb) cb.addEventListener('change', () => draw());
@@ -9344,6 +9464,18 @@ if(v !== null) el('showElec').checked = (v === '1');
 el('showElec').addEventListener('change', (e) => {
 try{ localStorage.setItem(ELEC_SHOW_KEY, e.target.checked ? '1' : '0'); }catch(_){}
 draw();
+});
+}
+const DAYLIGHT_SHOW_KEY = 'floorplan_show_daylight_v1';
+if(el('showDaylight')){
+try{
+const v = localStorage.getItem(DAYLIGHT_SHOW_KEY);
+if(v !== null) el('showDaylight').checked = (v === '1');
+}catch(_){}
+el('showDaylight').addEventListener('change', (e) => {
+try{ localStorage.setItem(DAYLIGHT_SHOW_KEY, e.target.checked ? '1' : '0'); }catch(_){}
+draw();
+showToast(e.target.checked ? '採光を表示（黄=直射 / 青=天空光）' : '採光を非表示', 1200);
 });
 }
 
