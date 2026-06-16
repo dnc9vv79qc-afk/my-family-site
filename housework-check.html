@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家事ラク診断</title>
+<style>
+:root{
+  --bg:#f6f7f9;
+  --panel:#fff;
+  --text:#15161a;
+  --muted:#6f747c;
+  --line:rgba(20,24,32,.12);
+  --accent:#0a84ff;
+  --good:#34c759;
+  --warn:#ff9500;
+  --bad:#ff3b30;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; }
+button{ border:0; cursor:pointer; font:inherit; }
+.app{ height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+.top{
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;
+  background:rgba(255,255,255,.94);
+  border-bottom:.5px solid var(--line);
+  backdrop-filter:blur(18px);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  z-index:5;
+}
+.title{ min-width:0; flex:1; }
+.title h1{ margin:0; font-size:16px; line-height:1.25; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.title p{ margin:2px 0 0; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.score{
+  flex-shrink:0;
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  background:#111;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 10px 24px rgba(0,0,0,.14);
+}
+.score b{ font-size:20px; line-height:1; }
+.score span{ font-size:9px; font-weight:800; opacity:.82; margin-top:3px; }
+.stage{ position:relative; min-height:0; overflow:hidden; background:#fbfbfd; }
+#planCanvas{ width:100%; height:100%; display:block; touch-action:none; }
+.status{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(330px,calc(100vw - 34px));
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(255,255,255,.95);
+  border:.5px solid var(--line);
+  box-shadow:0 16px 40px rgba(0,0,0,.12);
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+  text-align:center;
+}
+.status strong{ display:block; color:var(--text); font-size:15px; margin-bottom:2px; }
+.status.hide{ display:none; }
+.floorseg{
+  position:absolute;
+  top:10px;
+  right:10px;
+  display:flex;
+  padding:3px;
+  border-radius:999px;
+  background:rgba(255,255,255,.88);
+  border:.5px solid var(--line);
+  box-shadow:0 8px 22px rgba(0,0,0,.08);
+  backdrop-filter:blur(14px);
+}
+.floorseg button{
+  min-width:38px;
+  height:30px;
+  padding:0 10px;
+  border-radius:999px;
+  background:transparent;
+  color:#333;
+  font-size:12px;
+  font-weight:900;
+}
+.floorseg button.on{ background:var(--accent); color:#fff; }
+.bottom{
+  padding:10px 10px calc(env(safe-area-inset-bottom) + 10px);
+  background:rgba(255,255,255,.96);
+  border-top:.5px solid var(--line);
+  backdrop-filter:blur(18px);
+  z-index:5;
+}
+.detail{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:10px;
+  align-items:start;
+  min-height:78px;
+  padding:10px;
+  border-radius:16px;
+  background:#fff;
+  border:.5px solid var(--line);
+  margin-bottom:9px;
+}
+.badge{
+  min-width:58px;
+  height:58px;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:900;
+}
+.badge b{ font-size:18px; line-height:1; }
+.badge span{ font-size:9px; margin-top:3px; opacity:.84; }
+.detail h2{ margin:0 0 3px; font-size:14px; line-height:1.3; }
+.detail p{ margin:0; color:var(--muted); font-size:12px; line-height:1.45; font-weight:700; }
+.cards{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:2px;
+  scrollbar-width:none;
+}
+.cards::-webkit-scrollbar{ display:none; }
+.card{
+  flex:0 0 158px;
+  min-height:96px;
+  padding:10px;
+  border-radius:16px;
+  border:.5px solid var(--line);
+  background:#fff;
+  text-align:left;
+}
+.card.on{ border-color:rgba(10,132,255,.65); box-shadow:0 0 0 2px rgba(10,132,255,.14) inset; }
+.card .topline{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.card h3{ margin:0; font-size:12px; line-height:1.25; }
+.mini{
+  flex-shrink:0;
+  min-width:38px;
+  height:22px;
+  padding:0 7px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+}
+.card p{ margin:0; color:var(--muted); font-size:10.5px; line-height:1.42; font-weight:700; }
+.links{ display:flex; gap:8px; margin-top:9px; }
+.links a,.links button{
+  flex:1;
+  height:36px;
+  border-radius:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#333;
+  background:rgba(120,120,128,.14);
+  text-decoration:none;
+  font-size:12px;
+  font-weight:900;
+}
+@media (max-width:430px){
+  .score{ width:54px; height:54px; border-radius:16px; }
+  .score b{ font-size:18px; }
+  .bottom{ padding-left:8px; padding-right:8px; }
+  .detail{ margin-bottom:8px; }
+  .card{ flex-basis:148px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1 id="pageTitle">家事ラク診断</h1>
+      <p id="meta">間取りを読み込み中</p>
+    </div>
+    <div class="score" id="totalScore"><b>--</b><span>総合</span></div>
+  </header>
+  <main class="stage">
+    <canvas id="planCanvas"></canvas>
+    <div class="floorseg" aria-label="表示階">
+      <button id="floorAuto" class="on" type="button">自動</button>
+      <button id="floor1" type="button">1F</button>
+      <button id="floor2" type="button">2F</button>
+    </div>
+    <div class="status" id="status"><strong>読み込み中</strong>保存済みの間取りから診断しています。</div>
+  </main>
+  <section class="bottom">
+    <div class="detail" id="detail"></div>
+    <div class="cards" id="cards"></div>
+    <div class="links">
+      <a id="backToPlan" href="./madori.html">間取りへ</a>
+      <button id="saveBtn" type="button">画像保存</button>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBH4zoH5ZnfPcZmmXNvfeGOJz9__KkSMrg",
+  authDomain: "test-55430.firebaseapp.com",
+  projectId: "test-55430",
+  storageBucket: "test-55430.firebasestorage.app",
+  messagingSenderId: "742726212885",
+  appId: "1:742726212885:web:597a48fc1ce0cb7f529d1c",
+  measurementId: "G-PW24JY2LBP"
+};
+
+const GRID_SIZE = 32;
+const MM_PER_PX = 910 / GRID_SIZE;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const $ = (id) => document.getElementById(id);
+const canvas = $("planCanvas");
+const ctx = canvas.getContext("2d");
+
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+let floors = [];
+let checks = [];
+let selectedIdx = 0;
+let floorMode = "auto";
+let displayFloor = 0;
+let view = { scale:1, ox:0, oy:0, bounds:null, floor:null, needsFit:true };
+let drag = null;
+
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+function setStatus(title, body, hide){
+  const st = $("status");
+  if(hide){ st.classList.add("hide"); return; }
+  st.classList.remove("hide");
+  st.innerHTML = `<strong>${escapeHtml(title)}</strong>${escapeHtml(body)}`;
+}
+function isLine(it){ return it && (it.type === "wallLine" || it.type === "opening"); }
+function isRect(it){ return it && !isLine(it) && typeof it.x === "number" && typeof it.y === "number"; }
+function isRoom(it){ return it && (!it.type || it.type === "room"); }
+function labelOf(it){ return String(it?.label || ""); }
+function centerOf(room){ return room ? { floor:room.floor, x:room.x + room.w / 2, y:room.y + room.h / 2, room } : null; }
+function keyOf(room){ return room ? `${room.floor}:${room.id || room.label}` : ""; }
+function distM(a, b){
+  if(!a || !b) return Infinity;
+  const d = Math.hypot(a.x - b.x, a.y - b.y) * MM_PER_PX / 1000;
+  return d + (a.floor === b.floor ? 0 : 4.5);
+}
+function normalizeFloors(raw){
+  const fs = Array.isArray(raw.floors)
+    ? raw.floors
+    : [{ name:"1F", items:Array.isArray(raw.items) ? raw.items : [] }];
+  while(fs.length < 2) fs.push({ name:`${fs.length + 1}F`, items:[] });
+  return fs.map((f, i) => ({
+    name: f.name || `${i + 1}F`,
+    items: Array.isArray(f.items) ? f.items.map(x => ({...x})) : []
+  }));
+}
+function allRooms(){
+  const out = [];
+  floors.forEach((f, floor) => (f.items || []).forEach(it => {
+    if(isRoom(it) && typeof it.x === "number" && typeof it.w === "number") out.push({ ...it, floor });
+  }));
+  return out;
+}
+function match(room, patterns){
+  const s = labelOf(room);
+  return patterns.some(p => p.test(s));
+}
+function findRoom(patterns, opts={}){
+  let rooms = allRooms().filter(r => match(r, patterns));
+  if(Number.isInteger(opts.floor)) rooms = rooms.filter(r => r.floor === opts.floor);
+  if(opts.exclude){
+    const ex = new Set(opts.exclude.map(keyOf));
+    rooms = rooms.filter(r => !ex.has(keyOf(r)));
+  }
+  rooms.sort((a, b) => {
+    if(opts.preferFloor != null && a.floor !== b.floor) return a.floor === opts.preferFloor ? -1 : 1;
+    if(opts.smallFirst) return (a.w * a.h) - (b.w * b.h);
+    return (b.w * b.h) - (a.w * a.h);
+  });
+  return rooms[0] || null;
+}
+function fallbackRoom(){
+  const rooms = allRooms();
+  rooms.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+  return rooms[0] || null;
+}
+function scoreByDistance(m, good, ok){
+  if(!Number.isFinite(m)) return 30;
+  if(m <= good) return 92;
+  if(m <= ok) return Math.round(78 - ((m - good) / Math.max(.1, ok - good)) * 14);
+  return clamp(Math.round(62 - Math.min(28, (m - ok) * 5)), 34, 62);
+}
+function tone(score){
+  if(score >= 80) return { label:"良い", color:"#34c759" };
+  if(score >= 60) return { label:"確認", color:"#ff9500" };
+  return { label:"注意", color:"#ff3b30" };
+}
+function mkCheck(id, title, rooms, score, good, caution){
+  const validRooms = rooms.filter(Boolean);
+  const t = tone(score);
+  const names = validRooms.map(r => r.label).join(" → ");
+  return {
+    id, title, rooms:validRooms, score:clamp(Math.round(score), 0, 100),
+    grade:t.label, color:t.color,
+    summary:score >= 80 ? good : caution,
+    route:names
+  };
+}
+function buildChecks(){
+  const entry = findRoom([/^玄関$|玄関(?!収納)|土間/], { floor:0 }) || findRoom([/玄関|土間/], { floor:0 });
+  const wash = findRoom([/洗面|脱衣/], { floor:0 }) || findRoom([/洗面|脱衣/]);
+  const ldk = findRoom([/LDK|リビング|ダイニング/], { floor:0 }) || fallbackRoom();
+  const kitchen = findRoom([/キッチン/], { floor:0 }) || ldk;
+  const pantry = findRoom([/パントリー|食品庫|収納/], { floor:0, smallFirst:true });
+  const laundry = findRoom([/ランドリー|洗濯/], { floor:0 }) || wash;
+  const wic = findRoom([/WIC|ウォーク|クローゼット|CL|収納|納戸/], { preferFloor:1, smallFirst:true });
+  const hallStorage = findRoom([/玄関収納|土間収納|収納|納戸/], { floor:0, smallFirst:true });
+  const bath = findRoom([/風呂|浴室/], { floor:0 });
+
+  const dReturn = Math.min(distM(centerOf(entry), centerOf(wash)), distM(centerOf(entry), centerOf(ldk)));
+  const dBuy = Math.min(distM(centerOf(entry), centerOf(kitchen)), distM(centerOf(entry), centerOf(pantry)));
+  const dLaundry = distM(centerOf(laundry), centerOf(wic || hallStorage || ldk));
+  const dCook = distM(centerOf(kitchen), centerOf(ldk));
+  const dClean = distM(centerOf(hallStorage || wic || entry), centerOf(ldk));
+  const dTrash = distM(centerOf(kitchen), centerOf(entry));
+
+  const pantryBonus = pantry ? 6 : -6;
+  const bathLaundryBonus = bath && laundry && bath.floor === laundry.floor && distM(centerOf(bath), centerOf(laundry)) < 3.5 ? 5 : 0;
+  checks = [
+    mkCheck(
+      "return",
+      "帰宅手洗い",
+      [entry, wash, ldk],
+      scoreByDistance(dReturn, 4.0, 7.0),
+      "玄関から手洗い・LDKまでが近く、帰宅後の流れは作りやすいです。",
+      "玄関から手洗いまで少し距離があります。帰宅後の荷物置きや手洗い位置を確認したいです。"
+    ),
+    mkCheck(
+      "shopping",
+      "買い物収納",
+      [entry, pantry || kitchen, kitchen],
+      scoreByDistance(dBuy, 4.5, 8.0) + pantryBonus,
+      "玄関からキッチン/食品収納へ運びやすい関係です。",
+      pantry ? "食品収納はありますが、玄関からの運び込み距離を確認したいです。" : "パントリー相当の置き場が見つかりにくいです。買い物後の一時置き場を確認したいです。"
+    ),
+    mkCheck(
+      "laundry",
+      "洗濯",
+      [wash, laundry, wic || hallStorage || ldk],
+      scoreByDistance(dLaundry, 4.5, 8.5) + bathLaundryBonus,
+      "洗う場所としまう場所が比較的まとまっています。",
+      "洗濯から収納までの移動が長めです。干す場所・しまう場所の想定を確認したいです。"
+    ),
+    mkCheck(
+      "cooking",
+      "料理配膳",
+      [kitchen, ldk],
+      scoreByDistance(dCook, 2.5, 5.5),
+      "キッチンと食事スペースの関係は近く、配膳しやすそうです。",
+      "キッチンと食事スペースの距離感を確認したいです。テーブル位置で改善できる可能性があります。"
+    ),
+    mkCheck(
+      "cleaning",
+      "掃除収納",
+      [hallStorage || wic || entry, ldk],
+      scoreByDistance(dClean, 5.0, 9.0),
+      "掃除道具をLDKや廊下へ出しやすい位置に収納できそうです。",
+      "掃除道具の置き場からLDKまでがやや遠めです。ロボット掃除機基地も含めて置き場を決めたいです。"
+    ),
+    mkCheck(
+      "trash",
+      "ゴミ出し",
+      [kitchen, entry],
+      scoreByDistance(dTrash, 5.5, 10.0),
+      "キッチンから玄関側へ出しやすく、ゴミ出し動線は大きな問題が少なそうです。",
+      "キッチンから外へ出す動きが長めです。ゴミ箱位置と回収日の動きを確認したいです。"
+    )
+  ];
+  checks = checks.filter(c => c.rooms.length >= 2);
+  if(!checks.length) return false;
+  selectedIdx = 0;
+  return true;
+}
+function floorBounds(floorIndex){
+  const items = floors[floorIndex]?.items || [];
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
+  const acc = (x, y, w, h) => {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + w); maxY = Math.max(maxY, y + h);
+    found = true;
+  };
+  items.forEach(it => {
+    if(isLine(it)){
+      minX = Math.min(minX, it.x1, it.x2); minY = Math.min(minY, it.y1, it.y2);
+      maxX = Math.max(maxX, it.x1, it.x2); maxY = Math.max(maxY, it.y1, it.y2);
+      found = true;
+    }else if(isRect(it)) acc(it.x, it.y, it.w, it.h);
+  });
+  if(!found) return { minX:0, minY:0, maxX:GRID_SIZE * 10, maxY:GRID_SIZE * 10 };
+  const pad = GRID_SIZE * .8;
+  return { minX:minX - pad, minY:minY - pad, maxX:maxX + pad, maxY:maxY + pad };
+}
+function currentFloor(){
+  if(floorMode !== "auto") return Number(floorMode);
+  const c = checks[selectedIdx];
+  return c?.rooms[0]?.floor || 0;
+}
+function resize(){
+  const rect = canvas.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  view.needsFit = true;
+  draw();
+}
+function fitView(floorIndex){
+  const b = floorBounds(floorIndex);
+  const w = canvas.clientWidth || 1;
+  const h = canvas.clientHeight || 1;
+  const bw = Math.max(1, b.maxX - b.minX);
+  const bh = Math.max(1, b.maxY - b.minY);
+  const pad = 22;
+  const s = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh);
+  view = {
+    scale:clamp(s, .1, 4),
+    ox:(w - bw * s) / 2 - b.minX * s,
+    oy:(h - bh * s) / 2 - b.minY * s,
+    bounds:b,
+    floor:floorIndex,
+    needsFit:false
+  };
+}
+function X(x){ return x * view.scale + view.ox; }
+function Y(y){ return y * view.scale + view.oy; }
+function S(v){ return v * view.scale; }
+function roundRect(x, y, w, h, r){
+  r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+  ctx.beginPath();
+  if(typeof ctx.roundRect === "function"){ ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function drawGrid(){
+  if(!view.bounds) return;
+  const b = view.bounds;
+  const sx = Math.floor(b.minX / GRID_SIZE) * GRID_SIZE;
+  const ex = Math.ceil(b.maxX / GRID_SIZE) * GRID_SIZE;
+  const sy = Math.floor(b.minY / GRID_SIZE) * GRID_SIZE;
+  const ey = Math.ceil(b.maxY / GRID_SIZE) * GRID_SIZE;
+  ctx.save();
+  ctx.strokeStyle = "rgba(60,60,67,.13)";
+  ctx.lineWidth = 1;
+  for(let x = sx; x <= ex; x += GRID_SIZE){ ctx.beginPath(); ctx.moveTo(X(x), Y(sy)); ctx.lineTo(X(x), Y(ey)); ctx.stroke(); }
+  for(let y = sy; y <= ey; y += GRID_SIZE){ ctx.beginPath(); ctx.moveTo(X(sx), Y(y)); ctx.lineTo(X(ex), Y(y)); ctx.stroke(); }
+  ctx.restore();
+}
+function drawPlan(floorIndex){
+  const items = floors[floorIndex]?.items || [];
+  const c = checks[selectedIdx];
+  const hi = new Set((c?.rooms || []).filter(r => r.floor === floorIndex).map(keyOf));
+  items.filter(isRect).forEach(it => {
+    if(it.type === "frame") return;
+    const room = { ...it, floor:floorIndex };
+    const h = hi.has(keyOf(room));
+    const x = X(it.x), y = Y(it.y), w = S(it.w), hh = S(it.h);
+    ctx.save();
+    roundRect(x, y, w, hh, 3);
+    ctx.fillStyle = it.color || "#fff3e0";
+    ctx.globalAlpha = it.type === "furn" || it.type === "stair" ? .68 : .82;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = h ? 3 : Math.max(1, S(1.2));
+    ctx.strokeStyle = h ? "#0a84ff" : "rgba(30,30,35,.20)";
+    ctx.stroke();
+    if(h){
+      ctx.fillStyle = "rgba(10,132,255,.12)";
+      ctx.fill();
+    }
+    const label = labelOf(it);
+    if(label && w > 30 && hh > 20){
+      ctx.fillStyle = "#111";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `900 ${clamp(Math.min(w / Math.max(4, label.length), hh * .34), 9, 18)}px -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif`;
+      ctx.fillText(label, x + w / 2, y + hh / 2);
+    }
+    ctx.restore();
+  });
+  ctx.save();
+  items.filter(it => it.type === "frame").forEach(f => {
+    ctx.lineWidth = Math.max(5, S(8));
+    ctx.strokeStyle = "#111";
+    ctx.strokeRect(X(f.x), Y(f.y), S(f.w), S(f.h));
+  });
+  items.filter(it => it.type === "wallLine").forEach(w => {
+    ctx.lineWidth = Math.max(3, S(w.thick || 10));
+    ctx.strokeStyle = w.color || "#111";
+    ctx.lineCap = "square";
+    ctx.beginPath(); ctx.moveTo(X(w.x1), Y(w.y1)); ctx.lineTo(X(w.x2), Y(w.y2)); ctx.stroke();
+  });
+  items.filter(it => it.type === "opening").forEach(op => {
+    const thick = Math.max(5, S((op.thick || 12) + 4));
+    ctx.lineWidth = thick;
+    ctx.strokeStyle = "#fbfbfd";
+    ctx.beginPath(); ctx.moveTo(X(op.x1), Y(op.y1)); ctx.lineTo(X(op.x2), Y(op.y2)); ctx.stroke();
+    ctx.lineWidth = Math.max(2, thick * .35);
+    ctx.strokeStyle = op.kind === "window" ? "#8fc7e8" : "#c58b5f";
+    ctx.beginPath(); ctx.moveTo(X(op.x1), Y(op.y1)); ctx.lineTo(X(op.x2), Y(op.y2)); ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawRoute(floorIndex){
+  const c = checks[selectedIdx];
+  if(!c) return;
+  const pts = c.rooms.map(centerOf).filter(p => p.floor === floorIndex);
+  if(!pts.length) return;
+  ctx.save();
+  ctx.strokeStyle = c.color;
+  ctx.fillStyle = c.color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash([10, 7]);
+  if(pts.length >= 2){
+    ctx.beginPath();
+    ctx.moveTo(X(pts[0].x), Y(pts[0].y));
+    for(let i = 1; i < pts.length; i++) ctx.lineTo(X(pts[i].x), Y(pts[i].y));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  pts.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(X(p.x), Y(p.y), 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 11px -apple-system,BlinkMacSystemFont,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(i + 1), X(p.x), Y(p.y) + .5);
+    ctx.fillStyle = c.color;
+  });
+  ctx.restore();
+}
+function drawFloorBadge(){
+  ctx.save();
+  const name = floors[displayFloor]?.name || `${displayFloor + 1}F`;
+  ctx.fillStyle = "rgba(255,255,255,.88)";
+  roundRect(12, 12, 72, 30, 15);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(20,24,32,.12)";
+  ctx.stroke();
+  ctx.fillStyle = "#111";
+  ctx.font = "900 13px -apple-system,BlinkMacSystemFont,sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(name, 48, 27);
+  ctx.restore();
+}
+function draw(){
+  if(!floors.length || !checks.length) return;
+  displayFloor = currentFloor();
+  if(view.needsFit || view.floor !== displayFloor || !view.bounds) fitView(displayFloor);
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  ctx.fillStyle = "#fbfbfd";
+  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  drawGrid();
+  drawPlan(displayFloor);
+  drawRoute(displayFloor);
+  drawFloorBadge();
+}
+function render(){
+  if(!checks.length) return;
+  const total = Math.round(checks.reduce((s, c) => s + c.score, 0) / checks.length);
+  $("totalScore").innerHTML = `<b>${total}</b><span>総合</span>`;
+  const c = checks[selectedIdx];
+  $("detail").innerHTML = `
+    <div class="badge" style="background:${c.color};"><b>${c.score}</b><span>${escapeHtml(c.grade)}</span></div>
+    <div><h2>${escapeHtml(c.title)}</h2><p>${escapeHtml(c.summary)}</p><p style="margin-top:4px;">${escapeHtml(c.route)}</p></div>
+  `;
+  const cards = $("cards");
+  cards.textContent = "";
+  checks.forEach((x, i) => {
+    const b = document.createElement("button");
+    b.className = `card${i === selectedIdx ? " on" : ""}`;
+    b.type = "button";
+    b.innerHTML = `
+      <div class="topline"><h3>${escapeHtml(x.title)}</h3><span class="mini" style="background:${x.color};">${x.score}</span></div>
+      <p>${escapeHtml(x.grade)} / ${escapeHtml(x.route || "対象不明")}</p>
+    `;
+    b.onclick = () => {
+      selectedIdx = i;
+      view.needsFit = true;
+      render();
+      draw();
+    };
+    cards.appendChild(b);
+  });
+  $("floorAuto").classList.toggle("on", floorMode === "auto");
+  $("floor1").classList.toggle("on", floorMode === 0);
+  $("floor2").classList.toggle("on", floorMode === 1);
+}
+async function load(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  if(!id){
+    setStatus("IDがありません", "URLに ?id=... を付けて開いてください。");
+    return;
+  }
+  $("backToPlan").href = `./madori.html?id=${encodeURIComponent(id)}`;
+  try{
+    const snap = await getDoc(doc(db, "layouts", id));
+    if(!snap.exists()){
+      setStatus("間取りが見つかりません", "保存IDを確認してください。");
+      return;
+    }
+    const data = snap.data();
+    floors = normalizeFloors(data);
+    if(!buildChecks()){
+      setStatus("診断できません", "部屋名から玄関・LDK・洗面などを見つけられませんでした。");
+      return;
+    }
+    $("pageTitle").textContent = data.title || "家事ラク診断";
+    $("meta").textContent = `自動診断 / ${id}`;
+    setStatus("", "", true);
+    render();
+    resize();
+  }catch(e){
+    console.error(e);
+    setStatus("読み込みに失敗しました", "通信状態か共有IDを確認してください。");
+  }
+}
+
+$("floorAuto").onclick = () => { floorMode = "auto"; view.needsFit = true; render(); draw(); };
+$("floor1").onclick = () => { floorMode = 0; view.needsFit = true; render(); draw(); };
+$("floor2").onclick = () => { floorMode = 1; view.needsFit = true; render(); draw(); };
+$("saveBtn").onclick = () => {
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = "housework-check.png";
+  a.click();
+};
+canvas.addEventListener("pointerdown", e => {
+  drag = { x:e.clientX, y:e.clientY, ox:view.ox, oy:view.oy };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", e => {
+  if(!drag) return;
+  view.ox = drag.ox + e.clientX - drag.x;
+  view.oy = drag.oy + e.clientY - drag.y;
+  draw();
+});
+canvas.addEventListener("pointerup", () => { drag = null; });
+canvas.addEventListener("pointercancel", () => { drag = null; });
+window.addEventListener("resize", resize);
+load();
+</script>
+</body>
+</html>
