@@ -329,10 +329,11 @@ pre{
         <h2>UI設計</h2>
         <p>基本構造は「上: 状態」「中央: 図面」「下: 操作」。スマホで片手操作しやすいよう、主要操作は下に集約する。</p>
         <div class="flow">
-          <div class="step"><div class="num">A</div><div><b>通常画面</b><span>上部にタイトル/階層/保存状態。中央は図面。下は選択、追加、測定、3D、その他。</span></div></div>
-          <div class="step"><div class="num">B</div><div><b>追加シート</b><span>部屋、外壁、内壁、建具、家具をカテゴリ化。チップは即追加ではなく「選択→配置」へ寄せ、配置は半マス吸着。</span></div></div>
-          <div class="step"><div class="num">C</div><div><b>選択バー</b><span>選択中の種類だけ操作を出す。部屋なら名前/色/壁紙/吹抜、家具なら回転/サイズ、建具なら反転/高さ。</span></div></div>
-          <div class="step"><div class="num">D</div><div><b>3D画面</b><span>1F/2F/全体、歩く、天井、壁抜けを最小ボタンで出す。部屋ジャンプは歩行時だけ表示。</span></div></div>
+          <div class="step"><div class="num">A</div><div><b>入口は3モード</b><span>上位モードは「作る」「見る」「比べる」だけ。編集、3D、共有、診断が増えても入口を増やさない。</span></div></div>
+          <div class="step"><div class="num">B</div><div><b>通常画面</b><span>上部にタイトル/階層/保存状態。中央は図面。下は選択、追加、測定、3D、その他。</span></div></div>
+          <div class="step"><div class="num">C</div><div><b>追加シート</b><span>部屋、外壁、内壁、建具、家具をカテゴリ化。チップは即追加ではなく「選択→配置」へ寄せ、配置は半マス吸着。</span></div></div>
+          <div class="step"><div class="num">D</div><div><b>選択バー</b><span>選択中の種類だけ操作を出す。部屋なら名前/色/壁紙/吹抜、家具なら回転/サイズ、建具なら反転/高さ。</span></div></div>
+          <div class="step"><div class="num">E</div><div><b>3D画面</b><span>1F/2F/全体、歩く、天井、壁抜けを最小ボタンで出す。部屋ジャンプは歩行時だけ表示。</span></div></div>
         </div>
         <h3>重なり編集</h3>
         <p>通常タップで候補を順番に切替。長押しで一覧選択。完全に重なった家具や建具でも、画面遷移を増やしすぎない。</p>
@@ -381,8 +382,20 @@ pre{
   ],
   "views": {
     "camera2d": { "x":0, "y":0, "scale":1 },
+    "appMode": "create",
     "activeFloor": "f1",
     "activeLayer": "plan"
+  },
+  "recentFurnitureSizes": [
+    { "kind":"tv", "label":"テレビ", "wMm":1200, "dMm":120, "hMm":700, "zMm":450 },
+    { "kind":"storage", "label":"収納", "wMm":900, "dMm":450, "hMm":1800, "zMm":0 }
+  ],
+  "snapshots": {
+    "planThumb": "data:image/webp;base64,...",
+    "views3d": [
+      { "name":"LDKから", "imageRef":"storage://thumbs/ldk.webp" },
+      { "name":"玄関から", "imageRef":"storage://thumbs/entry.webp" }
+    ]
   }
 }</code></pre>
         <h3>分けたいもの</h3>
@@ -401,7 +414,7 @@ pre{
           <div class="card"><b>ローカル案箱</b><span>案一覧は各端末に保存。自分のスマホでは自分が試した案だけを管理する。</span></div>
           <div class="card"><b>複製して編集</b><span>既存案を触る前にクラウド上で新しいlayoutを作る。DBは増えるが衝突しない。</span></div>
           <div class="card"><b>完成系リンク</b><span>見せたい状態になった案だけ共有リンク化。相手はそのリンクを開くか、自分の案箱に取り込む。</span></div>
-          <div class="card"><b>比較</b><span>自分の案箱内で2案を比較。相手の案はリンクを取り込んだ時だけ一覧に出す。</span></div>
+          <div class="card"><b>サムネ付き比較</b><span>案カードには平面サムネと3Dスナップショットを持たせる。自分の案箱内で2案を比較する。</span></div>
         </div>
         <h3>おすすめの共有仕様</h3>
         <div class="flow">
@@ -409,7 +422,8 @@ pre{
           <div class="step"><div class="num">2</div><div><b>編集は常に複製</b><span>「この案を編集」は内部的には複製して新規layoutIdを作る。元案は壊れない。</span></div></div>
           <div class="step"><div class="num">3</div><div><b>名前は自動で具体化</b><span>「A案コピー」ではなく「A案 自分 6/16 20:30」や「第4回案 収納変更」のように作る。</span></div></div>
           <div class="step"><div class="num">4</div><div><b>完成系リンク共有</b><span>共有ボタンは今開いている案のURLを出す。相手は「自分の案箱に追加」できる。</span></div></div>
-          <div class="step"><div class="num">5</div><div><b>整理は端末ごと</b><span>不要案は自分の一覧から非表示。クラウドの古いlayoutは残っても、後で掃除できればよい。</span></div></div>
+          <div class="step"><div class="num">5</div><div><b>共有リンクは2種類</b><span>「見るだけリンク」と「自分の案箱に追加リンク」に固定する。編集リンクは共有しない。</span></div></div>
+          <div class="step"><div class="num">6</div><div><b>整理は端末ごと</b><span>不要案は自分の一覧から非表示。クラウドの古いlayoutは残っても、後で掃除できればよい。</span></div></div>
         </div>
         <h3>データ階層</h3>
 <pre><code>{
@@ -421,6 +435,7 @@ pre{
       "ownerLabel":"自分",
       "hidden":false,
       "layoutId":"aaa",
+      "thumb":"data:image/webp;base64,...",
       "updatedAt":1780000000000
     },
     {
@@ -430,6 +445,7 @@ pre{
       "ownerLabel":"相手",
       "hidden":false,
       "layoutId":"bbb",
+      "thumb":"data:image/webp;base64,...",
       "updatedAt":1780000500000
     }
   ],
@@ -439,7 +455,7 @@ pre{
   }
 }</code></pre>
         <h3>実装先の考え方</h3>
-        <p>CloudflareならD1/Firestoreにlayout本体だけを増やし、案一覧は端末ローカルで持つ。壁紙画像はR2/Storage。DBは増えるが、夫婦の同時編集衝突、ロック、権限管理をほぼ考えなくてよい。大事なのは「編集前に複製」と「完成系リンクを取り込める」こと。</p>
+        <p>CloudflareならD1/Firestoreにlayout本体だけを増やし、案一覧は端末ローカルで持つ。壁紙画像と3DサムネはR2/Storage。DBは増えるが、夫婦の同時編集衝突、ロック、権限管理をほぼ考えなくてよい。大事なのは「編集前に複製」と「完成系リンクを取り込める」こと。</p>
       </article>
 
       <article class="section tabbody hide" id="engine">
@@ -454,8 +470,8 @@ pre{
         <h3>3D強化の方針</h3>
         <div class="cards">
           <div class="card"><b>矩形家具</b><span>テレビ、TVボード、ソファ、机、収納、ベッドをまず全部ボックスで置く。幅、奥行、高さ、床からの高さ、回転、色を自由入力できるようにする。</span></div>
-          <div class="card"><b>家具のイメージ</b><span>細かい形状は後回し。まずは「この位置にこの大きさの塊が来る」を2D/3Dで確認する。</span></div>
-          <div class="card"><b>光源検討</b><span>太陽の直射、天空光、窓からの面光源を分ける。季節/朝昼夕/北向きで切り替える。</span></div>
+          <div class="card"><b>最近使ったサイズ</b><span>家具プリセットを増やさず、直近で使ったテレビ/収納/机サイズをチップ化する。</span></div>
+          <div class="card"><b>採光比較</b><span>正確な日射計算より、A案とB案で朝昼夕・春夏秋冬の明るさを相対比較する。</span></div>
           <div class="card"><b>見え方モード</b><span>白模型、家具あり、壁紙あり、光検討を切替。重くなる処理は必要な時だけ再計算する。</span></div>
         </div>
         <h3>家具ボックスの編集UI</h3>
@@ -470,8 +486,9 @@ pre{
           <div class="step"><div class="num">2</div><div><b>内壁/建具</b><span>壁線、ドア、窓、引き戸。壁と開口は同じ座標系で扱う。</span></div></div>
           <div class="step"><div class="num">3</div><div><b>矩形家具</b><span>テレビ、TVボード、ソファ、収納などを自由サイズの四角い家具ボックスとして置く。幅/奥行/高さ/床からをmmで変更できるようにする。</span></div></div>
           <div class="step"><div class="num">4</div><div><b>3D白模型</b><span>まず白模型、次に矩形家具、窓/建具、壁紙/天井/歩行モード。</span></div></div>
-          <div class="step"><div class="num">5</div><div><b>光源検討</b><span>北向き、季節、朝昼夕、天空光、窓光を切り替えて、部屋の明るさを比較する。</span></div></div>
-          <div class="step"><div class="num">6</div><div><b>別ページ診断</b><span>housework、sightline、daylightなど。URLのidで本体と接続。</span></div></div>
+          <div class="step"><div class="num">5</div><div><b>案カード/比較</b><span>案ごとに平面サムネと3Dスナップショットを保存し、比べるモードで並べる。</span></div></div>
+          <div class="step"><div class="num">6</div><div><b>採光比較</b><span>北向き、季節、朝昼夕、天空光、窓光を切り替えて、案ごとの明るさを比較する。</span></div></div>
+          <div class="step"><div class="num">7</div><div><b>別ページ診断</b><span>housework、sightline、daylightなど。URLのidで本体と接続。</span></div></div>
         </div>
       </article>
     </section>
