@@ -506,6 +506,11 @@ border-radius: 999px;
 border: 1px solid rgba(0,0,0,.08);
 }
 .name-chip:active{ transform: scale(.98); opacity: .9; }
+.name-chip.active{
+background: rgba(10,132,255,.14);
+border-color: rgba(10,132,255,.55);
+color: #0A84FF;
+}
 
 .menu-list{
 display:flex;
@@ -528,6 +533,40 @@ justify-content:center;
 .menu-btn.danger{
 background: rgba(255,59,48,.14);
 color: #ff3b30;
+}
+.overlap-list{
+display:flex;
+flex-direction: column;
+gap: 8px;
+margin-top: 12px;
+}
+.overlap-item{
+min-height: 44px;
+border-radius: 14px;
+border: 1px solid var(--stroke);
+background: rgba(120,120,128,.12);
+color: var(--text);
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap: 10px;
+padding: 8px 12px;
+text-align:left;
+font-weight: 900;
+}
+.overlap-item .meta{
+display:block;
+font-size: 10px;
+color: var(--muted);
+font-weight: 800;
+margin-top: 2px;
+}
+.overlap-item .swatch{
+width: 18px;
+height: 18px;
+border-radius: 999px;
+border: 1px solid rgba(0,0,0,.14);
+flex-shrink:0;
 }
 
 /* 長押しメニュー：色変更も他ボタンと同じ見た目に（右に色ドット） */
@@ -2392,6 +2431,17 @@ border-bottom-color: rgba(235,235,245,.12);
 </div>
 </div>
 
+<div id="overlapModal" class="modal-overlay">
+<div class="modal sheet">
+<h3 style="margin:0 0 6px;">重なっているものを選択</h3>
+<div style="font-size:12px;color:#666;">編集したい家具・部屋をタップしてください。</div>
+<div class="overlap-list" id="overlapList"></div>
+<div style="display:flex; gap:10px; margin-top:14px;">
+<button style="flex:1; background:rgba(120,120,128,.45); color:#fff;" id="overlapCloseBtn" type="button">閉じる</button>
+</div>
+</div>
+</div>
+
 <div id="presetModal" class="modal-overlay">
 <div class="modal sheet">
 <h3 style="margin:0 0 6px;">プリセット編集</h3>
@@ -3003,22 +3053,22 @@ if(isReadOnly) return;
 if(labelModalMode === "add"){
 addPendingColor = color || addPendingColor || "#FFF3E0";
 el('addColorInput').value = addPendingColor;
-const cont = !!(el('contAddChk') && el('contAddChk').checked);
-if(!cont) closeLabelModal();
-addRect(name, 4, 4, addPendingColor, 'room');
-// ✅ 連続追加：シートを開いたまま、少しずつずらして置く
-if(cont && selectedItem){
-const st = getSnapStep();
-selectedItem.x += (contAddCount % 4) * st * 2;
-selectedItem.y += Math.floor(contAddCount / 4) * st * 2;
-contAddCount++;
-draw();
-showToast(`${name} を追加（連続追加中）`, 900);
-}
+el('addColorBtn').style.setProperty('--swatch', addPendingColor);
+el('labelInput').value = name;
+syncPresetChipSelection();
 return;
 }
 el('labelInput').value = name;
 applyLabel(true, color);
+}
+
+function syncPresetChipSelection(){
+const box = el('labelChips');
+if(!box) return;
+const name = (el('labelInput')?.value || '').trim();
+box.querySelectorAll('.name-chip').forEach(b => {
+b.classList.toggle('active', !!name && b.dataset.name === name);
+});
 }
 
 function renderPresetChips(){
@@ -3028,10 +3078,12 @@ presets.forEach(p => {
 const b = document.createElement("button");
 b.type = "button";
 b.className = "name-chip";
+b.dataset.name = p.name;
 b.innerHTML = `<span class="dot" style="background:${p.color}"></span><span>${escapeHtml(p.name)}</span>`;
 b.addEventListener("click", () => onPresetPicked(p.name, p.color));
 box.appendChild(b);
 });
+syncPresetChipSelection();
 }
 
 function renderPresetEditorList(){
@@ -3766,6 +3818,54 @@ function closeMenu(){
 el('menuModal').style.display = 'none';
 menuItem = null;
 }
+
+function overlapTypeLabel(it){
+if(!it) return '項目';
+if(it.type === 'furn') return '家具';
+if(it.type === 'stair') return '階段';
+if(it.type === 'room') return '部屋';
+if(it.type === 'frame') return '外枠';
+if(it.type === 'wallLine') return '内壁';
+if(it.type === 'opening') return (it.kind === 'slide' ? (SLIDE_LABEL[it.panels || 2] || '引き戸') : (OPENING_LABEL[it.kind] || '建具'));
+return it.type || '項目';
+}
+
+function closeOverlapPicker(){
+const m = el('overlapModal');
+if(m) m.style.display = 'none';
+}
+
+function chooseOverlapItem(it){
+if(!it) return;
+closeOverlapPicker();
+selectedItem = it;
+pendingItem = null;
+pendingAction = null;
+draw();
+syncBottomBarState();
+showToast(`${it.label || overlapTypeLabel(it)} を選択`, 800);
+}
+
+function openOverlapPicker(hits){
+const modal = el('overlapModal');
+const list = el('overlapList');
+if(!modal || !list) return false;
+list.innerHTML = '';
+hits.forEach((h, i) => {
+const it = h.it;
+const b = document.createElement('button');
+b.type = 'button';
+b.className = 'overlap-item';
+const size = (!isLineType(it.type) && typeof it.w === 'number') ? `${px2mm(it.w)}×${px2mm(it.h)}mm` : '';
+const layer = i === 0 ? '一番上' : `${i + 1}番目`;
+b.innerHTML = `<span>${escapeHtml(it.label || overlapTypeLabel(it))}<span class="meta">${escapeHtml(overlapTypeLabel(it))}${size ? ' / ' + escapeHtml(size) : ''} / ${layer}</span></span><span class="swatch" style="background:${escapeHtml(it.color || '#E3E3E9')}"></span>`;
+b.onclick = () => chooseOverlapItem(it);
+list.appendChild(b);
+});
+modal.style.display = 'flex';
+return true;
+}
+
 function duplicateItem(it){
 if(isReadOnly) return;
 if(!it) return;
@@ -3837,20 +3937,25 @@ el('labelModal').style.display = 'flex';
 
 if(mode === "add"){
 el('labelModalTitle').innerText = "部屋を追加";
-el('labelModalSub').innerText = "プリセットをタップで即追加 / 入力してOKでも追加";
+el('labelModalSub').innerText = "チップで名前を選択 → OKで配置";
 el('addHint').style.display = "block";
+el('addHint').innerText = "連続追加ON：OK後も閉じずに同じ部屋を追加できます";
 el('labelInput').placeholder = "部屋名（入力追加）";
 el('labelInput').value = "";
 el('addColorInput').value = addPendingColor || "#FFF3E0";
 el('addColorBtn').style.display = "";
+el('labelOkBtn').innerText = "追加";
+contAddCount = 0;
 }else{
 el('labelModalTitle').innerText = "部屋名を変更";
 el('labelModalSub').innerText = "候補をタップ（名前＋色） / 入力してOK";
 el('addHint').style.display = "none";
 el('labelInput').placeholder = "部屋名";
 el('addColorBtn').style.display = "none";
+el('labelOkBtn').innerText = "OK";
 }
 
+syncPresetChipSelection();
 setTimeout(() => el('labelInput').focus(), 50);
 }
 
@@ -6400,8 +6505,18 @@ const name = el('labelInput').value.trim();
 if(!name) return;
 
 if(labelModalMode === "add"){
-closeLabelModal();
 addRect(name, 4, 4, addPendingColor || "#FFF3E0", 'room');
+const cont = !!(el('contAddChk') && el('contAddChk').checked);
+if(cont && selectedItem){
+const st = getSnapStep();
+selectedItem.x += (contAddCount % 4) * st * 2;
+selectedItem.y += Math.floor(contAddCount / 4) * st * 2;
+contAddCount++;
+draw();
+showToast(`${name} を追加（連続追加中）`, 900);
+return;
+}
+closeLabelModal();
 return;
 }
 applyLabel(false, null);
@@ -6410,6 +6525,7 @@ el('labelModal').onclick = (e) => { if (e.target.id === 'labelModal') closeLabel
 el('labelInput').addEventListener('keydown', (e) => {
 if (e.key === 'Enter') el('labelOkBtn').click();
 });
+el('labelInput').addEventListener('input', syncPresetChipSelection);
 
 /* preset editor */
 el('openPresetBtn').onclick = () => {
@@ -6456,6 +6572,8 @@ el('menuModal').onclick = (e) => { if (e.target.id === 'menuModal') closeMenu();
 el('menuEditBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) openLabelEditor(it); };
 el('menuDupBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) duplicateItem(it); };
 el('menuDelBtn').onclick = () => { const it = menuItem; closeMenu(); if(it) deleteItem(it); };
+if(el('overlapCloseBtn')) el('overlapCloseBtn').onclick = closeOverlapPicker;
+if(el('overlapModal')) el('overlapModal').onclick = (e) => { if(e.target.id === 'overlapModal') closeOverlapPicker(); };
 
 /* bottom actions */
 el('addGenericRoomBtn2').onclick = () => {
@@ -6800,20 +6918,10 @@ if(hits.length === 1){
 found = hits[0].it;
 wallHandle = hits[0].wallHandle;
 }else if(hits.length > 1){
-const posKey = `${Math.round(worldP.x/8)}_${Math.round(worldP.y/8)}`;
-const idsKey = hits.map(h => h.it.id).join("|");
-const key = `${isMerged?1:0}|${posKey}|${idsKey}`;
-const within = (overlapPick.key === key) && (now - overlapPick.ts < 450);
-
-overlapPick.key = key;
-overlapPick.ts = now;
-overlapPick.idx = within ? (overlapPick.idx + 1) % hits.length : 0;
-
-const chosen = hits[overlapPick.idx];
-found = chosen.it;
-wallHandle = chosen.wallHandle;
-
-showToast(`重なり：${overlapPick.idx+1}/${hits.length}（${found.label || found.type}）`);
+if(openOverlapPicker(hits)){
+draw();
+return;
+}
 }
 }
 
