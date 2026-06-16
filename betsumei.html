@@ -373,8 +373,8 @@ pre{
         { "id":"r1", "type":"room", "label":"LDK", "x":32, "y":32, "w":192, "h":128, "grid":"half", "color":"#fff8b7" },
         { "id":"w1", "type":"wall", "x1":224, "y1":32, "x2":224, "y2":160, "thick":12 },
         { "id":"o1", "type":"opening", "kind":"window", "x1":64, "y1":32, "x2":128, "y2":32, "bottomMm":900, "topMm":2000 },
-        { "id":"furn1", "type":"furniture", "label":"ソファ", "x":64, "y":80, "wMm":1600, "dMm":850, "hMm":800, "zMm":0, "rot":0 },
-        { "id":"box1", "type":"box3d", "label":"棚", "x":210, "y":64, "wMm":900, "dMm":450, "hMm":1800, "zMm":0, "rot":0, "color":"#d8d0c4" },
+        { "id":"furn1", "type":"furniture", "shape":"box", "kind":"sofa", "label":"ソファ", "x":64, "y":80, "wMm":1600, "dMm":850, "hMm":800, "zMm":0, "rot":0 },
+        { "id":"furn2", "type":"furniture", "shape":"box", "kind":"tv", "label":"テレビ", "x":210, "y":64, "wMm":1200, "dMm":120, "hMm":700, "zMm":450, "rot":0, "color":"#1f2328" },
         { "id":"finish1", "type":"finish", "targetId":"r1", "wall":"n", "imageRef":"storage://..." }
       ]
     }
@@ -453,13 +453,13 @@ pre{
         </div>
         <h3>3D強化の方針</h3>
         <div class="cards">
-          <div class="card"><b>矩形家具/棚</b><span>最初は全部ボックスでよい。幅、奥行、高さ、床からの高さ、回転、色を自由入力できるようにする。</span></div>
-          <div class="card"><b>棚のイメージ</b><span>棚板やポールの細かい表現は後回し。まずは「この壁にこの大きさの塊が来る」を3Dで確認する。</span></div>
+          <div class="card"><b>矩形家具</b><span>テレビ、TVボード、ソファ、机、収納、ベッドをまず全部ボックスで置く。幅、奥行、高さ、床からの高さ、回転、色を自由入力できるようにする。</span></div>
+          <div class="card"><b>家具のイメージ</b><span>細かい形状は後回し。まずは「この位置にこの大きさの塊が来る」を2D/3Dで確認する。</span></div>
           <div class="card"><b>光源検討</b><span>太陽の直射、天空光、窓からの面光源を分ける。季節/朝昼夕/北向きで切り替える。</span></div>
           <div class="card"><b>見え方モード</b><span>白模型、家具あり、壁紙あり、光検討を切替。重くなる処理は必要な時だけ再計算する。</span></div>
         </div>
-        <h3>矩形ボックスの編集UI</h3>
-        <p>2Dでは矩形として配置し、選択バーに「幅/奥行/高さ/床から/回転」を出す。スマホではハンドル操作だけに頼らず、mm直接入力と±50mmステッパーを併用する。</p>
+        <h3>家具ボックスの編集UI</h3>
+        <p>2Dでは四角として配置し、選択バーに「種類、幅、奥行、高さ、床から、回転」を出す。スマホではハンドル操作だけに頼らず、mm直接入力と±50mmステッパーを併用する。</p>
       </article>
 
       <article class="section tabbody hide" id="roadmap">
@@ -468,7 +468,7 @@ pre{
         <div class="flow">
           <div class="step"><div class="num">1</div><div><b>部屋ブロック編集</b><span>追加、移動、リサイズ、色、名前、階切替、共有保存。</span></div></div>
           <div class="step"><div class="num">2</div><div><b>内壁/建具</b><span>壁線、ドア、窓、引き戸。壁と開口は同じ座標系で扱う。</span></div></div>
-          <div class="step"><div class="num">3</div><div><b>矩形家具/棚</b><span>家具はまず自由サイズの矩形ボックス。幅/奥行/高さ/床からをmmで変更できるようにする。</span></div></div>
+          <div class="step"><div class="num">3</div><div><b>矩形家具</b><span>テレビ、TVボード、ソファ、収納などを自由サイズの四角い家具ボックスとして置く。幅/奥行/高さ/床からをmmで変更できるようにする。</span></div></div>
           <div class="step"><div class="num">4</div><div><b>3D白模型</b><span>まず白模型、次に矩形家具、窓/建具、壁紙/天井/歩行モード。</span></div></div>
           <div class="step"><div class="num">5</div><div><b>光源検討</b><span>北向き、季節、朝昼夕、天空光、窓光を切り替えて、部屋の明るさを比較する。</span></div></div>
           <div class="step"><div class="num">6</div><div><b>別ページ診断</b><span>housework、sightline、daylightなど。URLのidで本体と接続。</span></div></div>
