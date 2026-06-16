@@ -6,6 +6,9 @@ const FLOOR_HEIGHT_M = 2.72;
 const WALL_H_M = 2.42;
 const SLAB_H_M = 0.16;
 const WALL_T_M = 0.11;
+const EYE_H_M = 1.5;
+const WALK_SPEED_MPS = 2.2;
+const WALK_MARGIN_M = 0.22;
 
 export class DetailScene3D {
   constructor(canvas){
@@ -22,6 +25,19 @@ export class DetailScene3D {
     this.theta = Math.PI * 0.24;
     this.phi = 0.95;
     this.radius = 15;
+    this.viewMode = "orbit";
+    this.keys = new Set();
+    this.joy = { x: 0, y: 0 };
+    this.walk = {
+      floor: 0,
+      pos: null,
+      yaw: 0,
+      pitch: 0,
+      fov: 72
+    };
+    this.ui = {};
+    this.lastBounds = null;
+    this.lastFrameTime = 0;
     this.needsFrame = true;
     this.state = null;
     this.initLights();
@@ -45,9 +61,11 @@ export class DetailScene3D {
   }
 
   initControls(){
+    this.canvas.tabIndex = 0;
     let dragging = false;
     let last = null;
     this.canvas.addEventListener("pointerdown", (event) => {
+      this.canvas.focus?.();
       dragging = true;
       last = { x: event.clientX, y: event.clientY };
       this.canvas.setPointerCapture?.(event.pointerId);
@@ -56,6 +74,13 @@ export class DetailScene3D {
       if(!dragging || !last) return;
       const dx = event.clientX - last.x;
       const dy = event.clientY - last.y;
+      if(this.viewMode === "walk"){
+        this.walk.yaw -= dx * 0.0045;
+        this.walk.pitch = clamp(this.walk.pitch - dy * 0.0038, -1.15, 1.15);
+        last = { x: event.clientX, y: event.clientY };
+        this.needsFrame = true;
+        return;
+      }
       if(event.shiftKey){
         const scale = this.radius * 0.0016;
         this.target.x -= dx * scale * Math.cos(this.theta);
@@ -73,9 +98,169 @@ export class DetailScene3D {
     this.canvas.addEventListener("pointercancel", stop);
     this.canvas.addEventListener("wheel", (event) => {
       event.preventDefault();
-      this.radius = clamp(this.radius * (event.deltaY > 0 ? 1.08 : 0.92), 4, 80);
+      if(this.viewMode === "walk"){
+        this.walk.fov = clamp(this.walk.fov + (event.deltaY > 0 ? 3 : -3), 42, 92);
+        this.camera.fov = this.walk.fov;
+        this.camera.updateProjectionMatrix();
+      }else{
+        this.radius = clamp(this.radius * (event.deltaY > 0 ? 1.08 : 0.92), 4, 80);
+      }
       this.needsFrame = true;
     }, { passive: false });
+    window.addEventListener("keydown", (event) => {
+      if(["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.code)){
+        this.keys.add(event.code);
+        this.needsFrame = true;
+      }
+    });
+    window.addEventListener("keyup", (event) => {
+      this.keys.delete(event.code);
+      this.needsFrame = true;
+    });
+  }
+
+  attachWalkUi(ui){
+    this.ui = ui || {};
+    this.setupStick();
+    this.renderRoomWarp();
+  }
+
+  setupStick(){
+    const stick = this.ui.stick;
+    const knob = this.ui.knob;
+    if(!stick || !knob) return;
+    let active = false;
+    const update = (event) => {
+      const rect = stick.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      let dx = event.clientX - cx;
+      let dy = event.clientY - cy;
+      const max = rect.width * 0.36;
+      const dist = Math.hypot(dx, dy);
+      if(dist > max){
+        dx = dx / dist * max;
+        dy = dy / dist * max;
+      }
+      this.joy.x = dx / max;
+      this.joy.y = dy / max;
+      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      this.needsFrame = true;
+    };
+    const reset = () => {
+      active = false;
+      this.joy = { x: 0, y: 0 };
+      knob.style.transform = "translate(-50%,-50%)";
+    };
+    stick.addEventListener("pointerdown", (event) => {
+      if(this.viewMode !== "walk") return;
+      active = true;
+      stick.setPointerCapture?.(event.pointerId);
+      update(event);
+    });
+    stick.addEventListener("pointermove", (event) => {
+      if(active) update(event);
+    });
+    stick.addEventListener("pointerup", reset);
+    stick.addEventListener("pointercancel", reset);
+  }
+
+  isWalkMode(){
+    return this.viewMode === "walk";
+  }
+
+  setWalkMode(on){
+    const next = !!on;
+    if(next === this.isWalkMode()) return;
+    this.viewMode = next ? "walk" : "orbit";
+    if(next){
+      this.walk.floor = this.currentWalkFloor();
+      this.resetWalkPosition();
+      this.camera.fov = this.walk.fov;
+    }else{
+      this.joy = { x: 0, y: 0 };
+      if(this.ui.knob) this.ui.knob.style.transform = "translate(-50%,-50%)";
+      this.camera.fov = 48;
+      this.resetOrbitView();
+    }
+    this.camera.updateProjectionMatrix();
+    this.syncWalkUi();
+    this.renderRoomWarp();
+    this.needsFrame = true;
+    this.ui.onModeChange?.();
+  }
+
+  resetView(){
+    if(this.isWalkMode()) this.resetWalkPosition();
+    else this.resetOrbitView();
+    this.needsFrame = true;
+  }
+
+  resetOrbitView(){
+    const bounds = this.lastBounds;
+    if(!bounds) return;
+    const centerX = pxToM((bounds.minX + bounds.maxX) / 2);
+    const centerZ = pxToM((bounds.minY + bounds.maxY) / 2);
+    const diag = Math.hypot(pxToM(bounds.width), pxToM(bounds.height));
+    const levels = this.state?.floorMode === "all" ? 2 : 1;
+    this.target.set(centerX, levels > 1 ? FLOOR_HEIGHT_M * 0.85 : 0.85, centerZ);
+    this.radius = clamp(diag * 1.18 + 3.5, 7, 44);
+    this.theta = Math.PI * 0.23;
+    this.phi = 1.02;
+  }
+
+  syncWalkUi(){
+    this.ui.stage?.classList.toggle("walking", this.isWalkMode());
+  }
+
+  currentWalkFloor(){
+    const floorMode = this.state?.floorMode;
+    if(floorMode === "1") return 1;
+    return 0;
+  }
+
+  resetWalkPosition(){
+    this.walk.floor = this.currentWalkFloor();
+    this.walk.pos = this.walkStartPos();
+    this.walk.yaw = this.bestWalkYaw(this.walk.pos);
+    this.walk.pitch = 0;
+  }
+
+  walkStartPos(){
+    const floor = this.state?.plan?.floors?.[this.walk.floor] || this.state?.plan?.floors?.[0];
+    const items = floor?.items || [];
+    const rooms = items.filter((item) => item.type === "room" && !item.void);
+    let best = null;
+    rooms.forEach((room) => {
+      if(!best || room.w * room.h > best.w * best.h) best = room;
+    });
+    if(!best){
+      const frames = items.filter((item) => item.type === "frame");
+      best = frames[0] || { x: -160, y: -160, w: 320, h: 320 };
+    }
+    return { x: pxToM(best.x + best.w / 2), z: pxToM(best.y + best.h / 2) };
+  }
+
+  renderRoomWarp(){
+    const wrap = this.ui.roomWarp;
+    if(!wrap || !this.state?.plan) return;
+    const floor = this.state.plan.floors[this.currentWalkFloor()] || this.state.plan.floors[0];
+    const rooms = (floor?.items || []).filter((item) => item.type === "room" && !item.void);
+    wrap.innerHTML = "";
+    rooms.slice(0, 14).forEach((room) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = room.label || "部屋";
+      button.addEventListener("click", () => {
+        this.setWalkMode(true);
+        this.walk.floor = this.currentWalkFloor();
+        this.walk.pos = { x: pxToM(room.x + room.w / 2), z: pxToM(room.y + room.h / 2) };
+        this.walk.yaw = this.bestWalkYaw(this.walk.pos);
+        this.walk.pitch = 0;
+        this.needsFrame = true;
+      });
+      wrap.appendChild(button);
+    });
   }
 
   resize(){
@@ -99,6 +284,7 @@ export class DetailScene3D {
     if(!this.state?.plan) return;
     const { plan, design, floorMode, layers, selectedId } = this.state;
     const bounds = sceneBounds(plan, design, floorMode, layers, 96);
+    this.lastBounds = bounds;
     if(layers.exterior) this.buildExterior(bounds, design);
     const floorIndexes = floorMode === "all" ? plan.floors.map((_, index) => index) : [Number(floorMode || 0)];
     floorIndexes.forEach((floorIndex) => {
@@ -107,16 +293,25 @@ export class DetailScene3D {
       const yBase = floorMode === "all" ? floorIndex * FLOOR_HEIGHT_M : 0;
       this.buildFloor(floor, floorIndex, yBase, design, layers, selectedId);
     });
-    const centerX = pxToM((bounds.minX + bounds.maxX) / 2);
-    const centerZ = pxToM((bounds.minY + bounds.maxY) / 2);
-    const diag = Math.hypot(pxToM(bounds.width), pxToM(bounds.height));
-    this.target.set(centerX, floorMode === "all" ? FLOOR_HEIGHT_M * 0.85 : 0.85, centerZ);
-    this.radius = clamp(diag * 1.25 + 4, 8, 44);
+    if(this.isWalkMode()){
+      const nextFloor = this.currentWalkFloor();
+      const changedFloor = this.walk.floor !== nextFloor;
+      this.walk.floor = nextFloor;
+      if(changedFloor || !this.walk.pos || !this.insideWalkArea(this.walk.pos.x, this.walk.pos.z, WALK_MARGIN_M)){
+        this.resetWalkPosition();
+      }
+    }else{
+      this.resetOrbitView();
+    }
     if(this.sun){
+      const centerX = pxToM((bounds.minX + bounds.maxX) / 2);
+      const centerZ = pxToM((bounds.minY + bounds.maxY) / 2);
       this.sun.position.set(centerX + 8, 14, centerZ + 7);
       this.sun.target.position.set(centerX, 0, centerZ);
       this.scene.add(this.sun.target);
     }
+    this.syncWalkUi();
+    this.renderRoomWarp();
   }
 
   buildExterior(bounds, design){
@@ -342,8 +537,135 @@ export class DetailScene3D {
     }
   }
 
+  walkBaseY(){
+    return (this.state?.floorMode === "all" ? this.walk.floor * FLOOR_HEIGHT_M : 0) + SLAB_H_M;
+  }
+
+  walkFrames(){
+    const floor = this.state?.plan?.floors?.[this.walk.floor] || this.state?.plan?.floors?.[0];
+    return (floor?.items || []).filter((item) => item.type === "frame");
+  }
+
+  walkItems(){
+    const floor = this.state?.plan?.floors?.[this.walk.floor] || this.state?.plan?.floors?.[0];
+    return floor?.items || [];
+  }
+
+  walkBlockingSegments(){
+    const items = this.walkItems();
+    const openings = items.filter((item) => item.type === "opening" && item.kind !== "window");
+    return items
+      .filter((item) => item.type === "wallLine")
+      .flatMap((wall) => splitByOpenings(wall, openings).map((seg) => ({
+        x1: pxToM(seg.x1),
+        z1: pxToM(seg.y1),
+        x2: pxToM(seg.x2),
+        z2: pxToM(seg.y2),
+        t: Math.max(WALL_T_M, pxToM(wall.thick || 6))
+      })));
+  }
+
+  insideWalkFrames(xM, zM, marginM){
+    const frames = this.walkFrames();
+    if(!frames.length) return true;
+    const x = mToPx(xM);
+    const z = mToPx(zM);
+    const margin = mToPx(marginM);
+    return frames.some((frame) => (
+      x >= frame.x + margin &&
+      x <= frame.x + frame.w - margin &&
+      z >= frame.y + margin &&
+      z <= frame.y + frame.h - margin
+    ));
+  }
+
+  insideWalkArea(xM, zM, marginM){
+    if(!this.insideWalkFrames(xM, zM, marginM)) return false;
+    return !this.walkBlockingSegments().some((seg) => (
+      pointSegmentDistance(xM, zM, seg.x1, seg.z1, seg.x2, seg.z2) < marginM + seg.t / 2
+    ));
+  }
+
+  bestWalkYaw(pos){
+    if(!pos) return this.theta + Math.PI;
+    const candidates = [0, Math.PI / 2, Math.PI, -Math.PI / 2, this.theta + Math.PI];
+    let best = candidates[0];
+    let bestScore = -Infinity;
+    candidates.forEach((yaw) => {
+      const score = this.walkRayDistance(pos, yaw);
+      if(score > bestScore){
+        bestScore = score;
+        best = yaw;
+      }
+    });
+    return best;
+  }
+
+  walkRayDistance(pos, yaw){
+    const dx = Math.sin(yaw);
+    const dz = -Math.cos(yaw);
+    const step = 0.18;
+    let dist = 0;
+    for(let i = 1; i <= 90; i++){
+      const next = i * step;
+      if(!this.insideWalkArea(pos.x + dx * next, pos.z + dz * next, WALK_MARGIN_M)) break;
+      dist = next;
+    }
+    return dist;
+  }
+
+  updateWalk(dt){
+    if(!this.walk.pos) this.resetWalkPosition();
+    let forward = 0;
+    let side = 0;
+    if(this.keys.has("KeyW") || this.keys.has("ArrowUp")) forward += 1;
+    if(this.keys.has("KeyS") || this.keys.has("ArrowDown")) forward -= 1;
+    if(this.keys.has("KeyD") || this.keys.has("ArrowRight")) side += 1;
+    if(this.keys.has("KeyA") || this.keys.has("ArrowLeft")) side -= 1;
+    side += this.joy.x;
+    forward += -this.joy.y;
+    const len = Math.hypot(side, forward);
+    if(len > 1){
+      side /= len;
+      forward /= len;
+    }
+    const fx = Math.sin(this.walk.yaw);
+    const fz = -Math.cos(this.walk.yaw);
+    const rx = Math.cos(this.walk.yaw);
+    const rz = Math.sin(this.walk.yaw);
+    const step = WALK_SPEED_MPS * Math.min(dt, 0.05);
+    const dx = (fx * forward + rx * side) * step;
+    const dz = (fz * forward + rz * side) * step;
+    const nx = this.walk.pos.x + dx;
+    const nz = this.walk.pos.z + dz;
+    if(this.insideWalkArea(nx, this.walk.pos.z, WALK_MARGIN_M)) this.walk.pos.x = nx;
+    if(this.insideWalkArea(this.walk.pos.x, nz, WALK_MARGIN_M)) this.walk.pos.z = nz;
+    this.updateWalkCamera();
+  }
+
+  updateWalkCamera(){
+    if(!this.walk.pos) return;
+    const eye = this.walkBaseY() + EYE_H_M;
+    const cp = Math.cos(this.walk.pitch);
+    this.camera.position.set(this.walk.pos.x, eye, this.walk.pos.z);
+    this.camera.lookAt(
+      this.walk.pos.x + cp * Math.sin(this.walk.yaw),
+      eye + Math.sin(this.walk.pitch),
+      this.walk.pos.z - cp * Math.cos(this.walk.yaw)
+    );
+  }
+
   loop(){
     this.resize();
+    const now = performance.now();
+    const dt = this.lastFrameTime ? (now - this.lastFrameTime) / 1000 : 0.016;
+    this.lastFrameTime = now;
+    if(this.isWalkMode()){
+      this.updateWalk(dt);
+      this.renderer.render(this.scene, this.camera);
+      requestAnimationFrame(this.loop);
+      return;
+    }
     if(this.needsFrame){
       this.updateCamera();
       this.renderer.render(this.scene, this.camera);
@@ -474,6 +796,19 @@ function splitByOpenings(seg, openings){
 
 function makeSeg(base, horizontal, a, b, fixed){
   return horizontal ? { ...base, x1:a, x2:b, y1:fixed, y2:fixed } : { ...base, x1:fixed, x2:fixed, y1:a, y2:b };
+}
+
+function mToPx(m){
+  return m / pxToM(1);
+}
+
+function pointSegmentDistance(px, pz, x1, z1, x2, z2){
+  const dx = x2 - x1;
+  const dz = z2 - z1;
+  const len2 = dx * dx + dz * dz;
+  if(len2 <= 0.000001) return Math.hypot(px - x1, pz - z1);
+  const t = clamp(((px - x1) * dx + (pz - z1) * dz) / len2, 0, 1);
+  return Math.hypot(px - (x1 + dx * t), pz - (z1 + dz * t));
 }
 
 function sceneBounds(plan, design, floorMode, layers, padding){

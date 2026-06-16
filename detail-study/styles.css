@@ -106,7 +106,86 @@ button{ border:0; cursor:pointer; }
   height:100%;
   min-height:0;
   touch-action:none;
+  outline:none;
 }
+.walkHud{
+  position:absolute;
+  top:12px;
+  left:12px;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(12px);
+}
+.walkHud button{
+  height:30px;
+  border-radius:7px;
+  padding:0 10px;
+  color:#253026;
+  background:rgba(120,128,116,.14);
+  font-size:12px;
+  font-weight:900;
+}
+.walkHud button.on{ color:#fff; background:var(--green); }
+.walkHud span{ color:#4b5248; font-size:11px; font-weight:900; min-width:42px; }
+.roomWarp{
+  position:absolute;
+  z-index:4;
+  left:12px;
+  right:12px;
+  bottom:12px;
+  display:none;
+  gap:6px;
+  overflow:auto;
+  padding:6px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.78);
+  backdrop-filter:blur(12px);
+}
+.roomWarp button{
+  flex:0 0 auto;
+  height:30px;
+  border-radius:7px;
+  padding:0 10px;
+  color:#253026;
+  background:rgba(120,128,116,.14);
+  font-size:11px;
+  font-weight:900;
+}
+.walkStick{
+  position:absolute;
+  z-index:5;
+  left:18px;
+  bottom:72px;
+  width:104px;
+  height:104px;
+  border-radius:50%;
+  display:none;
+  background:rgba(32,37,30,.12);
+  border:1px solid rgba(32,37,30,.16);
+  backdrop-filter:blur(12px);
+  touch-action:none;
+}
+#walkStickKnob{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:rgba(47,143,99,.88);
+  border:2px solid rgba(255,255,255,.9);
+  transform:translate(-50%,-50%);
+  box-shadow:0 6px 16px rgba(0,0,0,.18);
+}
+.stage3d.walking .roomWarp{ display:flex; }
+.stage3d.walking .walkStick{ display:block; }
 .viewBadge{
   position:absolute;
   left:12px;
@@ -375,4 +454,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .inspector{ grid-template-columns:1fr; }
   .formGrid,.distanceGrid,.selectedGrid,.toggleGrid,.paletteGrid,.listColumns{ grid-template-columns:1fr; }
   .noteComposer{ grid-template-columns:1fr; }
+  .walkHud{ top:8px; left:8px; }
+  .roomWarp{ left:8px; right:8px; bottom:8px; }
+  .walkStick{ left:14px; bottom:62px; width:96px; height:96px; }
 }

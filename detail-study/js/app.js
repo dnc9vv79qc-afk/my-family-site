@@ -43,13 +43,20 @@ async function init(){
   bindEvents();
   renderPalette();
   scene3d = new DetailScene3D(dom.sceneCanvas);
+  scene3d.attachWalkUi({
+    stage: dom.stage3d,
+    stick: dom.walkStick,
+    knob: dom.walkStickKnob,
+    roomWarp: dom.roomWarp,
+    onModeChange: update3dControls
+  });
   await loadCurrentLayout();
 }
 
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","roomList","roomListLarge","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
@@ -59,6 +66,11 @@ function bindEvents(){
   dom.reloadBtn.addEventListener("click", () => loadCurrentLayout(false));
   dom.saveBtn.addEventListener("click", () => saveDesign(true));
   dom.exportBtn.addEventListener("click", exportDesign);
+  dom.walkModeBtn.addEventListener("click", toggleWalkMode);
+  dom.reset3dBtn.addEventListener("click", () => {
+    scene3d?.resetView();
+    update3dControls();
+  });
   dom.viewTabs.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-view]");
     if(!button) return;
@@ -68,7 +80,7 @@ function bindEvents(){
   dom.floorTabs.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-floor]");
     if(!button) return;
-    state.floorMode = button.dataset.floor;
+    state.floorMode = (scene3d?.isWalkMode() && button.dataset.floor === "all") ? "0" : button.dataset.floor;
     state.selectedId = null;
     render();
   });
@@ -198,6 +210,7 @@ function renderSceneOnly(){
     layers: state.layers,
     selectedId: state.selectedId
   });
+  update3dControls();
 }
 
 function renderViewTabs(){
@@ -207,7 +220,30 @@ function renderViewTabs(){
   dom.stage3d.hidden = state.view !== "3d";
   dom.stagePlan.hidden = state.view !== "plan";
   dom.stageList.hidden = state.view !== "list";
+  if(state.view !== "3d" && scene3d?.isWalkMode()) scene3d.setWalkMode(false);
+  update3dControls();
   dom.viewBadge.textContent = state.floorMode === "all" ? "全体3D" : `${Number(state.floorMode) + 1}F 3D`;
+}
+
+function toggleWalkMode(){
+  if(!scene3d) return;
+  const next = !scene3d.isWalkMode();
+  if(next){
+    state.view = "3d";
+    if(state.floorMode === "all") state.floorMode = "0";
+    render();
+  }
+  scene3d.setWalkMode(next);
+  update3dControls();
+}
+
+function update3dControls(){
+  if(!dom.walkModeBtn || !scene3d) return;
+  const walking = scene3d.isWalkMode();
+  dom.walkModeBtn.classList.toggle("on", walking);
+  dom.walkModeBtn.textContent = walking ? "俯瞰" : "歩く";
+  const floorLabel = state.floorMode === "1" ? "2F" : "1F";
+  dom.walkStatus.textContent = walking ? `${floorLabel} 歩行` : "俯瞰";
 }
 
 function renderFloorTabs(){
