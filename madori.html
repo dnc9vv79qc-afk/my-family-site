@@ -2119,7 +2119,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="help-icon">🕳️</div>
 <div class="help-content">
 <b>吹き抜け・3Dの移動</b>
-部屋を選んで「吹抜」を押すと、その部屋は吹き抜けになり、3D（全体表示）で2Fの床が抜けて1Fが見えます。3Dの「歩く」中は上部に部屋名が並び、タップするとその部屋へ瞬間移動できます。
+部屋を選んで「吹抜」を押すと、その部屋は吹き抜けになり、3Dで上階の床だけが抜けます。屋根・天井は残るので、天井材も確認できます。3Dの「歩く」中は上部に部屋名が並び、タップするとその部屋へ瞬間移動できます。
 </div>
 </div>
 <div class="help-row">
@@ -8375,8 +8375,10 @@ group.add(board);
 }
 }
 }
-// 天井（歩くモードのときだけ表示）— 自階＋上階の吹き抜けの下を抜く
-const ceilVoids = voids.concat(upperVoids || []);
+// 天井（歩くモードのときだけ表示）
+// 自階の吹き抜けは「床だけ抜く」。屋根/天井まで抜くと最上部が空になるため、
+// 天井穴として扱うのは上階の吹き抜けだけにする。
+const ceilVoids = (upperVoids || []);
 const inCeilVoid = (cx, cz) => ceilVoids.some(v => cx >= v.x && cx <= v.x + v.w && cz >= v.y && cz <= v.y + v.h);
 if(ceilVoids.length === 0){
 const ceil = new T.Mesh(new T.BoxGeometry(f.w + V3D_OUTER_T, 2, f.h + V3D_OUTER_T), mats.ceil);
