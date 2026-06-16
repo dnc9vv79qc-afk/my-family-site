@@ -50,6 +50,13 @@
 
         <div class="stage stagePlan" id="stagePlan" hidden>
           <svg id="planSvg" role="img" aria-label="間取り平面図"></svg>
+          <div class="planHud" id="planHud">
+            <span id="planHudTitle">平面編集</span>
+            <div class="hudTools">
+              <button type="button" id="centerPlanBtn">全体</button>
+              <button type="button" id="clearSelectionBtn">解除</button>
+            </div>
+          </div>
         </div>
 
         <div class="stage stageList" id="stageList" hidden>
@@ -83,20 +90,25 @@
           </div>
         </section>
 
+        <section class="panelBlock focusBlock">
+          <div class="blockTitle">敷地・外構</div>
+          <div class="palette groupedPalette" id="exteriorPalette"></div>
+        </section>
+
         <section class="panelBlock">
-          <div class="blockTitle">外構</div>
+          <div class="blockTitle">敷地条件</div>
           <div class="formGrid">
             <label>敷地余白m<input id="setbackInput" type="number" min="0.5" max="8" step="0.1"></label>
-            <label>駐車台数<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
-            <label>デッキ奥行m<input id="deckInput" type="number" min="0" max="5" step="0.1"></label>
+            <label>初期駐車<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
+            <label>初期デッキm<input id="deckInput" type="number" min="0" max="5" step="0.1"></label>
             <label>方位°<input id="northInput" type="number" min="0" max="359" step="15"></label>
           </div>
           <label class="checkLine"><input id="fenceInput" type="checkbox">フェンス</label>
         </section>
 
         <section class="panelBlock">
-          <div class="blockTitle">追加</div>
-          <div class="palette" id="palette"></div>
+          <div class="blockTitle">家具・棚・窓</div>
+          <div class="palette groupedPalette" id="palette"></div>
         </section>
 
         <section class="panelBlock selectedBlock">

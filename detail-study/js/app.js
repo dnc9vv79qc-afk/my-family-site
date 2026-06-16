@@ -13,7 +13,7 @@ import {
   pxToMm,
   mmToPx
 } from "./data.js";
-import { FURNITURE_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid } from "./defaults.js";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid } from "./defaults.js";
 
 const state = {
   plan: null,
@@ -21,6 +21,7 @@ const state = {
   view: "3d",
   floorMode: "0",
   selectedId: null,
+  drag: null,
   layers: {
     rooms: true,
     walls: true,
@@ -48,7 +49,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","planSvg","layerToggles","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette",
+    "sceneCanvas","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","roomList","roomListLarge","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
@@ -77,6 +78,15 @@ function bindEvents(){
     state.layers[input.dataset.layer] = input.checked;
     render();
   });
+  dom.centerPlanBtn.addEventListener("click", () => {
+    state.view = "plan";
+    state.floorMode = "0";
+    render();
+  });
+  dom.clearSelectionBtn.addEventListener("click", () => {
+    state.selectedId = null;
+    render();
+  });
   ["setbackInput","parkingInput","deckInput","northInput"].forEach((id) => {
     dom[id].addEventListener("input", () => {
       const exterior = state.design.exterior;
@@ -99,6 +109,10 @@ function bindEvents(){
     state.selectedId = target.dataset.id;
     render();
   });
+  dom.planSvg.addEventListener("pointerdown", onPlanPointerDown);
+  window.addEventListener("pointermove", onPlanPointerMove);
+  window.addEventListener("pointerup", onPlanPointerUp);
+  window.addEventListener("pointercancel", onPlanPointerUp);
   dom.addNoteBtn.addEventListener("click", addNote);
   dom.noteInput.addEventListener("keydown", (event) => {
     if(event.key === "Enter") addNote();
@@ -223,19 +237,103 @@ function renderMetrics(){
 }
 
 function renderPalette(){
-  dom.palette.innerHTML = FURNITURE_LIBRARY.map((item) => (
-    `<button type="button" data-kind="${item.kind}" data-tone="${item.tone}">${escapeHtml(item.label)}</button>`
-  )).join("");
-  dom.palette.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-kind]");
-    if(!button) return;
-    addCustomItem(button.dataset.kind);
+  dom.exteriorPalette.innerHTML = renderLibrary(EXTERIOR_LIBRARY, "外構");
+  dom.palette.innerHTML = renderLibrary(FURNITURE_LIBRARY, "検討");
+  [dom.exteriorPalette, dom.palette].forEach((palette) => {
+    palette.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-kind]");
+      if(!button) return;
+      addCustomItem(button.dataset.kind);
+    });
   });
+}
+
+function renderLibrary(items, fallbackCategory){
+  const categories = [...new Set(items.map((item) => item.category || fallbackCategory))];
+  return categories.map((category) => {
+    const buttons = items.filter((item) => (item.category || fallbackCategory) === category).map((item) => (
+      `<button type="button" data-kind="${item.kind}" data-tone="${item.tone}">
+        <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>
+      </button>`
+    )).join("");
+    return `<div class="paletteGroup"><div class="paletteTitle">${escapeHtml(category)}</div><div class="paletteGrid">${buttons}</div></div>`;
+  }).join("");
+}
+
+function allLibraryItems(){
+  return [...EXTERIOR_LIBRARY, ...FURNITURE_LIBRARY];
+}
+
+function onPlanPointerDown(event){
+  const target = event.target.closest("[data-id]");
+  if(!target) return;
+  const item = findCustomById(target.dataset.id);
+  if(!item) return;
+  event.preventDefault();
+  const point = svgPoint(event);
+  state.selectedId = item.id;
+  state.drag = {
+    id: item.id,
+    mode: event.target.closest("[data-resize]") ? "resize" : "move",
+    start: point,
+    x: item.x,
+    y: item.y,
+    w: item.w,
+    h: item.h
+  };
+  render();
+}
+
+function onPlanPointerMove(event){
+  if(!state.drag) return;
+  const item = findCustomById(state.drag.id);
+  if(!item) return;
+  event.preventDefault();
+  const point = svgPoint(event);
+  const dx = point.x - state.drag.start.x;
+  const dy = point.y - state.drag.start.y;
+  if(state.drag.mode === "resize"){
+    item.w = snap(Math.max(8, state.drag.w + dx));
+    item.h = snap(Math.max(8, state.drag.h + dy));
+  }else{
+    item.x = snap(state.drag.x + dx);
+    item.y = snap(state.drag.y + dy);
+  }
+  saveDesign(false);
+  renderPlan();
+  renderLists();
+  renderSelectedPanel();
+  renderSceneOnly();
+}
+
+function onPlanPointerUp(){
+  if(!state.drag) return;
+  state.drag = null;
+  saveDesign(false);
+  render();
+}
+
+function svgPoint(event){
+  const pt = dom.planSvg.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  const matrix = dom.planSvg.getScreenCTM();
+  if(!matrix) return { x: 0, y: 0 };
+  const p = pt.matrixTransform(matrix.inverse());
+  return { x: p.x, y: p.y };
+}
+
+function snap(value){
+  return Math.round(value / 8) * 8;
+}
+
+function findCustomById(id){
+  return (state.design?.customItems || []).find((item) => item.id === id) || null;
 }
 
 function renderPlan(){
   if(!state.plan) return;
-  const bounds = floorBounds(state.plan, state.floorMode, state.layers.exterior ? 130 : 70);
+  const bounds = displayBounds();
   dom.planSvg.setAttribute("viewBox", `${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`);
   const items = floorItems(state.plan, state.floorMode);
   const rooms = items.filter((item) => item.type === "room" && !item.void);
@@ -262,20 +360,35 @@ function renderPlan(){
     if(state.layers[item.layer] !== false) chunks.push(renderFurnitureSvg(item, false));
   });
   dom.planSvg.innerHTML = chunks.join("");
+  const selected = findSelected();
+  dom.planHudTitle.textContent = selected?.source === "custom" ? selected.item.label : "平面編集";
 }
 
 function renderExteriorSvg(bounds){
-  const pad = 70;
-  const x = bounds.minX + pad / 2;
-  const y = bounds.minY + pad / 2;
-  const w = bounds.width - pad;
-  const h = bounds.height - pad;
+  const x = bounds.minX + 18;
+  const y = bounds.minY + 18;
+  const w = bounds.width - 36;
+  const h = bounds.height - 36;
   return [
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#dfeadb" stroke="#7d956f" stroke-width="3" stroke-dasharray="9 7"/>`,
-    `<rect x="${x + w * 0.58}" y="${y + h - 72}" width="${Math.min(150, w * .34)}" height="62" fill="#c9ccc7" stroke="#9ca19a" stroke-width="1"/>`,
-    `<rect x="${x + 26}" y="${y + h - 56}" width="${Math.min(130, w * .28)}" height="36" fill="#7aa85d" opacity=".65"/>`,
-    `<text x="${x + 12}" y="${y + 18}" class="planSub">敷地</text>`
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e8f0e4" stroke="#8ba77b" stroke-width="2" stroke-dasharray="8 7" opacity=".55"/>`,
+    `<text x="${x + 12}" y="${y + 18}" class="planSub">外構編集範囲</text>`
   ].join("");
+}
+
+function displayBounds(){
+  const base = floorBounds(state.plan, state.floorMode, state.layers.exterior ? 150 : 70);
+  const items = state.layers.exterior ? visibleCustomItems().filter((item) => item.layer === "exterior") : [];
+  let minX = base.minX;
+  let minY = base.minY;
+  let maxX = base.maxX;
+  let maxY = base.maxY;
+  items.forEach((item) => {
+    minX = Math.min(minX, item.x - 24);
+    minY = Math.min(minY, item.y - 24);
+    maxX = Math.max(maxX, item.x + item.w + 24);
+    maxY = Math.max(maxY, item.y + item.h + 24);
+  });
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
 function renderRoomSvg(room){
@@ -308,13 +421,50 @@ function renderFurnitureSvg(item, existing){
   const label = escapeHtml(item.label || "家具");
   const color = item.color || (existing ? "#d8dce3" : "#c9c9d2");
   const rotate = item.rotation ? ` transform="rotate(${item.rotation} ${item.x + item.w / 2} ${item.y + item.h / 2})"` : "";
-  if(item.kind === "plant"){
+  if(item.layer === "exterior") return renderExteriorItemSvg(item, selected, label, color, rotate);
+  if(item.kind === "plant" || item.kind === "tree"){
     const r = Math.max(4, Math.min(item.w, item.h) / 2);
     return `<g class="planItem${selected}" data-id="${item.id}"><circle cx="${item.x + item.w / 2}" cy="${item.y + item.h / 2}" r="${r}" fill="${color}" stroke="#355d38" stroke-width="1.5"/><text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text></g>`;
   }
   return `<g class="planItem${selected}" data-id="${item.id}"${rotate}>
     <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
+  </g>`;
+}
+
+function renderExteriorItemSvg(item, selected, label, color, rotate){
+  const cx = item.x + item.w / 2;
+  const cy = item.y + item.h / 2;
+  const cls = `planItem exteriorItem${selected}`;
+  const handle = selected ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
+  const commonText = `<text x="${cx}" y="${cy + 3}" text-anchor="middle" class="planSub">${label}</text>`;
+  if(item.kind === "site"){
+    return `<g class="${cls}" data-id="${item.id}">
+      <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${item.h}" fill="${color}" fill-opacity=".42" stroke="#59764d" stroke-width="3" stroke-dasharray="10 8"/>
+      <text x="${item.x + 12}" y="${item.y + 18}" class="planSub">${label}</text>${handle}
+    </g>`;
+  }
+  if(item.kind === "tree" || item.kind === "plant"){
+    const r = Math.max(7, Math.min(item.w, item.h) / 2);
+    return `<g class="${cls}" data-id="${item.id}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" fill-opacity=".8" stroke="#315f37" stroke-width="2"/>
+      <circle cx="${cx - r * .25}" cy="${cy - r * .18}" r="${r * .34}" fill="#6daa68" opacity=".8"/>
+      ${commonText}${handle}
+    </g>`;
+  }
+  if(item.kind === "fence"){
+    return `<g class="${cls}" data-id="${item.id}"${rotate}>
+      <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${Math.max(8, item.h)}" rx="2" fill="${color}" stroke="#70583e" stroke-width="1.5"/>
+      <line x1="${item.x}" y1="${cy}" x2="${item.x + item.w}" y2="${cy}" stroke="#f3e5d0" stroke-width="2" stroke-dasharray="10 8"/>
+      ${commonText}${handle}
+    </g>`;
+  }
+  const stroke = item.kind === "parking" || item.kind === "driveway" ? "#8c918b" : "rgba(31,35,28,.42)";
+  const dash = item.kind === "parking" ? ` stroke-dasharray="12 7"` : "";
+  return `<g class="${cls}" data-id="${item.id}"${rotate}>
+    <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="3" fill="${color}" fill-opacity=".72" stroke="${stroke}" stroke-width="1.8"${dash}/>
+    ${item.kind === "parking" ? `<text x="${cx}" y="${cy - 8}" text-anchor="middle" class="planSub">P</text>` : ""}
+    ${commonText}${handle}
   </g>`;
 }
 
@@ -345,7 +495,7 @@ function roomRow(room){
 function itemRow(item){
   const on = state.selectedId === item.id ? " on" : "";
   return `<div class="denseRow${on}" data-id="${item.id}">
-    <div><b>${escapeHtml(item.label)}</b><span>${floorLabel(item.floorIndex)} / ${pxToMm(item.w)}x${pxToMm(item.h)}x${Math.round(item.heightMm || 0)}mm</span></div>
+    <div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.category || item.layer)} / ${pxToMm(item.w)}x${pxToMm(item.h)}x${Math.round(item.heightMm || 0)}mm</span></div>
     <button type="button" data-select="${item.id}">選択</button>
   </div>`;
 }
@@ -417,7 +567,8 @@ function bindRoomEditor(room){
 }
 
 function renderCustomEditor(item){
-  return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${floorLabel(item.floorIndex)}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
+  const isExterior = item.layer === "exterior";
+  return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(isExterior ? (item.category || "外構") : floorLabel(item.floorIndex))}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
     <div class="selectedGrid">
       <label>名前<input id="itemLabel" type="text" maxlength="20" value="${escapeAttr(item.label)}"></label>
       <label>色<input id="itemColor" type="color" value="${escapeAttr(item.color || "#c9c9d2")}"></label>
@@ -474,7 +625,7 @@ function bindCustomEditor(item){
 }
 
 function addCustomItem(kind){
-  const preset = FURNITURE_LIBRARY.find((item) => item.kind === kind);
+  const preset = allLibraryItems().find((item) => item.kind === kind);
   if(!preset || !state.plan) return;
   const floorIndex = state.floorMode === "all" ? 0 : Number(state.floorMode || 0);
   const selectedRoom = findSelected()?.source === "room" ? findSelected().item : roomsForFloor(state.plan, String(floorIndex))[0];
@@ -484,14 +635,46 @@ function addCustomItem(kind){
     : { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
   const item = makeCustomItem(preset, floorIndex, center);
   if(preset.layer === "exterior"){
-    item.x = bounds.maxX + 32;
-    item.y = bounds.maxY - 80;
+    item.floorIndex = 0;
+    state.view = "plan";
+    state.floorMode = "0";
+    placeExteriorItem(item, floorBounds(state.plan, "0", 0));
   }
   state.design.customItems.push(item);
   state.selectedId = item.id;
   saveDesign(false);
   render();
   toast(`${preset.label}を追加しました`);
+}
+
+function placeExteriorItem(item, bounds){
+  const gap = 32;
+  if(item.kind === "site"){
+    item.x = bounds.minX - 96;
+    item.y = bounds.minY - 96;
+    item.w = Math.max(item.w, bounds.width + 192);
+    item.h = Math.max(item.h, bounds.height + 192);
+    return;
+  }
+  if(item.kind === "parking" || item.kind === "driveway" || item.kind === "bike"){
+    item.x = bounds.minX + bounds.width * 0.55;
+    item.y = bounds.maxY + gap;
+    return;
+  }
+  if(item.kind === "approach" || item.kind === "gate"){
+    item.x = bounds.minX + bounds.width * 0.18;
+    item.y = bounds.maxY + gap;
+    return;
+  }
+  if(item.kind === "deck" || item.kind === "garden" || item.kind === "tree"){
+    item.x = bounds.minX + bounds.width * 0.18;
+    item.y = bounds.minY - item.h - gap;
+    return;
+  }
+  if(item.kind === "fence"){
+    item.x = bounds.minX;
+    item.y = bounds.minY - item.h - gap;
+  }
 }
 
 function visibleCustomItems(){

@@ -98,7 +98,7 @@ export class DetailScene3D {
     clearGroup(this.root);
     if(!this.state?.plan) return;
     const { plan, design, floorMode, layers, selectedId } = this.state;
-    const bounds = floorBounds(plan, floorMode, 96);
+    const bounds = sceneBounds(plan, design, floorMode, layers, 96);
     if(layers.exterior) this.buildExterior(bounds, design);
     const floorIndexes = floorMode === "all" ? plan.floors.map((_, index) => index) : [Number(floorMode || 0)];
     floorIndexes.forEach((floorIndex) => {
@@ -256,6 +256,10 @@ export class DetailScene3D {
   }
 
   addFurnitureBox(item, floorIndex, yBase, selectedId, existing){
+    if(!existing && item.layer === "exterior"){
+      this.addExteriorCustom(item, yBase, selectedId);
+      return;
+    }
     const hM = existing ? Math.max(0.08, Number(item.fh || 700) / 1000) : Math.max(0.08, Number(item.heightMm || 700) / 1000);
     const glM = existing ? Math.max(0, Number(item.gl || 0) / 1000) : Math.max(0, Number(item.glMm || 0) / 1000);
     const layer = existing ? "furniture" : item.layer;
@@ -281,6 +285,47 @@ export class DetailScene3D {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.root.add(mesh);
+  }
+
+  addExteriorCustom(item, yBase, selectedId){
+    const w = Math.max(0.05, pxToM(item.w));
+    const d = Math.max(0.05, pxToM(item.h));
+    const h = Math.max(0.03, Number(item.heightMm || 80) / 1000);
+    const x = pxToM(item.x + item.w / 2);
+    const z = pxToM(item.y + item.h / 2);
+    const selected = selectedId === item.id;
+    if(item.kind === "tree" || item.kind === "plant"){
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, Math.max(0.7, h * 0.42), 8), mat("#7d5a39", 0.9, 0.5));
+      trunk.position.set(x, yBase + 0.35, z);
+      trunk.castShadow = true;
+      this.root.add(trunk);
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.3, Math.min(w, d) / 2), 14, 10), mat(item.color || "#3f7e49", 0.86, 0.6));
+      crown.position.set(x, yBase + Math.max(0.9, h * 0.62), z);
+      crown.castShadow = true;
+      this.root.add(crown);
+      return;
+    }
+    if(item.kind === "site"){
+      const site = new THREE.Mesh(new THREE.BoxGeometry(w, 0.025, d), mat(item.color || "#dfeadb", 0.32, 0.7, true));
+      site.position.set(x, yBase - 0.05, z);
+      site.receiveShadow = true;
+      this.root.add(site);
+      const edge = new THREE.BoxHelper(site, new THREE.Color(selected ? "#286fd6" : "#59764d"));
+      this.root.add(edge);
+      return;
+    }
+    const flatKinds = new Set(["parking", "driveway", "approach", "deck", "garden"]);
+    const meshH = flatKinds.has(item.kind) ? Math.min(h, 0.22) : h;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, meshH, d), mat(item.color || "#c9c9d2", item.kind === "garden" ? 0.86 : 0.78, 0.52, item.kind === "parking"));
+    mesh.position.set(x, yBase + meshH / 2, z);
+    mesh.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.root.add(mesh);
+    if(selected){
+      const edge = new THREE.BoxHelper(mesh, new THREE.Color("#286fd6"));
+      this.root.add(edge);
+    }
   }
 
   addStair(item, yBase, selectedId){
@@ -429,6 +474,24 @@ function splitByOpenings(seg, openings){
 
 function makeSeg(base, horizontal, a, b, fixed){
   return horizontal ? { ...base, x1:a, x2:b, y1:fixed, y2:fixed } : { ...base, x1:fixed, x2:fixed, y1:a, y2:b };
+}
+
+function sceneBounds(plan, design, floorMode, layers, padding){
+  const bounds = floorBounds(plan, floorMode, padding);
+  if(!layers.exterior) return bounds;
+  const floorIndexes = floorMode === "all" ? null : new Set([Number(floorMode || 0)]);
+  const items = (design.customItems || []).filter((item) => item.layer === "exterior" && (!floorIndexes || floorIndexes.has(item.floorIndex)));
+  let minX = bounds.minX;
+  let minY = bounds.minY;
+  let maxX = bounds.maxX;
+  let maxY = bounds.maxY;
+  items.forEach((item) => {
+    minX = Math.min(minX, item.x - padding);
+    minY = Math.min(minY, item.y - padding);
+    maxX = Math.max(maxX, item.x + item.w + padding);
+    maxY = Math.max(maxY, item.y + item.h + padding);
+  });
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
 function clamp(value, min, max){

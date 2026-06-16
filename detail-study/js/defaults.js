@@ -1,14 +1,26 @@
 import { mmToPx } from "./data.js";
 
 export const FURNITURE_LIBRARY = [
-  { kind:"sofa", label:"ソファ", tone:"green", w:1800, d:900, h:760, color:"#b7c7bd", layer:"furniture" },
-  { kind:"dining", label:"ダイニング", tone:"green", w:1500, d:850, h:720, color:"#d6bd91", layer:"furniture" },
-  { kind:"desk", label:"デスク", tone:"blue", w:1200, d:600, h:720, color:"#b7c4d8", layer:"furniture" },
-  { kind:"bed", label:"ベッド", tone:"blue", w:1400, d:2000, h:520, color:"#c9c2d9", layer:"furniture" },
-  { kind:"shelf", label:"可動棚", tone:"amber", w:900, d:350, h:2100, color:"#c89b64", layer:"shelves" },
-  { kind:"counter", label:"造作カウンター", tone:"amber", w:1800, d:450, h:900, color:"#bf8f58", layer:"shelves" },
-  { kind:"windowNote", label:"窓検討", tone:"blue", w:1600, d:120, h:1200, color:"#8dc2df", layer:"openings" },
-  { kind:"plant", label:"植栽", tone:"green", w:700, d:700, h:1400, color:"#4f9a5c", layer:"exterior" }
+  { kind:"sofa", label:"ソファ", meta:"1800x900", tone:"green", w:1800, d:900, h:760, color:"#b7c7bd", layer:"furniture", category:"家具" },
+  { kind:"dining", label:"ダイニング", meta:"4人", tone:"green", w:1500, d:850, h:720, color:"#d6bd91", layer:"furniture", category:"家具" },
+  { kind:"desk", label:"デスク", meta:"1200", tone:"blue", w:1200, d:600, h:720, color:"#b7c4d8", layer:"furniture", category:"家具" },
+  { kind:"bed", label:"ベッド", meta:"ダブル", tone:"blue", w:1400, d:2000, h:520, color:"#c9c2d9", layer:"furniture", category:"家具" },
+  { kind:"shelf", label:"可動棚", meta:"900x350", tone:"amber", w:900, d:350, h:2100, color:"#c89b64", layer:"shelves", category:"棚" },
+  { kind:"counter", label:"造作カウンター", meta:"1800", tone:"amber", w:1800, d:450, h:900, color:"#bf8f58", layer:"shelves", category:"棚" },
+  { kind:"windowNote", label:"窓検討", meta:"1600", tone:"blue", w:1600, d:120, h:1200, color:"#8dc2df", layer:"openings", category:"窓" }
+];
+
+export const EXTERIOR_LIBRARY = [
+  { kind:"site", label:"敷地", meta:"境界", tone:"site", w:14500, d:11500, h:40, color:"#dfeadb", layer:"exterior", category:"敷地" },
+  { kind:"parking", label:"駐車場", meta:"1台", tone:"drive", w:2700, d:5200, h:60, color:"#c9ccc7", layer:"exterior", category:"駐車" },
+  { kind:"driveway", label:"土間コン", meta:"車路", tone:"drive", w:5600, d:3600, h:60, color:"#c7cbc5", layer:"exterior", category:"駐車" },
+  { kind:"bike", label:"自転車置場", meta:"屋根", tone:"drive", w:2200, d:1400, h:2100, color:"#aeb8bd", layer:"exterior", category:"駐車" },
+  { kind:"approach", label:"アプローチ", meta:"玄関動線", tone:"path", w:1500, d:4200, h:70, color:"#d8c7ac", layer:"exterior", category:"動線" },
+  { kind:"deck", label:"デッキ", meta:"南庭", tone:"wood", w:3600, d:1800, h:220, color:"#b78354", layer:"exterior", category:"庭" },
+  { kind:"garden", label:"植栽帯", meta:"低木", tone:"green", w:3200, d:1200, h:180, color:"#78a763", layer:"exterior", category:"庭" },
+  { kind:"tree", label:"シンボルツリー", meta:"高木", tone:"green", w:900, d:900, h:2600, color:"#3f7e49", layer:"exterior", category:"庭" },
+  { kind:"fence", label:"フェンス", meta:"目隠し", tone:"wood", w:3600, d:160, h:1600, color:"#9b7a55", layer:"exterior", category:"境界" },
+  { kind:"gate", label:"門柱", meta:"宅配", tone:"wall", w:900, d:450, h:1600, color:"#b8b2a7", layer:"exterior", category:"境界" }
 ];
 
 export const FINISHES = {
@@ -93,7 +105,10 @@ export function makeCustomItem(preset, floorIndex, center){
     heightMm: preset.h,
     glMm: 0,
     rotation: 0,
-    color: preset.color
+    color: preset.color,
+    category: preset.category || "",
+    meta: preset.meta || "",
+    shape: preset.shape || preset.kind
   };
 }
 
