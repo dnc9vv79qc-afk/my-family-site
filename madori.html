@@ -1385,77 +1385,6 @@ display: flex; align-items: center; justify-content: space-between;
 .elecrooms::-webkit-scrollbar{ display: none; }
 .elecrooms button{ flex-shrink: 0; font-size: 12px; padding: 8px 14px; border-radius: 14px; border: .5px solid rgba(60,60,67,.16); background: #fff; color: #333; }
 .elecrooms button.on{ background: var(--accent); color: #fff; font-weight: 700; border-color: transparent; }
-.elecrooms .count{
-display: inline-flex;
-align-items: center;
-justify-content: center;
-min-width: 16px;
-height: 16px;
-margin-left: 5px;
-padding: 0 4px;
-border-radius: 999px;
-font-size: 10px;
-background: rgba(10,132,255,.13);
-color: #0A84FF;
-}
-.elecrooms button.on .count{ background: rgba(255,255,255,.22); color: #fff; }
-.elecideas{
-background: #fff;
-border: .5px solid rgba(60,60,67,.16);
-border-radius: 16px;
-padding: 10px;
-margin-bottom: 10px;
-}
-.elecideas .head{
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 8px;
-font-size: 12px;
-font-weight: 800;
-margin-bottom: 8px;
-}
-.elecideas .sub{ font-size: 10.5px; color: #8a8a8e; font-weight: 600; }
-.elecideas .chips,
-.elecideas .notes{
-display: flex;
-gap: 6px;
-flex-wrap: wrap;
-}
-.elecideas button{
-height: auto;
-min-height: 30px;
-padding: 6px 10px;
-border-radius: 12px;
-font-size: 11px;
-font-weight: 800;
-background: rgba(120,120,128,.12);
-color: #333;
-border: .5px solid rgba(60,60,67,.14);
-}
-.elecideas button.note{
-background: rgba(10,132,255,.10);
-color: #0A84FF;
-}
-.elecideas button.note.done{
-background: rgba(52,199,89,.12);
-color: #1b8f3a;
-text-decoration: line-through;
-}
-.elecideas .custom{
-display: flex;
-gap: 6px;
-margin-top: 8px;
-}
-.elecideas input{
-flex: 1;
-min-width: 0;
-height: 34px;
-border-radius: 12px;
-border: .5px solid rgba(60,60,67,.16);
-padding: 0 10px;
-font-size: 12px;
-}
 .electools{
 position: sticky; top: 0; z-index: 5;
 display: flex; gap: 6px; flex-wrap: wrap;
@@ -1919,7 +1848,6 @@ border-bottom-color: rgba(235,235,245,.12);
 </div>
 <div class="elecbody">
 <div class="elecrooms" id="elecRooms"></div>
-<div class="elecideas" id="elecIdeas"></div>
 <label class="elecmerge" style="display:flex; align-items:center; gap:6px; font-size:11px; color:#555; margin:0 4px 10px;">
 <input type="checkbox" id="elecMergeToggle" style="width:15px; height:15px;"> 隣接した部屋を結合して表示（OFF＝部屋ごとに設定）
 </label>
@@ -2605,8 +2533,8 @@ const SMALL_ROOM_MAX_MASU = 4;
 
 // state
 let floors = [
-{ name: '1F', items: [], elec: [], elecNotes: [] },
-{ name: '2F', items: [], elec: [], elecNotes: [] }
+{ name: '1F', items: [], elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 let activeFloor = 0;
 let items = floors[0].items;
@@ -2623,8 +2551,7 @@ syncActiveFloor();
 return floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
 items: (f.items || []).map(it => ({...it})),
-elec: (f.elec || []).map(e => ({...e})),
-elecNotes: (f.elecNotes || []).map(n => ({...n}))
+elec: (f.elec || []).map(e => ({...e}))
 }));
 }
 function floorsPayload(){
@@ -2912,16 +2839,15 @@ if(Array.isArray(s.floors)){
 floors = s.floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
 items: (f.items || []).map(it => ({...it})),
-elec: (f.elec || []).map(e => ({...e})),
-elecNotes: (f.elecNotes || []).map(n => ({...n}))
+elec: (f.elec || []).map(e => ({...e}))
 }));
-while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [], elecNotes: [] });
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [] });
 activeFloor = Number.isInteger(s.activeFloor) ? clamp(s.activeFloor, 0, floors.length - 1) : 0;
 }else{
 // 旧形式（単一フロア）からの自動移行
 floors = [
-{ name: '1F', items: (s.items || []).map(it => ({...it})), elec: [], elecNotes: [] },
-{ name: '2F', items: [], elec: [], elecNotes: [] }
+{ name: '1F', items: (s.items || []).map(it => ({...it})), elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 activeFloor = 0;
 }
@@ -6184,16 +6110,15 @@ if(Array.isArray(data.floors)){
 floors = data.floors.map((f, i) => ({
 name: f.name || ((i + 1) + 'F'),
 items: (f.items || []).map(it => ({...it})),
-elec: (f.elec || []).map(e => ({...e})),
-elecNotes: (f.elecNotes || []).map(n => ({...n}))
+elec: (f.elec || []).map(e => ({...e}))
 }));
-while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [], elecNotes: [] });
+while(floors.length < 2) floors.push({ name: (floors.length + 1) + 'F', items: [], elec: [] });
 activeFloor = Number.isInteger(data.activeFloor) ? clamp(data.activeFloor, 0, floors.length - 1) : 0;
 }else{
 // 旧形式（単一フロア）からの自動移行
 floors = [
-{ name: '1F', items: (data.items || []).map(it => ({...it})), elec: [], elecNotes: [] },
-{ name: '2F', items: [], elec: [], elecNotes: [] }
+{ name: '1F', items: (data.items || []).map(it => ({...it})), elec: [] },
+{ name: '2F', items: [], elec: [] }
 ];
 activeFloor = 0;
 }
@@ -7355,13 +7280,6 @@ if(!fl.elec) fl.elec = [];
 return fl.elec;
 }
 
-function getElecNotes(){
-syncActiveFloor();
-const fl = floors[activeFloor];
-if(!fl.elecNotes) fl.elecNotes = [];
-return fl.elecNotes;
-}
-
 function elecRoomsOfFloor(){
 syncActiveFloor();
 return (floors[activeFloor].items || []).filter(i => i.type === 'room');
@@ -7431,73 +7349,6 @@ return { id: members.map(r => r.id).sort().join('+'), label: big.label, members 
 function elecCurrentUnit(){
 const units = elecUnitsOfFloor();
 return units.find(u => u.id === elecRoomId) || units[0] || null;
-}
-
-function elecIdeaPresets(unit){
-const label = unit ? unit.label : '';
-const base = ['入口スイッチ', '掃除機用', '予備コンセント', 'Wi-Fi/ルーター'];
-if(/LDK|リビング|ダイニング/.test(label)) return ['TV裏', 'ソファ横充電', 'ダイニング足元', 'ルーター置場', '掃除機用', '季節家電'];
-if(/キッチン/.test(label)) return ['冷蔵庫', '電子レンジ', '炊飯器', 'トースター', 'カウンター上', '食洗機/浄水器'];
-if(/寝室|子供|洋室|書斎/.test(label)) return ['ベッド左右', 'デスク足元', 'エアコン', '充電棚', '掃除機用', 'LAN'];
-if(/洗面|ランドリー|脱衣/.test(label)) return ['洗面台', 'ドライヤー', '洗濯機', '乾燥機', '除湿機', '収納内充電'];
-if(/トイレ/.test(label)) return ['温水便座', '換気扇/照明', '予備'];
-if(/玄関|土間|収納/.test(label)) return ['掃除機充電', '電動自転車', 'ルーター/分電盤', 'センサー照明', '屋外用'];
-return base;
-}
-
-function elecNoteMatchesUnit(note, unit){
-if(!note || !unit) return false;
-if(note.unitId === unit.id) return true;
-const ids = new Set(unit.members.map(r => r.id));
-if(ids.has(note.unitId)) return true;
-return Array.isArray(note.roomIds) && note.roomIds.some(id => ids.has(id));
-}
-
-function elecRenderIdeas(){
-const wrap = el('elecIdeas');
-if(!wrap) return;
-const unit = elecCurrentUnit();
-if(!unit){ wrap.innerHTML = ''; return; }
-const notes = getElecNotes().filter(n => elecNoteMatchesUnit(n, unit));
-const presets = elecIdeaPresets(unit);
-wrap.innerHTML = `
-<div class="head"><span>打合せメモ</span><span class="sub">${unit.label}で確認したいこと</span></div>
-<div class="chips">${presets.map(p => `<button type="button" data-add="${escapeHtml(p)}">＋ ${escapeHtml(p)}</button>`).join('')}</div>
-<div class="custom"><input id="elecIdeaInput" type="text" maxlength="24" placeholder="例：ロボット掃除機基地"><button type="button" data-custom="1">追加</button></div>
-<div class="notes" style="margin-top:${notes.length ? 8 : 0}px;">${notes.map(n => `<button type="button" class="note ${n.done ? 'done' : ''}" data-note="${n.id}">${n.done ? '✓ ' : ''}${escapeHtml(n.text)}</button>`).join('')}</div>
-`;
-wrap.querySelectorAll('[data-add]').forEach(b => b.onclick = () => elecAddIdea(unit, b.dataset.add));
-const addCustom = () => {
-const inp = el('elecIdeaInput');
-const text = (inp?.value || '').trim();
-if(text) elecAddIdea(unit, text);
-if(inp) inp.value = '';
-};
-const customBtn = wrap.querySelector('[data-custom]');
-if(customBtn) customBtn.onclick = addCustom;
-const inp = el('elecIdeaInput');
-if(inp) inp.addEventListener('keydown', e => { if(e.key === 'Enter') addCustom(); });
-wrap.querySelectorAll('[data-note]').forEach(b => b.onclick = () => elecToggleIdea(b.dataset.note));
-}
-
-function elecAddIdea(unit, text){
-if(isReadOnly || !unit || !text) return;
-const list = getElecNotes();
-if(list.some(n => n.text === text && elecNoteMatchesUnit(n, unit))) return;
-pushHistory();
-list.push({ id: uid(), unitId: unit.id, roomIds: unit.members.map(r => r.id), text, done: false, createdAt: Date.now() });
-elecRenderIdeas();
-scheduleAutoSave();
-}
-
-function elecToggleIdea(id){
-if(isReadOnly) return;
-const n = getElecNotes().find(x => x.id === id);
-if(!n) return;
-pushHistory();
-n.done = !n.done;
-elecRenderIdeas();
-scheduleAutoSave();
 }
 
 /* ある部屋の壁(wi)が同ユニットの別ブロックと共有（=内部の壁）か */
@@ -7721,16 +7572,13 @@ wrap.innerHTML = '';
 const units = elecUnitsOfFloor();
 if(!units.find(u => u.id === elecRoomId)) elecRoomId = units.length ? units[0].id : null;
 const seen = {};
-const notes = getElecNotes();
 units.forEach(u => {
 seen[u.label] = (seen[u.label] || 0) + 1;
 const b = document.createElement('button');
 b.type = 'button';
 const dup = units.filter(x => x.label === u.label).length > 1;
 const multi = (u.members.length > 1) ? '＋' : '';
-const label = (dup ? `${u.label}${seen[u.label]}` : u.label) + multi;
-const noteCount = notes.filter(n => elecNoteMatchesUnit(n, u)).length;
-b.innerHTML = `${escapeHtml(label)}${noteCount ? `<span class="count">${noteCount}</span>` : ''}`;
+b.textContent = (dup ? `${u.label}${seen[u.label]}` : u.label) + multi;
 if(u.id === elecRoomId) b.classList.add('on');
 b.onclick = () => { elecRoomId = u.id; elecSelId = null; elecSegIdx = null; elecRenderAll(); };
 wrap.appendChild(b);
@@ -8145,7 +7993,6 @@ wrap.innerHTML = `<b>📋 ${unit ? unit.label : ''}${unit && unit.members.length
 
 function elecRenderAll(){
 elecRenderRooms();
-elecRenderIdeas();
 elecRenderTools();
 elecRenderSelBar();
 elecRenderWalls();
