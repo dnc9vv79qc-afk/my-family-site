@@ -387,39 +387,50 @@ pre{
 
       <article class="section tabbody hide" id="share">
         <h2>複数案管理と夫婦共有</h2>
-        <p>夫婦2人で簡単に管理する前提。家族アカウントや細かい権限は作らず、「共有ボード1つに複数案」を並べる。</p>
+        <p>夫婦2人で簡単に管理する前提。共有ボードで同時編集するより、各端末がローカル案箱を持ち、完成系リンクだけ共有する方が衝突しにくい。</p>
         <div class="cards">
-          <div class="card"><b>共有ボード</b><span>1つのURLで夫婦が同じ一覧を見る。ログインなしなら編集合言葉だけで十分。</span></div>
-          <div class="card"><b>案カード</b><span>A案、B案、打合せ4回目などをカード表示。開く、複製、名前変更、非表示だけ。</span></div>
-          <div class="card"><b>本命マーク</b><span>今見ている有力案を1つだけ指定。診断ページや共有時の既定案にする。</span></div>
-          <div class="card"><b>比較</b><span>2案を選んで面積、部屋、収納、家事ラク診断を並べる。細かい差分管理はしない。</span></div>
+          <div class="card"><b>ローカル案箱</b><span>案一覧は各端末に保存。自分のスマホでは自分が試した案だけを管理する。</span></div>
+          <div class="card"><b>複製して編集</b><span>既存案を触る前にクラウド上で新しいlayoutを作る。DBは増えるが衝突しない。</span></div>
+          <div class="card"><b>完成系リンク</b><span>見せたい状態になった案だけ共有リンク化。相手はそのリンクを開くか、自分の案箱に取り込む。</span></div>
+          <div class="card"><b>比較</b><span>自分の案箱内で2案を比較。相手の案はリンクを取り込んだ時だけ一覧に出す。</span></div>
         </div>
         <h3>おすすめの共有仕様</h3>
         <div class="flow">
-          <div class="step"><div class="num">1</div><div><b>夫婦編集リンク</b><span>同じURLを2人で使う。編集ロックや権限分けはせず、最後に保存した内容を正とする。</span></div></div>
-          <div class="step"><div class="num">2</div><div><b>閲覧リンク</b><span>工務店や第三者へ渡す時だけ閲覧専用リンクを発行する。</span></div></div>
-          <div class="step"><div class="num">3</div><div><b>案の複製</b><span>「この案から別案を作る」を最重要操作にする。名前は自動で「A案コピー」。</span></div></div>
-          <div class="step"><div class="num">4</div><div><b>一言メモ</b><span>各案カードに「LDK広い」「収納多い」程度の短いメモを持たせる。図面ピンコメントは後回し。</span></div></div>
+          <div class="step"><div class="num">1</div><div><b>案箱はローカル</b><span>IndexedDB/localStorageに案カード一覧を保存。クラウド側に一覧同期を持たない。</span></div></div>
+          <div class="step"><div class="num">2</div><div><b>編集は常に複製</b><span>「この案を編集」は内部的には複製して新規layoutIdを作る。元案は壊れない。</span></div></div>
+          <div class="step"><div class="num">3</div><div><b>名前は自動で具体化</b><span>「A案コピー」ではなく「A案 自分 6/16 20:30」や「第4回案 収納変更」のように作る。</span></div></div>
+          <div class="step"><div class="num">4</div><div><b>完成系リンク共有</b><span>共有ボタンは今開いている案のURLを出す。相手は「自分の案箱に追加」できる。</span></div></div>
+          <div class="step"><div class="num">5</div><div><b>整理は端末ごと</b><span>不要案は自分の一覧から非表示。クラウドの古いlayoutは残っても、後で掃除できればよい。</span></div></div>
         </div>
         <h3>データ階層</h3>
 <pre><code>{
-  "board": {
-    "id": "board_001",
-    "title": "一条 35坪検討",
-    "editKeyHash": "optional",
-    "favoriteVariantId": "var_004"
-  },
-  "variants": [
-    { "id":"var_001", "name":"A案", "memo":"LDK広い", "hidden":false, "layoutRef":"layouts/aaa" },
-    { "id":"var_004", "name":"第4回打合せ案", "memo":"本命", "hidden":false, "layoutRef":"layouts/bbb" }
+  "localIdeaBox": [
+    {
+      "id":"var_001",
+      "name":"A案",
+      "memo":"LDK広い",
+      "ownerLabel":"自分",
+      "hidden":false,
+      "layoutId":"aaa",
+      "updatedAt":1780000000000
+    },
+    {
+      "id":"var_004",
+      "name":"第4回案 収納変更",
+      "memo":"相手リンクから取り込み",
+      "ownerLabel":"相手",
+      "hidden":false,
+      "layoutId":"bbb",
+      "updatedAt":1780000500000
+    }
   ],
-  "shares": [
-    { "id":"share_edit", "mode":"edit", "target":"board_001" },
-    { "id":"share_view", "mode":"view", "target":"var_004" }
-  ]
+  "cloudLayouts": {
+    "aaa": { "title":"A案", "floors":[ "...layout data..." ] },
+    "bbb": { "title":"第4回案 収納変更", "floors":[ "...layout data..." ] }
+  }
 }</code></pre>
         <h3>実装先の考え方</h3>
-        <p>Cloudflareで作るならD1にboard/variant/share、R2に壁紙画像で十分。Firestoreならboards/{id}/variants/{id}で足りる。大事なのは「ボードID」と「案ID」を分け、夫婦はボードURLから案を選ぶこと。</p>
+        <p>CloudflareならD1/Firestoreにlayout本体だけを増やし、案一覧は端末ローカルで持つ。壁紙画像はR2/Storage。DBは増えるが、夫婦の同時編集衝突、ロック、権限管理をほぼ考えなくてよい。大事なのは「編集前に複製」と「完成系リンクを取り込める」こと。</p>
       </article>
 
       <article class="section tabbody hide" id="engine">
