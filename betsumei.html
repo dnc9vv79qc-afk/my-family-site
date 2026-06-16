@@ -305,16 +305,20 @@ pre{
 
       <article class="section tabbody" id="concept">
         <h2>設計思想</h2>
-        <p>目的は「専門CADではなく、スマホで家族が検討できる間取りツール」。寸法精度よりも、直感的な配置、見た目の納得感、共有して話せることを優先する。</p>
+        <p>目的は「専門CADではなく、スマホで家族が検討できる間取りツール」。一条想定で1マス=910mm、半マス=455mmを基本単位にし、構造計算や細かい一条ルールは扱わない。</p>
         <div class="cards">
           <div class="card"><b>1. 部屋から作る</b><span>壁線から作らせない。最初は部屋ブロックを置き、必要に応じて内壁・建具・家具へ進む。</span></div>
           <div class="card"><b>2. 編集対象を絞る</b><span>間取り、内装、電気、診断をレイヤー化。スマホで誤操作しないことを最優先にする。</span></div>
           <div class="card"><b>3. 2Dが正、3Dは派生</b><span>保存データの本体は2D。3Dは都度ビルドする。3D専用の編集状態を持ちすぎない。</span></div>
-          <div class="card"><b>4. 診断は別ページ化</b><span>家事ラク、動線、視線、採光などは同じIDを読む外部ビューにする。本体を重くしない。</span></div>
+          <div class="card"><b>4. 455mm単位で迷わない</b><span>部屋、外壁、内壁、建具は半マス吸着。家具だけmm入力を許可し、生活検討に使う。</span></div>
+          <div class="card"><b>5. 診断は別ページ化</b><span>家事ラク、動線、視線、採光などは同じIDを読む外部ビューにする。本体を重くしない。</span></div>
         </div>
         <div class="tagrow">
           <span class="tag good">スマホ優先</span>
+          <span class="tag good">1マス910mm</span>
+          <span class="tag good">半マス455mm</span>
           <span class="tag good">共有URL前提</span>
+          <span class="tag warn">構造計算なし</span>
           <span class="tag warn">高度機能は隠す</span>
           <span class="tag warn">AI/診断は別ビュー</span>
         </div>
@@ -325,7 +329,7 @@ pre{
         <p>基本構造は「上: 状態」「中央: 図面」「下: 操作」。スマホで片手操作しやすいよう、主要操作は下に集約する。</p>
         <div class="flow">
           <div class="step"><div class="num">A</div><div><b>通常画面</b><span>上部にタイトル/階層/保存状態。中央は図面。下は選択、追加、測定、3D、その他。</span></div></div>
-          <div class="step"><div class="num">B</div><div><b>追加シート</b><span>部屋、外壁、内壁、建具、家具をカテゴリ化。チップは即追加ではなく「選択→配置」へ寄せる。</span></div></div>
+          <div class="step"><div class="num">B</div><div><b>追加シート</b><span>部屋、外壁、内壁、建具、家具をカテゴリ化。チップは即追加ではなく「選択→配置」へ寄せ、配置は半マス吸着。</span></div></div>
           <div class="step"><div class="num">C</div><div><b>選択バー</b><span>選択中の種類だけ操作を出す。部屋なら名前/色/壁紙/吹抜、家具なら回転/サイズ、建具なら反転/高さ。</span></div></div>
           <div class="step"><div class="num">D</div><div><b>3D画面</b><span>1F/2F/全体、歩く、天井、壁抜けを最小ボタンで出す。部屋ジャンプは歩行時だけ表示。</span></div></div>
         </div>
@@ -346,7 +350,9 @@ pre{
   },
   "settings": {
     "gridMm": 910,
-    "snap": "half",
+    "snapMm": 455,
+    "snapMode": "half-grid",
+    "ignoreStructuralRules": true,
     "ceilMm": 2400,
     "northDeg": 0
   },
@@ -355,7 +361,7 @@ pre{
       "id": "f1",
       "name": "1F",
       "items": [
-        { "id":"r1", "type":"room", "label":"LDK", "x":32, "y":32, "w":192, "h":128, "color":"#fff8b7" },
+        { "id":"r1", "type":"room", "label":"LDK", "x":32, "y":32, "w":192, "h":128, "grid":"half", "color":"#fff8b7" },
         { "id":"w1", "type":"wall", "x1":224, "y1":32, "x2":224, "y2":160, "thick":12 },
         { "id":"o1", "type":"opening", "kind":"window", "x1":64, "y1":32, "x2":128, "y2":32, "bottomMm":900, "topMm":2000 },
         { "id":"furn1", "type":"furniture", "label":"ソファ", "x":64, "y":80, "wMm":1600, "dMm":850, "hMm":800, "rot":0 },
