@@ -58,7 +58,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
@@ -135,6 +135,7 @@ function bindEvents(){
     render();
   });
   dom.planSvg.addEventListener("pointerdown", onPlanPointerDown);
+  dom.planNudge.addEventListener("click", onPlanNudgeClick);
   window.addEventListener("pointermove", onPlanPointerMove);
   window.addEventListener("pointerup", onPlanPointerUp);
   window.addEventListener("pointercancel", onPlanPointerUp);
@@ -461,12 +462,15 @@ function onPlanPointerDown(event){
   state.drag = {
     id: item.id,
     mode: event.target.closest("[data-resize]") ? "resize" : "move",
+    pointerId: event.pointerId,
     start: point,
     x: item.x,
     y: item.y,
     w: item.w,
     h: item.h
   };
+  try{ dom.planSvg.setPointerCapture?.(event.pointerId); }catch(_){}
+  document.body.classList.add("draggingPlan");
   render();
 }
 
@@ -494,9 +498,36 @@ function onPlanPointerMove(event){
 
 function onPlanPointerUp(){
   if(!state.drag) return;
+  try{ dom.planSvg.releasePointerCapture?.(state.drag.pointerId); }catch(_){}
   state.drag = null;
+  document.body.classList.remove("draggingPlan");
   saveDesign(false);
   render();
+}
+
+function onPlanNudgeClick(event){
+  const button = event.target.closest("button[data-move],button[data-size-step]");
+  if(!button) return;
+  const item = findCustomById(state.selectedId);
+  if(!item) return;
+  event.preventDefault();
+  if(button.dataset.sizeStep){
+    const next = Number(button.dataset.sizeStep);
+    if(Number.isFinite(next)){
+      item.nudgeMm = next;
+      renderPlanNudge();
+    }
+    return;
+  }
+  const [mx, my] = button.dataset.move.split(",").map(Number);
+  const step = mmToPx(Number(item.nudgeMm || 100));
+  item.x = snapFine(item.x + mx * step);
+  item.y = snapFine(item.y + my * step);
+  saveDesign(false);
+  renderPlan();
+  renderLists();
+  renderSelectedPanel();
+  renderSceneOnly();
 }
 
 function svgPoint(event){
@@ -511,6 +542,10 @@ function svgPoint(event){
 
 function snap(value){
   return Math.round(value / 8) * 8;
+}
+
+function snapFine(value){
+  return Math.round(value * 10) / 10;
 }
 
 function findCustomById(id){
@@ -549,6 +584,40 @@ function renderPlan(){
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
   dom.planHudTitle.textContent = selected?.source === "custom" ? selected.item.label : "平面編集";
+  renderPlanNudge();
+}
+
+function renderPlanNudge(){
+  const item = findCustomById(state.selectedId);
+  if(!item){
+    dom.planNudge.hidden = true;
+    dom.planNudge.innerHTML = "";
+    return;
+  }
+  const step = Number(item.nudgeMm || 100);
+  const offset = exteriorOffsetText(item);
+  dom.planNudge.hidden = false;
+  dom.planNudge.innerHTML = `<div class="nudgeHead"><b>${escapeHtml(item.label || "選択中")}</b><span>${offset}</span></div>
+    <div class="nudgeSteps">
+      <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
+      <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
+    </div>
+    <div class="nudgePad">
+      <span></span><button type="button" data-move="0,-1">↑</button><span></span>
+      <button type="button" data-move="-1,0">←</button><button type="button" data-move="0,1">↓</button><button type="button" data-move="1,0">→</button>
+    </div>`;
+}
+
+function exteriorOffsetText(item){
+  if(item.layer !== "exterior") return `${pxToMm(item.x)} / ${pxToMm(item.y)}mm`;
+  const house = houseBoundsPx();
+  if(!house) return `${pxToMm(item.x)} / ${pxToMm(item.y)}mm`;
+  if(item.kind === "site"){
+    const east = Math.max(0, item.x + item.w - house.maxX);
+    const south = Math.max(0, item.y + item.h - house.maxY);
+    return `北${formatDistance(Math.max(0, house.minY - item.y))} 東${formatDistance(east)} 南${formatDistance(south)} 西${formatDistance(Math.max(0, house.minX - item.x))}`;
+  }
+  return `建物から X${formatDistance(item.x - house.minX)} Y${formatDistance(item.y - house.minY)}`;
 }
 
 function renderExteriorSvg(bounds){
