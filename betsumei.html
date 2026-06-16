@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>betsumei 設計案</title>
+<style>
+:root{
+  --bg:#f4f6f8;
+  --panel:#fff;
+  --text:#15161a;
+  --muted:#66707a;
+  --line:rgba(20,24,32,.12);
+  --accent:#0a84ff;
+  --green:#34c759;
+  --orange:#ff9500;
+  --red:#ff3b30;
+  --ink:#1f2328;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; }
+body{ overflow-x:hidden; }
+button{ font:inherit; border:0; cursor:pointer; }
+.page{ max-width:1180px; margin:0 auto; padding:18px 14px 44px; }
+.top{
+  position:sticky;
+  top:0;
+  z-index:10;
+  margin:-18px -14px 18px;
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  background:rgba(244,246,248,.92);
+  backdrop-filter:blur(18px);
+  border-bottom:.5px solid var(--line);
+}
+.toprow{ max-width:1180px; margin:0 auto; display:flex; align-items:center; gap:10px; }
+.brand{ min-width:0; flex:1; }
+.brand h1{ margin:0; font-size:18px; line-height:1.2; letter-spacing:0; }
+.brand p{ margin:3px 0 0; font-size:12px; color:var(--muted); font-weight:700; }
+.pill{
+  flex-shrink:0;
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:0 12px;
+  background:#111;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+}
+.grid{ display:grid; grid-template-columns:minmax(300px,420px) 1fr; gap:16px; align-items:start; }
+.phone{
+  position:sticky;
+  top:86px;
+  border-radius:30px;
+  padding:10px;
+  background:#111;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);
+}
+.screen{
+  min-height:720px;
+  overflow:hidden;
+  border-radius:24px;
+  background:#fbfbfd;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+}
+.appbar{
+  padding:12px;
+  background:rgba(255,255,255,.95);
+  border-bottom:.5px solid var(--line);
+}
+.appbar-row{ display:flex; align-items:center; gap:8px; }
+.titlebox{ min-width:0; flex:1; }
+.titlebox b{ display:block; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.titlebox span{ display:block; margin-top:2px; font-size:10px; color:var(--muted); font-weight:800; }
+.seg{ display:flex; gap:2px; padding:3px; border-radius:999px; background:rgba(120,120,128,.14); }
+.seg button{ min-width:34px; height:28px; border-radius:999px; background:transparent; font-size:12px; font-weight:900; }
+.seg button.on{ background:var(--accent); color:#fff; }
+.canvas{
+  position:relative;
+  overflow:hidden;
+  background:#fff;
+  background-image:
+    linear-gradient(rgba(60,60,67,.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60,60,67,.14) 1px, transparent 1px);
+  background-size:32px 32px;
+}
+.plan{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:320px;
+  height:320px;
+  transform:translate(-50%,-50%);
+}
+.room{
+  position:absolute;
+  border:4px solid #151515;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-weight:900;
+  font-size:13px;
+}
+.r1{ left:0; top:0; width:196px; height:134px; background:#fff8b7; }
+.r2{ left:196px; top:0; width:124px; height:134px; background:#e8f5e9; }
+.r3{ left:0; top:134px; width:96px; height:86px; background:#e0f7fa; }
+.r4{ left:96px; top:134px; width:100px; height:86px; background:#fff3e0; }
+.r5{ left:196px; top:134px; width:124px; height:86px; background:#f3e5f5; }
+.r6{ left:0; top:220px; width:112px; height:100px; background:#f5f5f5; }
+.r7{ left:112px; top:220px; width:104px; height:100px; background:#fff3e0; }
+.r8{ left:216px; top:220px; width:104px; height:100px; background:#eee; }
+.route{
+  position:absolute;
+  left:36px;
+  top:36px;
+  width:250px;
+  height:230px;
+  pointer-events:none;
+}
+.route path{ fill:none; stroke:#0a84ff; stroke-width:8; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:14 10; opacity:.62; }
+.float{
+  position:absolute;
+  left:12px;
+  right:12px;
+  top:10px;
+  display:flex;
+  gap:8px;
+  overflow:hidden;
+}
+.float button{
+  flex-shrink:0;
+  min-width:58px;
+  height:34px;
+  border-radius:14px;
+  background:rgba(255,255,255,.92);
+  border:.5px solid var(--line);
+  font-size:12px;
+  font-weight:900;
+}
+.tooldock{
+  padding:9px 10px 12px;
+  background:rgba(255,255,255,.96);
+  border-top:.5px solid var(--line);
+}
+.tools{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+.tool{
+  height:54px;
+  border-radius:16px;
+  background:rgba(120,120,128,.12);
+  color:#333;
+  font-size:11px;
+  font-weight:900;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+.tool.on{ background:rgba(10,132,255,.14); color:var(--accent); }
+.tool i{ font-style:normal; font-size:18px; line-height:1; }
+.panel{ display:grid; gap:12px; }
+.tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+.tab{
+  height:36px;
+  padding:0 12px;
+  border-radius:999px;
+  background:rgba(120,120,128,.13);
+  color:#333;
+  font-size:12px;
+  font-weight:900;
+}
+.tab.on{ background:var(--accent); color:#fff; }
+.section{
+  background:var(--panel);
+  border:.5px solid var(--line);
+  border-radius:18px;
+  padding:16px;
+}
+.section h2{ margin:0 0 8px; font-size:18px; line-height:1.25; }
+.section h3{ margin:16px 0 7px; font-size:14px; line-height:1.35; }
+.section p{ margin:0 0 9px; color:var(--muted); font-size:13px; line-height:1.65; font-weight:650; }
+.cards{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:10px; }
+.card{
+  min-height:110px;
+  padding:12px;
+  border-radius:14px;
+  background:#f7f8fa;
+  border:.5px solid var(--line);
+}
+.card b{ display:block; font-size:13px; margin-bottom:5px; }
+.card span{ display:block; color:var(--muted); font-size:12px; line-height:1.55; font-weight:650; }
+.flow{ display:grid; gap:8px; margin-top:10px; }
+.step{
+  display:grid;
+  grid-template-columns:34px 1fr;
+  gap:10px;
+  align-items:start;
+  padding:10px;
+  border-radius:14px;
+  background:#f7f8fa;
+  border:.5px solid var(--line);
+}
+.step .num{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#111;
+  color:#fff;
+  font-weight:900;
+  font-size:13px;
+}
+.step b{ display:block; font-size:13px; margin-bottom:3px; }
+.step span{ color:var(--muted); font-size:12px; line-height:1.55; font-weight:650; }
+pre{
+  margin:10px 0 0;
+  padding:14px;
+  border-radius:14px;
+  background:#101418;
+  color:#dbe7f3;
+  overflow:auto;
+  font-size:11.5px;
+  line-height:1.55;
+}
+.hide{ display:none; }
+.tagrow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+.tag{ padding:6px 9px; border-radius:999px; background:rgba(10,132,255,.10); color:#0769cc; font-size:11px; font-weight:900; }
+.warn{ background:rgba(255,149,0,.12); color:#a96000; }
+.good{ background:rgba(52,199,89,.12); color:#198a37; }
+@media (max-width:880px){
+  .page{ padding-left:10px; padding-right:10px; }
+  .grid{ grid-template-columns:1fr; }
+  .phone{ position:relative; top:0; max-width:420px; margin:0 auto; }
+  .screen{ min-height:620px; }
+  .cards{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="toprow">
+    <div class="brand">
+      <h1>betsumei.html 設計案</h1>
+      <p>スマホで間取り作成、3Dパース、壁紙変更までを1から再設計する検討ページ</p>
+    </div>
+    <span class="pill">draft v1</span>
+  </div>
+</div>
+
+<main class="page">
+  <div class="grid">
+    <aside class="phone" aria-label="スマホUIモック">
+      <div class="screen">
+        <div class="appbar">
+          <div class="appbar-row">
+            <div class="titlebox">
+              <b>第1案 家族の間取り</b>
+              <span>間取り / 1F / 自動保存済み</span>
+            </div>
+            <div class="seg"><button class="on">1F</button><button>2F</button><button>3D</button></div>
+          </div>
+        </div>
+        <div class="canvas">
+          <div class="float">
+            <button>LDK</button><button>水回り</button><button>収納</button><button>内装</button>
+          </div>
+          <div class="plan">
+            <div class="room r1">LDK</div>
+            <div class="room r2">和室</div>
+            <div class="room r3">洗面</div>
+            <div class="room r4">ランドリー</div>
+            <div class="room r5">キッチン</div>
+            <div class="room r6">玄関</div>
+            <div class="room r7">土間</div>
+            <div class="room r8">収納</div>
+            <svg class="route" viewBox="0 0 250 230"><path d="M20 205 C80 185 88 125 78 92 C102 62 150 92 198 45"/></svg>
+          </div>
+        </div>
+        <div class="tooldock">
+          <div class="tools">
+            <button class="tool on"><i>⌖</i>選択</button>
+            <button class="tool"><i>＋</i>追加</button>
+            <button class="tool"><i>⇄</i>動線</button>
+            <button class="tool"><i>▣</i>3D</button>
+            <button class="tool"><i>⋯</i>他</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button class="tab on" data-tab="concept">思想</button>
+        <button class="tab" data-tab="ui">UI</button>
+        <button class="tab" data-tab="data">データ構造</button>
+        <button class="tab" data-tab="engine">描画/3D</button>
+        <button class="tab" data-tab="roadmap">実装順</button>
+      </div>
+
+      <article class="section tabbody" id="concept">
+        <h2>設計思想</h2>
+        <p>目的は「専門CADではなく、スマホで家族が検討できる間取りツール」。寸法精度よりも、直感的な配置、見た目の納得感、共有して話せることを優先する。</p>
+        <div class="cards">
+          <div class="card"><b>1. 部屋から作る</b><span>壁線から作らせない。最初は部屋ブロックを置き、必要に応じて内壁・建具・家具へ進む。</span></div>
+          <div class="card"><b>2. 編集対象を絞る</b><span>間取り、内装、電気、診断をレイヤー化。スマホで誤操作しないことを最優先にする。</span></div>
+          <div class="card"><b>3. 2Dが正、3Dは派生</b><span>保存データの本体は2D。3Dは都度ビルドする。3D専用の編集状態を持ちすぎない。</span></div>
+          <div class="card"><b>4. 診断は別ページ化</b><span>家事ラク、動線、視線、採光などは同じIDを読む外部ビューにする。本体を重くしない。</span></div>
+        </div>
+        <div class="tagrow">
+          <span class="tag good">スマホ優先</span>
+          <span class="tag good">共有URL前提</span>
+          <span class="tag warn">高度機能は隠す</span>
+          <span class="tag warn">AI/診断は別ビュー</span>
+        </div>
+      </article>
+
+      <article class="section tabbody hide" id="ui">
+        <h2>UI設計</h2>
+        <p>基本構造は「上: 状態」「中央: 図面」「下: 操作」。スマホで片手操作しやすいよう、主要操作は下に集約する。</p>
+        <div class="flow">
+          <div class="step"><div class="num">A</div><div><b>通常画面</b><span>上部にタイトル/階層/保存状態。中央は図面。下は選択、追加、測定、3D、その他。</span></div></div>
+          <div class="step"><div class="num">B</div><div><b>追加シート</b><span>部屋、外壁、内壁、建具、家具をカテゴリ化。チップは即追加ではなく「選択→配置」へ寄せる。</span></div></div>
+          <div class="step"><div class="num">C</div><div><b>選択バー</b><span>選択中の種類だけ操作を出す。部屋なら名前/色/壁紙/吹抜、家具なら回転/サイズ、建具なら反転/高さ。</span></div></div>
+          <div class="step"><div class="num">D</div><div><b>3D画面</b><span>1F/2F/全体、歩く、天井、壁抜けを最小ボタンで出す。部屋ジャンプは歩行時だけ表示。</span></div></div>
+        </div>
+        <h3>重なり編集</h3>
+        <p>通常タップで候補を順番に切替。長押しで一覧選択。完全に重なった家具や建具でも、画面遷移を増やしすぎない。</p>
+      </article>
+
+      <article class="section tabbody hide" id="data">
+        <h2>データ構造</h2>
+        <p>ポイントは「編集しやすい正規化」と「共有しやすいJSON」。部屋、壁、開口、家具、仕上げを同じitemsに入れるが、type別のpayloadを明確にする。</p>
+<pre><code>{
+  "version": 3,
+  "project": {
+    "id": "layoutId",
+    "title": "家族の間取り",
+    "readonly": false,
+    "updatedAt": 1780000000000
+  },
+  "settings": {
+    "gridMm": 910,
+    "snap": "half",
+    "ceilMm": 2400,
+    "northDeg": 0
+  },
+  "floors": [
+    {
+      "id": "f1",
+      "name": "1F",
+      "items": [
+        { "id":"r1", "type":"room", "label":"LDK", "x":32, "y":32, "w":192, "h":128, "color":"#fff8b7" },
+        { "id":"w1", "type":"wall", "x1":224, "y1":32, "x2":224, "y2":160, "thick":12 },
+        { "id":"o1", "type":"opening", "kind":"window", "x1":64, "y1":32, "x2":128, "y2":32, "bottomMm":900, "topMm":2000 },
+        { "id":"furn1", "type":"furniture", "label":"ソファ", "x":64, "y":80, "wMm":1600, "dMm":850, "hMm":800, "rot":0 },
+        { "id":"finish1", "type":"finish", "targetId":"r1", "wall":"n", "imageRef":"storage://..." }
+      ]
+    }
+  ],
+  "views": {
+    "camera2d": { "x":0, "y":0, "scale":1 },
+    "activeFloor": "f1",
+    "activeLayer": "plan"
+  }
+}</code></pre>
+        <h3>分けたいもの</h3>
+        <div class="cards">
+          <div class="card"><b>保存データ</b><span>間取りそのもの。URL共有や診断ページが読む。</span></div>
+          <div class="card"><b>UI状態</b><span>選択中、モーダル表示、ドラッグ中など。保存しない。</span></div>
+          <div class="card"><b>派生キャッシュ</b><span>3D mesh、部屋隣接グラフ、診断結果。必要時に再計算。</span></div>
+          <div class="card"><b>画像/壁紙</b><span>DataURL直保存は軽量サムネのみ。原本はStorage参照にする。</span></div>
+        </div>
+      </article>
+
+      <article class="section tabbody hide" id="engine">
+        <h2>描画/3D設計</h2>
+        <p>2DはCanvas、3DはThree.js。どちらも同じfloor.itemsから生成する。3Dで直接編集しないことで、データ不整合を減らす。</p>
+        <div class="flow">
+          <div class="step"><div class="num">1</div><div><b>2D Renderer</b><span>グリッド、部屋、壁、開口、家具、選択状態、警告レイヤーを順に描く。</span></div></div>
+          <div class="step"><div class="num">2</div><div><b>Geometry Builder</b><span>外枠と内壁から壁セグメントを作り、開口で切る。床、天井、壁紙面を生成する。</span></div></div>
+          <div class="step"><div class="num">3</div><div><b>Finish Mapper</b><span>部屋ID+面方位で壁紙を貼る。天井はroom.finish.ceilingとして扱い、吹抜でも屋根/天井は別制御。</span></div></div>
+          <div class="step"><div class="num">4</div><div><b>Diagnostics</b><span>家事ラク、視線、採光は別HTMLがlayoutIdを読む。計算結果は保存データに混ぜない。</span></div></div>
+        </div>
+      </article>
+
+      <article class="section tabbody hide" id="roadmap">
+        <h2>実装順序</h2>
+        <p>最初から全部作らず、スマホで破綻しない編集体験を先に固める。</p>
+        <div class="flow">
+          <div class="step"><div class="num">1</div><div><b>部屋ブロック編集</b><span>追加、移動、リサイズ、色、名前、階切替、共有保存。</span></div></div>
+          <div class="step"><div class="num">2</div><div><b>内壁/建具</b><span>壁線、ドア、窓、引き戸。壁と開口は同じ座標系で扱う。</span></div></div>
+          <div class="step"><div class="num">3</div><div><b>家具/重なり編集</b><span>家具は実寸mm。重なりはタップ切替+長押し一覧。断面図は必要になってから。</span></div></div>
+          <div class="step"><div class="num">4</div><div><b>3D白模型</b><span>まず白模型、次に窓/建具、最後に壁紙/天井/歩行モード。</span></div></div>
+          <div class="step"><div class="num">5</div><div><b>別ページ診断</b><span>housework、sightline、daylightなど。URLのidで本体と接続。</span></div></div>
+        </div>
+      </article>
+    </section>
+  </div>
+</main>
+
+<script>
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.tabbody').forEach(body => body.classList.toggle('hide', body.id !== btn.dataset.tab));
+  });
+});
+</script>
+</body>
+</html>
