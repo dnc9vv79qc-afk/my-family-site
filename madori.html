@@ -1270,18 +1270,56 @@ display: flex; align-items: center; justify-content: center; gap: 10px; padding:
 .v3ddock button{ flex: 1; min-width: 0; height: 40px; border-radius: 13px; font-size: 12.5px; font-weight: 700; padding: 0 10px; }
 .v3ddock .back{ background: rgba(120,120,128,.16); color: var(--text); }
 .v3ddock .save{ background: rgba(52,199,89,.92); color: #fff; }
+#v3dRoomCats,
 #v3dRoomBar{
-position: absolute; left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 62px);
+position: absolute; left: 10px; right: 10px;
 z-index: 3; display: none; gap: 6px; overflow-x: auto; padding: 4px 2px;
 scrollbar-width: none;
 }
+#v3dRoomCats{ top: calc(env(safe-area-inset-top) + 62px); }
+#v3dRoomBar{ top: calc(env(safe-area-inset-top) + 102px); }
+#v3dRoomCats::-webkit-scrollbar,
 #v3dRoomBar::-webkit-scrollbar{ display: none; }
+#v3dRoomCats button,
 #v3dRoomBar button{
 flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 7px 12px; border-radius: 13px;
 background: rgba(255,255,255,.9); border: .5px solid rgba(60,60,67,.18); color: #333;
 backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
+#v3dRoomCats button.active{
+background: var(--accent);
+color: #fff;
+border-color: transparent;
+}
+.v3d.walking #v3dRoomCats,
 .v3d.walking #v3dRoomBar{ display: flex; }
+.v3dtools{
+position: absolute;
+right: 12px;
+bottom: calc(env(safe-area-inset-bottom) + 82px);
+z-index: 4;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.v3dtools .mini{
+min-width: 52px;
+height: 38px;
+border-radius: 14px;
+padding: 0 10px;
+font-size: 11px;
+font-weight: 800;
+background: rgba(255,255,255,.88);
+color: #333;
+border: .5px solid rgba(60,60,67,.18);
+box-shadow: 0 6px 18px rgba(0,0,0,.12);
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+}
+.v3dtools .mini.on{
+background: rgba(88,86,214,.92);
+color: #fff;
+}
 .v3dhint{
 position: absolute; bottom: calc(env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%);
 z-index: 2; font-size: 10px; color: #8a8a8e;
@@ -1838,7 +1876,12 @@ border-bottom-color: rgba(235,235,245,.12);
 </div>
 </div>
 <div class="v3dhint" id="v3dHint">1本指で回転 ・ ピンチでズーム ・ 2本指で移動</div>
+<div id="v3dRoomCats"></div>
 <div id="v3dRoomBar"></div>
+<div class="v3dtools">
+<button class="mini" id="v3dCeilBtn" type="button">天井</button>
+<button class="mini" id="v3dClipBtn" type="button" style="display:none;">壁抜</button>
+</div>
 <div id="v3dJoy"><div id="v3dJoyKnob"></div></div>
 <div id="v3dTut">
 <div class="zone zl"><span>🕹</span>左下のスティック<br>を触って移動</div>
@@ -1848,8 +1891,6 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="v3ddock">
 <button class="back" id="v3dBackBtn" type="button">2Dに戻る</button>
 <button class="walk" id="v3dWalkBtn" type="button">歩く</button>
-<button class="back" id="v3dCeilBtn" type="button">天井</button>
-<button class="back" id="v3dClipBtn" type="button" style="display:none;">壁すり抜け</button>
 <button class="save" id="v3dSaveBtn" type="button">画像保存</button>
 </div>
 </div>
@@ -1908,15 +1949,31 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="grabber"></div>
 <h3 style="margin:0 0 10px; text-align:left;">設定・その他</h3>
 
-<div class="v2group-label">基本表示</div>
+<div class="v2group-label">よく使う</div>
 <div class="v2chiprow">
+<label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
+<label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
+</div>
+
+<details class="advanced-settings" id="displayDetailSettings">
+<summary>詳細表示</summary>
+<div class="v2chiprow advanced-body">
 <label class="chip tiny"><input type="checkbox" id="showJou" checked>畳</label>
 <label class="chip tiny"><input type="checkbox" id="showTsubo" checked>坪</label>
 <label class="chip tiny"><input type="checkbox" id="showM2" checked>m²</label>
 <label class="chip tiny"><input type="checkbox" id="showMM" checked>mm寸法</label>
-<label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
-<label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
 </div>
+<div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
+<span class="lbl">壁太さ</span>
+<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
+<span id="wallThickVal" class="val">12</span>
+</div>
+<div class="chip tiny" id="ceilChip" title="3D・天井高さ" style="gap:6px;">
+<span class="lbl" style="font-size:11px;">3D天井高</span>
+<input type="number" id="ceilMmInput" inputmode="numeric" value="2400" style="width:64px; border:none; background:transparent; font-size:12px; text-align:right;">
+<span style="font-size:11px; color:#8a8a8e;">mm</span>
+</div>
+</details>
 
 <details class="advanced-settings" id="advancedSettings">
 <summary>解析・補助</summary>
@@ -1947,17 +2004,6 @@ border-bottom-color: rgba(235,235,245,.12);
 </label>
 </div>
 </details>
-<div class="chip tiny range-chip-tiny v2wallchip" id="wallThickChip" title="壁の太さ">
-<span class="lbl">壁太さ</span>
-<input type="range" id="wallThickSlider" min="4" max="24" step="1" value="12">
-<span id="wallThickVal" class="val">12</span>
-</div>
-<div class="chip tiny" id="ceilChip" title="3D・天井高さ" style="gap:6px;">
-<span class="lbl" style="font-size:11px;">3D天井高</span>
-<input type="number" id="ceilMmInput" inputmode="numeric" value="2400" style="width:64px; border:none; background:transparent; font-size:12px; text-align:right;">
-<span style="font-size:11px; color:#8a8a8e;">mm</span>
-</div>
-
 <div class="v2group-label">保存・共有</div>
 <div class="v2actiongrid">
 <button class="v2action" id="openLayoutsBtn2" type="button" style="background:rgba(120,120,128,.16); color:var(--text);">保存一覧</button>
@@ -8050,6 +8096,7 @@ let v3dYaw = 0, v3dPitch = 0;
 let v3dJoyVec = { x: 0, y: 0 };
 let v3dLastT = 0;
 let v3dNoClip = false;
+let v3dRoomCat = 'all';
 
 function v3dSyncCeilingVisibility(){
 const hasFinish = v3dCeilings.some(c => c.userData && c.userData.ceilingKind !== 'base');
@@ -8792,6 +8839,38 @@ v3dWalkPos = { x: room.x + room.w / 2, z: room.y + room.h / 2 };
 showToast(`${room.label} へ移動`, 900);
 }
 
+function v3dRoomCategory(label){
+const s = String(label || '');
+if(/LDK|リビング|ダイニング|キッチン/.test(s)) return 'living';
+if(/風呂|浴室|洗面|ランドリー|トイレ|脱衣/.test(s)) return 'water';
+if(/収納|土間|納戸|WIC|CL|クローゼット|玄関収納/.test(s)) return 'storage';
+return 'private';
+}
+
+function v3dRenderRoomCats(rooms){
+const cats = el('v3dRoomCats');
+if(!cats) return;
+cats.innerHTML = '';
+const defs = [
+{ id:'all', label:'全部' },
+{ id:'living', label:'LDK' },
+{ id:'private', label:'個室' },
+{ id:'water', label:'水回り' },
+{ id:'storage', label:'収納' },
+];
+const available = new Set(['all']);
+rooms.forEach(r => available.add(v3dRoomCategory(r.label)));
+if(!available.has(v3dRoomCat)) v3dRoomCat = 'all';
+defs.filter(c => available.has(c.id)).forEach(c => {
+const b = document.createElement('button');
+b.type = 'button';
+b.textContent = c.label;
+b.classList.toggle('active', c.id === v3dRoomCat);
+b.onclick = () => { v3dRoomCat = c.id; v3dRenderRoomBar(); };
+cats.appendChild(b);
+});
+}
+
 function v3dRenderRoomBar(){
 const bar = el('v3dRoomBar');
 if(!bar) return;
@@ -8799,20 +8878,22 @@ bar.innerHTML = '';
 syncActiveFloor();
 const fl = floors[v3dWalkFloor] || floors[activeFloor];
 const rooms = (fl.items || []).filter(i => i.type === 'room' && !i.void);
+v3dRenderRoomCats(rooms);
+const filteredRooms = (v3dRoomCat === 'all') ? rooms : rooms.filter(r => v3dRoomCategory(r.label) === v3dRoomCat);
 const seen = {};
-rooms.forEach(r => {
+filteredRooms.forEach(r => {
 seen[r.label] = (seen[r.label] || 0) + 1;
 const b = document.createElement('button');
 b.type = 'button';
-const dup = rooms.filter(x => x.label === r.label).length > 1;
+const dup = filteredRooms.filter(x => x.label === r.label).length > 1;
 b.textContent = dup ? `${r.label}${seen[r.label]}` : r.label;
 b.onclick = () => v3dWarpToRoom(r);
 bar.appendChild(b);
 });
-if(rooms.length === 0){
+if(rooms.length === 0 || filteredRooms.length === 0){
 const span = document.createElement('span');
 span.style.cssText = 'font-size:11px;color:#8a8a8e;padding:6px;';
-span.textContent = '部屋がありません';
+span.textContent = rooms.length ? 'このカテゴリの部屋がありません' : '部屋がありません';
 bar.appendChild(span);
 }
 }
@@ -9248,7 +9329,7 @@ if(el('v3dWalkBtn')) el('v3dWalkBtn').onclick = () => v3dSetWalk(!v3dWalk);
 if(el('v3dClipBtn')) el('v3dClipBtn').onclick = () => {
 v3dNoClip = !v3dNoClip;
 const b = el('v3dClipBtn');
-if(b){ b.textContent = v3dNoClip ? '壁あり' : '壁すり抜け'; b.classList.toggle('on', v3dNoClip); }
+if(b){ b.textContent = v3dNoClip ? '壁止' : '壁抜'; b.classList.toggle('on', v3dNoClip); }
 showToast(v3dNoClip ? '壁をすり抜けて移動できます' : '壁で止まります', 1200);
 };
 if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
