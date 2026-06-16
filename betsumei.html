@@ -299,6 +299,7 @@ pre{
         <button class="tab on" data-tab="concept">思想</button>
         <button class="tab" data-tab="ui">UI</button>
         <button class="tab" data-tab="data">データ構造</button>
+        <button class="tab" data-tab="share">案管理/共有</button>
         <button class="tab" data-tab="engine">描画/3D</button>
         <button class="tab" data-tab="roadmap">実装順</button>
       </div>
@@ -382,6 +383,51 @@ pre{
           <div class="card"><b>派生キャッシュ</b><span>3D mesh、部屋隣接グラフ、診断結果。必要時に再計算。</span></div>
           <div class="card"><b>画像/壁紙</b><span>DataURL直保存は軽量サムネのみ。原本はStorage参照にする。</span></div>
         </div>
+      </article>
+
+      <article class="section tabbody hide" id="share">
+        <h2>複数案管理と家族共有</h2>
+        <p>Cloudflareにこだわらず、まずはデータモデルを「家族で検討する」形にする。実装先はFirestoreでもCloudflare D1/R2/KVでも差し替えられるようにする。</p>
+        <div class="cards">
+          <div class="card"><b>ワークスペース</b><span>家族単位の入れ物。家族メンバー、権限、プロジェクト一覧を持つ。</span></div>
+          <div class="card"><b>プロジェクト</b><span>1つの家づくり。土地/方角/要望メモ/複数案をまとめる。</span></div>
+          <div class="card"><b>案</b><span>A案、B案、打合せ4回目など。比較・複製・アーカイブできる。</span></div>
+          <div class="card"><b>版</b><span>自動保存の履歴。戻す、差分を見る、打合せ前の状態を固定する。</span></div>
+        </div>
+        <h3>おすすめの共有仕様</h3>
+        <div class="flow">
+          <div class="step"><div class="num">1</div><div><b>家族リンク</b><span>編集可リンクを家族だけに共有。ログインなしでもPIN/合言葉で入れる簡易モードを用意する。</span></div></div>
+          <div class="step"><div class="num">2</div><div><b>閲覧リンク</b><span>工務店や第三者へは閲覧専用リンク。コピーして編集は別IDで作る。</span></div></div>
+          <div class="step"><div class="num">3</div><div><b>案の比較</b><span>2案を左右/上下で比較。延床、部屋数、収納、家事ラク診断結果を並べる。</span></div></div>
+          <div class="step"><div class="num">4</div><div><b>コメント</b><span>図面上の場所にピンコメント。家族ごとの色を付け、解決済みにできる。</span></div></div>
+        </div>
+        <h3>データ階層</h3>
+<pre><code>{
+  "workspace": {
+    "id": "ws_family_001",
+    "name": "家族の家づくり",
+    "members": [
+      { "uid":"u1", "name":"自分", "role":"owner" },
+      { "uid":"u2", "name":"家族", "role":"editor" }
+    ]
+  },
+  "project": {
+    "id": "pj_home_001",
+    "workspaceId": "ws_family_001",
+    "title": "一条 35坪案",
+    "defaultVariantId": "var_004"
+  },
+  "variants": [
+    { "id":"var_001", "name":"A案", "status":"archive", "layoutRef":"layouts/aaa" },
+    { "id":"var_004", "name":"第4回打合せ案", "status":"active", "layoutRef":"layouts/bbb" }
+  ],
+  "shares": [
+    { "id":"share_view", "scope":"project", "permission":"view", "expiresAt":null },
+    { "id":"share_family", "scope":"workspace", "permission":"edit", "pinRequired":true }
+  ]
+}</code></pre>
+        <h3>実装先の考え方</h3>
+        <p>Cloudflareで作るなら、D1にworkspace/project/variant/share/comment、R2に壁紙画像、KVに短期共有トークンが扱いやすい。Firestoreで続けるなら同じ階層をコレクションで表現すればよい。大事なのは保存IDを「案ID」と「共有ID」に分けること。</p>
       </article>
 
       <article class="section tabbody hide" id="engine">
