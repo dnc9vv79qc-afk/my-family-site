@@ -21,6 +21,8 @@ const state = {
   view: "3d",
   floorMode: "0",
   selectedId: null,
+  cameraPreset: "exterior",
+  dockMode: "select",
   drag: null,
   layers: {
     rooms: true,
@@ -56,9 +58,9 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
-    "selectedPanel","roomList","roomListLarge","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
-    "addNoteBtn","toast","viewBadge"
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
+    "addNoteBtn","toast","viewBadge","modeDock"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -71,12 +73,19 @@ function bindEvents(){
     scene3d?.resetView();
     update3dControls();
   });
+  dom.viewPresetBar.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-preset]");
+    if(!button) return;
+    apply3dPreset(button.dataset.preset);
+  });
   dom.viewTabs.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-view]");
     if(!button) return;
     state.view = button.dataset.view;
+    state.dockMode = state.view === "3d" ? "3d" : (state.view === "list" ? "browse" : "select");
     render();
   });
+  dom.modeDock?.addEventListener("click", onDockClick);
   dom.floorTabs.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-floor]");
     if(!button) return;
@@ -223,6 +232,7 @@ function renderViewTabs(){
   if(state.view !== "3d" && scene3d?.isWalkMode()) scene3d.setWalkMode(false);
   update3dControls();
   dom.viewBadge.textContent = state.floorMode === "all" ? "全体3D" : `${Number(state.floorMode) + 1}F 3D`;
+  updateDockControls();
 }
 
 function toggleWalkMode(){
@@ -231,9 +241,68 @@ function toggleWalkMode(){
   if(next){
     state.view = "3d";
     if(state.floorMode === "all") state.floorMode = "0";
+    state.cameraPreset = "interior";
     render();
+  }else{
+    state.cameraPreset = "exterior";
   }
   scene3d.setWalkMode(next);
+  update3dControls();
+}
+
+function onDockClick(event){
+  const button = event.target.closest("button[data-dock]");
+  if(!button) return;
+  const mode = button.dataset.dock;
+  state.dockMode = mode;
+  if(mode === "3d"){
+    state.view = "3d";
+    render();
+    return;
+  }
+  if(mode === "browse"){
+    state.view = "list";
+    render();
+    return;
+  }
+  state.view = "plan";
+  render();
+  const target = {
+    select: ".selectedBlock",
+    add: ".addBlock",
+    measure: ".siteConditionBlock",
+    more: ".inspector"
+  }[mode];
+  if(target) requestAnimationFrame(() => document.querySelector(target)?.scrollIntoView({ block: "start", behavior: "smooth" }));
+}
+
+function updateDockControls(){
+  if(!dom.modeDock) return;
+  dom.modeDock.querySelectorAll("button[data-dock]").forEach((button) => {
+    const mode = button.dataset.dock;
+    const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? mode === "browse" : mode === state.dockMode;
+    button.classList.toggle("on", on);
+  });
+}
+
+function apply3dPreset(preset){
+  if(!scene3d) return;
+  state.view = "3d";
+  state.cameraPreset = preset;
+  if(preset === "exterior"){
+    state.floorMode = "all";
+    scene3d.setWalkMode(false);
+    render();
+    scene3d.applyPreset("exterior");
+  }else if(preset === "top"){
+    scene3d.setWalkMode(false);
+    render();
+    scene3d.applyPreset("top");
+  }else if(preset === "interior"){
+    if(state.floorMode === "all") state.floorMode = "0";
+    render();
+    scene3d.setWalkMode(true);
+  }
   update3dControls();
 }
 
@@ -244,6 +313,10 @@ function update3dControls(){
   dom.walkModeBtn.textContent = walking ? "俯瞰" : "歩く";
   const floorLabel = state.floorMode === "1" ? "2F" : "1F";
   dom.walkStatus.textContent = walking ? `${floorLabel} 歩行` : "俯瞰";
+  dom.viewPresetBar?.querySelectorAll("button[data-preset]").forEach((button) => {
+    const on = walking ? button.dataset.preset === "interior" : button.dataset.preset === state.cameraPreset;
+    button.classList.toggle("on", on);
+  });
 }
 
 function renderFloorTabs(){
@@ -615,27 +688,15 @@ function renderExteriorItemSvg(item, selected, label, color, rotate){
 }
 
 function renderLists(){
-  const rooms = roomsForFloor(state.plan, state.floorMode);
-  const roomRows = rooms.map((room) => roomRow(room)).join("");
-  dom.roomList.innerHTML = roomRows;
-  dom.roomListLarge.innerHTML = roomRows;
   const items = visibleCustomItems();
   const itemRows = items.length ? items.map((item) => itemRow(item)).join("") : `<div class="denseRow"><b>未追加</b><span>検討パーツなし</span></div>`;
   dom.itemListLarge.innerHTML = itemRows;
   const noteRows = (state.design.notes || []).map((note) => noteRow(note)).join("");
   dom.noteList.innerHTML = noteRows;
   dom.noteListLarge.innerHTML = noteRows || `<div class="denseRow"><b>メモなし</b><span></span></div>`;
-  [dom.roomList, dom.roomListLarge, dom.itemListLarge, dom.noteList, dom.noteListLarge].forEach((list) => {
+  [dom.itemListLarge, dom.noteList, dom.noteListLarge].forEach((list) => {
     list.onclick = handleListClick;
   });
-}
-
-function roomRow(room){
-  const on = state.selectedId === room.id ? " on" : "";
-  return `<div class="miniRow${on}" data-id="${room.id}">
-    <div><b>${escapeHtml(room.label)}</b><span>${formatM2(areaM2(room))} / ${pxToMm(room.w)}x${pxToMm(room.h)}mm</span></div>
-    <button type="button" data-select="${room.id}">選択</button>
-  </div>`;
 }
 
 function itemRow(item){

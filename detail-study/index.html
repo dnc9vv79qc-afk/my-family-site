@@ -50,6 +50,11 @@
             <button type="button" id="reset3dBtn">視点</button>
             <span id="walkStatus">俯瞰</span>
           </div>
+          <div class="viewPresetBar" id="viewPresetBar">
+            <button type="button" data-preset="exterior">外観</button>
+            <button type="button" data-preset="top">俯瞰</button>
+            <button type="button" data-preset="interior">内観</button>
+          </div>
           <div class="roomWarp" id="roomWarp"></div>
           <div class="walkStick" id="walkStick"><div id="walkStickKnob"></div></div>
           <div class="viewBadge" id="viewBadge">3D</div>
@@ -69,10 +74,6 @@
         <div class="stage stageList" id="stageList" hidden>
           <div class="listColumns">
             <section>
-              <h2>部屋</h2>
-              <div id="roomListLarge" class="denseList"></div>
-            </section>
-            <section>
               <h2>検討パーツ</h2>
               <div id="itemListLarge" class="denseList"></div>
             </section>
@@ -85,24 +86,24 @@
       </section>
 
       <aside class="inspector">
-        <section class="panelBlock">
-          <div class="blockTitle">レイヤー</div>
+        <section class="panelBlock layerBlock">
+          <div class="blockTitle">表示切替</div>
           <div class="toggleGrid" id="layerToggles">
-            <label><input type="checkbox" data-layer="rooms" checked>部屋</label>
+            <label><input type="checkbox" data-layer="rooms" checked>部屋色</label>
             <label><input type="checkbox" data-layer="walls" checked>壁</label>
-            <label><input type="checkbox" data-layer="openings" checked>窓</label>
+            <label><input type="checkbox" data-layer="openings" checked>窓/建具</label>
             <label><input type="checkbox" data-layer="furniture" checked>家具</label>
             <label><input type="checkbox" data-layer="shelves" checked>棚</label>
             <label><input type="checkbox" data-layer="exterior" checked>外構</label>
           </div>
         </section>
 
-        <section class="panelBlock focusBlock">
+        <section class="panelBlock focusBlock addBlock">
           <div class="blockTitle">敷地・外構</div>
           <div class="palette groupedPalette" id="exteriorPalette"></div>
         </section>
 
-        <section class="panelBlock">
+        <section class="panelBlock siteConditionBlock">
           <div class="blockTitle">敷地条件</div>
           <div class="distanceGrid">
             <label>北m<input id="siteNorthInput" type="number" min="0" max="15" step="0.1"></label>
@@ -120,7 +121,7 @@
           <label class="checkLine"><input id="fenceInput" type="checkbox">フェンス</label>
         </section>
 
-        <section class="panelBlock">
+        <section class="panelBlock addBlock">
           <div class="blockTitle">家具・棚・窓</div>
           <div class="palette groupedPalette" id="palette"></div>
         </section>
@@ -128,11 +129,6 @@
         <section class="panelBlock selectedBlock">
           <div class="blockTitle">選択</div>
           <div id="selectedPanel" class="selectedPanel"></div>
-        </section>
-
-        <section class="panelBlock">
-          <div class="blockTitle">部屋</div>
-          <div id="roomList" class="miniList"></div>
         </section>
 
         <section class="panelBlock">
@@ -152,6 +148,14 @@
         </section>
       </aside>
     </main>
+    <nav class="modeDock" id="modeDock" aria-label="操作">
+      <button type="button" data-dock="select" class="on"><span>▸</span><b>選択</b></button>
+      <button type="button" data-dock="add"><span>＋</span><b>追加</b></button>
+      <button type="button" data-dock="measure"><span>⌁</span><b>計測</b></button>
+      <button type="button" data-dock="browse"><span>☝</span><b>閲覧</b></button>
+      <button type="button" data-dock="3d"><span>□</span><b>3D</b></button>
+      <button type="button" data-dock="more"><span>…</span><b>他</b></button>
+    </nav>
   </div>
 
   <div class="toast" id="toast" aria-live="polite"></div>

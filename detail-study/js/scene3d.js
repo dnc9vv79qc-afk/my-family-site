@@ -15,9 +15,12 @@ export class DetailScene3D {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     this.renderer.shadowMap.enabled = true;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color("#f7f7f4");
+    this.scene.background = new THREE.Color("#e8eef4");
     this.camera = new THREE.PerspectiveCamera(48, 1, 0.05, 1000);
     this.root = new THREE.Group();
     this.scene.add(this.root);
@@ -196,6 +199,31 @@ export class DetailScene3D {
     this.needsFrame = true;
   }
 
+  applyPreset(preset){
+    if(preset === "interior"){
+      this.setWalkMode(true);
+      return;
+    }
+    if(this.isWalkMode()) this.setWalkMode(false);
+    const bounds = this.lastBounds;
+    if(!bounds) return;
+    const centerX = pxToM((bounds.minX + bounds.maxX) / 2);
+    const centerZ = pxToM((bounds.minY + bounds.maxY) / 2);
+    const diag = Math.hypot(pxToM(bounds.width), pxToM(bounds.height));
+    const levels = this.state?.floorMode === "all" ? 2 : 1;
+    this.target.set(centerX, levels > 1 ? FLOOR_HEIGHT_M * 0.95 : 0.95, centerZ);
+    if(preset === "top"){
+      this.theta = -Math.PI / 2;
+      this.phi = 0.18;
+      this.radius = clamp(diag * 1.2 + 4, 8, 48);
+    }else{
+      this.theta = Math.PI * 0.19;
+      this.phi = 0.92;
+      this.radius = clamp(diag * 1.35 + 5, 9, 52);
+    }
+    this.needsFrame = true;
+  }
+
   resetOrbitView(){
     const bounds = this.lastBounds;
     if(!bounds) return;
@@ -287,12 +315,18 @@ export class DetailScene3D {
     this.lastBounds = bounds;
     if(layers.exterior) this.buildExterior(bounds, design);
     const floorIndexes = floorMode === "all" ? plan.floors.map((_, index) => index) : [Number(floorMode || 0)];
+    let roofSource = null;
     floorIndexes.forEach((floorIndex) => {
       const floor = plan.floors[floorIndex];
       if(!floor) return;
       const yBase = floorMode === "all" ? floorIndex * FLOOR_HEIGHT_M : 0;
       this.buildFloor(floor, floorIndex, yBase, design, layers, selectedId);
+      const frames = (floor.items || []).filter((item) => item.type === "frame");
+      if(frames.length) roofSource = { frames, yBase };
     });
+    if(!this.isWalkMode() && floorMode === "all" && layers.walls && roofSource){
+      this.buildRoof(roofSource.frames, roofSource.yBase);
+    }
     if(this.isWalkMode()){
       const nextFloor = this.currentWalkFloor();
       const changedFloor = this.walk.floor !== nextFloor;
@@ -372,6 +406,56 @@ export class DetailScene3D {
     }
   }
 
+  addCeiling(frames, yBase){
+    const ceilingMat = mat("#f0eee8", 0.98, 0.72);
+    frames.forEach((frame) => {
+      const ceiling = addBox(
+        this.root,
+        pxToM(frame.x + frame.w / 2),
+        yBase + SLAB_H_M + WALL_H_M - 0.015,
+        pxToM(frame.y + frame.h / 2),
+        Math.max(0.03, pxToM(frame.w)),
+        0.035,
+        Math.max(0.03, pxToM(frame.h)),
+        ceilingMat
+      );
+      ceiling.castShadow = false;
+    });
+  }
+
+  buildRoof(frames, yBase){
+    const roofMat = mat("#59636a", 1, 0.42);
+    const fasciaMat = mat("#f3f0e8", 1, 0.56);
+    frames.forEach((frame) => this.addGableRoof(frame, yBase, roofMat, fasciaMat));
+  }
+
+  addGableRoof(frame, yBase, roofMat, fasciaMat){
+    const x = pxToM(frame.x);
+    const z = pxToM(frame.y);
+    const w = Math.max(0.2, pxToM(frame.w));
+    const d = Math.max(0.2, pxToM(frame.h));
+    const eave = 0.32;
+    const top = yBase + SLAB_H_M + WALL_H_M + 0.03;
+    const rise = clamp(Math.min(w, d) * 0.24, 0.45, 1.15);
+    const x0 = x - eave;
+    const x1 = x + w + eave;
+    const z0 = z - eave;
+    const z1 = z + d + eave;
+    if(w >= d){
+      const zr = z + d / 2;
+      addRoofPlane(this.root, [[x0, top, z0], [x1, top, z0], [x1, top + rise, zr], [x0, top + rise, zr]], roofMat);
+      addRoofPlane(this.root, [[x1, top, z1], [x0, top, z1], [x0, top + rise, zr], [x1, top + rise, zr]], roofMat);
+      addBox(this.root, x + w / 2, top - 0.08, z0, w + eave * 2, 0.16, 0.08, fasciaMat);
+      addBox(this.root, x + w / 2, top - 0.08, z1, w + eave * 2, 0.16, 0.08, fasciaMat);
+    }else{
+      const xr = x + w / 2;
+      addRoofPlane(this.root, [[x0, top, z1], [x0, top, z0], [xr, top + rise, z0], [xr, top + rise, z1]], roofMat);
+      addRoofPlane(this.root, [[x1, top, z0], [x1, top, z1], [xr, top + rise, z1], [xr, top + rise, z0]], roofMat);
+      addBox(this.root, x0, top - 0.08, z + d / 2, 0.08, 0.16, d + eave * 2, fasciaMat);
+      addBox(this.root, x1, top - 0.08, z + d / 2, 0.08, 0.16, d + eave * 2, fasciaMat);
+    }
+  }
+
   buildFloor(floor, floorIndex, yBase, design, layers, selectedId){
     const items = floor.items || [];
     const rooms = items.filter((item) => item.type === "room" && !item.void);
@@ -383,11 +467,14 @@ export class DetailScene3D {
       rooms.forEach((room, index) => this.addRoom(room, floorIndex, yBase, design, selectedId, index));
     }else{
       frames.forEach((frame) => {
-        addBox(this.root, pxToM(frame.x + frame.w / 2), yBase, pxToM(frame.y + frame.h / 2), pxToM(frame.w), 0.035, pxToM(frame.h), mat("#e8e3d8", 0.8, 0.54));
+        addBox(this.root, pxToM(frame.x + frame.w / 2), yBase, pxToM(frame.y + frame.h / 2), pxToM(frame.w), 0.035, pxToM(frame.h), mat("#e8e3d8", 0.92, 0.54));
       });
     }
+    if(this.isWalkMode() && layers.rooms){
+      this.addCeiling(frames, yBase);
+    }
     if(layers.walls){
-      const wallMat = mat("#f2eee6", 0.82, 0.62);
+      const wallMat = mat("#f5f1e9", 0.96, 0.68);
       const outer = outerSegments(frames);
       outer.forEach((seg) => splitByOpenings(seg, openings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
       wallLines.forEach((wall) => splitByOpenings(wall, openings).forEach((solid) => this.addWall(solid, yBase, wallMat, Math.max(WALL_T_M, pxToM(wall.thick || 6)))));
@@ -414,7 +501,7 @@ export class DetailScene3D {
     const height = selectedId === room.id ? 0.09 : 0.045;
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(Math.max(0.03, pxToM(room.w)), height, Math.max(0.03, pxToM(room.h))),
-      mat(color, 0.88, 0.52)
+      floorMaterial(floorDef?.id || finish.floor || "oak", color)
     );
     mesh.position.set(pxToM(room.x + room.w / 2), yBase + height / 2 + index * 0.002, pxToM(room.y + room.h / 2));
     mesh.receiveShadow = true;
@@ -432,6 +519,12 @@ export class DetailScene3D {
     wall.castShadow = true;
     wall.receiveShadow = true;
     this.root.add(wall);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), 0.07, thickness + 0.035), mat("#b79a74", 0.95, 0.48));
+    trim.position.set(pxToM((seg.x1 + seg.x2) / 2), yBase + SLAB_H_M + 0.07, pxToM((seg.y1 + seg.y2) / 2));
+    trim.rotation.y = wall.rotation.y;
+    trim.castShadow = true;
+    trim.receiveShadow = true;
+    this.root.add(trim);
   }
 
   addOpening(opening, yBase, selectedId){
@@ -702,6 +795,81 @@ function addBox(group, x, y, z, w, h, d, material){
   mesh.receiveShadow = true;
   group.add(mesh);
   return mesh;
+}
+
+function addRoofPlane(group, points, material){
+  const geometry = new THREE.BufferGeometry();
+  const verts = [
+    ...points[0], ...points[1], ...points[2],
+    ...points[0], ...points[2], ...points[3]
+  ];
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  return mesh;
+}
+
+function floorMaterial(kind, color){
+  const texture = floorTexture(kind, color);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(kind === "tatami" ? 2 : 3, kind === "tile" ? 3 : 2);
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#ffffff"),
+    map: texture,
+    roughness: kind === "tile" ? 0.46 : 0.66,
+    metalness: 0.01
+  });
+}
+
+function floorTexture(kind, color){
+  const canvas = document.createElement("canvas");
+  canvas.width = 192;
+  canvas.height = 192;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = color || "#d8bf96";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if(kind === "tile" || kind === "vinyl"){
+    ctx.fillStyle = kind === "tile" ? "#cfd4d1" : "#ede8df";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(80,86,82,.20)";
+    ctx.lineWidth = 2;
+    for(let x = 0; x <= canvas.width; x += 48){
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for(let y = 0; y <= canvas.height; y += 48){
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }else if(kind === "tatami"){
+    ctx.fillStyle = "#b7c98b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(64,86,45,.26)";
+    ctx.lineWidth = 3;
+    for(let x = 0; x <= canvas.width; x += 64){
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.22)";
+    for(let y = 18; y < canvas.height; y += 18){
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }else{
+    const dark = kind === "walnut" ? "rgba(62,35,18,.28)" : "rgba(115,80,40,.18)";
+    const light = kind === "walnut" ? "rgba(255,230,190,.08)" : "rgba(255,245,220,.18)";
+    for(let y = 0; y < canvas.height; y += 32){
+      ctx.fillStyle = y % 64 === 0 ? light : "rgba(0,0,0,.03)";
+      ctx.fillRect(0, y, canvas.width, 30);
+      ctx.fillStyle = dark;
+      ctx.fillRect(0, y + 30, canvas.width, 2);
+      for(let x = (y / 32) % 2 ? 44 : 0; x < canvas.width; x += 72){
+        ctx.fillRect(x, y, 2, 30);
+      }
+    }
+  }
+  return new THREE.CanvasTexture(canvas);
 }
 
 function clearGroup(group){

@@ -80,6 +80,7 @@ button{ border:0; cursor:pointer; }
   background:transparent;
   font-size:12px;
   font-weight:900;
+  white-space:nowrap;
 }
 .segmented button.on{ color:#fff; background:#2c6f52; box-shadow:0 1px 5px rgba(0,0,0,.12); }
 .metricStrip{ min-width:0; display:flex; justify-content:flex-end; align-items:center; gap:6px; overflow:hidden; }
@@ -133,6 +134,30 @@ button{ border:0; cursor:pointer; }
 }
 .walkHud button.on{ color:#fff; background:var(--green); }
 .walkHud span{ color:#4b5248; font-size:11px; font-weight:900; min-width:42px; }
+.viewPresetBar{
+  position:absolute;
+  top:12px;
+  right:12px;
+  z-index:4;
+  display:flex;
+  gap:5px;
+  padding:6px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(12px);
+}
+.viewPresetBar button{
+  height:30px;
+  min-width:42px;
+  border-radius:7px;
+  padding:0 9px;
+  color:#253026;
+  background:rgba(120,128,116,.14);
+  font-size:12px;
+  font-weight:900;
+}
+.viewPresetBar button.on{ color:#fff; background:#286fd6; }
 .roomWarp{
   position:absolute;
   z-index:4;
@@ -244,7 +269,7 @@ button{ border:0; cursor:pointer; }
 .planDistance{ stroke:#286fd6; stroke-width:1.5; stroke-dasharray:5 4; pointer-events:none; }
 .planDistanceText{ font-size:7px; font-weight:950; fill:#1f5ead; paint-order:stroke; stroke:#fff; stroke-width:3; pointer-events:none; }
 .stageList{ overflow:auto; padding:14px; background:#fafaf7; }
-.listColumns{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; max-width:1180px; }
+.listColumns{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:860px; }
 .listColumns section{ min-width:0; }
 .listColumns h2{ margin:0 0 8px; font-size:13px; }
 .denseList{ display:grid; gap:7px; }
@@ -305,6 +330,28 @@ button{ border:0; cursor:pointer; }
   font-weight:850;
 }
 input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
+.layerBlock .toggleGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+.layerBlock .toggleGrid label{
+  position:relative;
+  min-height:38px;
+  padding:7px 8px 7px 34px;
+  border:1px solid rgba(47,143,99,.18);
+  background:#f2f6f2;
+}
+.layerBlock .toggleGrid input{
+  position:absolute;
+  left:9px;
+  top:50%;
+  width:18px;
+  height:18px;
+  margin:0;
+  transform:translateY(-50%);
+}
+.layerBlock .toggleGrid label:has(input:checked){
+  color:#123d2a;
+  background:#e5f2e9;
+  border-color:rgba(47,143,99,.36);
+}
 .formGrid,.distanceGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .distanceGrid{ margin-bottom:8px; }
 .formGrid label,.distanceGrid label,.selectedPanel label{
@@ -430,6 +477,38 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   transition:opacity .18s ease;
 }
 .toast.show{ opacity:1; }
+.modeDock{
+  position:fixed;
+  left:16px;
+  right:16px;
+  bottom:calc(env(safe-area-inset-bottom) + 14px);
+  z-index:70;
+  display:none;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:4px;
+  padding:8px;
+  border:1px solid rgba(31,35,28,.10);
+  border-radius:24px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 14px 38px rgba(31,35,28,.16);
+  backdrop-filter:blur(18px);
+}
+.modeDock button{
+  min-width:0;
+  height:58px;
+  display:grid;
+  place-items:center;
+  gap:2px;
+  border-radius:17px;
+  color:#565d54;
+  background:transparent;
+}
+.modeDock span{ display:block; font-size:20px; line-height:1; }
+.modeDock b{ display:block; font-size:10px; line-height:1; font-weight:900; }
+.modeDock button.on{
+  color:#1684d6;
+  background:#eaf6ff;
+}
 
 @media (max-width: 920px){
   .workspace{ grid-template-columns:1fr; grid-template-rows:minmax(420px,58vh) auto; }
@@ -444,17 +523,67 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .workspace,.stageArea,.inspector{ min-height:0; }
 }
 @media (max-width: 620px){
-  .topbar{ grid-template-columns:1fr; gap:8px; }
-  .topActions{ justify-content:space-between; }
-  .topActions button{ flex:1; }
-  .workspace{ grid-template-rows:minmax(390px,54vh) auto; }
-  .stageToolbar{ grid-template-columns:1fr; }
+  body{ background:#fff; }
+  .app{ padding-bottom:98px; }
+  .topbar{
+    position:relative;
+    grid-template-columns:1fr;
+    gap:0;
+    margin:10px 16px 0;
+    padding:12px 14px 8px;
+    background:#fff;
+    border:1px solid rgba(31,35,28,.08);
+    border-bottom:0;
+    border-radius:22px 22px 12px 12px;
+    box-shadow:0 10px 28px rgba(31,35,28,.10);
+  }
+  .brand b{ font-size:15px; }
+  .brand span{ font-size:10px; }
+  .topActions{ display:none; }
+  .workspace{ grid-template-rows:minmax(420px,58vh) auto; }
+  .stageArea{ background:#fff; }
+  .stageToolbar{
+    grid-template-columns:minmax(0,1fr) minmax(148px,auto);
+    gap:7px;
+    margin:0 16px 10px;
+    padding:0 9px 9px;
+    border:1px solid rgba(31,35,28,.08);
+    border-top:0;
+    border-radius:22px;
+    border-top-left-radius:12px;
+    border-top-right-radius:12px;
+    background:rgba(255,255,255,.94);
+    box-shadow:0 10px 28px rgba(31,35,28,.12);
+  }
   .segmented{ justify-content:stretch; }
-  .segmented button{ flex:1; min-width:0; }
-  .inspector{ grid-template-columns:1fr; }
-  .formGrid,.distanceGrid,.selectedGrid,.toggleGrid,.paletteGrid,.listColumns{ grid-template-columns:1fr; }
+  .segmented button{ flex:1; min-width:0; height:30px; }
+  #floorTabs{ min-width:148px; }
+  .metricStrip{ grid-column:1 / -1; justify-content:flex-start; overflow:auto; padding-top:2px; }
+  .metricStrip span{ background:#fff; }
+  .stage{
+    border-top:1px solid rgba(31,35,28,.08);
+    border-bottom:1px solid rgba(31,35,28,.08);
+  }
+  .stagePlan{
+    background-size:32px 32px;
+    background-color:#fbfbf9;
+  }
+  .inspector{
+    grid-template-columns:1fr;
+    padding:12px 16px 110px;
+    background:#fff;
+  }
+  .panelBlock{
+    border-radius:13px;
+    box-shadow:0 6px 18px rgba(31,35,28,.06);
+  }
+  .formGrid,.distanceGrid,.selectedGrid,.paletteGrid,.listColumns{ grid-template-columns:1fr; }
+  .layerBlock .toggleGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .noteComposer{ grid-template-columns:1fr; }
   .walkHud{ top:8px; left:8px; }
+  .viewPresetBar{ top:54px; left:8px; right:auto; }
+  .viewPresetBar button{ min-width:40px; padding:0 8px; }
   .roomWarp{ left:8px; right:8px; bottom:8px; }
   .walkStick{ left:14px; bottom:62px; width:96px; height:96px; }
+  .modeDock{ display:grid; }
 }
