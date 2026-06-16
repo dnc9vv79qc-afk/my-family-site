@@ -6918,10 +6918,27 @@ if(hits.length === 1){
 found = hits[0].it;
 wallHandle = hits[0].wallHandle;
 }else if(hits.length > 1){
+const posKey = `${Math.round(worldP.x/8)}_${Math.round(worldP.y/8)}`;
+const idsKey = hits.map(h => h.it.id).join("|");
+const key = `${isMerged?1:0}|${posKey}|${idsKey}`;
+const within = (overlapPick.key === key) && (now - overlapPick.ts < 900);
+const nextIdx = within ? (overlapPick.idx + 1) % hits.length : 0;
+if(hits.length >= 3 && within && nextIdx === 0 && overlapPick.idx === hits.length - 1){
+overlapPick.key = key;
+overlapPick.ts = now;
 if(openOverlapPicker(hits)){
 draw();
 return;
 }
+}
+overlapPick.key = key;
+overlapPick.ts = now;
+overlapPick.idx = nextIdx;
+const chosen = hits[overlapPick.idx];
+found = chosen.it;
+wallHandle = chosen.wallHandle;
+const msg = `重なり ${overlapPick.idx + 1}/${hits.length}: ${found.label || overlapTypeLabel(found)}`;
+showToast(hits.length >= 3 && overlapPick.idx === hits.length - 1 ? `${msg}（次タップで一覧）` : msg, 900);
 }
 }
 
