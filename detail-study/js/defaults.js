@@ -54,7 +54,8 @@ export function createDefaultDesign(layoutId){
       parkingCars: 2,
       deckM: 1.8,
       northDeg: 0,
-      fence: true
+      fence: true,
+      siteOffsetsM: { north: 2.0, east: 2.0, south: 3.0, west: 2.0 }
     },
     finishes: {},
     customItems: [],

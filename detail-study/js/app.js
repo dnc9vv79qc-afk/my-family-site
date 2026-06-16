@@ -49,7 +49,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","planSvg","planHud","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","roomList","roomListLarge","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
@@ -98,6 +98,10 @@ function bindEvents(){
       renderSceneOnly();
     });
   });
+  ["siteNorthInput","siteEastInput","siteSouthInput","siteWestInput"].forEach((id) => {
+    dom[id].addEventListener("input", () => applySiteOffsets(false));
+  });
+  dom.applySiteBtn.addEventListener("click", () => applySiteOffsets(true));
   dom.fenceInput.addEventListener("change", () => {
     state.design.exterior.fence = dom.fenceInput.checked;
     saveDesign(false);
@@ -214,11 +218,84 @@ function renderFloorTabs(){
 
 function renderExteriorControls(){
   const ext = state.design?.exterior || {};
+  const offsets = siteOffsets();
+  dom.siteNorthInput.value = offsets.north;
+  dom.siteEastInput.value = offsets.east;
+  dom.siteSouthInput.value = offsets.south;
+  dom.siteWestInput.value = offsets.west;
   dom.setbackInput.value = ext.setbackM ?? 2.4;
   dom.parkingInput.value = ext.parkingCars ?? 2;
   dom.deckInput.value = ext.deckM ?? 1.8;
   dom.northInput.value = ext.northDeg ?? 0;
   dom.fenceInput.checked = !!ext.fence;
+}
+
+function siteOffsets(){
+  const raw = state.design?.exterior?.siteOffsetsM || {};
+  return {
+    north: Number.isFinite(Number(raw.north)) ? Number(raw.north) : 2.0,
+    east: Number.isFinite(Number(raw.east)) ? Number(raw.east) : 2.0,
+    south: Number.isFinite(Number(raw.south)) ? Number(raw.south) : 3.0,
+    west: Number.isFinite(Number(raw.west)) ? Number(raw.west) : 2.0
+  };
+}
+
+function applySiteOffsets(showToast){
+  if(!state.plan || !state.design) return;
+  const offsets = {
+    north: numberValue(dom.siteNorthInput, siteOffsets().north),
+    east: numberValue(dom.siteEastInput, siteOffsets().east),
+    south: numberValue(dom.siteSouthInput, siteOffsets().south),
+    west: numberValue(dom.siteWestInput, siteOffsets().west)
+  };
+  state.design.exterior.siteOffsetsM = offsets;
+  const house = houseBoundsPx();
+  if(!house) return;
+  const site = ensureSiteItem();
+  const northPx = mmToPx(offsets.north * 1000);
+  const eastPx = mmToPx(offsets.east * 1000);
+  const southPx = mmToPx(offsets.south * 1000);
+  const westPx = mmToPx(offsets.west * 1000);
+  site.x = house.minX - westPx;
+  site.y = house.minY - northPx;
+  site.w = house.width + westPx + eastPx;
+  site.h = house.height + northPx + southPx;
+  site.floorIndex = 0;
+  state.view = "plan";
+  state.floorMode = "0";
+  state.selectedId = site.id;
+  saveDesign(false);
+  render();
+  if(showToast) toast("敷地を反映しました");
+}
+
+function ensureSiteItem(){
+  const existing = (state.design.customItems || []).find((item) => item.layer === "exterior" && item.kind === "site");
+  if(existing) return existing;
+  const preset = EXTERIOR_LIBRARY.find((item) => item.kind === "site");
+  const house = houseBoundsPx() || { minX: -200, minY: -200, width: 400, height: 400 };
+  const site = makeCustomItem(preset, 0, { x: house.minX + house.width / 2, y: house.minY + house.height / 2 });
+  state.design.customItems.push(site);
+  return site;
+}
+
+function houseBoundsPx(){
+  const floor = state.plan?.floors?.[0];
+  if(!floor) return null;
+  let items = (floor.items || []).filter((item) => item.type === "frame");
+  if(!items.length) items = (floor.items || []).filter((item) => item.type === "room");
+  if(!items.length) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  items.forEach((item) => {
+    minX = Math.min(minX, item.x);
+    minY = Math.min(minY, item.y);
+    maxX = Math.max(maxX, item.x + item.w);
+    maxY = Math.max(maxY, item.y + item.h);
+  });
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
 function renderMetrics(){
@@ -359,6 +436,7 @@ function renderPlan(){
   visibleCustomItems().forEach((item) => {
     if(state.layers[item.layer] !== false) chunks.push(renderFurnitureSvg(item, false));
   });
+  if(state.layers.exterior) chunks.push(renderSiteDistanceSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
   dom.planHudTitle.textContent = selected?.source === "custom" ? selected.item.label : "平面編集";
@@ -373,6 +451,38 @@ function renderExteriorSvg(bounds){
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e8f0e4" stroke="#8ba77b" stroke-width="2" stroke-dasharray="8 7" opacity=".55"/>`,
     `<text x="${x + 12}" y="${y + 18}" class="planSub">外構編集範囲</text>`
   ].join("");
+}
+
+function renderSiteDistanceSvg(){
+  const site = (state.design?.customItems || []).find((item) => item.layer === "exterior" && item.kind === "site");
+  const house = houseBoundsPx();
+  if(!site || !house) return "";
+  const siteRight = site.x + site.w;
+  const siteBottom = site.y + site.h;
+  const houseRight = house.maxX;
+  const houseBottom = house.maxY;
+  const cx = house.minX + house.width / 2;
+  const cy = house.minY + house.height / 2;
+  const north = Math.max(0, house.minY - site.y);
+  const east = Math.max(0, siteRight - houseRight);
+  const south = Math.max(0, siteBottom - houseBottom);
+  const west = Math.max(0, house.minX - site.x);
+  const mark = (x1, y1, x2, y2, labelX, labelY, label) => (
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="planDistance"/>
+     <circle cx="${x1}" cy="${y1}" r="2.8" fill="#286fd6"/>
+     <circle cx="${x2}" cy="${y2}" r="2.8" fill="#286fd6"/>
+     <text x="${labelX}" y="${labelY}" text-anchor="middle" class="planDistanceText">${label}</text>`
+  );
+  return `<g>
+    ${mark(cx, site.y, cx, house.minY, cx + 22, (site.y + house.minY) / 2, `北 ${formatDistance(north)}`)}
+    ${mark(houseRight, cy, siteRight, cy, (houseRight + siteRight) / 2, cy - 9, `東 ${formatDistance(east)}`)}
+    ${mark(cx, houseBottom, cx, siteBottom, cx + 22, (houseBottom + siteBottom) / 2, `南 ${formatDistance(south)}`)}
+    ${mark(site.x, cy, house.minX, cy, (site.x + house.minX) / 2, cy - 9, `西 ${formatDistance(west)}`)}
+  </g>`;
+}
+
+function formatDistance(px){
+  return `${(pxToMm(px) / 1000).toFixed(2)}m`;
 }
 
 function displayBounds(){

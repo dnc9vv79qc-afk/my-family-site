@@ -97,6 +97,13 @@
 
         <section class="panelBlock">
           <div class="blockTitle">敷地条件</div>
+          <div class="distanceGrid">
+            <label>北m<input id="siteNorthInput" type="number" min="0" max="15" step="0.1"></label>
+            <label>東m<input id="siteEastInput" type="number" min="0" max="15" step="0.1"></label>
+            <label>南m<input id="siteSouthInput" type="number" min="0" max="15" step="0.1"></label>
+            <label>西m<input id="siteWestInput" type="number" min="0" max="15" step="0.1"></label>
+          </div>
+          <button class="wideAction" id="applySiteBtn" type="button">敷地反映</button>
           <div class="formGrid">
             <label>敷地余白m<input id="setbackInput" type="number" min="0.5" max="8" step="0.1"></label>
             <label>初期駐車<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
