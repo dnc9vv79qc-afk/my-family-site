@@ -1,4 +1,5 @@
 import { DetailScene3D } from "./scene3d.js";
+import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
   loadLayout,
@@ -43,6 +44,7 @@ const state = {
 
 const dom = {};
 let scene3d = null;
+let builder3d = null;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", init);
@@ -59,6 +61,28 @@ async function init(){
     roomWarp: dom.roomWarp,
     onModeChange: update3dControls
   });
+  builder3d = new ObjectBuilder3D(dom.builderPreview, {
+    onSelect: (id) => {
+      if(!state.builder) return;
+      state.builder.selectedPartId = id;
+      renderBuilderPartList();
+      renderBuilderEditor();
+    },
+    onChange: (id, changes, final) => {
+      if(!state.builder) return;
+      const part = state.builder.parts.find((item) => item.id === id);
+      if(!part) return;
+      Object.assign(part, changes);
+      if(final){
+        state.builder.parts = normalizeModelParts(state.builder.parts);
+        renderObjectBuilder();
+      }
+    },
+    onReadout: (mode, detail) => {
+      if(dom.builderReadout) dom.builderReadout.textContent = mode;
+      if(dom.builderSizeText) dom.builderSizeText.textContent = detail;
+    }
+  });
   await loadCurrentLayout();
 }
 
@@ -68,7 +92,7 @@ function cacheDom(){
     "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
-    "builderCloseBtn","builderSaveBtn","builderPreview","builderNameInput","builderLayerInput","builderPartList","builderEditor"
+    "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -174,8 +198,10 @@ function bindEvents(){
   dom.openObjectBuilderBtn?.addEventListener("click", () => openObjectBuilder());
   dom.builderCloseBtn?.addEventListener("click", closeObjectBuilder);
   dom.builderSaveBtn?.addEventListener("click", saveObjectBuilder);
+  dom.builderFitBtn?.addEventListener("click", () => builder3d?.fitView());
   dom.objectBuilder?.addEventListener("click", onObjectBuilderClick);
   dom.objectBuilder?.addEventListener("input", onObjectBuilderInput);
+  dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
 }
 
 async function loadCurrentLayout(force = false){
@@ -1414,7 +1440,11 @@ function openObjectBuilder(modelId = ""){
   };
   dom.objectBuilder.hidden = false;
   document.body.classList.add("builderOpen");
+  dom.objectBuilder.querySelectorAll("[data-builder-mode]").forEach((button) => button.classList.toggle("on", button.dataset.builderMode === "orbit"));
+  builder3d?.setMode("orbit");
+  builder3d?.setSnap(dom.builderSnapInput?.value || 50);
   renderObjectBuilder();
+  requestAnimationFrame(() => builder3d?.fitView());
 }
 
 function closeObjectBuilder(){
@@ -1469,6 +1499,12 @@ function syncModelInstances(model){
 
 function onObjectBuilderClick(event){
   if(!state.builder) return;
+  const mode = event.target.closest("[data-builder-mode]");
+  if(mode){
+    dom.objectBuilder.querySelectorAll("[data-builder-mode]").forEach((button) => button.classList.toggle("on", button === mode));
+    builder3d?.setMode(mode.dataset.builderMode);
+    return;
+  }
   const add = event.target.closest("[data-builder-add]");
   if(add){
     addBuilderPart(add.dataset.builderAdd);
@@ -1574,26 +1610,10 @@ function renderObjectBuilder(){
 function renderBuilderPreview(){
   const parts = state.builder.parts;
   const size = modelSizeFromParts(parts);
-  const scale = Math.min(1, 220 / Math.max(size.w, size.d, 1));
-  const selectedId = state.builder.selectedPartId;
-  const shapes = parts.map((part) => {
-    const w = part.wMm * scale;
-    const d = part.dMm * scale;
-    const x = part.xMm * scale;
-    const y = part.yMm * scale;
-    const selected = selectedId === part.id;
-    const stroke = selected ? "#286fd6" : "rgba(31,35,28,.42)";
-    const strokeWidth = selected ? 3 : 1.5;
-    const rot = part.rotation ? ` transform="rotate(${part.rotation} ${x} ${y})"` : "";
-    if(part.type === "cylinder" || part.type === "sphere"){
-      return `<ellipse cx="${x}" cy="${y}" rx="${w / 2}" ry="${d / 2}" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="${stroke}" stroke-width="${strokeWidth}"${rot}/>`;
-    }
-    return `<rect x="${x - w / 2}" y="${y - d / 2}" width="${w}" height="${d}" rx="3" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="${stroke}" stroke-width="${strokeWidth}"${rot}/>`;
-  }).join("");
-  dom.builderPreview.innerHTML = `<g>${shapes}</g>
-    <line x1="-120" y1="0" x2="120" y2="0" class="builderAxis"/>
-    <line x1="0" y1="-120" x2="0" y2="120" class="builderAxis"/>
-    <text x="-132" y="132" class="builderSvgText">${Math.round(size.w)}x${Math.round(size.d)}x${Math.round(size.h)}mm</text>`;
+  builder3d?.setParts(parts, state.builder.selectedPartId);
+  if(dom.builderSizeText && builder3d?.mode === "orbit"){
+    dom.builderSizeText.textContent = `${Math.round(size.w)} x ${Math.round(size.d)} x ${Math.round(size.h)}mm`;
+  }
 }
 
 function renderBuilderPartList(){

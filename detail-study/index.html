@@ -178,7 +178,25 @@
       <button type="button" id="builderSaveBtn">保存</button>
     </div>
     <div class="builderCanvasWrap">
-      <svg id="builderPreview" viewBox="-140 -140 280 280" role="img" aria-label="作成中部品の平面プレビュー"></svg>
+      <canvas id="builderPreview" aria-label="作成中部品の3Dプレビュー"></canvas>
+      <div class="builderViewModes" aria-label="3D編集モード">
+        <button type="button" class="on" data-builder-mode="orbit">視点</button>
+        <button type="button" data-builder-mode="move">移動</button>
+        <button type="button" data-builder-mode="scale">サイズ</button>
+        <button type="button" data-builder-mode="rotate">回転</button>
+      </div>
+      <button class="builderFitBtn" id="builderFitBtn" type="button" aria-label="全体を表示">全体</button>
+      <div class="builderReadout">
+        <b id="builderReadout">視点</b>
+        <span id="builderSizeText"></span>
+      </div>
+      <label class="builderSnap">単位
+        <select id="builderSnapInput">
+          <option value="10">10mm</option>
+          <option value="50" selected>50mm</option>
+          <option value="100">100mm</option>
+        </select>
+      </label>
     </div>
     <div class="builderTools">
       <div class="builderMeta">

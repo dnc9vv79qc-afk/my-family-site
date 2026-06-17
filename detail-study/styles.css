@@ -654,25 +654,97 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 }
 .builderTop button:first-child{ color:var(--ink); background:rgba(120,128,116,.14); }
 .builderCanvasWrap{
+  position:relative;
   min-height:0;
-  display:grid;
-  place-items:center;
-  padding:10px;
-  background:
-    linear-gradient(rgba(31,35,28,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(31,35,28,.06) 1px, transparent 1px),
-    #fbfbf9;
-  background-size:28px 28px;
+  overflow:hidden;
+  background:#e8edf2;
   border-bottom:1px solid var(--line);
 }
 #builderPreview{
-  width:min(100%,360px);
+  display:block;
+  width:100%;
   height:100%;
-  max-height:340px;
   touch-action:none;
+  outline:none;
 }
-.builderAxis{ stroke:rgba(31,35,28,.16); stroke-width:1; stroke-dasharray:4 5; }
-.builderSvgText{ fill:#4a5048; font-size:10px; font-weight:900; }
+.builderViewModes{
+  position:absolute;
+  left:10px;
+  top:10px;
+  display:grid;
+  grid-template-columns:repeat(4,auto);
+  gap:4px;
+  padding:4px;
+  border:1px solid rgba(31,35,28,.12);
+  border-radius:9px;
+  background:rgba(255,255,255,.88);
+  box-shadow:0 5px 16px rgba(31,35,28,.10);
+  backdrop-filter:blur(12px);
+}
+.builderViewModes button,.builderFitBtn{
+  height:32px;
+  min-width:46px;
+  padding:0 9px;
+  border-radius:7px;
+  color:#30362f;
+  background:rgba(120,128,116,.13);
+  font-size:11px;
+  font-weight:900;
+}
+.builderViewModes button.on{ color:#fff; background:var(--blue); }
+.builderFitBtn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  min-width:42px;
+  border:1px solid rgba(31,35,28,.12);
+  background:rgba(255,255,255,.88);
+  box-shadow:0 5px 16px rgba(31,35,28,.10);
+}
+.builderReadout{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:32px;
+  padding:6px 9px;
+  border:1px solid rgba(31,35,28,.12);
+  border-radius:8px;
+  background:rgba(255,255,255,.86);
+  backdrop-filter:blur(12px);
+  pointer-events:none;
+}
+.builderReadout b{ color:#263129; font-size:11px; font-weight:950; }
+.builderReadout span{ color:var(--muted); font-size:10px; font-weight:850; }
+.builderSnap{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  height:32px;
+  padding:0 7px 0 9px;
+  border:1px solid rgba(31,35,28,.12);
+  border-radius:8px;
+  color:var(--muted);
+  background:rgba(255,255,255,.86);
+  font-size:10px;
+  font-weight:900;
+  backdrop-filter:blur(12px);
+}
+.builderSnap select{
+  height:25px;
+  border:0;
+  border-radius:6px;
+  padding:0 4px;
+  color:var(--ink);
+  background:rgba(120,128,116,.13);
+  font-size:10px;
+  font-weight:900;
+}
 .builderTools{
   min-height:0;
   overflow:auto;
