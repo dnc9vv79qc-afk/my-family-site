@@ -1143,7 +1143,7 @@ function placeExteriorItem(item, bounds){
     item.h = Math.max(item.h, bounds.height + 192);
     return;
   }
-  if(item.kind === "parking" || item.kind === "driveway" || item.kind === "bike"){
+  if(item.kind === "parking" || item.kind === "driveway" || item.kind === "bike" || item.kind === "car" || item.kind === "carport"){
     item.x = bounds.minX + bounds.width * 0.55;
     item.y = bounds.maxY + gap;
     return;

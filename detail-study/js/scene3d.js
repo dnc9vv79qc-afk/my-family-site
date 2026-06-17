@@ -67,14 +67,35 @@ export class DetailScene3D {
     this.canvas.tabIndex = 0;
     let dragging = false;
     let last = null;
+    const pointers = new Map();
+    let pinch = null;
+    const pinchDistance = () => {
+      const points = [...pointers.values()];
+      if(points.length < 2) return 0;
+      return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+    };
     this.canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       this.canvas.focus?.();
       dragging = true;
       last = { x: event.clientX, y: event.clientY };
-      this.canvas.setPointerCapture?.(event.pointerId);
+      if(pointers.size >= 2 && this.viewMode !== "walk"){
+        pinch = { distance: pinchDistance(), radius: this.radius };
+      }
+      try{ this.canvas.setPointerCapture?.(event.pointerId); }catch(_){}
     });
     this.canvas.addEventListener("pointermove", (event) => {
+      if(pointers.has(event.pointerId)) pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if(pinch && pointers.size >= 2 && this.viewMode !== "walk"){
+        event.preventDefault();
+        const dist = Math.max(20, pinchDistance());
+        this.radius = clamp(pinch.radius * (pinch.distance / dist), 2.2, 80);
+        this.needsFrame = true;
+        return;
+      }
       if(!dragging || !last) return;
+      event.preventDefault();
       const dx = event.clientX - last.x;
       const dy = event.clientY - last.y;
       if(this.viewMode === "walk"){
@@ -96,7 +117,15 @@ export class DetailScene3D {
       last = { x: event.clientX, y: event.clientY };
       this.needsFrame = true;
     });
-    const stop = () => { dragging = false; last = null; };
+    const stop = (event) => {
+      pointers.delete(event.pointerId);
+      pinch = pointers.size >= 2 ? { distance: pinchDistance(), radius: this.radius } : null;
+      if(pointers.size === 0){ dragging = false; last = null; }
+      else{
+        const point = [...pointers.values()][0];
+        last = { x: point.x, y: point.y };
+      }
+    };
     this.canvas.addEventListener("pointerup", stop);
     this.canvas.addEventListener("pointercancel", stop);
     this.canvas.addEventListener("wheel", (event) => {
@@ -422,6 +451,7 @@ export class DetailScene3D {
     const rooms = items.filter((item) => item.type === "room" && !item.void);
     const frames = items.filter((item) => item.type === "frame");
     const openings = items.filter((item) => item.type === "opening");
+    const doorOpenings = openings.filter((item) => item.kind !== "window");
     const wallLines = items.filter((item) => item.type === "wallLine");
     const existingFurniture = items.filter((item) => item.type === "furn" || item.type === "stair");
     if(layers.rooms){
@@ -437,8 +467,8 @@ export class DetailScene3D {
     if(layers.walls){
       const wallMat = mat("#f5f1e9", 0.96, 0.68);
       const outer = outerSegments(frames);
-      outer.forEach((seg) => splitByOpenings(seg, openings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
-      wallLines.forEach((wall) => splitByOpenings(wall, openings).forEach((solid) => this.addWall(solid, yBase, wallMat, Math.max(WALL_T_M, pxToM(wall.thick || 6)))));
+      outer.forEach((seg) => splitByOpenings(seg, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
+      wallLines.forEach((wall) => splitByOpenings(wall, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, Math.max(WALL_T_M, pxToM(wall.thick || 6)))));
     }
     if(layers.openings){
       openings.forEach((opening) => this.addOpening(opening, yBase, selectedId));
@@ -497,9 +527,17 @@ export class DetailScene3D {
     const bottom = isWindow ? (opening.winB || 900) / 1000 : 0.06;
     const color = isWindow ? "#91c8df" : "#a97343";
     const material = mat(color, isWindow ? 0.42 : 0.86, 0.36, isWindow);
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(len, height, 0.045), material);
-    panel.position.set(pxToM((opening.x1 + opening.x2) / 2), yBase + SLAB_H_M + bottom + height / 2, pxToM((opening.y1 + opening.y2) / 2));
-    panel.rotation.y = -Math.atan2(dy, dx);
+    const angle = -Math.atan2(dy, dx);
+    const offset = isWindow ? 0.065 : 0;
+    const normalX = Math.sin(angle);
+    const normalZ = Math.cos(angle);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(len, height, isWindow ? 0.035 : 0.055), material);
+    panel.position.set(
+      pxToM((opening.x1 + opening.x2) / 2) + normalX * offset,
+      yBase + SLAB_H_M + bottom + height / 2,
+      pxToM((opening.y1 + opening.y2) / 2) + normalZ * offset
+    );
+    panel.rotation.y = angle;
     if(selectedId === opening.id) panel.scale.y = 1.08;
     this.root.add(panel);
   }
@@ -563,6 +601,14 @@ export class DetailScene3D {
       this.root.add(edge);
       return;
     }
+    if(item.kind === "car"){
+      this.addCarModel(x, yBase, z, w, d, h, item, selected);
+      return;
+    }
+    if(item.kind === "carport"){
+      this.addCarportModel(x, yBase, z, w, d, h, item, selected);
+      return;
+    }
     const flatKinds = new Set(["parking", "driveway", "approach", "deck", "garden"]);
     const meshH = flatKinds.has(item.kind) ? Math.min(h, 0.22) : h;
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, meshH, d), mat(item.color || "#c9c9d2", item.kind === "garden" ? 0.86 : 0.78, 0.52, item.kind === "parking"));
@@ -575,6 +621,84 @@ export class DetailScene3D {
       const edge = new THREE.BoxHelper(mesh, new THREE.Color("#286fd6"));
       this.root.add(edge);
     }
+  }
+
+  addCarModel(x, yBase, z, w, d, h, item, selected){
+    const group = new THREE.Group();
+    group.position.set(x, yBase, z);
+    group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    const bodyMat = mat(item.color || "#586169", 0.72, 0.42);
+    const glassMat = mat("#7faec3", 0.46, 0.22, true);
+    const tireMat = mat("#202422", 0.78, 0.36);
+    const bodyH = Math.max(0.36, h * 0.38);
+    const cabinH = Math.max(0.34, h * 0.32);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, bodyH, d * 0.74), bodyMat);
+    body.position.set(0, 0.22 + bodyH / 2, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(w * 0.76, bodyH * 0.62, d * 0.34), bodyMat);
+    hood.position.set(0, 0.28 + bodyH * 0.31, -d * 0.34);
+    hood.castShadow = true;
+    group.add(hood);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(w * 0.62, cabinH, d * 0.34), glassMat);
+    cabin.position.set(0, 0.34 + bodyH + cabinH / 2, d * 0.03);
+    cabin.castShadow = true;
+    group.add(cabin);
+    const wheelGeo = new THREE.CylinderGeometry(Math.max(0.14, w * 0.09), Math.max(0.14, w * 0.09), Math.max(0.12, w * 0.12), 18);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+      const wheel = new THREE.Mesh(wheelGeo, tireMat);
+      wheel.rotation.z = Math.PI / 2;
+      wheel.position.set(sx * w * 0.42, 0.24, sz * d * 0.28);
+      wheel.castShadow = true;
+      group.add(wheel);
+    });
+    if(selected){
+      const box = new THREE.BoxHelper(group, new THREE.Color("#286fd6"));
+      group.add(box);
+    }
+    this.root.add(group);
+  }
+
+  addCarportModel(x, yBase, z, w, d, h, item, selected){
+    const group = new THREE.Group();
+    group.position.set(x, yBase, z);
+    group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    const frameMat = mat(item.color || "#9aa4aa", 0.62, 0.38);
+    const roofMat = mat("#dce7ee", 0.46, 0.24, true);
+    const postR = Math.max(0.045, Math.min(w, d) * 0.018);
+    const roofH = Math.max(0.08, h * 0.035);
+    const postH = Math.max(1.9, h - roofH);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(postR, postR, postH, 10), frameMat);
+      post.position.set(sx * w * 0.42, postH / 2, sz * d * 0.42);
+      post.castShadow = true;
+      group.add(post);
+    });
+    const beamD = Math.max(0.08, d * 0.025);
+    const beamW = Math.max(0.08, w * 0.025);
+    [-1, 1].forEach((sz) => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, beamD, beamD), frameMat);
+      beam.position.set(0, postH, sz * d * 0.42);
+      beam.castShadow = true;
+      group.add(beam);
+    });
+    [-1, 1].forEach((sx) => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(beamW, beamD, d * 0.92), frameMat);
+      beam.position.set(sx * w * 0.42, postH, 0);
+      beam.castShadow = true;
+      group.add(beam);
+    });
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w, roofH, d), roofMat);
+    roof.position.set(0, postH + roofH / 2, 0);
+    roof.castShadow = true;
+    roof.receiveShadow = true;
+    group.add(roof);
+    if(selected){
+      const box = new THREE.BoxHelper(group, new THREE.Color("#286fd6"));
+      group.add(box);
+    }
+    this.root.add(group);
   }
 
   addStair(item, yBase, selectedId){

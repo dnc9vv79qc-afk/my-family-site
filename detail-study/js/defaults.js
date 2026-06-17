@@ -13,6 +13,8 @@ export const FURNITURE_LIBRARY = [
 export const EXTERIOR_LIBRARY = [
   { kind:"site", label:"敷地", meta:"境界", tone:"site", w:14500, d:11500, h:40, color:"#dfeadb", layer:"exterior", category:"敷地" },
   { kind:"parking", label:"駐車場", meta:"1台", tone:"drive", w:2700, d:5200, h:60, color:"#c9ccc7", layer:"exterior", category:"駐車" },
+  { kind:"car", label:"車", meta:"普通車", tone:"drive", w:1800, d:4300, h:1450, color:"#586169", layer:"exterior", category:"駐車" },
+  { kind:"carport", label:"カーポート", meta:"1台", tone:"drive", w:3000, d:5400, h:2500, color:"#9aa4aa", layer:"exterior", category:"駐車" },
   { kind:"driveway", label:"土間コン", meta:"車路", tone:"drive", w:5600, d:3600, h:60, color:"#c7cbc5", layer:"exterior", category:"駐車" },
   { kind:"bike", label:"自転車置場", meta:"屋根", tone:"drive", w:2200, d:1400, h:2100, color:"#aeb8bd", layer:"exterior", category:"駐車" },
   { kind:"approach", label:"アプローチ", meta:"玄関動線", tone:"path", w:1500, d:4200, h:70, color:"#d8c7ac", layer:"exterior", category:"動線" },
