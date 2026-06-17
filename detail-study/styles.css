@@ -699,7 +699,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   }
   .inspector{
     grid-template-columns:1fr;
-    max-height:min(34vh,286px);
+    max-height:min(24vh,220px);
     overflow:auto;
     overscroll-behavior:contain;
     padding:12px 16px 110px;
@@ -712,11 +712,13 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   body[data-view="plan"] .inspector .panelBlock{
     display:none;
   }
+  body[data-view="plan"][data-dock-mode="measure"] .inspector{
+    display:none;
+  }
   body[data-view="plan"][data-dock-mode="select"] .inspector .selectedBlock,
-  body[data-view="plan"][data-dock-mode="select"] .inspector .siteConditionBlock,
   body[data-view="plan"][data-dock-mode="add"] .inspector .addBlock,
-  body[data-view="plan"][data-dock-mode="measure"] .inspector .siteConditionBlock,
   body[data-view="plan"][data-dock-mode="more"] .inspector .layerBlock,
+  body[data-view="plan"][data-dock-mode="more"] .inspector .siteConditionBlock,
   body[data-view="plan"][data-dock-mode="more"] .inspector .noteBlock{
     display:block;
   }
