@@ -647,7 +647,7 @@ function onPlanPointerUp(){
 }
 
 function onPlanNudgeClick(event){
-  const button = event.target.closest("button[data-move],button[data-size-step],button[data-delete-selected]");
+  const button = event.target.closest("button[data-move],button[data-size-step],button[data-rotate-step],button[data-delete-selected]");
   if(!button) return;
   const item = findCustomById(state.selectedId);
   if(!item) return;
@@ -662,6 +662,19 @@ function onPlanNudgeClick(event){
     if(Number.isFinite(next)){
       item.nudgeMm = next;
       renderPlanNudge();
+    }
+    return;
+  }
+  if(button.dataset.rotateStep){
+    const step = Number(button.dataset.rotateStep);
+    if(Number.isFinite(step)){
+      pushHistory();
+      item.rotation = ((Number(item.rotation || 0) + step) % 360 + 360) % 360;
+      saveDesign(false);
+      renderPlan();
+      renderLists();
+      renderSelectedPanel();
+      renderSceneOnly();
     }
     return;
   }
@@ -848,6 +861,7 @@ function renderPlanNudge(){
     <div class="nudgeSteps">
       <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
       <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
+      <button type="button" data-rotate-step="90">90°回転</button>
     </div>
     <div class="nudgePad">
       <span></span><button type="button" data-move="0,-1">↑</button><span></span>
@@ -1159,7 +1173,7 @@ function renderCustomEditor(item){
       <button type="button" data-nudge="-16,0">←</button>
       <button type="button" data-nudge="16,0">→</button>
       <button type="button" data-nudge="0,16">↓</button>
-      <button type="button" id="rotateItemBtn">90°</button>
+      <button type="button" id="rotateItemBtn">90°回転</button>
     </div>`;
 }
 
