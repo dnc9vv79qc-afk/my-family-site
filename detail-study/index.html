@@ -112,22 +112,39 @@
 
         <section class="panelBlock siteConditionBlock">
           <div class="blockTitle">敷地条件</div>
-          <div class="distanceGrid">
-            <label>北m<input id="siteNorthInput" type="number" min="0" max="15" step="0.1"></label>
-            <label>東m<input id="siteEastInput" type="number" min="0" max="15" step="0.1"></label>
-            <label>南m<input id="siteSouthInput" type="number" min="0" max="15" step="0.1"></label>
-            <label>西m<input id="siteWestInput" type="number" min="0" max="15" step="0.1"></label>
+          <div class="siteSettingsTabs" id="siteSettingsTabs">
+            <button type="button" class="on" data-site-tab="position">建物位置</button>
+            <button type="button" data-site-tab="finish">外観</button>
+            <button type="button" data-site-tab="auto">初期配置</button>
           </div>
-          <button class="wideAction" id="applySiteBtn" type="button">敷地反映</button>
-          <div class="formGrid">
-            <label>敷地余白m<input id="setbackInput" type="number" min="0.5" max="8" step="0.1"></label>
-            <label>初期駐車<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
-            <label>初期デッキm<input id="deckInput" type="number" min="0" max="5" step="0.1"></label>
-            <label>方位°<input id="northInput" type="number" min="0" max="359" step="15"></label>
-            <label>外壁<input id="wallColorInput" type="color"></label>
-            <label>ポーチタイル<input id="porchTileInput" type="color"></label>
+          <div class="siteSettingsPanel" data-site-panel="position">
+            <div class="distanceGrid">
+              <label>北m<input id="siteNorthInput" type="number" min="0" max="15" step="0.1"></label>
+              <label>東m<input id="siteEastInput" type="number" min="0" max="15" step="0.1"></label>
+              <label>南m<input id="siteSouthInput" type="number" min="0" max="15" step="0.1"></label>
+              <label>西m<input id="siteWestInput" type="number" min="0" max="15" step="0.1"></label>
+            </div>
+            <div class="siteEqualRow">
+              <label>四辺一括m<input id="siteEqualInput" type="number" min="0" max="15" step="0.1" value="2"></label>
+              <button id="siteEqualBtn" type="button">四辺を揃える</button>
+            </div>
+            <button class="wideAction" id="applySiteBtn" type="button">建物位置を反映</button>
           </div>
-          <label class="checkLine"><input id="fenceInput" type="checkbox">フェンス</label>
+          <div class="siteSettingsPanel" data-site-panel="finish" hidden>
+            <div class="formGrid">
+              <label>方位°<input id="northInput" type="number" min="0" max="359" step="15"></label>
+              <label>外壁<input id="wallColorInput" type="color"></label>
+              <label>ポーチタイル<input id="porchTileInput" type="color"></label>
+            </div>
+            <label class="checkLine"><input id="fenceInput" type="checkbox">フェンスを表示</label>
+          </div>
+          <div class="siteSettingsPanel" data-site-panel="auto" hidden>
+            <div class="formGrid">
+              <label>敷地余白m<input id="setbackInput" type="number" min="0.5" max="8" step="0.1"></label>
+              <label>駐車台数<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
+              <label>デッキ奥行m<input id="deckInput" type="number" min="0" max="5" step="0.1"></label>
+            </div>
+          </div>
         </section>
 
         <section class="panelBlock addBlock">

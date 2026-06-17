@@ -36,6 +36,7 @@ export class ObjectBuilder3D {
     this.pointers = new Map();
     this.drag = null;
     this.pinch = null;
+    this.snapStatus = "";
     this.needsFrame = true;
     this.initScene();
     this.initControls();
@@ -71,6 +72,14 @@ export class ObjectBuilder3D {
     this.selectionBox.renderOrder = 10;
     this.selectionBox.visible = false;
     this.scene.add(this.selectionBox);
+    const guideMaterial = new THREE.LineBasicMaterial({ color:0x20a4d8, transparent:true, opacity:0.95, depthTest:false });
+    this.snapGuideX = new THREE.Line(new THREE.BufferGeometry(), guideMaterial);
+    this.snapGuideZ = new THREE.Line(new THREE.BufferGeometry(), guideMaterial.clone());
+    this.snapGuideX.visible = false;
+    this.snapGuideZ.visible = false;
+    this.snapGuideX.renderOrder = 12;
+    this.snapGuideZ.renderOrder = 12;
+    this.scene.add(this.snapGuideX, this.snapGuideZ);
     this.raycaster = new THREE.Raycaster();
     this.pointerNdc = new THREE.Vector2();
     this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -98,6 +107,8 @@ export class ObjectBuilder3D {
   setMode(mode){
     this.mode = MODE_LABELS[mode] ? mode : "orbit";
     this.drag = null;
+    this.snapStatus = "";
+    this.showSnapGuides(null, null);
     this.updateReadout();
     this.needsFrame = true;
   }
@@ -260,6 +271,8 @@ export class ObjectBuilder3D {
       }
       this.drag = null;
     }
+    this.showSnapGuides(null, null);
+    this.updateReadout();
   }
 
   applyTransform(clientX, clientY){
@@ -269,8 +282,13 @@ export class ObjectBuilder3D {
     if(this.mode === "move"){
       const point = this.groundPoint(clientX, clientY);
       if(!point || !this.drag.startPoint) return;
-      part.xMm = snap(start.xMm + (point.x - this.drag.startPoint.x) * 1000, this.snapMm);
-      part.yMm = snap(start.yMm + (point.z - this.drag.startPoint.z) * 1000, this.snapMm);
+      const rawX = snap(start.xMm + (point.x - this.drag.startPoint.x) * 1000, this.snapMm);
+      const rawY = snap(start.yMm + (point.z - this.drag.startPoint.z) * 1000, this.snapMm);
+      const edgeSnap = this.snapToPartEdges(part, rawX, rawY);
+      part.xMm = edgeSnap.x;
+      part.yMm = edgeSnap.y;
+      this.snapStatus = edgeSnap.labels.length ? `端吸着 ${edgeSnap.labels.join("・")}` : "";
+      this.showSnapGuides(edgeSnap.guideX, edgeSnap.guideY);
     }else if(this.mode === "scale"){
       const delta = this.drag.startY - clientY;
       const factor = clamp(Math.exp(delta * 0.006), 0.08, 12);
@@ -319,7 +337,76 @@ export class ObjectBuilder3D {
       else if(this.mode === "rotate") detail = `${Math.round(part.rotation || 0)}°`;
       else detail = part.label || "";
     }
-    this.onReadout(MODE_LABELS[this.mode], detail);
+    this.onReadout(MODE_LABELS[this.mode], [detail, this.snapStatus].filter(Boolean).join(" / "));
+  }
+
+  snapToPartEdges(part, rawX, rawY){
+    const threshold = clamp(this.snapMm * 1.5, 35, 150);
+    let bestX = { value:rawX, distance:Infinity, label:"", guide:null };
+    let bestY = { value:rawY, distance:Infinity, label:"", guide:null };
+    const selectedXOffsets = [-part.wMm / 2, part.wMm / 2];
+    const selectedYOffsets = [-part.dMm / 2, part.dMm / 2];
+    for(const target of this.parts){
+      if(target.id === part.id) continue;
+      const targetXEdges = [
+        { value:target.xMm - target.wMm / 2, label:"左端" },
+        { value:target.xMm + target.wMm / 2, label:"右端" }
+      ];
+      const targetYEdges = [
+        { value:target.yMm - target.dMm / 2, label:"前端" },
+        { value:target.yMm + target.dMm / 2, label:"後端" }
+      ];
+      for(const offset of selectedXOffsets){
+        for(const edge of targetXEdges){
+          const value = edge.value - offset;
+          const distance = Math.abs(value - rawX);
+          if(distance < bestX.distance && distance <= threshold){
+            bestX = { value, distance, label:edge.label, guide:edge.value / 1000 };
+          }
+        }
+      }
+      for(const offset of selectedYOffsets){
+        for(const edge of targetYEdges){
+          const value = edge.value - offset;
+          const distance = Math.abs(value - rawY);
+          if(distance < bestY.distance && distance <= threshold){
+            bestY = { value, distance, label:edge.label, guide:edge.value / 1000 };
+          }
+        }
+      }
+    }
+    return {
+      x:bestX.value,
+      y:bestY.value,
+      guideX:bestX.guide,
+      guideY:bestY.guide,
+      labels:[bestX.label, bestY.label].filter(Boolean)
+    };
+  }
+
+  showSnapGuides(x, z){
+    const extent = 8;
+    if(Number.isFinite(x)){
+      this.snapGuideX.geometry.dispose();
+      this.snapGuideX.geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, 0.012, -extent),
+        new THREE.Vector3(x, 0.012, extent)
+      ]);
+      this.snapGuideX.visible = true;
+    }else{
+      this.snapGuideX.visible = false;
+    }
+    if(Number.isFinite(z)){
+      this.snapGuideZ.geometry.dispose();
+      this.snapGuideZ.geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-extent, 0.014, z),
+        new THREE.Vector3(extent, 0.014, z)
+      ]);
+      this.snapGuideZ.visible = true;
+    }else{
+      this.snapGuideZ.visible = false;
+    }
+    this.needsFrame = true;
   }
 
   selectedPart(){

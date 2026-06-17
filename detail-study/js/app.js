@@ -31,6 +31,7 @@ const state = {
   measurePoints: [],
   nudgeUi: { x: null, y: null },
   builder: null,
+  siteSettingsTab: "position",
   layers: {
     site: true,
     rooms: true,
@@ -89,7 +90,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderPartList","builderEditor"
@@ -162,12 +163,19 @@ function bindEvents(){
   });
   bindExteriorColorInputs();
   ["siteNorthInput","siteEastInput","siteSouthInput","siteWestInput"].forEach((id) => {
-    dom[id].addEventListener("input", () => {
+    dom[id].addEventListener("change", () => {
       pushHistory();
       applySiteOffsets(false);
     });
   });
   dom.applySiteBtn.addEventListener("click", () => applySiteOffsets(true));
+  dom.siteSettingsTabs?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-site-tab]");
+    if(!button) return;
+    state.siteSettingsTab = button.dataset.siteTab;
+    renderExteriorSettingsTabs();
+  });
+  dom.siteEqualBtn?.addEventListener("click", applyEqualSiteOffsets);
   dom.fenceInput.addEventListener("change", () => {
     pushHistory();
     state.design.exterior.fence = dom.fenceInput.checked;
@@ -492,6 +500,25 @@ function renderExteriorControls(){
   dom.wallColorInput.value = safeColor(ext.wallColor, "#f5f1e9");
   dom.porchTileInput.value = safeColor(ext.porchTileColor, "#cfc7bb");
   dom.fenceInput.checked = !!ext.fence;
+  renderExteriorSettingsTabs();
+}
+
+function renderExteriorSettingsTabs(){
+  if(!dom.siteSettingsTabs) return;
+  dom.siteSettingsTabs.querySelectorAll("[data-site-tab]").forEach((button) => {
+    button.classList.toggle("on", button.dataset.siteTab === state.siteSettingsTab);
+  });
+  document.querySelectorAll("[data-site-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.sitePanel !== state.siteSettingsTab;
+  });
+}
+
+function applyEqualSiteOffsets(){
+  const value = clamp(numberValue(dom.siteEqualInput, 2), 0, 15);
+  [dom.siteNorthInput, dom.siteEastInput, dom.siteSouthInput, dom.siteWestInput].forEach((input) => {
+    input.value = value;
+  });
+  applySiteOffsets(true);
 }
 
 function bindExteriorColorInputs(){
@@ -741,7 +768,7 @@ function onPlanPointerUp(){
 }
 
 function onPlanNudgeClick(event){
-  const button = event.target.closest("button[data-move],button[data-size-step],button[data-rotate-step],button[data-delete-selected]");
+  const button = event.target.closest("button[data-move],button[data-size-step],button[data-rotate-step],button[data-delete-selected],button[data-duplicate-selected]");
   if(!button) return;
   const item = findCustomById(state.selectedId);
   if(!item) return;
@@ -749,6 +776,10 @@ function onPlanNudgeClick(event){
   event.preventDefault();
   if(button.dataset.deleteSelected){
     deleteCustomItem(item.id);
+    return;
+  }
+  if(button.dataset.duplicateSelected){
+    duplicateCustomItem(item.id);
     return;
   }
   if(button.dataset.sizeStep){
@@ -833,6 +864,25 @@ function deleteCustomItem(id){
   saveDesign(false);
   render();
   toast(`${item.label || "選択中"}を削除しました`);
+}
+
+function duplicateCustomItem(id){
+  const item = findCustomById(id);
+  if(!item || item.locked) return;
+  pushHistory();
+  const copy = {
+    ...item,
+    id: uid(),
+    label: `${item.label || "部品"} コピー`.slice(0, 20),
+    x: snapFine(item.x + mmToPx(300)),
+    y: snapFine(item.y + mmToPx(300)),
+    modelParts: Array.isArray(item.modelParts) ? cloneModelParts(item.modelParts) : item.modelParts
+  };
+  state.design.customItems.push(copy);
+  state.selectedId = copy.id;
+  saveDesign(false);
+  render();
+  toast(`${item.label || "部品"}を複製しました`);
 }
 
 function svgPoint(event){
@@ -951,7 +1001,7 @@ function renderPlanNudge(){
   }
   const step = Number(item.nudgeMm || 100);
   dom.planNudge.hidden = false;
-  dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><button type="button" data-delete-selected="1">削除</button></div>
+  dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><div><button type="button" data-duplicate-selected="1">複製</button><button type="button" data-delete-selected="1">削除</button></div></div>
     <div class="nudgeSteps">
       <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
       <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
@@ -1301,6 +1351,7 @@ function renderCustomEditor(item){
       <button type="button" data-nudge="16,0">→</button>
       <button type="button" data-nudge="0,16">↓</button>
       <button type="button" id="rotateItemBtn">90°回転</button>
+      <button type="button" id="duplicateItemBtn">複製</button>
       ${modelEditButton}
     </div>`;
 }
@@ -1358,6 +1409,7 @@ function bindCustomEditor(item){
     saveDesign(false);
     render();
   });
+  document.getElementById("duplicateItemBtn").addEventListener("click", () => duplicateCustomItem(item.id));
   document.getElementById("editModelBtn")?.addEventListener("click", () => {
     const modelId = item.modelId || "";
     if(modelId){
@@ -1510,6 +1562,21 @@ function onObjectBuilderClick(event){
     addBuilderPart(add.dataset.builderAdd);
     return;
   }
+  const duplicate = event.target.closest("[data-builder-duplicate]");
+  if(duplicate){
+    duplicateBuilderPart();
+    return;
+  }
+  const anchor = event.target.closest("[data-builder-anchor]");
+  if(anchor){
+    alignBuilderPart(anchor.dataset.builderAnchor);
+    return;
+  }
+  const zSnap = event.target.closest("[data-builder-zsnap]");
+  if(zSnap){
+    alignBuilderPartZ(zSnap.dataset.builderZsnap);
+    return;
+  }
   const partButton = event.target.closest("[data-builder-part]");
   if(partButton){
     state.builder.selectedPartId = partButton.dataset.builderPart;
@@ -1580,6 +1647,53 @@ function addBuilderPart(type){
   renderObjectBuilder();
 }
 
+function duplicateBuilderPart(){
+  const part = selectedBuilderPart();
+  if(!part || state.builder.parts.length >= 24) return;
+  const copy = {
+    ...part,
+    id: uid(),
+    label: `${part.label} 複製`,
+    xMm: part.xMm + part.wMm + 100
+  };
+  state.builder.parts.push(copy);
+  state.builder.selectedPartId = copy.id;
+  renderObjectBuilder();
+  toast(`${part.label}を複製しました`);
+}
+
+function builderReferencePart(){
+  const id = document.getElementById("builderReferenceInput")?.value;
+  return state.builder.parts.find((part) => part.id === id) || state.builder.parts.find((part) => part.id !== state.builder.selectedPartId) || null;
+}
+
+function alignBuilderPart(anchor){
+  const part = selectedBuilderPart();
+  const reference = builderReferencePart();
+  if(!part || !reference || part.id === reference.id) return;
+  const inset = clamp(numberValue(document.getElementById("builderInsetInput"), 0), -3000, 3000);
+  const [horizontal, vertical] = String(anchor).split("-");
+  if(horizontal === "left") part.xMm = reference.xMm - reference.wMm / 2 + part.wMm / 2 + inset;
+  else if(horizontal === "right") part.xMm = reference.xMm + reference.wMm / 2 - part.wMm / 2 - inset;
+  else part.xMm = reference.xMm;
+  if(vertical === "front") part.yMm = reference.yMm - reference.dMm / 2 + part.dMm / 2 + inset;
+  else if(vertical === "back") part.yMm = reference.yMm + reference.dMm / 2 - part.dMm / 2 - inset;
+  else part.yMm = reference.yMm;
+  state.builder.parts = normalizeModelParts(state.builder.parts);
+  renderObjectBuilder();
+}
+
+function alignBuilderPartZ(mode){
+  const part = selectedBuilderPart();
+  const reference = builderReferencePart();
+  if(!part || !reference || part.id === reference.id) return;
+  if(mode === "below") part.zMm = Math.max(0, reference.zMm - part.hMm);
+  else if(mode === "above") part.zMm = reference.zMm + reference.hMm;
+  else part.zMm = reference.zMm;
+  state.builder.parts = normalizeModelParts(state.builder.parts);
+  renderObjectBuilder();
+}
+
 function deleteBuilderPart(id){
   if(state.builder.parts.length <= 1){
     toast("部品は1つ以上必要です");
@@ -1631,10 +1745,46 @@ function renderBuilderEditor(){
     dom.builderEditor.innerHTML = "";
     return;
   }
+  const references = state.builder.parts.filter((item) => item.id !== part.id);
+  const referenceOptions = references.map((item, index) => (
+    `<option value="${item.id}">${escapeHtml(`${index + 1}. ${item.label}`)}</option>`
+  )).join("");
+  const left = Math.round(part.xMm - part.wMm / 2);
+  const right = Math.round(part.xMm + part.wMm / 2);
+  const front = Math.round(part.yMm - part.dMm / 2);
+  const back = Math.round(part.yMm + part.dMm / 2);
+  const bottom = Math.round(part.zMm);
+  const top = Math.round(part.zMm + part.hMm);
   dom.builderEditor.innerHTML = `<div class="builderEditHead">
       <b>${escapeHtml(part.label)}</b>
       <button type="button" data-builder-delete="${part.id}">削除</button>
     </div>
+    <div class="builderEdgeReadout">
+      <span>左 ${left}</span><span>右 ${right}</span><span>前 ${front}</span>
+      <span>後 ${back}</span><span>下 ${bottom}</span><span>上 ${top}</span>
+    </div>
+    ${references.length ? `<div class="builderPositionBox">
+      <div class="builderPositionHead">
+        <select id="builderReferenceInput" aria-label="基準部品">${referenceOptions}</select>
+        <input id="builderInsetInput" type="number" step="10" value="0" aria-label="端からの余白" placeholder="余白mm">
+      </div>
+      <div class="builderAnchorGrid">
+        <button type="button" data-builder-anchor="left-front">左前</button>
+        <button type="button" data-builder-anchor="center-front">前中央</button>
+        <button type="button" data-builder-anchor="right-front">右前</button>
+        <button type="button" data-builder-anchor="left-center">左中央</button>
+        <button type="button" data-builder-anchor="center-center">中央</button>
+        <button type="button" data-builder-anchor="right-center">右中央</button>
+        <button type="button" data-builder-anchor="left-back">左後</button>
+        <button type="button" data-builder-anchor="center-back">後中央</button>
+        <button type="button" data-builder-anchor="right-back">右後</button>
+      </div>
+      <div class="builderZSnap">
+        <button type="button" data-builder-zsnap="below">下面に付ける</button>
+        <button type="button" data-builder-zsnap="same">同じ高さ</button>
+        <button type="button" data-builder-zsnap="above">上面に載せる</button>
+      </div>
+    </div>` : ""}
     <div class="builderGrid">
       <label>形<select data-builder-field="type">
         <option value="box" ${part.type === "box" ? "selected" : ""}>四角</option>
@@ -1650,9 +1800,12 @@ function renderBuilderEditor(){
       <label>前後mm<input type="number" min="-5000" max="5000" step="10" data-builder-field="yMm" value="${Math.round(part.yMm)}"></label>
       <label>回転°<input type="number" step="15" data-builder-field="rotation" value="${Math.round(part.rotation || 0)}"></label>
     </div>
-    <div class="buttonRow">
-      <button type="button" data-builder-rotate="-90">左90°</button>
-      <button type="button" data-builder-rotate="90">右90°</button>
+    <div class="builderEditActions">
+      <button class="builderDuplicateBtn" type="button" data-builder-duplicate="1">この部品を複製</button>
+      <div class="buttonRow">
+        <button type="button" data-builder-rotate="-90">左90°</button>
+        <button type="button" data-builder-rotate="90">右90°</button>
+      </div>
     </div>`;
 }
 
