@@ -30,6 +30,7 @@ const state = {
   measurePoints: [],
   nudgeUi: { x: null, y: null },
   layers: {
+    site: true,
     rooms: true,
     walls: true,
     openings: true,
@@ -63,7 +64,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
@@ -133,6 +134,7 @@ function bindEvents(){
       renderSceneOnly();
     });
   });
+  bindExteriorColorInputs();
   ["siteNorthInput","siteEastInput","siteSouthInput","siteWestInput"].forEach((id) => {
     dom[id].addEventListener("input", () => {
       pushHistory();
@@ -204,14 +206,22 @@ function loadDesign(layoutId, force){
 }
 
 function mergeDesign(base, saved){
-  return {
+  const merged = {
     ...base,
     ...saved,
     exterior: { ...base.exterior, ...(saved.exterior || {}) },
     finishes: { ...base.finishes, ...(saved.finishes || {}) },
-    customItems: Array.isArray(saved.customItems) ? saved.customItems : [],
+    customItems: Array.isArray(saved.customItems) ? saved.customItems.map(normalizeCustomItem) : [],
     notes: Array.isArray(saved.notes) ? saved.notes : base.notes
   };
+  return merged;
+}
+
+function normalizeCustomItem(item){
+  const next = { ...item };
+  if(next.kind === "site") next.locked = true;
+  if(!next.layer) next.layer = "exterior";
+  return next;
 }
 
 function storageKey(layoutId){
@@ -409,7 +419,41 @@ function renderExteriorControls(){
   dom.parkingInput.value = ext.parkingCars ?? 2;
   dom.deckInput.value = ext.deckM ?? 1.8;
   dom.northInput.value = ext.northDeg ?? 0;
+  dom.wallColorInput.value = safeColor(ext.wallColor, "#f5f1e9");
+  dom.porchTileInput.value = safeColor(ext.porchTileColor, "#cfc7bb");
   dom.fenceInput.checked = !!ext.fence;
+}
+
+function bindExteriorColorInputs(){
+  let editSnapshot = null;
+  const arm = () => {
+    editSnapshot = editSnapshot || historySnapshot();
+  };
+  const update = () => {
+    if(!state.design) return;
+    if(editSnapshot){
+      pushHistory(editSnapshot);
+      editSnapshot = null;
+    }
+    const exterior = state.design.exterior;
+    exterior.wallColor = safeColor(dom.wallColorInput.value, "#f5f1e9");
+    exterior.porchTileColor = safeColor(dom.porchTileInput.value, "#cfc7bb");
+    syncPorchTileItems(exterior.porchTileColor);
+    saveDesign(false);
+    renderPlan();
+    renderLists();
+    renderSceneOnly();
+  };
+  ["wallColorInput","porchTileInput"].forEach((id) => {
+    dom[id].addEventListener("focus", arm);
+    dom[id].addEventListener("input", update);
+  });
+}
+
+function syncPorchTileItems(color){
+  (state.design?.customItems || []).forEach((item) => {
+    if(item.kind === "approach" || item.kind === "porchStep") item.color = color;
+  });
 }
 
 function siteOffsets(){
@@ -444,6 +488,7 @@ function applySiteOffsets(showToast){
   site.w = house.width + westPx + eastPx;
   site.h = house.height + northPx + southPx;
   site.floorIndex = 0;
+  site.locked = true;
   state.view = "plan";
   state.floorMode = "0";
   state.selectedId = site.id;
@@ -458,6 +503,7 @@ function ensureSiteItem(){
   const preset = EXTERIOR_LIBRARY.find((item) => item.kind === "site");
   const house = houseBoundsPx() || { minX: -200, minY: -200, width: 400, height: 400 };
   const site = makeCustomItem(preset, 0, { x: house.minX + house.width / 2, y: house.minY + house.height / 2 });
+  site.locked = true;
   state.design.customItems.push(site);
   return site;
 }
@@ -536,6 +582,12 @@ function onPlanPointerDown(event){
   const item = findCustomById(target.dataset.id);
   if(!item) return;
   event.preventDefault();
+  if(item.locked){
+    state.selectedId = item.id;
+    state.mobilePanelOpen = false;
+    render();
+    return;
+  }
   const point = svgPoint(event);
   state.selectedId = item.id;
   state.mobilePanelOpen = false;
@@ -599,6 +651,7 @@ function onPlanNudgeClick(event){
   if(!button) return;
   const item = findCustomById(state.selectedId);
   if(!item) return;
+  if(item.locked) return;
   event.preventDefault();
   if(button.dataset.deleteSelected){
     deleteCustomItem(item.id);
@@ -663,6 +716,10 @@ function onNudgePointerUp(){
 function deleteCustomItem(id){
   const item = findCustomById(id);
   if(!item) return;
+  if(item.locked){
+    toast("敷地は固定中です。敷地条件から変更してください");
+    return;
+  }
   pushHistory();
   state.design.customItems = state.design.customItems.filter((candidate) => candidate.id !== id);
   state.selectedId = null;
@@ -704,7 +761,7 @@ function renderPlan(){
   const openings = items.filter((item) => item.type === "opening");
   const furn = items.filter((item) => item.type === "furn" || item.type === "stair");
   const chunks = [];
-  if(state.layers.exterior) chunks.push(renderExteriorSvg(bounds));
+  if(state.layers.site && !hasSiteItem()) chunks.push(renderExteriorSvg(bounds));
   frames.forEach((frame) => {
     chunks.push(`<rect x="${frame.x}" y="${frame.y}" width="${frame.w}" height="${frame.h}" fill="#fffef9" stroke="rgba(31,35,28,.34)" stroke-width="2"/>`);
   });
@@ -719,9 +776,9 @@ function renderPlan(){
   }
   if(state.layers.furniture) furn.forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
   visibleCustomItems().forEach((item) => {
-    if(state.layers[item.layer] !== false) chunks.push(renderFurnitureSvg(item, false));
+    if(isItemLayerVisible(item)) chunks.push(renderFurnitureSvg(item, false));
   });
-  if(state.layers.exterior) chunks.push(renderSiteDistanceSvg());
+  if(state.layers.site) chunks.push(renderSiteDistanceSvg());
   chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
@@ -780,7 +837,7 @@ function measureDistanceText(a, b){
 
 function renderPlanNudge(){
   const item = findCustomById(state.selectedId);
-  if(!item){
+  if(!item || item.locked){
     dom.planNudge.hidden = true;
     dom.planNudge.innerHTML = "";
     return;
@@ -853,13 +910,26 @@ function renderSiteDistanceSvg(){
   </g>`;
 }
 
+function hasSiteItem(){
+  return (state.design?.customItems || []).some((item) => item.layer === "exterior" && item.kind === "site");
+}
+
+function itemLayerKey(item){
+  return item?.kind === "site" ? "site" : item?.layer;
+}
+
+function isItemLayerVisible(item){
+  const key = itemLayerKey(item);
+  return state.layers[key] !== false;
+}
+
 function formatDistance(px){
   return `${(pxToMm(px) / 1000).toFixed(2)}m`;
 }
 
 function displayBounds(){
-  const base = floorBounds(state.plan, state.floorMode, state.layers.exterior ? 150 : 70);
-  const items = state.layers.exterior ? visibleCustomItems().filter((item) => item.layer === "exterior") : [];
+  const base = floorBounds(state.plan, state.floorMode, state.layers.exterior || state.layers.site ? 150 : 70);
+  const items = visibleCustomItems().filter((item) => item.layer === "exterior" && isItemLayerVisible(item));
   let minX = base.minX;
   let minY = base.minY;
   let maxX = base.maxX;
@@ -918,12 +988,30 @@ function renderExteriorItemSvg(item, selected, label, color, rotate){
   const cx = item.x + item.w / 2;
   const cy = item.y + item.h / 2;
   const cls = `planItem exteriorItem${selected}`;
-  const handle = selected ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
+  const handle = selected && !item.locked ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
   const commonText = `<text x="${cx}" y="${cy + 3}" text-anchor="middle" class="planSub">${label}</text>`;
   if(item.kind === "site"){
     return `<g class="${cls}" data-id="${item.id}">
       <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${item.h}" fill="${color}" fill-opacity=".42" stroke="#59764d" stroke-width="3" stroke-dasharray="10 8"/>
-      <text x="${item.x + 12}" y="${item.y + 18}" class="planSub">${label}</text>${handle}
+      <text x="${item.x + 12}" y="${item.y + 18}" class="planSub">${label} 固定</text>${handle}
+    </g>`;
+  }
+  if(item.kind === "porchStep"){
+    const steps = 3;
+    const lines = Array.from({ length: steps - 1 }, (_, index) => {
+      const y = item.y + item.h * ((index + 1) / steps);
+      return `<line x1="${item.x}" y1="${y}" x2="${item.x + item.w}" y2="${y}" stroke="rgba(31,35,28,.35)" stroke-width="1.5"/>`;
+    }).join("");
+    return `<g class="${cls}" data-id="${item.id}"${rotate}>
+      <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".86" stroke="rgba(31,35,28,.42)" stroke-width="1.8"/>
+      ${lines}${commonText}${handle}
+    </g>`;
+  }
+  if(item.kind === "frontDoor"){
+    return `<g class="${cls}" data-id="${item.id}"${rotate}>
+      <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".9" stroke="#3f3028" stroke-width="1.8"/>
+      <circle cx="${item.x + item.w * .78}" cy="${cy}" r="3" fill="#e2c46d"/>
+      ${commonText}${handle}
     </g>`;
   }
   if(item.kind === "tree" || item.kind === "plant"){
@@ -1048,6 +1136,15 @@ function bindRoomEditor(room){
 
 function renderCustomEditor(item){
   const isExterior = item.layer === "exterior";
+  if(item.locked){
+    return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>固定・敷地条件で変更</span></div></div>
+      <div class="selectedGrid">
+        <label>色<input id="itemColor" type="color" value="${escapeAttr(item.color || "#dfeadb")}"></label>
+        <label>幅mm<input type="number" value="${pxToMm(item.w)}" disabled></label>
+        <label>奥行mm<input type="number" value="${pxToMm(item.h)}" disabled></label>
+        <label>固定<input type="text" value="移動不可" disabled></label>
+      </div>`;
+  }
   return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(isExterior ? (item.category || "外構") : floorLabel(item.floorIndex))}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
     <div class="selectedGrid">
       <label>名前<input id="itemLabel" type="text" maxlength="20" value="${escapeAttr(item.label)}"></label>
@@ -1067,6 +1164,25 @@ function renderCustomEditor(item){
 }
 
 function bindCustomEditor(item){
+  if(item.locked){
+    const input = document.getElementById("itemColor");
+    if(!input) return;
+    let editSnapshot = null;
+    input.addEventListener("focus", () => {
+      editSnapshot = editSnapshot || historySnapshot();
+    });
+    input.addEventListener("input", () => {
+      if(editSnapshot){
+        pushHistory(editSnapshot);
+        editSnapshot = null;
+      }
+      item.color = input.value;
+      saveDesign(false);
+      renderPlan();
+      renderSceneOnly();
+    });
+    return;
+  }
   let editSnapshot = null;
   const update = () => {
     if(editSnapshot){
@@ -1128,6 +1244,7 @@ function addCustomItem(kind){
     state.view = "plan";
     state.floorMode = "0";
     placeExteriorItem(item, floorBounds(state.plan, "0", 0));
+    if(item.kind === "approach" || item.kind === "porchStep") item.color = state.design.exterior.porchTileColor || item.color;
   }
   state.design.customItems.push(item);
   state.selectedId = item.id;
@@ -1152,9 +1269,14 @@ function placeExteriorItem(item, bounds){
     item.y = bounds.maxY + gap;
     return;
   }
-  if(item.kind === "approach" || item.kind === "gate"){
+  if(item.kind === "approach" || item.kind === "porchStep" || item.kind === "frontDoor" || item.kind === "gate"){
     item.x = bounds.minX + bounds.width * 0.18;
     item.y = bounds.maxY + gap;
+    return;
+  }
+  if(item.kind === "freeExterior"){
+    item.x = bounds.minX + bounds.width * 0.50;
+    item.y = bounds.minY - item.h - gap;
     return;
   }
   if(item.kind === "deck" || item.kind === "garden" || item.kind === "tree"){
@@ -1214,6 +1336,10 @@ function exportDesign(){
 function numberValue(input, fallback){
   const value = Number(input.value);
   return Number.isFinite(value) ? value : fallback;
+}
+
+function safeColor(value, fallback){
+  return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
 }
 
 function clamp(value, min, max){

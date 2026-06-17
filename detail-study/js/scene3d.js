@@ -344,7 +344,7 @@ export class DetailScene3D {
     const { plan, design, floorMode, layers, selectedId } = this.state;
     const bounds = sceneBounds(plan, design, floorMode, layers, 96);
     this.lastBounds = bounds;
-    if(layers.exterior) this.buildExterior(bounds, design);
+    if(layers.site) this.buildExterior(bounds, design);
     const floorIndexes = floorMode === "all" ? plan.floors.map((_, index) => index) : [Number(floorMode || 0)];
     let roofSource = null;
     floorIndexes.forEach((floorIndex) => {
@@ -483,7 +483,7 @@ export class DetailScene3D {
       this.addCeiling(frames, yBase);
     }
     if(layers.walls){
-      const wallMat = mat("#f5f1e9", 0.96, 0.68);
+      const wallMat = mat(design.exterior?.wallColor || "#f5f1e9", 0.96, 0.68);
       const outer = outerSegments(frames);
       outer.forEach((seg) => splitByOpenings(seg, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
       if(!this.isWalkMode() && floorIndex > 0) this.addFloorJointCover(outer, yBase, wallMat);
@@ -500,7 +500,7 @@ export class DetailScene3D {
     }
     (design.customItems || [])
       .filter((item) => item.floorIndex === floorIndex)
-      .filter((item) => layers[item.layer] !== false)
+      .filter((item) => sceneItemVisible(item, layers))
       .forEach((item) => this.addFurnitureBox(item, floorIndex, yBase, selectedId, false));
   }
 
@@ -650,6 +650,14 @@ export class DetailScene3D {
       this.addCarportModel(x, yBase, z, w, d, h, item, selected);
       return;
     }
+    if(item.kind === "porchStep"){
+      this.addPorchStepModel(x, yBase, z, w, d, h, item, selected);
+      return;
+    }
+    if(item.kind === "frontDoor"){
+      this.addFrontDoorModel(x, yBase, z, w, d, h, item, selected);
+      return;
+    }
     const flatKinds = new Set(["parking", "driveway", "approach", "deck", "garden"]);
     const meshH = flatKinds.has(item.kind) ? Math.min(h, 0.22) : h;
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, meshH, d), mat(item.color || "#c9c9d2", item.kind === "garden" ? 0.86 : 0.78, 0.52, item.kind === "parking"));
@@ -739,6 +747,61 @@ export class DetailScene3D {
       const box = new THREE.BoxHelper(group, new THREE.Color("#286fd6"));
       group.add(box);
     }
+    this.root.add(group);
+  }
+
+  addPorchStepModel(x, yBase, z, w, d, h, item, selected){
+    const group = new THREE.Group();
+    group.position.set(x, yBase, z);
+    group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    const stepMat = mat(item.color || "#cfc7bb", 0.9, 0.42);
+    const edgeMat = mat("#8d867c", 0.88, 0.5);
+    const steps = 3;
+    for(let i = 0; i < steps; i++){
+      const depth = d * ((i + 1) / steps);
+      const height = Math.max(0.08, h * ((i + 1) / steps));
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, height, depth), stepMat);
+      mesh.position.set(0, height / 2, d / 2 - depth / 2);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      const nosing = new THREE.Mesh(new THREE.BoxGeometry(w, 0.025, 0.04), edgeMat);
+      nosing.position.set(0, height + 0.014, d / 2 - depth);
+      nosing.castShadow = true;
+      group.add(nosing);
+    }
+    if(selected) group.add(new THREE.BoxHelper(group, new THREE.Color("#286fd6")));
+    this.root.add(group);
+  }
+
+  addFrontDoorModel(x, yBase, z, w, d, h, item, selected){
+    const group = new THREE.Group();
+    group.position.set(x, yBase, z);
+    group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    const doorMat = mat(item.color || "#7b5637", 0.9, 0.45);
+    const frameMat = mat("#33251d", 0.92, 0.36);
+    const handleMat = mat("#d7b24b", 0.95, 0.28);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(w, h, Math.max(0.04, d)), doorMat);
+    door.position.set(0, h / 2, 0);
+    door.castShadow = true;
+    door.receiveShadow = true;
+    group.add(door);
+    const frameT = Math.max(0.035, w * 0.045);
+    [
+      [-w / 2 - frameT / 2, h / 2, 0, frameT, h + frameT, d * 1.25],
+      [w / 2 + frameT / 2, h / 2, 0, frameT, h + frameT, d * 1.25],
+      [0, h + frameT / 2, 0, w + frameT * 2, frameT, d * 1.25]
+    ].forEach(([cx, cy, cz, bw, bh, bd]) => {
+      const part = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, Math.max(0.05, bd)), frameMat);
+      part.position.set(cx, cy, cz);
+      part.castShadow = true;
+      group.add(part);
+    });
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(w * 0.08, h * 0.035, d * 1.7), handleMat);
+    handle.position.set(w * 0.28, h * 0.52, -d * 0.62);
+    handle.castShadow = true;
+    group.add(handle);
+    if(selected) group.add(new THREE.BoxHelper(group, new THREE.Color("#286fd6")));
     this.root.add(group);
   }
 
@@ -1119,11 +1182,18 @@ function pointSegmentDistance(px, pz, x1, z1, x2, z2){
   return Math.hypot(px - (x1 + dx * t), pz - (z1 + dz * t));
 }
 
+function sceneItemLayer(item){
+  return item?.kind === "site" ? "site" : item?.layer;
+}
+
+function sceneItemVisible(item, layers){
+  return layers?.[sceneItemLayer(item)] !== false;
+}
+
 function sceneBounds(plan, design, floorMode, layers, padding){
   const bounds = floorBounds(plan, floorMode, padding);
-  if(!layers.exterior) return bounds;
   const floorIndexes = floorMode === "all" ? null : new Set([Number(floorMode || 0)]);
-  const items = (design.customItems || []).filter((item) => item.layer === "exterior" && (!floorIndexes || floorIndexes.has(item.floorIndex)));
+  const items = (design.customItems || []).filter((item) => item.layer === "exterior" && sceneItemVisible(item, layers) && (!floorIndexes || floorIndexes.has(item.floorIndex)));
   let minX = bounds.minX;
   let minY = bounds.minY;
   let maxX = bounds.maxX;

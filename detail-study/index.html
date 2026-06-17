@@ -95,6 +95,7 @@
         <section class="panelBlock layerBlock">
           <div class="blockTitle">表示切替</div>
           <div class="toggleGrid" id="layerToggles">
+            <label><input type="checkbox" data-layer="site" checked>敷地</label>
             <label><input type="checkbox" data-layer="rooms" checked>部屋色</label>
             <label><input type="checkbox" data-layer="walls" checked>壁</label>
             <label><input type="checkbox" data-layer="openings" checked>窓/建具</label>
@@ -123,6 +124,8 @@
             <label>初期駐車<input id="parkingInput" type="number" min="0" max="4" step="1"></label>
             <label>初期デッキm<input id="deckInput" type="number" min="0" max="5" step="0.1"></label>
             <label>方位°<input id="northInput" type="number" min="0" max="359" step="15"></label>
+            <label>外壁<input id="wallColorInput" type="color"></label>
+            <label>ポーチタイル<input id="porchTileInput" type="color"></label>
           </div>
           <label class="checkLine"><input id="fenceInput" type="checkbox">フェンス</label>
         </section>
