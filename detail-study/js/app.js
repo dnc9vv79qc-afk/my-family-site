@@ -23,6 +23,7 @@ const state = {
   selectedId: null,
   cameraPreset: "exterior",
   dockMode: "select",
+  mobilePanelOpen: false,
   drag: null,
   nudgeDrag: null,
   undoStack: [],
@@ -87,6 +88,7 @@ function bindEvents(){
     if(!button) return;
     state.view = button.dataset.view;
     state.dockMode = state.view === "3d" ? "3d" : (state.view === "list" ? "browse" : "select");
+    state.mobilePanelOpen = false;
     render();
   });
   dom.modeDock?.addEventListener("click", onDockClick);
@@ -106,10 +108,12 @@ function bindEvents(){
   dom.centerPlanBtn.addEventListener("click", () => {
     state.view = "plan";
     state.floorMode = "0";
+    state.mobilePanelOpen = false;
     render();
   });
   dom.clearSelectionBtn.addEventListener("click", () => {
     state.selectedId = null;
+    state.mobilePanelOpen = false;
     render();
   });
   dom.undoBtn.addEventListener("click", undo);
@@ -147,6 +151,7 @@ function bindEvents(){
     const target = event.target.closest("[data-id]");
     if(!target) return;
     state.selectedId = target.dataset.id;
+    state.mobilePanelOpen = false;
     render();
   });
   dom.planSvg.addEventListener("pointerdown", onPlanPointerDown);
@@ -225,7 +230,8 @@ function historySnapshot(){
     selectedId: state.selectedId,
     floorMode: state.floorMode,
     view: state.view,
-    dockMode: state.dockMode
+    dockMode: state.dockMode,
+    mobilePanelOpen: state.mobilePanelOpen
   };
 }
 
@@ -244,6 +250,7 @@ function undo(){
   state.floorMode = snapshot.floorMode || state.floorMode;
   state.view = snapshot.view || state.view;
   state.dockMode = snapshot.dockMode || state.dockMode;
+  state.mobilePanelOpen = !!snapshot.mobilePanelOpen;
   state.drag = null;
   state.measurePoints = [];
   saveDesign(false);
@@ -311,19 +318,30 @@ function onDockClick(event){
   const button = event.target.closest("button[data-dock]");
   if(!button) return;
   const mode = button.dataset.dock;
+  const closingActivePanel = state.view === "plan" && state.dockMode === mode && state.mobilePanelOpen;
+  if(closingActivePanel){
+    state.view = "plan";
+    state.dockMode = "select";
+    state.mobilePanelOpen = false;
+    render();
+    return;
+  }
   state.dockMode = mode;
   state.measurePoints = mode === "measure" ? state.measurePoints : [];
   if(mode === "3d"){
     state.view = "3d";
+    state.mobilePanelOpen = false;
     render();
     return;
   }
   if(mode === "browse"){
     state.view = "list";
+    state.mobilePanelOpen = false;
     render();
     return;
   }
   state.view = "plan";
+  state.mobilePanelOpen = mode !== "measure" && !closingActivePanel;
   render();
 }
 
@@ -331,6 +349,7 @@ function updateDockControls(){
   if(!dom.modeDock) return;
   document.body.dataset.view = state.view;
   document.body.dataset.dockMode = state.dockMode;
+  document.body.dataset.panelOpen = state.mobilePanelOpen ? "1" : "0";
   dom.modeDock.querySelectorAll("button[data-dock]").forEach((button) => {
     const mode = button.dataset.dock;
     const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? mode === "browse" : mode === state.dockMode;
@@ -517,6 +536,7 @@ function onPlanPointerDown(event){
   event.preventDefault();
   const point = svgPoint(event);
   state.selectedId = item.id;
+  state.mobilePanelOpen = false;
   state.drag = {
     id: item.id,
     mode: event.target.closest("[data-resize]") ? "resize" : "move",
@@ -1107,6 +1127,8 @@ function addCustomItem(kind){
   }
   state.design.customItems.push(item);
   state.selectedId = item.id;
+  state.dockMode = "select";
+  state.mobilePanelOpen = false;
   saveDesign(false);
   render();
   toast(`${preset.label}を追加しました`);

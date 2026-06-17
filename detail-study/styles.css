@@ -715,7 +715,8 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
     backdrop-filter:blur(18px);
   }
   body[data-view="3d"] .inspector,
-  body[data-view="list"] .inspector{
+  body[data-view="list"] .inspector,
+  body[data-view="plan"][data-panel-open="0"] .inspector{
     display:none;
   }
   body[data-view="plan"] .inspector .panelBlock{
