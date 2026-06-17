@@ -24,6 +24,10 @@ const state = {
   cameraPreset: "exterior",
   dockMode: "select",
   drag: null,
+  nudgeDrag: null,
+  undoStack: [],
+  measurePoints: [],
+  nudgeUi: { x: null, y: null },
   layers: {
     rooms: true,
     walls: true,
@@ -58,9 +62,9 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
-    "addNoteBtn","toast","viewBadge","modeDock"
+    "addNoteBtn","toast","viewBadge","modeDock","inspector"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -108,8 +112,14 @@ function bindEvents(){
     state.selectedId = null;
     render();
   });
+  dom.undoBtn.addEventListener("click", undo);
+  dom.clearMeasureBtn.addEventListener("click", () => {
+    state.measurePoints = [];
+    renderPlan();
+  });
   ["setbackInput","parkingInput","deckInput","northInput"].forEach((id) => {
     dom[id].addEventListener("input", () => {
+      pushHistory();
       const exterior = state.design.exterior;
       exterior.setbackM = numberValue(dom.setbackInput, exterior.setbackM);
       exterior.parkingCars = numberValue(dom.parkingInput, exterior.parkingCars);
@@ -120,15 +130,20 @@ function bindEvents(){
     });
   });
   ["siteNorthInput","siteEastInput","siteSouthInput","siteWestInput"].forEach((id) => {
-    dom[id].addEventListener("input", () => applySiteOffsets(false));
+    dom[id].addEventListener("input", () => {
+      pushHistory();
+      applySiteOffsets(false);
+    });
   });
   dom.applySiteBtn.addEventListener("click", () => applySiteOffsets(true));
   dom.fenceInput.addEventListener("change", () => {
+    pushHistory();
     state.design.exterior.fence = dom.fenceInput.checked;
     saveDesign(false);
     renderSceneOnly();
   });
   dom.planSvg.addEventListener("click", (event) => {
+    if(state.dockMode === "measure") return;
     const target = event.target.closest("[data-id]");
     if(!target) return;
     state.selectedId = target.dataset.id;
@@ -136,9 +151,13 @@ function bindEvents(){
   });
   dom.planSvg.addEventListener("pointerdown", onPlanPointerDown);
   dom.planNudge.addEventListener("click", onPlanNudgeClick);
+  dom.planNudge.addEventListener("pointerdown", onPlanNudgePointerDown);
   window.addEventListener("pointermove", onPlanPointerMove);
+  window.addEventListener("pointermove", onNudgePointerMove);
   window.addEventListener("pointerup", onPlanPointerUp);
+  window.addEventListener("pointerup", onNudgePointerUp);
   window.addEventListener("pointercancel", onPlanPointerUp);
+  window.addEventListener("pointercancel", onNudgePointerUp);
   dom.addNoteBtn.addEventListener("click", addNote);
   dom.noteInput.addEventListener("keydown", (event) => {
     if(event.key === "Enter") addNote();
@@ -200,6 +219,42 @@ function saveDesign(showToast = true){
   if(showToast) toast("保存しました");
 }
 
+function historySnapshot(){
+  return {
+    design: JSON.parse(JSON.stringify(state.design)),
+    selectedId: state.selectedId,
+    floorMode: state.floorMode,
+    view: state.view,
+    dockMode: state.dockMode
+  };
+}
+
+function pushHistory(snapshot = historySnapshot()){
+  if(!snapshot || !snapshot.design) return;
+  state.undoStack.push(snapshot);
+  if(state.undoStack.length > 40) state.undoStack.shift();
+  updateUndoControls();
+}
+
+function undo(){
+  const snapshot = state.undoStack.pop();
+  if(!snapshot) return;
+  state.design = snapshot.design;
+  state.selectedId = snapshot.selectedId;
+  state.floorMode = snapshot.floorMode || state.floorMode;
+  state.view = snapshot.view || state.view;
+  state.dockMode = snapshot.dockMode || state.dockMode;
+  state.drag = null;
+  state.measurePoints = [];
+  saveDesign(false);
+  render();
+  toast("元に戻しました");
+}
+
+function updateUndoControls(){
+  if(dom.undoBtn) dom.undoBtn.disabled = state.undoStack.length === 0;
+}
+
 function render(){
   renderViewTabs();
   renderFloorTabs();
@@ -209,6 +264,7 @@ function render(){
   renderLists();
   renderSelectedPanel();
   renderSceneOnly();
+  updateUndoControls();
 }
 
 function renderSceneOnly(){
@@ -256,6 +312,7 @@ function onDockClick(event){
   if(!button) return;
   const mode = button.dataset.dock;
   state.dockMode = mode;
+  state.measurePoints = mode === "measure" ? state.measurePoints : [];
   if(mode === "3d"){
     state.view = "3d";
     render();
@@ -268,17 +325,12 @@ function onDockClick(event){
   }
   state.view = "plan";
   render();
-  const target = {
-    select: ".selectedBlock",
-    add: ".addBlock",
-    measure: ".siteConditionBlock",
-    more: ".inspector"
-  }[mode];
-  if(target) requestAnimationFrame(() => document.querySelector(target)?.scrollIntoView({ block: "start", behavior: "smooth" }));
 }
 
 function updateDockControls(){
   if(!dom.modeDock) return;
+  document.body.dataset.view = state.view;
+  document.body.dataset.dockMode = state.dockMode;
   dom.modeDock.querySelectorAll("button[data-dock]").forEach((button) => {
     const mode = button.dataset.dock;
     const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? mode === "browse" : mode === state.dockMode;
@@ -352,6 +404,7 @@ function siteOffsets(){
 
 function applySiteOffsets(showToast){
   if(!state.plan || !state.design) return;
+  if(showToast) pushHistory();
   const offsets = {
     north: numberValue(dom.siteNorthInput, siteOffsets().north),
     east: numberValue(dom.siteEastInput, siteOffsets().east),
@@ -452,6 +505,11 @@ function allLibraryItems(){
 }
 
 function onPlanPointerDown(event){
+  if(state.dockMode === "measure"){
+    event.preventDefault();
+    addMeasurePoint(event);
+    return;
+  }
   const target = event.target.closest("[data-id]");
   if(!target) return;
   const item = findCustomById(target.dataset.id);
@@ -467,7 +525,8 @@ function onPlanPointerDown(event){
     x: item.x,
     y: item.y,
     w: item.w,
-    h: item.h
+    h: item.h,
+    before: historySnapshot()
   };
   try{ dom.planSvg.setPointerCapture?.(event.pointerId); }catch(_){}
   document.body.classList.add("draggingPlan");
@@ -498,6 +557,14 @@ function onPlanPointerMove(event){
 
 function onPlanPointerUp(){
   if(!state.drag) return;
+  const item = findCustomById(state.drag.id);
+  const changed = item && (
+    Math.abs(item.x - state.drag.x) > 0.01 ||
+    Math.abs(item.y - state.drag.y) > 0.01 ||
+    Math.abs(item.w - state.drag.w) > 0.01 ||
+    Math.abs(item.h - state.drag.h) > 0.01
+  );
+  if(changed) pushHistory(state.drag.before);
   try{ dom.planSvg.releasePointerCapture?.(state.drag.pointerId); }catch(_){}
   state.drag = null;
   document.body.classList.remove("draggingPlan");
@@ -506,11 +573,15 @@ function onPlanPointerUp(){
 }
 
 function onPlanNudgeClick(event){
-  const button = event.target.closest("button[data-move],button[data-size-step]");
+  const button = event.target.closest("button[data-move],button[data-size-step],button[data-delete-selected]");
   if(!button) return;
   const item = findCustomById(state.selectedId);
   if(!item) return;
   event.preventDefault();
+  if(button.dataset.deleteSelected){
+    deleteCustomItem(item.id);
+    return;
+  }
   if(button.dataset.sizeStep){
     const next = Number(button.dataset.sizeStep);
     if(Number.isFinite(next)){
@@ -521,6 +592,7 @@ function onPlanNudgeClick(event){
   }
   const [mx, my] = button.dataset.move.split(",").map(Number);
   const step = mmToPx(Number(item.nudgeMm || 100));
+  pushHistory();
   item.x = snapFine(item.x + mx * step);
   item.y = snapFine(item.y + my * step);
   saveDesign(false);
@@ -528,6 +600,53 @@ function onPlanNudgeClick(event){
   renderLists();
   renderSelectedPanel();
   renderSceneOnly();
+}
+
+function onPlanNudgePointerDown(event){
+  if(event.target.closest("button")) return;
+  if(dom.planNudge.hidden) return;
+  event.preventDefault();
+  const panelRect = dom.planNudge.getBoundingClientRect();
+  const stageRect = dom.stagePlan.getBoundingClientRect();
+  state.nudgeDrag = {
+    pointerId: event.pointerId,
+    clientX: event.clientX,
+    clientY: event.clientY,
+    x: Number.isFinite(state.nudgeUi.x) ? state.nudgeUi.x : panelRect.left - stageRect.left,
+    y: Number.isFinite(state.nudgeUi.y) ? state.nudgeUi.y : panelRect.top - stageRect.top
+  };
+  dom.planNudge.classList.add("draggingNudge");
+  try{ dom.planNudge.setPointerCapture?.(event.pointerId); }catch(_){}
+}
+
+function onNudgePointerMove(event){
+  if(!state.nudgeDrag) return;
+  event.preventDefault();
+  const stageRect = dom.stagePlan.getBoundingClientRect();
+  const panelRect = dom.planNudge.getBoundingClientRect();
+  const maxX = Math.max(8, stageRect.width - panelRect.width - 8);
+  const maxY = Math.max(8, stageRect.height - panelRect.height - 8);
+  state.nudgeUi.x = clamp(state.nudgeDrag.x + event.clientX - state.nudgeDrag.clientX, 8, maxX);
+  state.nudgeUi.y = clamp(state.nudgeDrag.y + event.clientY - state.nudgeDrag.clientY, 8, maxY);
+  positionPlanNudge();
+}
+
+function onNudgePointerUp(){
+  if(!state.nudgeDrag) return;
+  try{ dom.planNudge.releasePointerCapture?.(state.nudgeDrag.pointerId); }catch(_){}
+  state.nudgeDrag = null;
+  dom.planNudge.classList.remove("draggingNudge");
+}
+
+function deleteCustomItem(id){
+  const item = findCustomById(id);
+  if(!item) return;
+  pushHistory();
+  state.design.customItems = state.design.customItems.filter((candidate) => candidate.id !== id);
+  state.selectedId = null;
+  saveDesign(false);
+  render();
+  toast(`${item.label || "選択中"}を削除しました`);
 }
 
 function svgPoint(event){
@@ -581,10 +700,58 @@ function renderPlan(){
     if(state.layers[item.layer] !== false) chunks.push(renderFurnitureSvg(item, false));
   });
   if(state.layers.exterior) chunks.push(renderSiteDistanceSvg());
+  chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
   dom.planHudTitle.textContent = selected?.source === "custom" ? `選択: ${selected.item.label}` : "図面操作";
   renderPlanNudge();
+  renderMeasureHud();
+}
+
+function addMeasurePoint(event){
+  const point = svgPoint(event);
+  if(state.measurePoints.length >= 2) state.measurePoints = [];
+  state.measurePoints.push(point);
+  state.selectedId = null;
+  renderPlan();
+}
+
+function renderMeasureHud(){
+  if(!dom.measureHud) return;
+  const active = state.view === "plan" && state.dockMode === "measure";
+  dom.measureHud.hidden = !active;
+  if(!active) return;
+  if(state.measurePoints.length === 0){
+    dom.measureText.textContent = "始点をタップ";
+  }else if(state.measurePoints.length === 1){
+    dom.measureText.textContent = "終点をタップ";
+  }else{
+    dom.measureText.textContent = `距離 ${measureDistanceText(state.measurePoints[0], state.measurePoints[1])}`;
+  }
+}
+
+function renderMeasureSvg(){
+  const points = state.measurePoints;
+  if(!points.length) return "";
+  const dots = points.map((point, index) => (
+    `<g class="measurePoint">
+      <circle cx="${point.x}" cy="${point.y}" r="5" fill="#ff2d55" stroke="#fff" stroke-width="2"/>
+      <text x="${point.x + 8}" y="${point.y - 8}" class="measureText">${index === 0 ? "始点" : "終点"}</text>
+    </g>`
+  )).join("");
+  if(points.length < 2) return dots;
+  const [a, b] = points;
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  return `<g class="measureLayer">
+    <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="measureLine"/>
+    ${dots}
+    <text x="${mx}" y="${my - 10}" text-anchor="middle" class="measureLabel">${measureDistanceText(a, b)}</text>
+  </g>`;
+}
+
+function measureDistanceText(a, b){
+  return `${(pxToMm(Math.hypot(b.x - a.x, b.y - a.y)) / 1000).toFixed(2)}m`;
 }
 
 function renderPlanNudge(){
@@ -596,7 +763,7 @@ function renderPlanNudge(){
   }
   const step = Number(item.nudgeMm || 100);
   dom.planNudge.hidden = false;
-  dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><span>微調整</span></div>
+  dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><button type="button" data-delete-selected="1">削除</button></div>
     <div class="nudgeSteps">
       <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
       <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
@@ -605,6 +772,22 @@ function renderPlanNudge(){
       <span></span><button type="button" data-move="0,-1">↑</button><span></span>
       <button type="button" data-move="-1,0">←</button><button type="button" data-move="0,1">↓</button><button type="button" data-move="1,0">→</button>
     </div>`;
+  positionPlanNudge();
+}
+
+function positionPlanNudge(){
+  if(!dom.planNudge || dom.planNudge.hidden) return;
+  if(Number.isFinite(state.nudgeUi.x) && Number.isFinite(state.nudgeUi.y)){
+    dom.planNudge.style.left = `${state.nudgeUi.x}px`;
+    dom.planNudge.style.top = `${state.nudgeUi.y}px`;
+    dom.planNudge.style.right = "auto";
+    dom.planNudge.style.bottom = "auto";
+  }else{
+    dom.planNudge.style.left = "";
+    dom.planNudge.style.top = "";
+    dom.planNudge.style.right = "";
+    dom.planNudge.style.bottom = "";
+  }
 }
 
 function renderExteriorSvg(bounds){
@@ -773,6 +956,7 @@ function noteRow(note){
 function handleListClick(event){
   const del = event.target.closest("[data-note-delete]");
   if(del){
+    pushHistory();
     state.design.notes = (state.design.notes || []).filter((note) => note.id !== del.dataset.noteDelete);
     saveDesign(false);
     renderLists();
@@ -819,8 +1003,17 @@ function finishOptions(group, active){
 
 function bindRoomEditor(room){
   const finish = state.design.finishes[room.id] || (state.design.finishes[room.id] = {});
+  let editSnapshot = null;
   [["floorFinish","floor"],["wallFinish","wall"],["ceilingFinish","ceiling"],["roomMemo","memo"]].forEach(([id, key]) => {
-    document.getElementById(id).addEventListener("input", (event) => {
+    const input = document.getElementById(id);
+    input.addEventListener("focus", () => {
+      editSnapshot = editSnapshot || historySnapshot();
+    });
+    input.addEventListener("input", (event) => {
+      if(editSnapshot){
+        pushHistory(editSnapshot);
+        editSnapshot = null;
+      }
       finish[key] = event.target.value;
       saveDesign(false);
       renderPlan();
@@ -850,7 +1043,12 @@ function renderCustomEditor(item){
 }
 
 function bindCustomEditor(item){
+  let editSnapshot = null;
   const update = () => {
+    if(editSnapshot){
+      pushHistory(editSnapshot);
+      editSnapshot = null;
+    }
     item.label = document.getElementById("itemLabel").value.trim() || item.label;
     item.color = document.getElementById("itemColor").value;
     item.w = mmToPx(numberValue(document.getElementById("itemW"), pxToMm(item.w)));
@@ -863,15 +1061,17 @@ function bindCustomEditor(item){
     renderSceneOnly();
   };
   ["itemLabel","itemColor","itemW","itemD","itemH","itemRot"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", update);
+    const input = document.getElementById(id);
+    input.addEventListener("focus", () => {
+      editSnapshot = editSnapshot || historySnapshot();
+    });
+    input.addEventListener("input", update);
   });
   document.getElementById("deleteItemBtn").addEventListener("click", () => {
-    state.design.customItems = state.design.customItems.filter((candidate) => candidate.id !== item.id);
-    state.selectedId = null;
-    saveDesign(false);
-    render();
+    deleteCustomItem(item.id);
   });
   document.getElementById("rotateItemBtn").addEventListener("click", () => {
+    pushHistory();
     item.rotation = ((item.rotation || 0) + 90) % 360;
     saveDesign(false);
     render();
@@ -879,6 +1079,7 @@ function bindCustomEditor(item){
   dom.selectedPanel.querySelectorAll("[data-nudge]").forEach((button) => {
     button.addEventListener("click", () => {
       const [dx, dy] = button.dataset.nudge.split(",").map(Number);
+      pushHistory();
       item.x += dx;
       item.y += dy;
       saveDesign(false);
@@ -890,6 +1091,7 @@ function bindCustomEditor(item){
 function addCustomItem(kind){
   const preset = allLibraryItems().find((item) => item.kind === kind);
   if(!preset || !state.plan) return;
+  pushHistory();
   const floorIndex = state.floorMode === "all" ? 0 : Number(state.floorMode || 0);
   const selectedRoom = findSelected()?.source === "room" ? findSelected().item : roomsForFloor(state.plan, String(floorIndex))[0];
   const bounds = floorBounds(state.plan, String(floorIndex), 0);
@@ -960,6 +1162,7 @@ function findSelected(){
 function addNote(){
   const text = dom.noteInput.value.trim();
   if(!text) return;
+  pushHistory();
   state.design.notes.unshift({ id: uid(), category: dom.noteCategory.value, text, done: false });
   dom.noteInput.value = "";
   saveDesign(false);
@@ -985,6 +1188,10 @@ function exportDesign(){
 function numberValue(input, fallback){
   const value = Number(input.value);
   return Number.isFinite(value) ? value : fallback;
+}
+
+function clamp(value, min, max){
+  return Math.min(max, Math.max(min, value));
 }
 
 function floorLabel(index){

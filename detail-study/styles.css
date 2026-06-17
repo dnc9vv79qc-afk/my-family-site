@@ -272,8 +272,14 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   background:rgba(255,255,255,.90);
   box-shadow:0 10px 28px rgba(31,35,28,.12);
   backdrop-filter:blur(14px);
+  touch-action:none;
+  cursor:grab;
 }
 .planNudge[hidden]{ display:none; }
+.planNudge.draggingNudge{
+  cursor:grabbing;
+  box-shadow:0 16px 40px rgba(31,35,28,.18);
+}
 .nudgeMiniHead{
   display:flex;
   align-items:center;
@@ -281,7 +287,15 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   gap:6px;
 }
 .nudgeMiniHead b{ min-width:0; font-size:11px; font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.nudgeMiniHead span{ color:var(--muted); font-size:9px; font-weight:850; white-space:nowrap; }
+.nudgeMiniHead button{
+  height:24px;
+  border-radius:7px;
+  padding:0 8px;
+  color:#fff;
+  background:var(--red);
+  font-size:10px;
+  font-weight:900;
+}
 .nudgeSteps{ display:grid; grid-template-columns:1fr 1fr; gap:4px; }
 .nudgeSteps button,.nudgePad button{
   min-width:0;
@@ -311,6 +325,62 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planSub{ font-size:6px; font-weight:850; fill:#5e655c; pointer-events:none; paint-order:stroke; stroke:#fff; stroke-width:2; }
 .planDistance{ stroke:#286fd6; stroke-width:1.5; stroke-dasharray:5 4; pointer-events:none; }
 .planDistanceText{ font-size:7px; font-weight:950; fill:#1f5ead; paint-order:stroke; stroke:#fff; stroke-width:3; pointer-events:none; }
+.measureHud{
+  position:absolute;
+  left:12px;
+  bottom:12px;
+  z-index:6;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:calc(100% - 24px);
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 10px 28px rgba(31,35,28,.12);
+  backdrop-filter:blur(14px);
+}
+.measureHud[hidden]{ display:none; }
+.measureHud b{
+  font-size:12px;
+  font-weight:950;
+  white-space:nowrap;
+}
+.measureHud span{
+  min-width:0;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.measureHud button{
+  height:28px;
+  border-radius:8px;
+  padding:0 9px;
+  color:#fff;
+  background:var(--blue);
+  font-size:11px;
+  font-weight:900;
+}
+.measureLine{
+  stroke:#ff2d55;
+  stroke-width:3;
+  stroke-linecap:round;
+  pointer-events:none;
+}
+.measureText,.measureLabel{
+  font-size:8px;
+  font-weight:950;
+  fill:#c9163d;
+  paint-order:stroke;
+  stroke:#fff;
+  stroke-width:3;
+  pointer-events:none;
+}
+.measureLabel{ font-size:10px; }
 .stageList{ overflow:auto; padding:14px; background:#fafaf7; }
 .listColumns{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:860px; }
 .listColumns section{ min-width:0; }
@@ -566,8 +636,15 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .workspace,.stageArea,.inspector{ min-height:0; }
 }
 @media (max-width: 620px){
+  html,body{ height:100%; overflow:hidden; overscroll-behavior:none; }
   body{ background:#fff; }
-  .app{ padding-bottom:98px; }
+  .app{
+    height:100dvh;
+    min-height:0;
+    grid-template-rows:auto minmax(0,1fr);
+    padding-bottom:98px;
+    overflow:hidden;
+  }
   .topbar{
     position:relative;
     grid-template-columns:1fr;
@@ -583,8 +660,16 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .brand b{ font-size:15px; }
   .brand span{ font-size:10px; }
   .topActions{ display:none; }
-  .workspace{ grid-template-rows:minmax(420px,58vh) auto; }
-  .stageArea{ background:#fff; }
+  .workspace{
+    min-height:0;
+    overflow:hidden;
+    grid-template-rows:minmax(0,1fr) auto;
+  }
+  .stageArea{
+    min-height:0;
+    background:#fff;
+    grid-template-rows:auto minmax(0,1fr);
+  }
   .stageToolbar{
     grid-template-columns:minmax(0,1fr) minmax(148px,auto);
     gap:7px;
@@ -604,6 +689,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .metricStrip{ grid-column:1 / -1; justify-content:flex-start; overflow:auto; padding-top:2px; }
   .metricStrip span{ background:#fff; }
   .stage{
+    min-height:0;
     border-top:1px solid rgba(31,35,28,.08);
     border-bottom:1px solid rgba(31,35,28,.08);
   }
@@ -613,8 +699,26 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   }
   .inspector{
     grid-template-columns:1fr;
+    max-height:min(34vh,286px);
+    overflow:auto;
+    overscroll-behavior:contain;
     padding:12px 16px 110px;
     background:#fff;
+  }
+  body[data-view="3d"] .inspector,
+  body[data-view="list"] .inspector{
+    display:none;
+  }
+  body[data-view="plan"] .inspector .panelBlock{
+    display:none;
+  }
+  body[data-view="plan"][data-dock-mode="select"] .inspector .selectedBlock,
+  body[data-view="plan"][data-dock-mode="select"] .inspector .siteConditionBlock,
+  body[data-view="plan"][data-dock-mode="add"] .inspector .addBlock,
+  body[data-view="plan"][data-dock-mode="measure"] .inspector .siteConditionBlock,
+  body[data-view="plan"][data-dock-mode="more"] .inspector .layerBlock,
+  body[data-view="plan"][data-dock-mode="more"] .inspector .noteBlock{
+    display:block;
   }
   .panelBlock{
     border-radius:13px;
@@ -627,6 +731,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .viewPresetBar{ top:54px; left:8px; right:auto; }
   .viewPresetBar button{ min-width:40px; padding:0 8px; }
   .planNudge{ top:auto; left:auto; right:10px; bottom:10px; width:146px; }
+  .measureHud{ left:10px; right:10px; bottom:10px; width:auto; }
   .nudgePad{ grid-template-columns:repeat(3,31px); }
   .roomWarp{ left:8px; right:8px; bottom:8px; }
   .walkStick{ left:14px; bottom:62px; width:96px; height:96px; }

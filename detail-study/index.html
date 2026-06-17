@@ -67,9 +67,14 @@
             <div class="hudTools">
               <button type="button" id="centerPlanBtn">全体表示</button>
               <button type="button" id="clearSelectionBtn">選択解除</button>
+              <button type="button" id="undoBtn" disabled>元に戻す</button>
             </div>
           </div>
           <div class="planNudge" id="planNudge"></div>
+          <div class="measureHud" id="measureHud" hidden>
+            <b>2点測定</b><span id="measureText">始点をタップ</span>
+            <button type="button" id="clearMeasureBtn">クリア</button>
+          </div>
         </div>
 
         <div class="stage stageList" id="stageList" hidden>
@@ -86,7 +91,7 @@
         </div>
       </section>
 
-      <aside class="inspector">
+      <aside class="inspector" id="inspector">
         <section class="panelBlock layerBlock">
           <div class="blockTitle">表示切替</div>
           <div class="toggleGrid" id="layerToggles">
@@ -132,7 +137,7 @@
           <div id="selectedPanel" class="selectedPanel"></div>
         </section>
 
-        <section class="panelBlock">
+        <section class="panelBlock noteBlock">
           <div class="blockTitle">メモ</div>
           <div class="noteComposer">
             <select id="noteCategory">
