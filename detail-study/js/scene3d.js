@@ -350,52 +350,13 @@ export class DetailScene3D {
 
   buildExterior(bounds, design){
     const ext = design.exterior || {};
-    const setback = Number(ext.setbackM || 2.4);
-    const x = pxToM(bounds.minX) - setback;
-    const z = pxToM(bounds.minY) - setback;
-    const w = pxToM(bounds.width) + setback * 2;
-    const d = pxToM(bounds.height) + setback * 2;
-    const ground = new THREE.Mesh(
-      new THREE.BoxGeometry(w, 0.035, d),
-      mat("#dce7d8", 0.95, 0.58)
-    );
-    ground.position.set(x + w / 2, -0.03, z + d / 2);
-    ground.receiveShadow = true;
-    this.root.add(ground);
-
-    const driveW = Math.min(w * 0.55, 5.6);
-    const driveD = Math.max(2.4, setback + 1.2);
-    const driveway = new THREE.Mesh(new THREE.BoxGeometry(driveW, 0.04, driveD), mat("#c9ccc7", 0.98, 0.46));
-    driveway.position.set(x + w * 0.68, 0.005, z + d - driveD / 2);
-    driveway.receiveShadow = true;
-    this.root.add(driveway);
-
-    const cars = clamp(Math.round(Number(ext.parkingCars || 0)), 0, 4);
-    for(let i = 0; i < cars; i++){
-      const car = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.42, 3.9), mat(i % 2 ? "#e8ecef" : "#424948", 0.55, 0.4));
-      car.position.set(driveway.position.x - (cars - 1) * 0.95 + i * 1.9, 0.27, driveway.position.z);
-      car.castShadow = true;
-      this.root.add(car);
-    }
-
-    const deckDepth = Number(ext.deckM || 0);
-    if(deckDepth > 0.05){
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(Math.min(w * 0.45, 4.8), 0.16, deckDepth), mat("#b78354", 0.82, 0.46));
-      deck.position.set(x + w * 0.34, 0.08, z + d - setback - deckDepth / 2);
-      deck.castShadow = true;
-      deck.receiveShadow = true;
-      this.root.add(deck);
-    }
-
-    const garden = new THREE.Mesh(new THREE.BoxGeometry(Math.min(w * 0.36, 4.6), 0.06, Math.min(d * 0.18, 2.6)), mat("#7aa85d", 0.88, 0.66));
-    garden.position.set(x + w * 0.28, 0.02, z + d - 1.25);
-    this.root.add(garden);
-    for(let i = 0; i < 5; i++){
-      const plant = new THREE.Mesh(new THREE.ConeGeometry(0.22 + (i % 2) * 0.08, 0.9 + (i % 3) * 0.2, 9), mat("#3f7e49", 0.8, 0.55));
-      plant.position.set(garden.position.x - 1.8 + i * 0.85, 0.5, garden.position.z + (i % 2) * 0.45 - 0.2);
-      plant.castShadow = true;
-      this.root.add(plant);
-    }
+    const site = (design.customItems || []).find((item) => item.layer === "exterior" && item.kind === "site");
+    if(!site) return;
+    const x = pxToM(site.x);
+    const z = pxToM(site.y);
+    const w = pxToM(site.w);
+    const d = pxToM(site.h);
+    if(w <= 0 || d <= 0) return;
 
     if(ext.fence){
       const fenceMat = mat("#9b7a55", 0.82, 0.42);
