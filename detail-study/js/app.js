@@ -583,7 +583,7 @@ function renderPlan(){
   if(state.layers.exterior) chunks.push(renderSiteDistanceSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
-  dom.planHudTitle.textContent = selected?.source === "custom" ? selected.item.label : "平面編集";
+  dom.planHudTitle.textContent = selected?.source === "custom" ? `選択: ${selected.item.label}` : "図面操作";
   renderPlanNudge();
 }
 
@@ -595,9 +595,8 @@ function renderPlanNudge(){
     return;
   }
   const step = Number(item.nudgeMm || 100);
-  const offset = exteriorOffsetText(item);
   dom.planNudge.hidden = false;
-  dom.planNudge.innerHTML = `<div class="nudgeHead"><b>${escapeHtml(item.label || "選択中")}</b><span>${offset}</span></div>
+  dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><span>微調整</span></div>
     <div class="nudgeSteps">
       <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
       <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
@@ -606,18 +605,6 @@ function renderPlanNudge(){
       <span></span><button type="button" data-move="0,-1">↑</button><span></span>
       <button type="button" data-move="-1,0">←</button><button type="button" data-move="0,1">↓</button><button type="button" data-move="1,0">→</button>
     </div>`;
-}
-
-function exteriorOffsetText(item){
-  if(item.layer !== "exterior") return `${pxToMm(item.x)} / ${pxToMm(item.y)}mm`;
-  const house = houseBoundsPx();
-  if(!house) return `${pxToMm(item.x)} / ${pxToMm(item.y)}mm`;
-  if(item.kind === "site"){
-    const east = Math.max(0, item.x + item.w - house.maxX);
-    const south = Math.max(0, item.y + item.h - house.maxY);
-    return `北${formatDistance(Math.max(0, house.minY - item.y))} 東${formatDistance(east)} 南${formatDistance(south)} 西${formatDistance(Math.max(0, house.minX - item.x))}`;
-  }
-  return `建物から X${formatDistance(item.x - house.minX)} Y${formatDistance(item.y - house.minY)}`;
 }
 
 function renderExteriorSvg(bounds){
