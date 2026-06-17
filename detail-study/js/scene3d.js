@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, floorBounds } from "./data.js";
+import { pxToM, pxToMm, floorBounds } from "./data.js";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -584,14 +584,18 @@ export class DetailScene3D {
   }
 
   addFurnitureBox(item, floorIndex, yBase, selectedId, existing){
-    if(!existing && item.layer === "exterior"){
-      this.addExteriorCustom(item, yBase, selectedId);
-      return;
-    }
     const hM = existing ? Math.max(0.08, Number(item.fh || 700) / 1000) : Math.max(0.08, Number(item.heightMm || 700) / 1000);
     const glM = existing ? Math.max(0, Number(item.gl || 0) / 1000) : Math.max(0, Number(item.glMm || 0) / 1000);
     const layer = existing ? "furniture" : item.layer;
     const alpha = layer === "openings" ? 0.46 : 0.88;
+    if(!existing && Array.isArray(item.modelParts) && item.modelParts.length){
+      this.addCustomModel(item, yBase, selectedId);
+      return;
+    }
+    if(!existing && item.layer === "exterior"){
+      this.addExteriorCustom(item, yBase, selectedId);
+      return;
+    }
     if(item.kind === "plant"){
       const plant = new THREE.Mesh(new THREE.ConeGeometry(Math.max(0.16, pxToM(item.w) / 2), hM, 10), mat(item.color || "#4f9a5c", 0.85, 0.5));
       plant.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM + hM / 2, pxToM(item.y + item.h / 2));
@@ -613,6 +617,44 @@ export class DetailScene3D {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.root.add(mesh);
+  }
+
+  addCustomModel(item, yBase, selectedId){
+    const parts = normalizeModelParts3d(item.modelParts);
+    const size = modelSizeFromParts3d(parts);
+    const scaleX = (pxToMm(item.w) / Math.max(1, size.w));
+    const scaleZ = (pxToMm(item.h) / Math.max(1, size.d));
+    const scaleY = Math.max(scaleX, scaleZ);
+    const glM = Math.max(0, Number(item.glMm || 0) / 1000);
+    const group = new THREE.Group();
+    group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));
+    group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+    parts.forEach((part) => {
+      const material = mat(part.color || item.color || "#b9c0c8", 0.9, 0.48);
+      const w = Math.max(0.03, (part.wMm * scaleX) / 1000);
+      const d = Math.max(0.03, (part.dMm * scaleZ) / 1000);
+      const h = Math.max(0.03, (part.hMm * scaleY) / 1000);
+      let mesh;
+      if(part.type === "cylinder"){
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 24), material);
+        mesh.scale.set(w, h, d);
+      }else if(part.type === "sphere"){
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), material);
+        mesh.scale.set(w, h, d);
+      }else{
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      }
+      mesh.position.set(((part.xMm - size.centerX) * scaleX) / 1000, (part.zMm * scaleY) / 1000 + h / 2, ((part.yMm - size.centerY) * scaleZ) / 1000);
+      mesh.rotation.y = ((part.rotation || 0) * Math.PI) / 180;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    });
+    this.root.add(group);
+    if(selectedId === item.id){
+      const edge = new THREE.BoxHelper(group, new THREE.Color("#286fd6"));
+      this.root.add(edge);
+    }
   }
 
   addExteriorCustom(item, yBase, selectedId){
@@ -999,6 +1041,48 @@ function addRoofPlane(group, points, material){
   mesh.receiveShadow = true;
   group.add(mesh);
   return mesh;
+}
+
+function normalizeModelParts3d(parts){
+  const source = Array.isArray(parts) && parts.length ? parts : [{ type:"box", xMm:0, yMm:0, zMm:0, wMm:700, dMm:450, hMm:500, color:"#b9c0c8", rotation:0 }];
+  return source.map((part) => ({
+    type: ["box", "cylinder", "sphere"].includes(part.type) ? part.type : "box",
+    xMm: finiteNumber(part.xMm, 0),
+    yMm: finiteNumber(part.yMm, 0),
+    zMm: Math.max(0, finiteNumber(part.zMm, 0)),
+    wMm: Math.max(50, finiteNumber(part.wMm, 600)),
+    dMm: Math.max(50, finiteNumber(part.dMm, 400)),
+    hMm: Math.max(30, finiteNumber(part.hMm, 500)),
+    rotation: finiteNumber(part.rotation, 0),
+    color: part.color || "#b9c0c8"
+  }));
+}
+
+function modelSizeFromParts3d(parts){
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxH = 0;
+  parts.forEach((part) => {
+    minX = Math.min(minX, part.xMm - part.wMm / 2);
+    minY = Math.min(minY, part.yMm - part.dMm / 2);
+    maxX = Math.max(maxX, part.xMm + part.wMm / 2);
+    maxY = Math.max(maxY, part.yMm + part.dMm / 2);
+    maxH = Math.max(maxH, part.zMm + part.hMm);
+  });
+  return {
+    w: Math.max(50, maxX - minX),
+    d: Math.max(50, maxY - minY),
+    h: Math.max(30, maxH),
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2
+  };
+}
+
+function finiteNumber(value, fallback){
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function floorMaterial(kind, color){

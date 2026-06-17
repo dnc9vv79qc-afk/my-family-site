@@ -132,6 +132,7 @@
 
         <section class="panelBlock addBlock">
           <div class="blockTitle">家具・棚・窓</div>
+          <button class="wideAction objectBuilderOpen" id="openObjectBuilderBtn" type="button">3D部品を作る</button>
           <div class="palette groupedPalette" id="palette"></div>
         </section>
 
@@ -166,6 +167,36 @@
       <button type="button" data-dock="more"><span>…</span><b>他</b></button>
     </nav>
   </div>
+
+  <section class="objectBuilder" id="objectBuilder" hidden>
+    <div class="builderTop">
+      <button type="button" id="builderCloseBtn">戻る</button>
+      <div>
+        <b>3D部品作成</b>
+        <span>箱・円柱・球を組み合わせて保存</span>
+      </div>
+      <button type="button" id="builderSaveBtn">保存</button>
+    </div>
+    <div class="builderCanvasWrap">
+      <svg id="builderPreview" viewBox="-140 -140 280 280" role="img" aria-label="作成中部品の平面プレビュー"></svg>
+    </div>
+    <div class="builderTools">
+      <div class="builderMeta">
+        <input id="builderNameInput" type="text" maxlength="18" value="作成部品">
+        <select id="builderLayerInput">
+          <option value="exterior">外構に置く</option>
+          <option value="furniture">室内に置く</option>
+        </select>
+      </div>
+      <div class="builderShapeButtons">
+        <button type="button" data-builder-add="box">四角</button>
+        <button type="button" data-builder-add="cylinder">丸柱</button>
+        <button type="button" data-builder-add="sphere">球</button>
+      </div>
+      <div class="builderPartList" id="builderPartList"></div>
+      <div class="builderEditor" id="builderEditor"></div>
+    </div>
+  </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
   <script type="module" src="./js/app.js"></script>

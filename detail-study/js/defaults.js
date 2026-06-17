@@ -67,6 +67,7 @@ export function createDefaultDesign(layoutId){
     },
     finishes: {},
     customItems: [],
+    customModels: [],
     notes: [
       { id: uid(), category:"外構", text:"駐車2台と玄関アプローチの幅を確認", done:false },
       { id: uid(), category:"家具", text:"LDKのソファ・ダイニング間隔を確認", done:false },
@@ -118,10 +119,16 @@ export function makeCustomItem(preset, floorIndex, center){
     category: preset.category || "",
     meta: preset.meta || "",
     shape: preset.shape || preset.kind,
-    locked: !!preset.locked
+    locked: !!preset.locked,
+    modelId: preset.modelId || "",
+    modelParts: preset.modelParts ? cloneModelParts(preset.modelParts) : null
   };
 }
 
 export function uid(){
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+}
+
+export function cloneModelParts(parts){
+  return Array.isArray(parts) ? parts.map((part) => ({ ...part })) : [];
 }

@@ -13,7 +13,7 @@ import {
   pxToMm,
   mmToPx
 } from "./data.js";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid } from "./defaults.js";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js";
 
 const state = {
   plan: null,
@@ -29,6 +29,7 @@ const state = {
   undoStack: [],
   measurePoints: [],
   nudgeUi: { x: null, y: null },
+  builder: null,
   layers: {
     site: true,
     rooms: true,
@@ -66,7 +67,8 @@ function cacheDom(){
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
     "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
-    "addNoteBtn","toast","viewBadge","modeDock","inspector"
+    "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
+    "builderCloseBtn","builderSaveBtn","builderPreview","builderNameInput","builderLayerInput","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -169,6 +171,11 @@ function bindEvents(){
   dom.noteInput.addEventListener("keydown", (event) => {
     if(event.key === "Enter") addNote();
   });
+  dom.openObjectBuilderBtn?.addEventListener("click", () => openObjectBuilder());
+  dom.builderCloseBtn?.addEventListener("click", closeObjectBuilder);
+  dom.builderSaveBtn?.addEventListener("click", saveObjectBuilder);
+  dom.objectBuilder?.addEventListener("click", onObjectBuilderClick);
+  dom.objectBuilder?.addEventListener("input", onObjectBuilderInput);
 }
 
 async function loadCurrentLayout(force = false){
@@ -182,6 +189,7 @@ async function loadCurrentLayout(force = false){
     state.selectedId = null;
     dom.layoutMeta.textContent = `${state.plan.title} / ${id}`;
     saveDesign(false);
+    renderPalette();
     render();
   }catch(error){
     console.error(error);
@@ -212,6 +220,7 @@ function mergeDesign(base, saved){
     exterior: { ...base.exterior, ...(saved.exterior || {}) },
     finishes: { ...base.finishes, ...(saved.finishes || {}) },
     customItems: Array.isArray(saved.customItems) ? saved.customItems.map(normalizeCustomItem) : [],
+    customModels: Array.isArray(saved.customModels) ? saved.customModels.map(normalizeCustomModel) : [],
     notes: Array.isArray(saved.notes) ? saved.notes : base.notes
   };
   return merged;
@@ -221,7 +230,42 @@ function normalizeCustomItem(item){
   const next = { ...item };
   if(next.kind === "site") next.locked = true;
   if(!next.layer) next.layer = "exterior";
+  if(Array.isArray(next.modelParts)) next.modelParts = cloneModelParts(next.modelParts);
   return next;
+}
+
+function normalizeCustomModel(model){
+  const parts = normalizeModelParts(model?.parts);
+  const size = modelSizeFromParts(parts);
+  return {
+    id: model?.id || uid(),
+    label: String(model?.label || "作成部品").slice(0, 18),
+    parts,
+    w: Number(model?.w) || size.w,
+    d: Number(model?.d) || size.d,
+    h: Number(model?.h) || size.h,
+    color: safeColor(model?.color, parts[0]?.color || "#b9c0c8"),
+    layer: model?.layer === "furniture" ? "furniture" : "exterior",
+    category: "作成部品",
+    createdAt: model?.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeModelParts(parts){
+  const source = Array.isArray(parts) && parts.length ? parts : defaultModelParts();
+  return source.slice(0, 24).map((part) => ({
+    id: part.id || uid(),
+    type: ["box", "cylinder", "sphere"].includes(part.type) ? part.type : "box",
+    label: part.label || partLabel(part.type),
+    xMm: finiteNumber(part.xMm, 0),
+    yMm: finiteNumber(part.yMm, 0),
+    zMm: finiteNumber(part.zMm, 0),
+    wMm: clamp(finiteNumber(part.wMm, 600), 50, 6000),
+    dMm: clamp(finiteNumber(part.dMm, 400), 50, 6000),
+    hMm: clamp(finiteNumber(part.hMm, 500), 30, 5000),
+    rotation: ((finiteNumber(part.rotation, 0) % 360) + 360) % 360,
+    color: safeColor(part.color, "#b9c0c8")
+  }));
 }
 
 function storageKey(layoutId){
@@ -543,14 +587,19 @@ function renderMetrics(){
 }
 
 function renderPalette(){
-  dom.exteriorPalette.innerHTML = renderLibrary(EXTERIOR_LIBRARY, "外構");
-  dom.palette.innerHTML = renderLibrary(FURNITURE_LIBRARY, "検討");
+  dom.exteriorPalette.innerHTML = renderLibrary([...customModelLibrary("exterior"), ...EXTERIOR_LIBRARY], "外構");
+  dom.palette.innerHTML = renderLibrary([...customModelLibrary("furniture"), ...FURNITURE_LIBRARY], "検討");
   [dom.exteriorPalette, dom.palette].forEach((palette) => {
-    palette.addEventListener("click", (event) => {
+    palette.onclick = (event) => {
+      const modelButton = event.target.closest("button[data-model-id]");
+      if(modelButton){
+        addCustomModelItem(modelButton.dataset.modelId);
+        return;
+      }
       const button = event.target.closest("button[data-kind]");
       if(!button) return;
       addCustomItem(button.dataset.kind);
-    });
+    };
   });
 }
 
@@ -558,7 +607,7 @@ function renderLibrary(items, fallbackCategory){
   const categories = [...new Set(items.map((item) => item.category || fallbackCategory))];
   return categories.map((category) => {
     const buttons = items.filter((item) => (item.category || fallbackCategory) === category).map((item) => (
-      `<button type="button" data-kind="${item.kind}" data-tone="${item.tone}">
+      `<button type="button" data-kind="${escapeAttr(item.kind)}" ${item.modelId ? `data-model-id="${escapeAttr(item.modelId)}"` : ""} data-tone="${item.tone}">
         <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>
       </button>`
     )).join("");
@@ -567,7 +616,26 @@ function renderLibrary(items, fallbackCategory){
 }
 
 function allLibraryItems(){
-  return [...EXTERIOR_LIBRARY, ...FURNITURE_LIBRARY];
+  return [...EXTERIOR_LIBRARY, ...customModelLibrary(), ...FURNITURE_LIBRARY];
+}
+
+function customModelLibrary(layer = ""){
+  return (state.design?.customModels || [])
+    .filter((model) => !layer || (model.layer || "exterior") === layer)
+    .map((model) => ({
+    kind: `customModel:${model.id}`,
+    label: model.label,
+    meta: `${Math.round(model.w)}x${Math.round(model.d)}`,
+    tone: "blue",
+    w: model.w,
+    d: model.d,
+    h: model.h,
+    color: model.color,
+    layer: model.layer || "exterior",
+    category: "作成部品",
+    modelId: model.id,
+    modelParts: model.parts
+  }));
 }
 
 function onPlanPointerDown(event){
@@ -987,6 +1055,7 @@ function renderFurnitureSvg(item, existing){
   const label = escapeHtml(item.label || "家具");
   const color = item.color || (existing ? "#d8dce3" : "#c9c9d2");
   const rotate = item.rotation ? ` transform="rotate(${item.rotation} ${item.x + item.w / 2} ${item.y + item.h / 2})"` : "";
+  if(Array.isArray(item.modelParts) && item.modelParts.length) return renderCustomModelSvg(item, selected, label, rotate);
   if(item.layer === "exterior") return renderExteriorItemSvg(item, selected, label, color, rotate);
   if(item.kind === "plant" || item.kind === "tree"){
     const r = Math.max(4, Math.min(item.w, item.h) / 2);
@@ -995,6 +1064,35 @@ function renderFurnitureSvg(item, existing){
   return `<g class="planItem${selected}" data-id="${item.id}"${rotate}>
     <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
+  </g>`;
+}
+
+function renderCustomModelSvg(item, selected, label, rotate){
+  const normalizedParts = normalizeModelParts(item.modelParts);
+  const size = modelSizeFromParts(normalizedParts);
+  const scaleX = pxToMm(item.w) / Math.max(1, size.w);
+  const scaleY = pxToMm(item.h) / Math.max(1, size.d);
+  const centerX = item.x + item.w / 2;
+  const centerY = item.y + item.h / 2;
+  const parts = normalizedParts.map((part) => {
+    const x = centerX + mmToPx((part.xMm - size.centerX - part.wMm / 2) * scaleX);
+    const y = centerY + mmToPx((part.yMm - size.centerY - part.dMm / 2) * scaleY);
+    const w = Math.max(3, mmToPx(part.wMm * scaleX));
+    const h = Math.max(3, mmToPx(part.dMm * scaleY));
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const partRotate = part.rotation ? ` transform="rotate(${part.rotation} ${cx} ${cy})"` : "";
+    if(part.type === "cylinder" || part.type === "sphere"){
+      return `<ellipse cx="${cx}" cy="${cy}" rx="${w / 2}" ry="${h / 2}" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="rgba(31,35,28,.42)" stroke-width="1.2"${partRotate}/>`;
+    }
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="rgba(31,35,28,.42)" stroke-width="1.2"${partRotate}/>`;
+  }).join("");
+  const cls = item.layer === "exterior" ? `planItem exteriorItem${selected}` : `planItem${selected}`;
+  const handle = selected && !item.locked ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
+  return `<g class="${cls}" data-id="${item.id}"${rotate}>
+    ${parts}
+    <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="none" stroke="rgba(31,35,28,.26)" stroke-width="1.1" stroke-dasharray="5 4"/>
+    <text x="${centerX}" y="${centerY + 3}" text-anchor="middle" class="planSub">${label}</text>${handle}
   </g>`;
 }
 
@@ -1150,6 +1248,9 @@ function bindRoomEditor(room){
 
 function renderCustomEditor(item){
   const isExterior = item.layer === "exterior";
+  const modelEditButton = Array.isArray(item.modelParts) && item.modelParts.length
+    ? `<button type="button" id="editModelBtn">部品を編集</button>`
+    : "";
   if(item.locked){
     return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>固定・敷地条件で変更</span></div></div>
       <div class="selectedGrid">
@@ -1174,6 +1275,7 @@ function renderCustomEditor(item){
       <button type="button" data-nudge="16,0">→</button>
       <button type="button" data-nudge="0,16">↓</button>
       <button type="button" id="rotateItemBtn">90°回転</button>
+      ${modelEditButton}
     </div>`;
 }
 
@@ -1230,6 +1332,29 @@ function bindCustomEditor(item){
     saveDesign(false);
     render();
   });
+  document.getElementById("editModelBtn")?.addEventListener("click", () => {
+    const modelId = item.modelId || "";
+    if(modelId){
+      openObjectBuilder(modelId);
+      return;
+    }
+    const size = modelSizeFromParts(item.modelParts);
+    const model = normalizeCustomModel({
+      id: uid(),
+      label: item.label,
+      layer: item.layer,
+      parts: item.modelParts,
+      w: size.w,
+      d: size.d,
+      h: size.h,
+      color: item.color
+    });
+    state.design.customModels.unshift(model);
+    item.modelId = model.id;
+    saveDesign(false);
+    renderPalette();
+    openObjectBuilder(model.id);
+  });
   dom.selectedPanel.querySelectorAll("[data-nudge]").forEach((button) => {
     button.addEventListener("click", () => {
       const [dx, dy] = button.dataset.nudge.split(",").map(Number);
@@ -1269,6 +1394,293 @@ function addCustomItem(kind){
   toast(`${preset.label}を追加しました`);
 }
 
+function addCustomModelItem(modelId){
+  const model = (state.design?.customModels || []).find((item) => item.id === modelId);
+  if(!model || !state.plan) return;
+  const preset = customModelLibrary().find((item) => item.modelId === modelId);
+  if(!preset) return;
+  addCustomItem(preset.kind);
+}
+
+function openObjectBuilder(modelId = ""){
+  const model = (state.design?.customModels || []).find((item) => item.id === modelId);
+  const parts = model ? cloneModelParts(model.parts) : defaultModelParts();
+  state.builder = {
+    modelId: model?.id || "",
+    label: model?.label || "作成部品",
+    layer: model?.layer || "exterior",
+    parts,
+    selectedPartId: parts[0]?.id || ""
+  };
+  dom.objectBuilder.hidden = false;
+  document.body.classList.add("builderOpen");
+  renderObjectBuilder();
+}
+
+function closeObjectBuilder(){
+  state.builder = null;
+  dom.objectBuilder.hidden = true;
+  document.body.classList.remove("builderOpen");
+}
+
+function saveObjectBuilder(){
+  if(!state.builder || !state.design) return;
+  const parts = normalizeModelParts(state.builder.parts);
+  const size = modelSizeFromParts(parts);
+  const label = dom.builderNameInput.value.trim() || state.builder.label || "作成部品";
+  const layer = dom.builderLayerInput.value === "furniture" ? "furniture" : "exterior";
+  const model = normalizeCustomModel({
+    id: state.builder.modelId || uid(),
+    label,
+    layer,
+    parts,
+    w: size.w,
+    d: size.d,
+    h: size.h,
+    color: parts[0]?.color || "#b9c0c8",
+    createdAt: new Date().toISOString()
+  });
+  pushHistory();
+  const index = (state.design.customModels || []).findIndex((item) => item.id === model.id);
+  if(index >= 0){
+    state.design.customModels[index] = model;
+    syncModelInstances(model);
+  }else{
+    state.design.customModels.unshift(model);
+  }
+  saveDesign(false);
+  renderPalette();
+  renderLists();
+  renderPlan();
+  renderSceneOnly();
+  closeObjectBuilder();
+  toast(`${model.label}を保存しました`);
+}
+
+function syncModelInstances(model){
+  (state.design.customItems || []).forEach((item) => {
+    if(item.modelId !== model.id) return;
+    item.label = model.label;
+    item.layer = model.layer;
+    item.modelParts = cloneModelParts(model.parts);
+    item.color = model.color;
+  });
+}
+
+function onObjectBuilderClick(event){
+  if(!state.builder) return;
+  const add = event.target.closest("[data-builder-add]");
+  if(add){
+    addBuilderPart(add.dataset.builderAdd);
+    return;
+  }
+  const partButton = event.target.closest("[data-builder-part]");
+  if(partButton){
+    state.builder.selectedPartId = partButton.dataset.builderPart;
+    renderObjectBuilder();
+    return;
+  }
+  const del = event.target.closest("[data-builder-delete]");
+  if(del){
+    deleteBuilderPart(del.dataset.builderDelete);
+    return;
+  }
+  const rotate = event.target.closest("[data-builder-rotate]");
+  if(rotate){
+    const part = selectedBuilderPart();
+    if(!part) return;
+    part.rotation = ((Number(part.rotation || 0) + Number(rotate.dataset.builderRotate || 0)) % 360 + 360) % 360;
+    renderObjectBuilder();
+  }
+}
+
+function onObjectBuilderInput(event){
+  if(!state.builder) return;
+  if(event.target === dom.builderNameInput){
+    state.builder.label = event.target.value;
+    return;
+  }
+  if(event.target === dom.builderLayerInput){
+    state.builder.layer = event.target.value === "furniture" ? "furniture" : "exterior";
+    return;
+  }
+  const input = event.target.closest("[data-builder-field]");
+  if(!input) return;
+  const part = selectedBuilderPart();
+  if(!part) return;
+  const field = input.dataset.builderField;
+  if(field === "color"){
+    part.color = safeColor(input.value, part.color);
+  }else if(field === "type"){
+    part.type = input.value;
+    part.label = partLabel(part.type);
+    state.builder.parts = normalizeModelParts(state.builder.parts);
+    renderObjectBuilder();
+    return;
+  }else{
+    part[field] = Number(input.value);
+  }
+  state.builder.parts = normalizeModelParts(state.builder.parts);
+  renderBuilderPreview();
+  renderBuilderPartList();
+}
+
+function addBuilderPart(type){
+  const part = normalizeModelParts([{
+    id: uid(),
+    type,
+    label: partLabel(type),
+    xMm: 0,
+    yMm: 0,
+    zMm: 0,
+    wMm: type === "sphere" ? 450 : 700,
+    dMm: type === "sphere" ? 450 : 450,
+    hMm: type === "cylinder" ? 700 : type === "sphere" ? 450 : 500,
+    color: type === "cylinder" ? "#9aa4aa" : type === "sphere" ? "#78a763" : "#b9c0c8",
+    rotation: 0
+  }])[0];
+  state.builder.parts.push(part);
+  state.builder.selectedPartId = part.id;
+  renderObjectBuilder();
+}
+
+function deleteBuilderPart(id){
+  if(state.builder.parts.length <= 1){
+    toast("部品は1つ以上必要です");
+    return;
+  }
+  state.builder.parts = state.builder.parts.filter((part) => part.id !== id);
+  state.builder.selectedPartId = state.builder.parts[0]?.id || "";
+  renderObjectBuilder();
+}
+
+function selectedBuilderPart(){
+  return (state.builder?.parts || []).find((part) => part.id === state.builder.selectedPartId) || state.builder?.parts?.[0] || null;
+}
+
+function renderObjectBuilder(){
+  if(!state.builder) return;
+  state.builder.parts = normalizeModelParts(state.builder.parts);
+  if(!state.builder.parts.some((part) => part.id === state.builder.selectedPartId)){
+    state.builder.selectedPartId = state.builder.parts[0]?.id || "";
+  }
+  dom.builderNameInput.value = state.builder.label || "作成部品";
+  dom.builderLayerInput.value = state.builder.layer || "exterior";
+  renderBuilderPreview();
+  renderBuilderPartList();
+  renderBuilderEditor();
+}
+
+function renderBuilderPreview(){
+  const parts = state.builder.parts;
+  const size = modelSizeFromParts(parts);
+  const scale = Math.min(1, 220 / Math.max(size.w, size.d, 1));
+  const selectedId = state.builder.selectedPartId;
+  const shapes = parts.map((part) => {
+    const w = part.wMm * scale;
+    const d = part.dMm * scale;
+    const x = part.xMm * scale;
+    const y = part.yMm * scale;
+    const selected = selectedId === part.id;
+    const stroke = selected ? "#286fd6" : "rgba(31,35,28,.42)";
+    const strokeWidth = selected ? 3 : 1.5;
+    const rot = part.rotation ? ` transform="rotate(${part.rotation} ${x} ${y})"` : "";
+    if(part.type === "cylinder" || part.type === "sphere"){
+      return `<ellipse cx="${x}" cy="${y}" rx="${w / 2}" ry="${d / 2}" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="${stroke}" stroke-width="${strokeWidth}"${rot}/>`;
+    }
+    return `<rect x="${x - w / 2}" y="${y - d / 2}" width="${w}" height="${d}" rx="3" fill="${escapeAttr(part.color)}" fill-opacity=".88" stroke="${stroke}" stroke-width="${strokeWidth}"${rot}/>`;
+  }).join("");
+  dom.builderPreview.innerHTML = `<g>${shapes}</g>
+    <line x1="-120" y1="0" x2="120" y2="0" class="builderAxis"/>
+    <line x1="0" y1="-120" x2="0" y2="120" class="builderAxis"/>
+    <text x="-132" y="132" class="builderSvgText">${Math.round(size.w)}x${Math.round(size.d)}x${Math.round(size.h)}mm</text>`;
+}
+
+function renderBuilderPartList(){
+  dom.builderPartList.innerHTML = state.builder.parts.map((part, index) => {
+    const on = part.id === state.builder.selectedPartId ? " on" : "";
+    return `<button type="button" class="builderPart${on}" data-builder-part="${part.id}">
+      <span style="background:${escapeAttr(part.color)}"></span><b>${index + 1}. ${escapeHtml(part.label)}</b>
+    </button>`;
+  }).join("");
+}
+
+function renderBuilderEditor(){
+  const part = selectedBuilderPart();
+  if(!part){
+    dom.builderEditor.innerHTML = "";
+    return;
+  }
+  dom.builderEditor.innerHTML = `<div class="builderEditHead">
+      <b>${escapeHtml(part.label)}</b>
+      <button type="button" data-builder-delete="${part.id}">削除</button>
+    </div>
+    <div class="builderGrid">
+      <label>形<select data-builder-field="type">
+        <option value="box" ${part.type === "box" ? "selected" : ""}>四角</option>
+        <option value="cylinder" ${part.type === "cylinder" ? "selected" : ""}>丸柱</option>
+        <option value="sphere" ${part.type === "sphere" ? "selected" : ""}>球</option>
+      </select></label>
+      <label>色<input type="color" data-builder-field="color" value="${escapeAttr(part.color)}"></label>
+      <label>横mm<input type="number" min="50" max="6000" step="10" data-builder-field="wMm" value="${Math.round(part.wMm)}"></label>
+      <label>奥行mm<input type="number" min="50" max="6000" step="10" data-builder-field="dMm" value="${Math.round(part.dMm)}"></label>
+      <label>高さmm<input type="number" min="30" max="5000" step="10" data-builder-field="hMm" value="${Math.round(part.hMm)}"></label>
+      <label>地面からmm<input type="number" min="0" max="5000" step="10" data-builder-field="zMm" value="${Math.round(part.zMm)}"></label>
+      <label>左右mm<input type="number" min="-5000" max="5000" step="10" data-builder-field="xMm" value="${Math.round(part.xMm)}"></label>
+      <label>前後mm<input type="number" min="-5000" max="5000" step="10" data-builder-field="yMm" value="${Math.round(part.yMm)}"></label>
+      <label>回転°<input type="number" step="15" data-builder-field="rotation" value="${Math.round(part.rotation || 0)}"></label>
+    </div>
+    <div class="buttonRow">
+      <button type="button" data-builder-rotate="-90">左90°</button>
+      <button type="button" data-builder-rotate="90">右90°</button>
+    </div>`;
+}
+
+function defaultModelParts(){
+  return normalizeModelParts([{
+    id: uid(),
+    type: "box",
+    label: "四角",
+    xMm: 0,
+    yMm: 0,
+    zMm: 0,
+    wMm: 700,
+    dMm: 450,
+    hMm: 500,
+    rotation: 0,
+    color: "#b9c0c8"
+  }]);
+}
+
+function partLabel(type){
+  if(type === "cylinder") return "丸柱";
+  if(type === "sphere") return "球";
+  return "四角";
+}
+
+function modelSizeFromParts(parts){
+  const normalized = Array.isArray(parts) && parts.length ? parts : defaultModelParts();
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxH = 0;
+  normalized.forEach((part) => {
+    minX = Math.min(minX, part.xMm - part.wMm / 2);
+    minY = Math.min(minY, part.yMm - part.dMm / 2);
+    maxX = Math.max(maxX, part.xMm + part.wMm / 2);
+    maxY = Math.max(maxY, part.yMm + part.dMm / 2);
+    maxH = Math.max(maxH, part.zMm + part.hMm);
+  });
+  return {
+    w: Math.max(50, maxX - minX),
+    d: Math.max(50, maxY - minY),
+    h: Math.max(30, maxH),
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2
+  };
+}
+
 function placeExteriorItem(item, bounds){
   const gap = 32;
   if(item.kind === "site"){
@@ -1291,6 +1703,11 @@ function placeExteriorItem(item, bounds){
   if(item.kind === "freeExterior"){
     item.x = bounds.minX + bounds.width * 0.50;
     item.y = bounds.minY - item.h - gap;
+    return;
+  }
+  if(String(item.kind || "").startsWith("customModel:")){
+    item.x = bounds.minX + bounds.width * 0.50;
+    item.y = bounds.maxY + gap;
     return;
   }
   if(item.kind === "deck" || item.kind === "garden" || item.kind === "tree"){
@@ -1350,6 +1767,11 @@ function exportDesign(){
 function numberValue(input, fallback){
   const value = Number(input.value);
   return Number.isFinite(value) ? value : fallback;
+}
+
+function finiteNumber(value, fallback){
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function safeColor(value, fallback){
