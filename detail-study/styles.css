@@ -748,4 +748,58 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   .roomWarp{ left:8px; right:8px; bottom:8px; }
   .walkStick{ left:14px; bottom:62px; width:96px; height:96px; }
   .modeDock{ display:grid; }
+  body[data-view="3d"] .app{
+    padding-bottom:0;
+  }
+  body[data-view="3d"] .topbar{
+    display:none;
+  }
+  body[data-view="3d"] .workspace{
+    height:100dvh;
+  }
+  body[data-view="3d"] .stageArea{
+    grid-template-rows:minmax(0,1fr);
+    background:#e8eef4;
+  }
+  body[data-view="3d"] .stageToolbar{
+    position:fixed;
+    top:calc(env(safe-area-inset-top) + 10px);
+    left:10px;
+    right:10px;
+    z-index:72;
+    margin:0;
+    padding:6px;
+    grid-template-columns:minmax(0,1fr) minmax(148px,auto);
+    border:1px solid rgba(31,35,28,.10);
+    border-radius:22px;
+    background:rgba(255,255,255,.86);
+    box-shadow:0 12px 34px rgba(31,35,28,.14);
+    backdrop-filter:blur(18px);
+  }
+  body[data-view="3d"] .metricStrip{
+    display:none;
+  }
+  body[data-view="3d"] .stage3d{
+    border:0;
+  }
+  body[data-view="3d"] .walkHud{
+    top:calc(env(safe-area-inset-top) + 70px);
+    left:10px;
+  }
+  body[data-view="3d"] .viewPresetBar{
+    top:calc(env(safe-area-inset-top) + 116px);
+    left:10px;
+    right:auto;
+  }
+  body[data-view="3d"] .viewBadge{
+    left:12px;
+    bottom:calc(env(safe-area-inset-bottom) + 88px);
+  }
+  body[data-view="3d"] .walkStick{
+    left:16px;
+    bottom:calc(env(safe-area-inset-bottom) + 88px);
+  }
+  body[data-view="3d"] .roomWarp{
+    bottom:calc(env(safe-area-inset-bottom) + 82px);
+  }
 }

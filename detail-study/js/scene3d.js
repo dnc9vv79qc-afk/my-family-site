@@ -42,6 +42,7 @@ export class DetailScene3D {
     this.lastBounds = null;
     this.lastFrameTime = 0;
     this.needsFrame = true;
+    this.interacting = false;
     this.state = null;
     this.initLights();
     this.initControls();
@@ -77,6 +78,7 @@ export class DetailScene3D {
     this.canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      this.interacting = true;
       this.canvas.focus?.();
       dragging = true;
       last = { x: event.clientX, y: event.clientY };
@@ -120,7 +122,7 @@ export class DetailScene3D {
     const stop = (event) => {
       pointers.delete(event.pointerId);
       pinch = pointers.size >= 2 ? { distance: pinchDistance(), radius: this.radius } : null;
-      if(pointers.size === 0){ dragging = false; last = null; }
+      if(pointers.size === 0){ dragging = false; last = null; this.interacting = false; }
       else{
         const point = [...pointers.values()][0];
         last = { x: point.x, y: point.y };
@@ -135,7 +137,7 @@ export class DetailScene3D {
         this.camera.fov = this.walk.fov;
         this.camera.updateProjectionMatrix();
       }else{
-        this.radius = clamp(this.radius * (event.deltaY > 0 ? 1.08 : 0.92), 4, 80);
+        this.radius = clamp(this.radius * (event.deltaY > 0 ? 1.08 : 0.92), 2.2, 80);
       }
       this.needsFrame = true;
     }, { passive: false });
@@ -414,35 +416,51 @@ export class DetailScene3D {
   }
 
   buildRoof(frames, yBase){
-    const roofMat = mat("#59636a", 1, 0.42);
-    const fasciaMat = mat("#f3f0e8", 1, 0.56);
-    frames.forEach((frame) => this.addGableRoof(frame, yBase, roofMat, fasciaMat));
-  }
-
-  addGableRoof(frame, yBase, roofMat, fasciaMat){
-    const x = pxToM(frame.x);
-    const z = pxToM(frame.y);
-    const w = Math.max(0.2, pxToM(frame.w));
-    const d = Math.max(0.2, pxToM(frame.h));
-    const eave = 0.32;
+    if(!frames.length) return;
+    const roofMat = mat("#242a2d", 1, 0.48);
+    const panelMat = mat("#111a22", 0.98, 0.32);
+    const edgeMat = mat("#1d2020", 1, 0.44);
+    roofMat.side = THREE.DoubleSide;
+    panelMat.side = THREE.DoubleSide;
+    const bounds = frameBounds(frames);
+    const eave = 0.28;
     const top = yBase + SLAB_H_M + WALL_H_M + 0.03;
-    const rise = clamp(Math.min(w, d) * 0.24, 0.45, 1.15);
-    const x0 = x - eave;
-    const x1 = x + w + eave;
-    const z0 = z - eave;
-    const z1 = z + d + eave;
-    if(w >= d){
-      const zr = z + d / 2;
-      addRoofPlane(this.root, [[x0, top, z0], [x1, top, z0], [x1, top + rise, zr], [x0, top + rise, zr]], roofMat);
-      addRoofPlane(this.root, [[x1, top, z1], [x0, top, z1], [x0, top + rise, zr], [x1, top + rise, zr]], roofMat);
-      addBox(this.root, x + w / 2, top - 0.08, z0, w + eave * 2, 0.16, 0.08, fasciaMat);
-      addBox(this.root, x + w / 2, top - 0.08, z1, w + eave * 2, 0.16, 0.08, fasciaMat);
-    }else{
-      const xr = x + w / 2;
-      addRoofPlane(this.root, [[x0, top, z1], [x0, top, z0], [xr, top + rise, z0], [xr, top + rise, z1]], roofMat);
-      addRoofPlane(this.root, [[x1, top, z0], [x1, top, z1], [xr, top + rise, z1], [xr, top + rise, z0]], roofMat);
-      addBox(this.root, x0, top - 0.08, z + d / 2, 0.08, 0.16, d + eave * 2, fasciaMat);
-      addBox(this.root, x1, top - 0.08, z + d / 2, 0.08, 0.16, d + eave * 2, fasciaMat);
+    const x0 = pxToM(bounds.minX) - eave;
+    const x1 = pxToM(bounds.maxX) + eave;
+    const z0 = pxToM(bounds.minY) - eave;
+    const z1 = pxToM(bounds.maxY) + eave;
+    const w = Math.max(0.4, x1 - x0);
+    const d = Math.max(0.4, z1 - z0);
+    const rise = clamp(Math.min(w, d) * 0.075, 0.26, 0.58);
+    const yAt = (z) => top + ((z - z0) / Math.max(0.001, z1 - z0)) * rise;
+    addRoofPlane(this.root, [[x0, yAt(z0), z0], [x0, yAt(z1), z1], [x1, yAt(z1), z1], [x1, yAt(z0), z0]], roofMat);
+    addBox(this.root, (x0 + x1) / 2, yAt(z0) - 0.035, z0, w, 0.12, 0.08, edgeMat);
+    addBox(this.root, (x0 + x1) / 2, yAt(z1) - 0.035, z1, w, 0.12, 0.08, edgeMat);
+    addBox(this.root, x0, top + rise / 2 - 0.035, (z0 + z1) / 2, 0.08, 0.12, d, edgeMat);
+    addBox(this.root, x1, top + rise / 2 - 0.035, (z0 + z1) / 2, 0.08, 0.12, d, edgeMat);
+
+    const pad = 0.42;
+    const gap = 0.045;
+    const cols = clamp(Math.floor((w - pad * 2) / 1.08), 2, 8);
+    const rows = clamp(Math.floor((d - pad * 2) / 0.82), 2, 5);
+    const panelW = (w - pad * 2 - gap * (cols - 1)) / cols;
+    const panelD = (d - pad * 2 - gap * (rows - 1)) / rows;
+    if(panelW > 0.2 && panelD > 0.2){
+      for(let row = 0; row < rows; row++){
+        for(let col = 0; col < cols; col++){
+          const xa = x0 + pad + col * (panelW + gap);
+          const xb = xa + panelW;
+          const za = z0 + pad + row * (panelD + gap);
+          const zb = za + panelD;
+          const lift = 0.018;
+          addRoofPlane(this.root, [
+            [xa, yAt(za) + lift, za],
+            [xa, yAt(zb) + lift, zb],
+            [xb, yAt(zb) + lift, zb],
+            [xb, yAt(za) + lift, za]
+          ], panelMat);
+        }
+      }
     }
   }
 
@@ -468,6 +486,7 @@ export class DetailScene3D {
       const wallMat = mat("#f5f1e9", 0.96, 0.68);
       const outer = outerSegments(frames);
       outer.forEach((seg) => splitByOpenings(seg, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
+      if(!this.isWalkMode() && floorIndex > 0) this.addFloorJointCover(outer, yBase, wallMat);
       wallLines.forEach((wall) => splitByOpenings(wall, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, Math.max(WALL_T_M, pxToM(wall.thick || 6)))));
     }
     if(layers.openings){
@@ -510,12 +529,34 @@ export class DetailScene3D {
     wall.castShadow = true;
     wall.receiveShadow = true;
     this.root.add(wall);
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), 0.07, thickness + 0.035), mat("#b79a74", 0.95, 0.48));
-    trim.position.set(pxToM((seg.x1 + seg.x2) / 2), yBase + SLAB_H_M + 0.07, pxToM((seg.y1 + seg.y2) / 2));
-    trim.rotation.y = wall.rotation.y;
-    trim.castShadow = true;
-    trim.receiveShadow = true;
-    this.root.add(trim);
+    if(this.isWalkMode()){
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), 0.07, thickness + 0.035), mat("#b79a74", 0.95, 0.48));
+      trim.position.set(pxToM((seg.x1 + seg.x2) / 2), yBase + SLAB_H_M + 0.07, pxToM((seg.y1 + seg.y2) / 2));
+      trim.rotation.y = wall.rotation.y;
+      trim.castShadow = true;
+      trim.receiveShadow = true;
+      this.root.add(trim);
+    }
+  }
+
+  addFloorJointCover(segments, yBase, material){
+    const bottom = yBase - 0.16;
+    const top = yBase + SLAB_H_M + 0.04;
+    const height = top - bottom;
+    segments.forEach((seg) => this.addWallBand(seg, bottom + height / 2, height, WALL_T_M + 0.035, material));
+  }
+
+  addWallBand(seg, centerY, height, thickness, material){
+    const dx = seg.x2 - seg.x1;
+    const dy = seg.y2 - seg.y1;
+    const len = Math.hypot(dx, dy);
+    if(len < 1) return;
+    const band = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), height, thickness), material);
+    band.position.set(pxToM((seg.x1 + seg.x2) / 2), centerY, pxToM((seg.y1 + seg.y2) / 2));
+    band.rotation.y = -Math.atan2(dy, dx);
+    band.castShadow = true;
+    band.receiveShadow = true;
+    this.root.add(band);
   }
 
   addOpening(opening, yBase, selectedId){
@@ -844,7 +885,7 @@ export class DetailScene3D {
       requestAnimationFrame(this.loop);
       return;
     }
-    if(this.needsFrame){
+    if(this.needsFrame || this.interacting){
       this.updateCamera();
       this.renderer.render(this.scene, this.camera);
       this.needsFrame = false;
@@ -968,6 +1009,20 @@ function clearGroup(group){
       }
     });
   }
+}
+
+function frameBounds(frames){
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  frames.forEach((frame) => {
+    minX = Math.min(minX, frame.x);
+    minY = Math.min(minY, frame.y);
+    maxX = Math.max(maxX, frame.x + frame.w);
+    maxY = Math.max(maxY, frame.y + frame.h);
+  });
+  return { minX, minY, maxX, maxY };
 }
 
 function outerSegments(frames){

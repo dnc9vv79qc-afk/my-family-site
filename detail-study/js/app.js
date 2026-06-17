@@ -87,7 +87,7 @@ function bindEvents(){
     const button = event.target.closest("button[data-view]");
     if(!button) return;
     state.view = button.dataset.view;
-    state.dockMode = state.view === "3d" ? "3d" : (state.view === "list" ? "browse" : "select");
+    state.dockMode = state.view === "3d" ? "3d" : "select";
     state.mobilePanelOpen = false;
     render();
   });
@@ -147,7 +147,7 @@ function bindEvents(){
     renderSceneOnly();
   });
   dom.planSvg.addEventListener("click", (event) => {
-    if(state.dockMode === "measure") return;
+    if(state.dockMode === "measure" || state.dockMode === "browse") return;
     const target = event.target.closest("[data-id]");
     if(!target) return;
     state.selectedId = target.dataset.id;
@@ -335,7 +335,8 @@ function onDockClick(event){
     return;
   }
   if(mode === "browse"){
-    state.view = "list";
+    state.view = "plan";
+    state.selectedId = null;
     state.mobilePanelOpen = false;
     render();
     return;
@@ -352,7 +353,7 @@ function updateDockControls(){
   document.body.dataset.panelOpen = state.mobilePanelOpen ? "1" : "0";
   dom.modeDock.querySelectorAll("button[data-dock]").forEach((button) => {
     const mode = button.dataset.dock;
-    const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? mode === "browse" : mode === state.dockMode;
+    const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? false : mode === state.dockMode;
     button.classList.toggle("on", on);
   });
 }
@@ -529,6 +530,7 @@ function onPlanPointerDown(event){
     addMeasurePoint(event);
     return;
   }
+  if(state.dockMode === "browse") return;
   const target = event.target.closest("[data-id]");
   if(!target) return;
   const item = findCustomById(target.dataset.id);
@@ -723,7 +725,9 @@ function renderPlan(){
   chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
-  dom.planHudTitle.textContent = selected?.source === "custom" ? `選択: ${selected.item.label}` : "図面操作";
+  dom.planHudTitle.textContent = state.dockMode === "browse"
+    ? "閲覧"
+    : selected?.source === "custom" ? `選択: ${selected.item.label}` : "図面操作";
   renderPlanNudge();
   renderMeasureHud();
 }
