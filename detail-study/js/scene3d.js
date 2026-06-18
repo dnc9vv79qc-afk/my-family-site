@@ -1209,6 +1209,11 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
         return stairPoint3d(stair, lx, ly);
       });
       const crossAxis = horizontal ? 1 : 0;
+      const crossValues = points.map((point) => point[crossAxis]);
+      const crossMin = Math.min(...crossValues);
+      const crossMax = Math.max(...crossValues);
+      // Keep walls on the stair perimeter full-height; only under-stair interior walls follow the treads.
+      if(fixed <= crossMin + 0.5 || fixed >= crossMax - 0.5) return;
       let clipped = clipPolyHalfPlane3d(points, crossAxis, fixed - half, true);
       clipped = clipPolyHalfPlane3d(clipped, crossAxis, fixed + half, false);
       if(clipped.length < 3) return;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討ツール 06/18 階段壁修正v2 | MORI</title>
+<title>間取り検討ツール 06/18 階段壁修正v3 | MORI</title>
 
 <style>
 :root{
@@ -1792,7 +1792,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
-<div class="ver-label">06/18 階段壁修正 v2</div>
+<div class="ver-label">06/18 階段壁修正 v3</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -8577,6 +8577,11 @@ const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(stair, lx, ly);
 });
 const crossAxis = horiz ? 1 : 0;
+const crossValues = pts.map(point => point[crossAxis]);
+const crossMin = Math.min(...crossValues);
+const crossMax = Math.max(...crossValues);
+// 階段外周上の壁は通常壁のまま残し、踏み板内部を通る壁だけ階段下面に合わせる。
+if(fixed <= crossMin + 0.5 || fixed >= crossMax - 0.5) return;
 let clipped = v3dClipPolyHalfPlane(pts, crossAxis, fixed - half, true);
 clipped = v3dClipPolyHalfPlane(clipped, crossAxis, fixed + half, false);
 if(clipped.length < 3) return;
