@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討ツール | MORI</title>
+<title>間取り検討ツール 06/18 階段壁修正v2 | MORI</title>
 
 <style>
 :root{
@@ -1792,7 +1792,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
-<div class="ver-label">06/18 階段下壁対応</div>
+<div class="ver-label">06/18 階段壁修正 v2</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -8529,54 +8529,62 @@ mesh.receiveShadow = true;
 return mesh;
 }
 
-/* 直線階段と平行に重なる内壁を、踏み板下面の高さで区間分割する。 */
-function v3dWallSlicesUnderStraightStairs(seg, stairs, yBase, topY){
+function v3dClipPolyHalfPlane(poly, axis, limit, keepGreater){
+const out = [];
+if(!Array.isArray(poly) || !poly.length) return out;
+const inside = point => keepGreater ? point[axis] >= limit - 0.001 : point[axis] <= limit + 0.001;
+for(let index = 0; index < poly.length; index++){
+const a = poly[index];
+const b = poly[(index + 1) % poly.length];
+const aIn = inside(a), bIn = inside(b);
+if(aIn) out.push(a);
+if(aIn === bIn) continue;
+const delta = b[axis] - a[axis];
+if(Math.abs(delta) < 0.0001) continue;
+const ratio = (limit - a[axis]) / delta;
+out.push([a[0] + (b[0] - a[0]) * ratio, a[1] + (b[1] - a[1]) * ratio]);
+}
+return out;
+}
+
+/* 踏み板と重なる内壁を、階段下面の高さに合わせて区間分割する。 */
+function v3dWallSlicesUnderStairs(seg, stairs, yBase, topY){
 const horiz = Math.abs(seg.y2 - seg.y1) < 0.5;
 const vert = Math.abs(seg.x2 - seg.x1) < 0.5;
 if(!seg.inner || (!horiz && !vert)) return [{ seg, y0: yBase, y1: topY }];
 const axisLo = horiz ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
 const axisHi = horiz ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
 const fixed = horiz ? seg.y1 : seg.x1;
+const half = Math.max(0.5, (seg.t || 0) / 2);
 const profiles = [];
 
 (stairs || []).forEach(stair => {
-if(!stair || !v3dIsStairItem(stair) || (stair.shape || 'straight') !== 'straight') return;
+if(!stair || !v3dIsStairItem(stair)) return;
 const riseMm = (typeof stair.fh === 'number' && stair.fh > 0) ? stair.fh : 3000;
 const totalRise = riseMm * PX_PER_MM;
 const swap = (stair.dir === 1 || stair.dir === 3);
 const lw = swap ? stair.h : stair.w;
 const lh = swap ? stair.w : stair.h;
-const info = stairTreads(lw, lh, 'straight', stair.winders || 3, !!stair.mirror);
+const info = stairTreads(lw, lh, stair.shape || 'straight', stair.winders || 3, !!stair.mirror);
 const steps = info.treads.length;
 if(!steps) return;
 const stepH = totalRise / steps;
 const board = Math.max(mm2px(45), Math.min(stepH, mm2px(180)));
-const worldTreads = info.treads.map((tr, index) => {
+info.treads.forEach((tr, index) => {
 const pts = tr.poly.map(p => {
 const lx = swap ? p[1] : p[0];
 const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(stair, lx, ly);
 });
-const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
-return {
-minX: Math.min(...xs),
-maxX: Math.max(...xs),
-minZ: Math.min(...zs),
-maxZ: Math.max(...zs),
-under: yBase + Math.max(0, stepH * (index + 1) - board - 0.4)
-};
-});
-const first = worldTreads[0], last = worldTreads[worldTreads.length - 1];
-const runHorizontal = Math.abs((last.minX + last.maxX) - (first.minX + first.maxX))
-  > Math.abs((last.minZ + last.maxZ) - (first.minZ + first.maxZ));
-if(runHorizontal !== horiz) return;
-worldTreads.forEach(tread => {
-const crossLo = horiz ? tread.minZ : tread.minX;
-const crossHi = horiz ? tread.maxZ : tread.maxX;
-if(fixed < crossLo - seg.t / 2 || fixed > crossHi + seg.t / 2) return;
-const lo = Math.max(axisLo, horiz ? tread.minX : tread.minZ);
-const hi = Math.min(axisHi, horiz ? tread.maxX : tread.maxZ);
-if(hi - lo > 0.5) profiles.push({ lo, hi, y1: Math.min(topY, tread.under) });
+const crossAxis = horiz ? 1 : 0;
+let clipped = v3dClipPolyHalfPlane(pts, crossAxis, fixed - half, true);
+clipped = v3dClipPolyHalfPlane(clipped, crossAxis, fixed + half, false);
+if(clipped.length < 3) return;
+const along = clipped.map(point => point[horiz ? 0 : 1]);
+const lo = Math.max(axisLo, Math.min(...along));
+const hi = Math.min(axisHi, Math.max(...along));
+const under = yBase + Math.max(0, stepH * (index + 1) - board - 0.4);
+if(hi - lo > 0.5) profiles.push({ lo, hi, y1: Math.min(topY, under) });
 });
 });
 
@@ -8808,7 +8816,7 @@ segs.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, t: clamp((it.thick ?? WA
 segs.forEach(seg => {
 const { solids, overs } = v3dCutWall(seg, openings);
 solids.forEach(s => {
-v3dWallSlicesUnderStraightStairs({ ...s, t: seg.t, inner: !!seg.inner }, stairs, yBase, topY).forEach(slice => {
+v3dWallSlicesUnderStairs({ ...s, t: seg.t, inner: !!seg.inner }, stairs, yBase, topY).forEach(slice => {
 const m = v3dPartBox(T, slice.seg, seg.t, slice.y0, slice.y1, mats.wall);
 if(m) group.add(m);
 });

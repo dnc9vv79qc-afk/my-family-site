@@ -487,7 +487,15 @@ export class DetailScene3D {
       const outer = outerSegments(frames);
       outer.forEach((seg) => splitByOpenings(seg, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, WALL_T_M)));
       if(!this.isWalkMode() && floorIndex > 0) this.addFloorJointCover(outer, yBase, wallMat);
-      wallLines.forEach((wall) => splitByOpenings(wall, doorOpenings).forEach((solid) => this.addWall(solid, yBase, wallMat, Math.max(WALL_T_M, pxToM(wall.thick || 6)))));
+      const stairs = existingFurniture.filter(isStructuralStair3d);
+      wallLines.forEach((wall) => {
+        const thickness = Math.max(WALL_T_M, pxToM(wall.thick || 6));
+        splitByOpenings(wall, doorOpenings).forEach((solid) => {
+          stairWallSlices3d(solid, stairs, yBase, thickness).forEach((slice) => {
+            this.addWallSlice(slice.seg, slice.y0, slice.y1, wallMat, thickness);
+          });
+        });
+      });
     }
     if(layers.openings){
       openings.forEach((opening) => this.addOpening(opening, yBase, selectedId));
@@ -517,19 +525,24 @@ export class DetailScene3D {
   }
 
   addWall(seg, yBase, material, thickness){
+    this.addWallSlice(seg, yBase + SLAB_H_M, yBase + SLAB_H_M + WALL_H_M, material, thickness);
+  }
+
+  addWallSlice(seg, bottom, top, material, thickness){
     const dx = seg.x2 - seg.x1;
     const dy = seg.y2 - seg.y1;
     const len = Math.hypot(dx, dy);
-    if(len < 1) return;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), WALL_H_M, thickness), material);
-    wall.position.set(pxToM((seg.x1 + seg.x2) / 2), yBase + SLAB_H_M + WALL_H_M / 2, pxToM((seg.y1 + seg.y2) / 2));
+    const height = top - bottom;
+    if(len < 1 || height < 0.01) return;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), height, thickness), material);
+    wall.position.set(pxToM((seg.x1 + seg.x2) / 2), bottom + height / 2, pxToM((seg.y1 + seg.y2) / 2));
     wall.rotation.y = -Math.atan2(dy, dx);
     wall.castShadow = true;
     wall.receiveShadow = true;
     this.root.add(wall);
     if(this.isWalkMode()){
       const trim = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len), 0.07, thickness + 0.035), mat("#b79a74", 0.95, 0.48));
-      trim.position.set(pxToM((seg.x1 + seg.x2) / 2), yBase + SLAB_H_M + 0.07, pxToM((seg.y1 + seg.y2) / 2));
+      trim.position.set(pxToM((seg.x1 + seg.x2) / 2), bottom + 0.07, pxToM((seg.y1 + seg.y2) / 2));
       trim.rotation.y = wall.rotation.y;
       trim.castShadow = true;
       trim.receiveShadow = true;
@@ -1075,6 +1088,159 @@ function addRoofPlane(group, points, material){
 
 function isStructuralStair3d(item){
   return !!item && (item.type === "stair" || (item.type === "furn" && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || "")));
+}
+
+function stairTreads3d(w, h, shape, winders, mirror){
+  const treads = [];
+  const mx = (x) => mirror ? w - x : x;
+  const stepDepth = 235 / Math.max(0.001, pxToMm(1));
+  if(shape !== "kane"){
+    const count = Math.max(3, Math.round(h / stepDepth));
+    for(let index = 0; index < count; index++){
+      const y0 = h - h * (index + 1) / count;
+      const y1 = h - h * index / count;
+      treads.push({ poly:[[0, y0], [w, y0], [w, y1], [0, y1]] });
+    }
+    return { treads };
+  }
+  const winderCount = clamp(Math.round(winders || 3), 2, 5);
+  const cornerSize = Math.min(h, w * 0.45);
+  for(let index = 0; index < winderCount; index++){
+    const a0 = -Math.PI / 2 + Math.PI / 2 * index / winderCount;
+    const a1 = -Math.PI / 2 + Math.PI / 2 * (index + 1) / winderCount;
+    const radius = Math.max(cornerSize, h);
+    const clippedPoint = (angle) => [
+      clamp(Math.cos(angle) * radius, 0, cornerSize),
+      clamp(h + Math.sin(angle) * radius, 0, h)
+    ];
+    const p1 = clippedPoint(a0);
+    const p2 = clippedPoint(a1);
+    treads.push({ poly:[[mx(0), h], [mx(p1[0]), p1[1]], [mx(p2[0]), p2[1]], [mx(cornerSize), h]] });
+  }
+  const available = Math.max(0, w - cornerSize);
+  const count = Math.max(2, Math.round(available / stepDepth));
+  for(let index = 0; index < count; index++){
+    const x0 = cornerSize + available * index / count;
+    const x1 = cornerSize + available * (index + 1) / count;
+    const a = mx(x0), b = mx(x1);
+    treads.push({ poly:[[Math.min(a, b), 0], [Math.max(a, b), 0], [Math.max(a, b), h], [Math.min(a, b), h]] });
+  }
+  return { treads };
+}
+
+function stairPoint3d(item, lx, ly){
+  const w = item.w;
+  const h = item.h;
+  const direction = item.dir || 0;
+  let rx;
+  let ry;
+  if(direction === 0){ rx = lx; ry = ly; }
+  else if(direction === 1){ rx = h - ly; ry = lx; }
+  else if(direction === 2){ rx = w - lx; ry = h - ly; }
+  else { rx = ly; ry = w - lx; }
+  return [item.x + rx, item.y + ry];
+}
+
+function treadPrism3d(points, y0, y1, material){
+  if(!Array.isArray(points) || points.length < 3 || y1 <= y0) return null;
+  const contour = points.map((point) => new THREE.Vector2(point[0], point[1]));
+  const triangles = THREE.ShapeUtils.triangulateShape(contour, []);
+  const vertices = [];
+  const push = (point, y) => vertices.push(point[0], y, point[1]);
+  triangles.forEach(([a, b, c]) => {
+    push(points[a], y1); push(points[c], y1); push(points[b], y1);
+    push(points[a], y0); push(points[b], y0); push(points[c], y0);
+  });
+  for(let index = 0; index < points.length; index++){
+    const a = points[index];
+    const b = points[(index + 1) % points.length];
+    push(a, y0); push(b, y0); push(b, y1);
+    push(a, y0); push(b, y1); push(a, y1);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function clipPolyHalfPlane3d(poly, axis, limit, keepGreater){
+  const out = [];
+  if(!Array.isArray(poly) || !poly.length) return out;
+  const inside = (point) => keepGreater ? point[axis] >= limit - 0.001 : point[axis] <= limit + 0.001;
+  for(let index = 0; index < poly.length; index++){
+    const a = poly[index];
+    const b = poly[(index + 1) % poly.length];
+    const aIn = inside(a), bIn = inside(b);
+    if(aIn) out.push(a);
+    if(aIn === bIn) continue;
+    const delta = b[axis] - a[axis];
+    if(Math.abs(delta) < 0.0001) continue;
+    const ratio = (limit - a[axis]) / delta;
+    out.push([a[0] + (b[0] - a[0]) * ratio, a[1] + (b[1] - a[1]) * ratio]);
+  }
+  return out;
+}
+
+function stairWallSlices3d(seg, stairs, yBase, thicknessM){
+  const horizontal = Math.abs(seg.y2 - seg.y1) < 0.1;
+  const vertical = Math.abs(seg.x2 - seg.x1) < 0.1;
+  const bottom = yBase + SLAB_H_M;
+  const top = bottom + WALL_H_M;
+  if(!horizontal && !vertical) return [{ seg, y0:bottom, y1:top }];
+  const axisLo = horizontal ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
+  const axisHi = horizontal ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
+  const fixed = horizontal ? seg.y1 : seg.x1;
+  const half = Math.max(0.5, mToPx(thicknessM) / 2);
+  const profiles = [];
+  (stairs || []).forEach((stair) => {
+    const swap = stair.dir === 1 || stair.dir === 3;
+    const localW = swap ? stair.h : stair.w;
+    const localD = swap ? stair.w : stair.h;
+    const info = stairTreads3d(localW, localD, stair.shape || "straight", stair.winders || 3, !!stair.mirror);
+    const stepRise = Math.max(1.8, Number(stair.fh || 3000) / 1000) / Math.max(1, info.treads.length);
+    const board = clamp(stepRise * 0.72, 0.045, 0.16);
+    info.treads.forEach((tread, index) => {
+      const points = tread.poly.map((point) => {
+        const lx = swap ? point[1] : point[0];
+        const ly = swap ? point[0] : point[1];
+        return stairPoint3d(stair, lx, ly);
+      });
+      const crossAxis = horizontal ? 1 : 0;
+      let clipped = clipPolyHalfPlane3d(points, crossAxis, fixed - half, true);
+      clipped = clipPolyHalfPlane3d(clipped, crossAxis, fixed + half, false);
+      if(clipped.length < 3) return;
+      const along = clipped.map((point) => point[horizontal ? 0 : 1]);
+      const lo = Math.max(axisLo, Math.min(...along));
+      const hi = Math.min(axisHi, Math.max(...along));
+      const underside = bottom + Math.max(0, stepRise * (index + 1) - board - 0.005);
+      if(hi - lo > 0.5) profiles.push({ lo, hi, y1:Math.min(top, underside) });
+    });
+  });
+  if(!profiles.length) return [{ seg, y0:bottom, y1:top }];
+  const cuts = [axisLo, axisHi];
+  profiles.forEach((profile) => cuts.push(profile.lo, profile.hi));
+  cuts.sort((a, b) => a - b);
+  const unique = cuts.filter((value, index) => index === 0 || Math.abs(value - cuts[index - 1]) > 0.2);
+  const slices = [];
+  for(let index = 0; index < unique.length - 1; index++){
+    const lo = unique[index], hi = unique[index + 1];
+    if(hi - lo <= 0.5) continue;
+    const mid = (lo + hi) / 2;
+    const hits = profiles.filter((profile) => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
+    const y1 = hits.length ? Math.min(...hits.map((profile) => profile.y1)) : top;
+    if(y1 - bottom <= 0.01) continue;
+    slices.push({
+      seg:horizontal
+        ? { ...seg, x1:lo, x2:hi, y1:fixed, y2:fixed }
+        : { ...seg, x1:fixed, x2:fixed, y1:lo, y2:hi },
+      y0:bottom,
+      y1
+    });
+  }
+  return slices;
 }
 
 function normalizeModelParts3d(parts){
