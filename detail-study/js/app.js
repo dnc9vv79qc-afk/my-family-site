@@ -1765,8 +1765,8 @@ function renderBuilderEditor(){
     </div>
     ${references.length ? `<div class="builderPositionBox">
       <div class="builderPositionHead">
-        <select id="builderReferenceInput" aria-label="基準部品">${referenceOptions}</select>
-        <input id="builderInsetInput" type="number" step="10" value="0" aria-label="端からの余白" placeholder="余白mm">
+        <label>基準部品<select id="builderReferenceInput">${referenceOptions}</select></label>
+        <label>端余白mm<input id="builderInsetInput" type="number" step="10" value="0"></label>
       </div>
       <div class="builderAnchorGrid">
         <button type="button" data-builder-anchor="left-front">左前</button>
