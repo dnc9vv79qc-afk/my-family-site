@@ -1201,7 +1201,6 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
     const localD = swap ? stair.w : stair.h;
     const info = stairTreads3d(localW, localD, stair.shape || "straight", stair.winders || 3, !!stair.mirror);
     const stepRise = Math.max(1.8, Number(stair.fh || 3000) / 1000) / Math.max(1, info.treads.length);
-    const board = clamp(stepRise * 0.72, 0.045, 0.16);
     info.treads.forEach((tread, index) => {
       const points = tread.poly.map((point) => {
         const lx = swap ? point[1] : point[0];
@@ -1212,7 +1211,7 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
       const crossValues = points.map((point) => point[crossAxis]);
       const crossMin = Math.min(...crossValues);
       const crossMax = Math.max(...crossValues);
-      // Keep walls on the stair perimeter full-height; only under-stair interior walls follow the treads.
+      // Keep perimeter walls full-height. Interior stair walls begin above the tread, leaving storage open below.
       if(fixed <= crossMin + 0.5 || fixed >= crossMax - 0.5) return;
       let clipped = clipPolyHalfPlane3d(points, crossAxis, fixed - half, true);
       clipped = clipPolyHalfPlane3d(clipped, crossAxis, fixed + half, false);
@@ -1220,8 +1219,8 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
       const along = clipped.map((point) => point[horizontal ? 0 : 1]);
       const lo = Math.max(axisLo, Math.min(...along));
       const hi = Math.min(axisHi, Math.max(...along));
-      const underside = bottom + Math.max(0, stepRise * (index + 1) - board - 0.005);
-      if(hi - lo > 0.5) profiles.push({ lo, hi, y1:Math.min(top, underside) });
+      const above = bottom + stepRise * (index + 1) + 0.005;
+      if(hi - lo > 0.5) profiles.push({ lo, hi, y0:Math.min(top, above) });
     });
   });
   if(!profiles.length) return [{ seg, y0:bottom, y1:top }];
@@ -1235,14 +1234,14 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
     if(hi - lo <= 0.5) continue;
     const mid = (lo + hi) / 2;
     const hits = profiles.filter((profile) => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
-    const y1 = hits.length ? Math.min(...hits.map((profile) => profile.y1)) : top;
-    if(y1 - bottom <= 0.01) continue;
+    const y0 = hits.length ? Math.max(...hits.map((profile) => profile.y0)) : bottom;
+    if(top - y0 <= 0.01) continue;
     slices.push({
       seg:horizontal
         ? { ...seg, x1:lo, x2:hi, y1:fixed, y2:fixed }
         : { ...seg, x1:fixed, x2:fixed, y1:lo, y2:hi },
-      y0:bottom,
-      y1
+      y0,
+      y1:top
     });
   }
   return slices;
