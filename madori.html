@@ -1536,43 +1536,6 @@ font-size: 11px;
 font-weight: 900;
 }
 
-.basic-flow{
-display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
-gap:5px;
-padding-top:2px;
-}
-.basic-flow button{
-height:32px;
-min-width:0;
-padding:0 6px;
-border-radius:10px;
-background:var(--control-bg);
-color:var(--text);
-font-size:10.5px;
-font-weight:850;
-line-height:1.05;
-box-shadow:none;
-}
-.basic-flow button span{
-display:block;
-font-size:9px;
-font-weight:750;
-color:var(--muted);
-margin-bottom:1px;
-}
-.basic-flow button.active{
-background:var(--accent);
-color:#fff;
-}
-.basic-flow button.active span{ color:rgba(255,255,255,.78); }
-.v2layerseg{ display:none; }
-.add-focus-openings #planAddGroup,
-.add-focus-openings #catFurn{ display:none; }
-.add-focus-openings #interiorAddGrid{
-grid-template-columns:repeat(3,minmax(0,1fr));
-}
-
 .v2undo .btn-icon,
 .v2top .btn-help{
 color: var(--text);
@@ -1730,11 +1693,6 @@ grid-template-columns: repeat(4, minmax(0,1fr));
 }
 }
 
-.mode-banner,
-.work-hint{
-top:calc(env(safe-area-inset-top) + 124px);
-}
-
 @media (max-width: 360px){
 .v2top{
 left: 8px;
@@ -1853,10 +1811,9 @@ border-bottom-color: rgba(235,235,245,.12);
 <button class="seg-btn" id="layerIntBtn" type="button">内装</button>
 </div>
 <div class="summary">
-<span title="外枠から算出した検討用の概算値">概算延床 <b id="totalTsubo">0.00</b>坪</span>
+<span>延床 <b id="totalTsubo">0.00</b>坪</span>
 <span id="jouWrap"><b id="totalJou">0.0</b>畳</span>
 <span id="m2Wrap"><b id="totalM2">0.0</b>m²</span>
-<span title="吹抜を除く各部屋の面積合計">部屋計 <b id="roomTotalTsubo">0.00</b>坪 / <b id="roomTotalM2">0.0</b>m²</span>
 <span id="floorBreakdown" style="display:none;"></span>
 </div>
 <div class="v2undo">
@@ -1864,12 +1821,6 @@ border-bottom-color: rgba(235,235,245,.12);
 <button id="redoBtn" class="btn-icon" type="button" disabled aria-label="やり直す">↪︎</button>
 </div>
 </div>
-<nav class="basic-flow" id="basicFlow" aria-label="基本検討の流れ">
-<button type="button" data-basic-step="outer"><span>STEP 1</span>外形</button>
-<button type="button" data-basic-step="rooms" class="active"><span>STEP 2</span>部屋</button>
-<button type="button" data-basic-step="openings"><span>STEP 3</span>建具</button>
-<button type="button" data-basic-step="furniture"><span>STEP 4</span>家具</button>
-</nav>
 </div>
 
 <div id="modeBanner" class="mode-banner" style="display:none;">
@@ -1989,8 +1940,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div id="addSheet" class="modal-overlay v2overlay">
 <div class="modal sheet v2sheet">
 <div class="grabber"></div>
-<h3 id="addSheetTitle" style="margin:0 0 10px; text-align:left;">追加</h3>
-<div id="planAddGroup">
+<h3 style="margin:0 0 10px; text-align:left;">追加</h3>
 <div class="v2grouptag">🏠 間取り（部屋・壁）</div>
 <div class="v2catgrid">
 <button class="v2cat" id="catRoom" type="button">
@@ -2006,9 +1956,8 @@ border-bottom-color: rgba(235,235,245,.12);
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M9 15l6-6"/></svg><span>外壁を編集</span>
 </button>
 </div>
-</div>
 <div class="v2grouptag">🛋 内装（建具・家具）</div>
-<div class="v2catgrid" id="interiorAddGrid">
+<div class="v2catgrid">
 <button class="v2cat" id="catDoor" type="button">
 <svg viewBox="0 0 24 24"><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M4 21h16M15 12.5v.5"/></svg><span>ドア</span>
 </button>
@@ -3287,7 +3236,6 @@ draw();
 function updateSegmentUI(){
 el('segEdit').classList.toggle('active', !isMerged);
 el('segMerge').classList.toggle('active', isMerged);
-setBasicFlowActive(isMerged ? 'rooms' : 'outer');
 }
 
 function setMergedMode(val){
@@ -3411,12 +3359,6 @@ return m;
 };
 const perFloor = floors.map(f => masuOf(f.items));
 const tm = perFloor.reduce((a, b) => a + b, 0);
-const roomMasu = floors.reduce((sum, floor) => {
-return sum + (floor.items || []).reduce((floorSum, item) => {
-if(item.type !== 'room' || item.void) return floorSum;
-return floorSum + (item.w / GRID_SIZE) * (item.h / GRID_SIZE);
-}, 0);
-}, 0);
 
 // フロア内訳（2Fに面積がある時だけ表示）
 const fb = el('floorBreakdown');
@@ -3431,14 +3373,10 @@ fb.innerText = floors.map((f, i) => `${f.name} ${(perFloor[i]/4).toFixed(2)}坪`
 const tsubo = tm/4;
 const jou = tm/2;
 const m2 = tsubo * TSUBO_TO_M2;
-const roomTsubo = roomMasu / 4;
-const roomM2 = roomTsubo * TSUBO_TO_M2;
 
 el('totalTsubo').innerText = tsubo.toFixed(2);
 el('totalJou').innerText = jou.toFixed(1);
 el('totalM2').innerText = m2.toFixed(1);
-el('roomTotalTsubo').innerText = roomTsubo.toFixed(2);
-el('roomTotalM2').innerText = roomM2.toFixed(1);
 
 el('jouWrap').style.display = (el('showJou')?.checked ?? true) ? "" : "none";
 el('m2Wrap').style.display = (el('showM2')?.checked ?? true) ? "" : "none";
@@ -9508,72 +9446,6 @@ const MM_KEY = "floorplan_show_mm_v1";
 function v2OpenSheet(id){ const m = el(id); if(m) m.style.display = 'flex'; }
 function v2CloseSheet(id){ const m = el(id); if(m) m.style.display = 'none'; }
 
-function setBasicFlowActive(step){
-document.querySelectorAll('[data-basic-step]').forEach(button => {
-button.classList.toggle('active', button.dataset.basicStep === step);
-});
-}
-
-function openAddSheetFor(kind = 'all'){
-const sheet = el('addSheet');
-if(!sheet) return;
-sheet.classList.toggle('add-focus-openings', kind === 'openings');
-const title = el('addSheetTitle');
-if(title) title.textContent = kind === 'openings' ? '建具を追加' : '追加';
-v2OpenSheet('addSheet');
-}
-
-function startBasicStep(step){
-if(isReadOnly){
-showToast('閲覧専用です。「コピーして編集」をどうぞ');
-return;
-}
-if(isMeasureMode && el('measureBtn')) el('measureBtn').click();
-if(isViewMode) setViewMode(false);
-if(isWallPlaceMode) setWallPlaceMode(false);
-if(isOpeningPlaceMode) setOpeningPlaceMode(false);
-selectedItem = null;
-
-if(step === 'outer'){
-setEditLayer('plan', true);
-if(isMerged) setMergedMode(false);
-setBasicFlowActive('outer');
-syncBottomBarState();
-updateWorkHint();
-draw();
-showToast('STEP 1：外枠を追加・調整します', 1200);
-return;
-}
-if(step === 'rooms'){
-setEditLayer('plan', true);
-if(!isMerged) setMergedMode(true);
-setBasicFlowActive('rooms');
-const button = el('addGenericRoomBtn2');
-if(button) button.click();
-return;
-}
-if(step === 'openings'){
-setEditLayer('interior', true);
-if(!isMerged) setMergedMode(true);
-setBasicFlowActive('openings');
-openAddSheetFor('openings');
-return;
-}
-if(step === 'furniture'){
-setEditLayer('interior', true);
-if(!isMerged) setMergedMode(true);
-setBasicFlowActive('furniture');
-openFurnModal(null);
-}
-}
-
-if(el('basicFlow')){
-el('basicFlow').addEventListener('click', event => {
-const button = event.target.closest('[data-basic-step]');
-if(button) startBasicStep(button.dataset.basicStep);
-});
-}
-
 function v2SyncDock(){
 const sel = el('dockSelect'), add = el('dockAdd');
 const special = isMeasureMode || isViewMode;
@@ -9665,7 +9537,7 @@ draw();
 };
 if(el('dockAdd')) el('dockAdd').onclick = () => {
 if(isReadOnly){ showToast('閲覧専用です。「コピーして編集」をどうぞ'); return; }
-openAddSheetFor('all');
+v2OpenSheet('addSheet');
 };
 if(el('dock3d')) el('dock3d').onclick = () => open3DViewer();
 if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();
@@ -9697,10 +9569,7 @@ if(b){ b.textContent = v3dNoClip ? '壁止' : '壁抜'; b.classList.toggle('on',
 showToast(v3dNoClip ? '壁をすり抜けて移動できます' : '壁で止まります', 1200);
 };
 if(el('dockMore')) el('dockMore').onclick = () => v2OpenSheet('moreSheet');
-if(el('addSheetClose')) el('addSheetClose').onclick = () => {
-el('addSheet')?.classList.remove('add-focus-openings');
-v2CloseSheet('addSheet');
-};
+if(el('addSheetClose')) el('addSheetClose').onclick = () => v2CloseSheet('addSheet');
 if(el('moreSheetClose')) el('moreSheetClose').onclick = () => v2CloseSheet('moreSheet');
 ['addSheet','moreSheet'].forEach(id => {
 const m = el(id);
@@ -9710,7 +9579,6 @@ if(m) m.addEventListener('click', (e) => { if(e.target.id === id) v2CloseSheet(i
 // --- 追加シートのカテゴリ ---
 if(el('catRoom')) el('catRoom').onclick = () => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('rooms');
 setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
@@ -9721,7 +9589,6 @@ if(b) b.click();
 };
 if(el('catWall')) el('catWall').onclick = () => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('rooms');
 setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
@@ -9731,7 +9598,6 @@ updateWorkHint();
 };
 if(el('catFrameAdd')) el('catFrameAdd').onclick = () => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('outer');
 setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
@@ -9743,7 +9609,6 @@ updateWorkHint();
 };
 if(el('catFrameEdit')) el('catFrameEdit').onclick = () => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('outer');
 setEditLayer('plan', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
@@ -10133,7 +9998,6 @@ syncDaylightControls();
 
 if(el('catFurn')) el('catFurn').onclick = () => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('furniture');
 setEditLayer('interior', true);
 if(isOpeningPlaceMode) setOpeningPlaceMode(false);
 if(isViewMode) setViewMode(false);
@@ -10144,7 +10008,6 @@ openFurnModal(null);
 
 const v2StartOpening = (kind, panels) => {
 v2CloseSheet('addSheet');
-setBasicFlowActive('openings');
 setEditLayer('interior', true);
 if(isViewMode) setViewMode(false);
 if(isWallPlaceMode) setWallPlaceMode(false);
