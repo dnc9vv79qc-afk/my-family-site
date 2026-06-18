@@ -655,6 +655,11 @@ function renderPalette(){
         openObjectBuilder(editButton.dataset.modelEdit);
         return;
       }
+      const deleteButton = event.target.closest("[data-model-delete]");
+      if(deleteButton){
+        deleteCustomModel(deleteButton.dataset.modelDelete);
+        return;
+      }
       const modelButton = event.target.closest("button[data-model-id]");
       if(modelButton){
         addCustomModelItem(modelButton.dataset.modelId);
@@ -675,7 +680,10 @@ function renderLibrary(items, fallbackCategory){
         <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>
       </button>`;
       return item.modelId
-        ? `<div class="paletteModel">${button}<button class="paletteModelEdit" type="button" data-model-edit="${escapeAttr(item.modelId)}">編集</button></div>`
+        ? `<div class="paletteModel">${button}<div class="paletteModelActions">
+            <button class="paletteModelEdit" type="button" data-model-edit="${escapeAttr(item.modelId)}">編集</button>
+            <button class="paletteModelDelete" type="button" data-model-delete="${escapeAttr(item.modelId)}">削除</button>
+          </div></div>`
         : button;
     }).join("");
     return `<div class="paletteGroup"><div class="paletteTitle">${escapeHtml(category)}</div><div class="paletteGrid">${buttons}</div></div>`;
@@ -703,6 +711,17 @@ function customModelLibrary(layer = ""){
     modelId: model.id,
     modelParts: model.parts
   }));
+}
+
+function deleteCustomModel(modelId){
+  const model = (state.design?.customModels || []).find((item) => item.id === modelId);
+  if(!model) return;
+  if(!window.confirm(`保存部品「${model.label}」を削除しますか？\n配置済みの部品は残ります。`)) return;
+  pushHistory();
+  state.design.customModels = state.design.customModels.filter((item) => item.id !== modelId);
+  saveDesign(false);
+  renderPalette();
+  toast(`${model.label}を保存部品から削除しました`);
 }
 
 function onPlanPointerDown(event){

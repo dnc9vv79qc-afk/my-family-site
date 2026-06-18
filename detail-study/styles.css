@@ -598,16 +598,25 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 .paletteModel{
   min-width:0;
   display:grid;
-  grid-template-columns:minmax(0,1fr) 40px;
+  grid-template-columns:minmax(0,1fr) 44px;
   gap:4px;
 }
 .paletteModel > button:first-child{ width:100%; }
-.paletteModelEdit{
-  min-height:44px;
+.paletteModelActions{ display:grid; grid-template-rows:1fr 1fr; gap:3px; }
+.paletteModelEdit,.paletteModelDelete{
+  min-height:0 !important;
   padding:0 !important;
   text-align:center !important;
+  font-size:9px !important;
+}
+.paletteModelEdit{
   color:#245f46 !important;
   background:#e5f2e9 !important;
+}
+.paletteModelDelete{
+  color:#fff !important;
+  background:var(--red) !important;
+  border-color:transparent !important;
 }
 .selectedPanel{ display:grid; gap:8px; }
 .selectedHead{
