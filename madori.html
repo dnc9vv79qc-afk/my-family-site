@@ -8502,6 +8502,78 @@ if(shadow !== false){ m.castShadow = true; m.receiveShadow = true; }
 return m;
 }
 
+/* 直線階段と平行に重なる内壁を、踏み板下面の高さで区間分割する。 */
+function v3dWallSlicesUnderStraightStairs(seg, stairs, yBase, topY){
+const horiz = Math.abs(seg.y2 - seg.y1) < 0.5;
+const vert = Math.abs(seg.x2 - seg.x1) < 0.5;
+if(!seg.inner || (!horiz && !vert)) return [{ seg, y0: yBase, y1: topY }];
+const axisLo = horiz ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
+const axisHi = horiz ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
+const fixed = horiz ? seg.y1 : seg.x1;
+const profiles = [];
+
+(stairs || []).forEach(stair => {
+if(!stair || stair.type !== 'stair' || (stair.shape || 'straight') !== 'straight') return;
+const riseMm = (typeof stair.fh === 'number' && stair.fh > 0) ? stair.fh : 3000;
+const totalRise = riseMm * PX_PER_MM;
+const swap = (stair.dir === 1 || stair.dir === 3);
+const lw = swap ? stair.h : stair.w;
+const lh = swap ? stair.w : stair.h;
+const info = stairTreads(lw, lh, 'straight', stair.winders || 3, !!stair.mirror);
+const steps = info.treads.length;
+if(!steps) return;
+const stepH = totalRise / steps;
+const board = Math.max(mm2px(45), Math.min(stepH, mm2px(180)));
+const worldTreads = info.treads.map((tr, index) => {
+const pts = tr.poly.map(p => {
+const lx = swap ? p[1] : p[0];
+const ly = swap ? p[0] : p[1];
+return stairLocalToWorld(stair, lx, ly);
+});
+const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+return {
+minX: Math.min(...xs),
+maxX: Math.max(...xs),
+minZ: Math.min(...zs),
+maxZ: Math.max(...zs),
+under: yBase + Math.max(0, stepH * (index + 1) - board - 0.4)
+};
+});
+const first = worldTreads[0], last = worldTreads[worldTreads.length - 1];
+const runHorizontal = Math.abs((last.minX + last.maxX) - (first.minX + first.maxX))
+  > Math.abs((last.minZ + last.maxZ) - (first.minZ + first.maxZ));
+if(runHorizontal !== horiz) return;
+worldTreads.forEach(tread => {
+const crossLo = horiz ? tread.minZ : tread.minX;
+const crossHi = horiz ? tread.maxZ : tread.maxX;
+if(fixed < crossLo - seg.t / 2 || fixed > crossHi + seg.t / 2) return;
+const lo = Math.max(axisLo, horiz ? tread.minX : tread.minZ);
+const hi = Math.min(axisHi, horiz ? tread.maxX : tread.maxZ);
+if(hi - lo > 0.5) profiles.push({ lo, hi, y1: Math.min(topY, tread.under) });
+});
+});
+
+if(!profiles.length) return [{ seg, y0: yBase, y1: topY }];
+const cuts = [axisLo, axisHi];
+profiles.forEach(profile => cuts.push(profile.lo, profile.hi));
+cuts.sort((a, b) => a - b);
+const unique = cuts.filter((value, index) => index === 0 || Math.abs(value - cuts[index - 1]) > 0.2);
+const out = [];
+for(let index = 0; index < unique.length - 1; index++){
+const lo = unique[index], hi = unique[index + 1];
+if(hi - lo <= 0.5) continue;
+const mid = (lo + hi) / 2;
+const hits = profiles.filter(profile => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
+const y1 = hits.length ? Math.min(...hits.map(profile => profile.y1)) : topY;
+if(y1 - yBase <= 0.3) continue;
+const part = horiz
+? { x1: lo, y1: fixed, x2: hi, y2: fixed }
+: { x1: fixed, y1: lo, x2: fixed, y2: hi };
+out.push({ seg: part, y0: yBase, y1 });
+}
+return out;
+}
+
 function v3dBuildFloor(T, group, fItems, upperVoids){
 const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
 wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
@@ -8514,6 +8586,7 @@ sash: new T.MeshLambertMaterial({ color: 0x6d6d72 }),
 });
 const frames = fItems.filter(i => i.type === 'frame');
 const openings = fItems.filter(i => i.type === 'opening');
+const stairs = fItems.filter(i => i.type === 'stair');
 const yBase = V3D_SLAB_T;
 const topY = yBase + V3D_WALL_H;
 
@@ -8705,14 +8778,16 @@ const segs = [];
 v3dOuterSegs(frames).forEach(s => segs.push({ ...s, t: V3D_OUTER_T }));
 fItems.forEach(it => {
 if(it.type !== 'wallLine') return;
-segs.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, t: clamp((it.thick ?? WALL_DEFAULT_THICK) * 0.35, 3, 7) });
+segs.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, t: clamp((it.thick ?? WALL_DEFAULT_THICK) * 0.35, 3, 7), inner: true });
 });
 
 segs.forEach(seg => {
 const { solids, overs } = v3dCutWall(seg, openings);
 solids.forEach(s => {
-const m = v3dPartBox(T, s, seg.t, yBase, topY, mats.wall);
+v3dWallSlicesUnderStraightStairs({ ...s, t: seg.t, inner: !!seg.inner }, stairs, yBase, topY).forEach(slice => {
+const m = v3dPartBox(T, slice.seg, seg.t, slice.y0, slice.y1, mats.wall);
 if(m) group.add(m);
+});
 });
 overs.forEach(({ seg: o, op }) => {
 if(op.kind === 'window'){
