@@ -1201,26 +1201,33 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
     const localD = swap ? stair.w : stair.h;
     const info = stairTreads3d(localW, localD, stair.shape || "straight", stair.winders || 3, !!stair.mirror);
     const stepRise = Math.max(1.8, Number(stair.fh || 3000) / 1000) / Math.max(1, info.treads.length);
-    info.treads.forEach((tread, index) => {
-      const points = tread.poly.map((point) => {
+    const board = clamp(stepRise * 0.72, 0.045, 0.16);
+    const worldTreads = info.treads.map((tread, index) => ({
+      index,
+      points:tread.poly.map((point) => {
         const lx = swap ? point[1] : point[0];
         const ly = swap ? point[0] : point[1];
         return stairPoint3d(stair, lx, ly);
-      });
-      const crossAxis = horizontal ? 1 : 0;
-      const crossValues = points.map((point) => point[crossAxis]);
-      const crossMin = Math.min(...crossValues);
-      const crossMax = Math.max(...crossValues);
-      // Keep perimeter walls full-height. Interior stair walls begin above the tread, leaving storage open below.
-      if(fixed <= crossMin + 0.5 || fixed >= crossMax - 0.5) return;
+      })
+    }));
+    const crossAxis = horizontal ? 1 : 0;
+    const stairCrossValues = worldTreads.flatMap((tread) => tread.points.map((point) => point[crossAxis]));
+    const stairCrossMin = Math.min(...stairCrossValues);
+    const stairCrossMax = Math.max(...stairCrossValues);
+    const perimeter = Math.abs(fixed - stairCrossMin) <= half + 0.5
+      || Math.abs(fixed - stairCrossMax) <= half + 0.5;
+    worldTreads.forEach(({ points, index }) => {
       let clipped = clipPolyHalfPlane3d(points, crossAxis, fixed - half, true);
       clipped = clipPolyHalfPlane3d(clipped, crossAxis, fixed + half, false);
       if(clipped.length < 3) return;
       const along = clipped.map((point) => point[horizontal ? 0 : 1]);
       const lo = Math.max(axisLo, Math.min(...along));
       const hi = Math.min(axisHi, Math.max(...along));
-      const above = bottom + stepRise * (index + 1) + 0.005;
-      if(hi - lo > 0.5) profiles.push({ lo, hi, y0:Math.min(top, above) });
+      if(hi - lo <= 0.5) return;
+      const treadTop = bottom + stepRise * (index + 1);
+      profiles.push(perimeter
+        ? { lo, hi, mode:"upper", y:Math.min(top, treadTop + 0.005) }
+        : { lo, hi, mode:"lower", y:Math.min(top, treadTop - board - 0.005) });
     });
   });
   if(!profiles.length) return [{ seg, y0:bottom, y1:top }];
@@ -1234,14 +1241,21 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
     if(hi - lo <= 0.5) continue;
     const mid = (lo + hi) / 2;
     const hits = profiles.filter((profile) => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
-    const y0 = hits.length ? Math.max(...hits.map((profile) => profile.y0)) : bottom;
-    if(top - y0 <= 0.01) continue;
+    let y0 = bottom;
+    let y1 = top;
+    if(hits.length){
+      const upper = hits.filter((profile) => profile.mode === "upper");
+      const lower = hits.filter((profile) => profile.mode === "lower");
+      if(upper.length) y0 = Math.max(...upper.map((profile) => profile.y));
+      else if(lower.length) y1 = Math.min(...lower.map((profile) => profile.y));
+    }
+    if(y1 - y0 <= 0.01) continue;
     slices.push({
       seg:horizontal
         ? { ...seg, x1:lo, x2:hi, y1:fixed, y2:fixed }
         : { ...seg, x1:fixed, x2:fixed, y1:lo, y2:hi },
       y0,
-      y1:top
+      y1
     });
   }
   return slices;

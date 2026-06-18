@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討ツール 06/18 階段壁修正v4 | MORI</title>
+<title>間取り検討ツール 06/18 階段壁修正v5 | MORI</title>
 
 <style>
 :root{
@@ -1792,7 +1792,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
-<div class="ver-label">06/18 階段壁修正 v4</div>
+<div class="ver-label">06/18 階段壁修正 v5</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -8547,7 +8547,7 @@ out.push([a[0] + (b[0] - a[0]) * ratio, a[1] + (b[1] - a[1]) * ratio]);
 return out;
 }
 
-/* 踏み板と重なる内壁は踏み板より上だけ残し、階段下収納側を開放する。 */
+/* 階段外周壁は踏み板より上、階段内側・直交壁は踏み板より下だけ残す。 */
 function v3dWallSlicesUnderStairs(seg, stairs, yBase, topY){
 const horiz = Math.abs(seg.y2 - seg.y1) < 0.5;
 const vert = Math.abs(seg.x2 - seg.x1) < 0.5;
@@ -8569,26 +8569,33 @@ const info = stairTreads(lw, lh, stair.shape || 'straight', stair.winders || 3, 
 const steps = info.treads.length;
 if(!steps) return;
 const stepH = totalRise / steps;
-info.treads.forEach((tr, index) => {
-const pts = tr.poly.map(p => {
+const board = Math.max(mm2px(45), Math.min(stepH, mm2px(180)));
+const worldTreads = info.treads.map((tr, index) => ({
+index,
+points: tr.poly.map(p => {
 const lx = swap ? p[1] : p[0];
 const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(stair, lx, ly);
-});
+})
+}));
 const crossAxis = horiz ? 1 : 0;
-const crossValues = pts.map(point => point[crossAxis]);
-const crossMin = Math.min(...crossValues);
-const crossMax = Math.max(...crossValues);
-// 階段外周上の壁は通常壁のまま残し、踏み板内部を通る壁だけ階段上部に残す。
-if(fixed <= crossMin + 0.5 || fixed >= crossMax - 0.5) return;
+const stairCrossValues = worldTreads.flatMap(tread => tread.points.map(point => point[crossAxis]));
+const stairCrossMin = Math.min(...stairCrossValues);
+const stairCrossMax = Math.max(...stairCrossValues);
+const perimeter = Math.abs(fixed - stairCrossMin) <= half + 0.5
+  || Math.abs(fixed - stairCrossMax) <= half + 0.5;
+worldTreads.forEach(({ points: pts, index }) => {
 let clipped = v3dClipPolyHalfPlane(pts, crossAxis, fixed - half, true);
 clipped = v3dClipPolyHalfPlane(clipped, crossAxis, fixed + half, false);
 if(clipped.length < 3) return;
 const along = clipped.map(point => point[horiz ? 0 : 1]);
 const lo = Math.max(axisLo, Math.min(...along));
 const hi = Math.min(axisHi, Math.max(...along));
-const above = yBase + stepH * (index + 1) + 0.4;
-if(hi - lo > 0.5) profiles.push({ lo, hi, y0: Math.min(topY, above) });
+if(hi - lo <= 0.5) return;
+const treadTop = yBase + stepH * (index + 1);
+profiles.push(perimeter
+? { lo, hi, mode: 'upper', y: Math.min(topY, treadTop + 0.4) }
+: { lo, hi, mode: 'lower', y: Math.min(topY, treadTop - board - 0.4) });
 });
 });
 
@@ -8603,12 +8610,18 @@ const lo = unique[index], hi = unique[index + 1];
 if(hi - lo <= 0.5) continue;
 const mid = (lo + hi) / 2;
 const hits = profiles.filter(profile => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
-const y0 = hits.length ? Math.max(...hits.map(profile => profile.y0)) : yBase;
-if(topY - y0 <= 0.3) continue;
+let y0 = yBase, y1 = topY;
+if(hits.length){
+const upper = hits.filter(profile => profile.mode === 'upper');
+const lower = hits.filter(profile => profile.mode === 'lower');
+if(upper.length) y0 = Math.max(...upper.map(profile => profile.y));
+else if(lower.length) y1 = Math.min(...lower.map(profile => profile.y));
+}
+if(y1 - y0 <= 0.3) continue;
 const part = horiz
 ? { x1: lo, y1: fixed, x2: hi, y2: fixed }
 : { x1: fixed, y1: lo, x2: fixed, y2: hi };
-out.push({ seg: part, y0, y1: topY });
+out.push({ seg: part, y0, y1 });
 }
 return out;
 }
