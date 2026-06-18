@@ -71,7 +71,8 @@ overflow: hidden;
 
 .ver-label{
 position: fixed;
-top: calc(6px + env(safe-area-inset-top));
+top: auto;
+bottom: calc(78px + env(safe-area-inset-bottom));
 right: 10px;
 font-size: 10px;
 color: var(--muted);
@@ -1791,6 +1792,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
+<div class="ver-label">06/18 階段下壁対応</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -8513,7 +8515,7 @@ const fixed = horiz ? seg.y1 : seg.x1;
 const profiles = [];
 
 (stairs || []).forEach(stair => {
-if(!stair || stair.type !== 'stair' || (stair.shape || 'straight') !== 'straight') return;
+if(!stair || !v3dIsStairItem(stair) || (stair.shape || 'straight') !== 'straight') return;
 const riseMm = (typeof stair.fh === 'number' && stair.fh > 0) ? stair.fh : 3000;
 const totalRise = riseMm * PX_PER_MM;
 const swap = (stair.dir === 1 || stair.dir === 3);
@@ -8574,6 +8576,10 @@ out.push({ seg: part, y0: yBase, y1 });
 return out;
 }
 
+function v3dIsStairItem(item){
+return !!item && (item.type === 'stair' || (item.type === 'furn' && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || '')));
+}
+
 function v3dBuildFloor(T, group, fItems, upperVoids){
 const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
 wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
@@ -8586,7 +8592,7 @@ sash: new T.MeshLambertMaterial({ color: 0x6d6d72 }),
 });
 const frames = fItems.filter(i => i.type === 'frame');
 const openings = fItems.filter(i => i.type === 'opening');
-const stairs = fItems.filter(i => i.type === 'stair');
+const stairs = fItems.filter(v3dIsStairItem);
 const yBase = V3D_SLAB_T;
 const topY = yBase + V3D_WALL_H;
 
@@ -8652,7 +8658,7 @@ c.visible = false; v3dCeilings.push(c); group.add(c);
 
 // 階段（ステップ状）
 fItems.forEach(it => {
-if(it.type !== 'stair') return;
+if(!v3dIsStairItem(it)) return;
 const riseMm = (typeof it.fh === 'number' && it.fh > 0) ? it.fh : 3000;
 const totalRise = riseMm * PX_PER_MM;
 const matS = new T.MeshLambertMaterial({ color: new T.Color('#d8cdb6') });
@@ -8685,7 +8691,7 @@ group.add(m);
 
 // 家具（干渉確認用ボックス）
 fItems.forEach(it => {
-if(it.type !== 'furn') return;
+if(it.type !== 'furn' || v3dIsStairItem(it)) return;
 const hh = Math.max(2, (it.fh || 700) * PX_PER_MM);
 const gl = Math.max(0, (it.gl || 0) * PX_PER_MM);
 const mat = new T.MeshLambertMaterial({ color: new T.Color(it.color || '#C9C9D2') });

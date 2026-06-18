@@ -493,7 +493,7 @@ export class DetailScene3D {
       openings.forEach((opening) => this.addOpening(opening, yBase, selectedId));
     }
     existingFurniture.forEach((item) => {
-      if(item.type === "stair") this.addStair(item, yBase, selectedId);
+      if(isStructuralStair3d(item)) this.addStair(item, yBase, selectedId);
       else if(layers.guideFurniture) this.addFurnitureBox(item, floorIndex, yBase, selectedId, true);
     });
     (design.customItems || [])
@@ -1060,6 +1060,10 @@ function addRoofPlane(group, points, material){
   mesh.receiveShadow = true;
   group.add(mesh);
   return mesh;
+}
+
+function isStructuralStair3d(item){
+  return !!item && (item.type === "stair" || (item.type === "furn" && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || "")));
 }
 
 function normalizeModelParts3d(parts){

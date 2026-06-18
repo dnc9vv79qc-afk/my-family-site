@@ -225,7 +225,7 @@ async function loadCurrentLayout(force = false){
     seedFinishes(state.plan, state.design);
     state.floorMode = String(state.plan.activeFloor || 0);
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id}`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-18b`;
     saveDesign(false);
     renderPalette();
     render();
@@ -632,7 +632,7 @@ function renderMetrics(){
   const rooms = roomsForFloor(state.plan, state.floorMode);
   const openings = openingsForFloor(state.plan, state.floorMode);
   const furn = furnitureForFloor(state.plan, state.floorMode);
-  const guideFurnitureCount = state.layers.guideFurniture ? furn.filter((item) => item.type === "furn").length : 0;
+  const guideFurnitureCount = state.layers.guideFurniture ? furn.filter((item) => !isStructuralStair(item)).length : 0;
   const custom = visibleCustomItems();
   const detailedFurnitureCount = custom.filter((item) => item.layer === "furniture" || item.layer === "shelves").length;
   const m2 = rooms.reduce((sum, room) => sum + areaM2(room), 0);
@@ -945,7 +945,7 @@ function renderPlan(){
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
   }
-  furn.filter((item) => item.type === "stair" || state.layers.guideFurniture).forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
+  furn.filter((item) => isStructuralStair(item) || state.layers.guideFurniture).forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
   visibleCustomItems().forEach((item) => {
     if(isItemLayerVisible(item)) chunks.push(renderFurnitureSvg(item, false));
   });
@@ -1156,6 +1156,10 @@ function renderFurnitureSvg(item, existing){
     <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/></g>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
   </g>`;
+}
+
+function isStructuralStair(item){
+  return !!item && (item.type === "stair" || (item.type === "furn" && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || "")));
 }
 
 function renderCustomModelSvg(item, selected, label, rotate){
