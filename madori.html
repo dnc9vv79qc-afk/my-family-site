@@ -8504,6 +8504,31 @@ if(shadow !== false){ m.castShadow = true; m.receiveShadow = true; }
 return m;
 }
 
+function v3dTreadPrism(T, points, y0, y1, material){
+if(!Array.isArray(points) || points.length < 3 || y1 <= y0) return null;
+const contour = points.map(point => new T.Vector2(point[0], point[1]));
+const triangles = T.ShapeUtils.triangulateShape(contour, []);
+const vertices = [];
+const push = (point, y) => vertices.push(point[0], y, point[1]);
+triangles.forEach(([a, b, c]) => {
+push(points[a], y1); push(points[c], y1); push(points[b], y1);
+push(points[a], y0); push(points[b], y0); push(points[c], y0);
+});
+for(let index = 0; index < points.length; index++){
+const a = points[index];
+const b = points[(index + 1) % points.length];
+push(a, y0); push(b, y0); push(b, y1);
+push(a, y0); push(b, y1); push(a, y1);
+}
+const geometry = new T.BufferGeometry();
+geometry.setAttribute('position', new T.Float32BufferAttribute(vertices, 3));
+geometry.computeVertexNormals();
+const mesh = new T.Mesh(geometry, material);
+mesh.castShadow = true;
+mesh.receiveShadow = true;
+return mesh;
+}
+
 /* 直線階段と平行に重なる内壁を、踏み板下面の高さで区間分割する。 */
 function v3dWallSlicesUnderStraightStairs(seg, stairs, yBase, topY){
 const horiz = Math.abs(seg.y2 - seg.y1) < 0.5;
@@ -8676,16 +8701,9 @@ const lx = swap ? p[1] : p[0];
 const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(it, lx, ly);
 });
-const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
-const minX = Math.min(...xs), maxX = Math.max(...xs);
-const minZ = Math.min(...zs), maxZ = Math.max(...zs);
-const bw = Math.max(3, maxX - minX);
-const bd = Math.max(3, maxZ - minZ);
 const top = stepH * (i + 1);          // この段の上面の高さ
-const m = new T.Mesh(new T.BoxGeometry(bw, board, bd), matS);
-m.position.set((minX + maxX) / 2, yBase + top - board / 2, (minZ + maxZ) / 2);
-m.castShadow = true; m.receiveShadow = true;
-group.add(m);
+const m = v3dTreadPrism(T, pts, yBase + top - board, yBase + top, matS);
+if(m) group.add(m);
 });
 });
 

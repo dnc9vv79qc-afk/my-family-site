@@ -867,17 +867,28 @@ export class DetailScene3D {
   }
 
   addStair(item, yBase, selectedId){
-    const steps = 8;
-    const matStep = mat(item.color || "#d2c5ad", 0.86, 0.48);
-    const stepW = pxToM(item.w) / steps;
-    for(let i = 0; i < steps; i++){
-      const box = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.08, stepW), 0.08 + i * 0.08, Math.max(0.08, pxToM(item.h))), matStep);
-      box.position.set(pxToM(item.x) + stepW * (i + 0.5), yBase + SLAB_H_M + (0.08 + i * 0.08) / 2, pxToM(item.y + item.h / 2));
-      if(selectedId === item.id) box.scale.y = 1.08;
-      box.castShadow = true;
-      box.receiveShadow = true;
-      this.root.add(box);
-    }
+    const swap = item.dir === 1 || item.dir === 3;
+    const localW = swap ? item.h : item.w;
+    const localD = swap ? item.w : item.h;
+    const info = stairTreads3d(localW, localD, item.shape || "straight", item.winders || 3, !!item.mirror);
+    const totalRise = Math.max(1.8, Number(item.fh || 3000) / 1000);
+    const stepRise = totalRise / Math.max(1, info.treads.length);
+    const board = clamp(stepRise * 0.72, 0.045, 0.16);
+    const material = mat(item.color || "#d2c5ad", 0.94, 0.5);
+    const group = new THREE.Group();
+    info.treads.forEach((tread, index) => {
+      const points = tread.poly.map((point) => {
+        const lx = swap ? point[1] : point[0];
+        const ly = swap ? point[0] : point[1];
+        const world = stairPoint3d(item, lx, ly);
+        return [pxToM(world[0]), pxToM(world[1])];
+      });
+      const top = yBase + SLAB_H_M + stepRise * (index + 1);
+      const mesh = treadPrism3d(points, top - board, top, material);
+      if(mesh) group.add(mesh);
+    });
+    if(selectedId === item.id) group.add(new THREE.BoxHelper(group, new THREE.Color("#286fd6")));
+    this.root.add(group);
   }
 
   walkBaseY(){
