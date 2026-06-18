@@ -320,6 +320,8 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planRoom.selected rect{ stroke:var(--blue); stroke-width:5; }
 .planItem.selected rect,.planItem.selected circle{ stroke:var(--blue); stroke-width:4; }
 .planItem:hover{ opacity:.86; }
+.planItem.guideItem{ opacity:.42; }
+.planItem.guideItem rect{ stroke-dasharray:5 4; }
 .exteriorItem,.planItem,.exteriorItem *,.planItem *{ touch-action:none; user-select:none; -webkit-user-select:none; }
 .exteriorItem{ cursor:grab; }
 .exteriorItem:active{ cursor:grabbing; }
@@ -593,6 +595,20 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 .palette button[data-tone="path"]{ background:#f2eadc; border-color:rgba(165,126,64,.24); }
 .palette button[data-tone="wood"]{ background:#f3e6d6; border-color:rgba(148,94,49,.25); }
 .palette button[data-tone="wall"]{ background:#eceae6; border-color:rgba(105,99,90,.24); }
+.paletteModel{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 40px;
+  gap:4px;
+}
+.paletteModel > button:first-child{ width:100%; }
+.paletteModelEdit{
+  min-height:44px;
+  padding:0 !important;
+  text-align:center !important;
+  color:#245f46 !important;
+  background:#e5f2e9 !important;
+}
 .selectedPanel{ display:grid; gap:8px; }
 .selectedHead{
   display:grid;
@@ -834,6 +850,42 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   font-size:12px;
   font-weight:900;
 }
+.builderOverallSize{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+}
+.builderOverallSize label{
+  display:grid;
+  gap:3px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:850;
+}
+.builderOverallSize input[type="number"]{
+  width:100%;
+  min-width:0;
+  height:34px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  padding:0 7px;
+  font-size:11px;
+  font-weight:850;
+}
+.builderOverallSize .builderRatio{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:26px;
+  color:#354039;
+  font-size:11px;
+}
+.builderRatio input{ width:17px; height:17px; accent-color:var(--green); }
 .builderShapeButtons{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));

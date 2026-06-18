@@ -38,6 +38,7 @@ const state = {
     walls: true,
     openings: true,
     furniture: true,
+    guideFurniture: false,
     shelves: true,
     exterior: true
   }
@@ -93,7 +94,7 @@ function cacheDom(){
     "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
-    "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderPartList","builderEditor"
+    "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderKeepRatio","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -210,6 +211,9 @@ function bindEvents(){
   dom.objectBuilder?.addEventListener("click", onObjectBuilderClick);
   dom.objectBuilder?.addEventListener("input", onObjectBuilderInput);
   dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
+  [dom.builderOverallW, dom.builderOverallD, dom.builderOverallH].forEach((input) => {
+    input?.addEventListener("change", () => resizeBuilderModel(input));
+  });
 }
 
 async function loadCurrentLayout(force = false){
@@ -628,14 +632,16 @@ function renderMetrics(){
   const rooms = roomsForFloor(state.plan, state.floorMode);
   const openings = openingsForFloor(state.plan, state.floorMode);
   const furn = furnitureForFloor(state.plan, state.floorMode);
+  const guideFurnitureCount = state.layers.guideFurniture ? furn.filter((item) => item.type === "furn").length : 0;
   const custom = visibleCustomItems();
+  const detailedFurnitureCount = custom.filter((item) => item.layer === "furniture" || item.layer === "shelves").length;
   const m2 = rooms.reduce((sum, room) => sum + areaM2(room), 0);
   dom.metricStrip.innerHTML = [
     `<span>${formatM2(m2)}</span>`,
     `<span>${formatTsubo(m2)}</span>`,
     `<span>部屋 ${rooms.length}</span>`,
     `<span>窓/建具 ${openings.length}</span>`,
-    `<span>家具 ${furn.length + custom.length}</span>`
+    `<span>家具 ${detailedFurnitureCount + guideFurnitureCount}</span>`
   ].join("");
 }
 
@@ -644,6 +650,11 @@ function renderPalette(){
   dom.palette.innerHTML = renderLibrary([...customModelLibrary("furniture"), ...FURNITURE_LIBRARY], "検討");
   [dom.exteriorPalette, dom.palette].forEach((palette) => {
     palette.onclick = (event) => {
+      const editButton = event.target.closest("[data-model-edit]");
+      if(editButton){
+        openObjectBuilder(editButton.dataset.modelEdit);
+        return;
+      }
       const modelButton = event.target.closest("button[data-model-id]");
       if(modelButton){
         addCustomModelItem(modelButton.dataset.modelId);
@@ -659,11 +670,14 @@ function renderPalette(){
 function renderLibrary(items, fallbackCategory){
   const categories = [...new Set(items.map((item) => item.category || fallbackCategory))];
   return categories.map((category) => {
-    const buttons = items.filter((item) => (item.category || fallbackCategory) === category).map((item) => (
-      `<button type="button" data-kind="${escapeAttr(item.kind)}" ${item.modelId ? `data-model-id="${escapeAttr(item.modelId)}"` : ""} data-tone="${item.tone}">
+    const buttons = items.filter((item) => (item.category || fallbackCategory) === category).map((item) => {
+      const button = `<button type="button" data-kind="${escapeAttr(item.kind)}" ${item.modelId ? `data-model-id="${escapeAttr(item.modelId)}"` : ""} data-tone="${item.tone}">
         <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>
-      </button>`
-    )).join("");
+      </button>`;
+      return item.modelId
+        ? `<div class="paletteModel">${button}<button class="paletteModelEdit" type="button" data-model-edit="${escapeAttr(item.modelId)}">編集</button></div>`
+        : button;
+    }).join("");
     return `<div class="paletteGroup"><div class="paletteTitle">${escapeHtml(category)}</div><div class="paletteGrid">${buttons}</div></div>`;
   }).join("");
 }
@@ -931,7 +945,7 @@ function renderPlan(){
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
   }
-  if(state.layers.furniture) furn.forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
+  furn.filter((item) => item.type === "stair" || state.layers.guideFurniture).forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
   visibleCustomItems().forEach((item) => {
     if(isItemLayerVisible(item)) chunks.push(renderFurnitureSvg(item, false));
   });
@@ -1128,6 +1142,7 @@ function renderOpeningSvg(opening){
 
 function renderFurnitureSvg(item, existing){
   const selected = state.selectedId === item.id ? " selected" : "";
+  const guideClass = existing && item.type === "furn" ? " guideItem" : "";
   const label = escapeHtml(item.label || "家具");
   const color = item.color || (existing ? "#d8dce3" : "#c9c9d2");
   const rotate = item.rotation ? ` transform="rotate(${item.rotation} ${item.x + item.w / 2} ${item.y + item.h / 2})"` : "";
@@ -1137,8 +1152,8 @@ function renderFurnitureSvg(item, existing){
     const r = Math.max(4, Math.min(item.w, item.h) / 2);
     return `<g class="planItem${selected}" data-id="${item.id}"><circle cx="${item.x + item.w / 2}" cy="${item.y + item.h / 2}" r="${r}" fill="${color}" stroke="#355d38" stroke-width="1.5"/><text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text></g>`;
   }
-  return `<g class="planItem${selected}" data-id="${item.id}"${rotate}>
-    <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/>
+  return `<g class="planItem${guideClass}${selected}" data-id="${item.id}">
+    <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/></g>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
   </g>`;
 }
@@ -1165,10 +1180,12 @@ function renderCustomModelSvg(item, selected, label, rotate){
   }).join("");
   const cls = item.layer === "exterior" ? `planItem exteriorItem${selected}` : `planItem${selected}`;
   const handle = selected && !item.locked ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
-  return `<g class="${cls}" data-id="${item.id}"${rotate}>
-    ${parts}
-    <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="none" stroke="rgba(31,35,28,.26)" stroke-width="1.1" stroke-dasharray="5 4"/>
-    <text x="${centerX}" y="${centerY + 3}" text-anchor="middle" class="planSub">${label}</text>${handle}
+  return `<g class="${cls}" data-id="${item.id}">
+    <g${rotate}>${parts}
+      <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="none" stroke="rgba(31,35,28,.26)" stroke-width="1.1" stroke-dasharray="5 4"/>
+      ${handle}
+    </g>
+    <text x="${centerX}" y="${centerY + 3}" text-anchor="middle" class="planSub">${label}</text>
   </g>`;
 }
 
@@ -1190,16 +1207,16 @@ function renderExteriorItemSvg(item, selected, label, color, rotate){
       const y = item.y + item.h * ((index + 1) / steps);
       return `<line x1="${item.x}" y1="${y}" x2="${item.x + item.w}" y2="${y}" stroke="rgba(31,35,28,.35)" stroke-width="1.5"/>`;
     }).join("");
-    return `<g class="${cls}" data-id="${item.id}"${rotate}>
-      <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".86" stroke="rgba(31,35,28,.42)" stroke-width="1.8"/>
-      ${lines}${commonText}${handle}
+    return `<g class="${cls}" data-id="${item.id}">
+      <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".86" stroke="rgba(31,35,28,.42)" stroke-width="1.8"/>
+      ${lines}${handle}</g>${commonText}
     </g>`;
   }
   if(item.kind === "frontDoor"){
-    return `<g class="${cls}" data-id="${item.id}"${rotate}>
-      <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".9" stroke="#3f3028" stroke-width="1.8"/>
+    return `<g class="${cls}" data-id="${item.id}">
+      <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" fill-opacity=".9" stroke="#3f3028" stroke-width="1.8"/>
       <circle cx="${item.x + item.w * .78}" cy="${cy}" r="3" fill="#e2c46d"/>
-      ${commonText}${handle}
+      ${handle}</g>${commonText}
     </g>`;
   }
   if(item.kind === "tree" || item.kind === "plant"){
@@ -1211,18 +1228,17 @@ function renderExteriorItemSvg(item, selected, label, color, rotate){
     </g>`;
   }
   if(item.kind === "fence"){
-    return `<g class="${cls}" data-id="${item.id}"${rotate}>
-      <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${Math.max(8, item.h)}" rx="2" fill="${color}" stroke="#70583e" stroke-width="1.5"/>
+    return `<g class="${cls}" data-id="${item.id}">
+      <g${rotate}><rect x="${item.x}" y="${item.y}" width="${item.w}" height="${Math.max(8, item.h)}" rx="2" fill="${color}" stroke="#70583e" stroke-width="1.5"/>
       <line x1="${item.x}" y1="${cy}" x2="${item.x + item.w}" y2="${cy}" stroke="#f3e5d0" stroke-width="2" stroke-dasharray="10 8"/>
-      ${commonText}${handle}
+      ${handle}</g>${commonText}
     </g>`;
   }
   const stroke = item.kind === "parking" || item.kind === "driveway" ? "#8c918b" : "rgba(31,35,28,.42)";
   const dash = item.kind === "parking" ? ` stroke-dasharray="12 7"` : "";
-  return `<g class="${cls}" data-id="${item.id}"${rotate}>
-    <rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="3" fill="${color}" fill-opacity=".72" stroke="${stroke}" stroke-width="1.8"${dash}/>
-    ${item.kind === "parking" ? `<text x="${cx}" y="${cy - 8}" text-anchor="middle" class="planSub">P</text>` : ""}
-    ${commonText}${handle}
+  return `<g class="${cls}" data-id="${item.id}">
+    <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="3" fill="${color}" fill-opacity=".72" stroke="${stroke}" stroke-width="1.8"${dash}/>${handle}</g>
+    ${item.kind === "parking" ? `<text x="${cx}" y="${cy - 8}" text-anchor="middle" class="planSub">P</text>` : ""}${commonText}
   </g>`;
 }
 
@@ -1343,6 +1359,7 @@ function renderCustomEditor(item){
       <label>幅mm<input id="itemW" type="number" min="50" step="10" value="${pxToMm(item.w)}"></label>
       <label>奥行mm<input id="itemD" type="number" min="50" step="10" value="${pxToMm(item.h)}"></label>
       <label>高さmm<input id="itemH" type="number" min="10" step="10" value="${Math.round(item.heightMm || 700)}"></label>
+      <label>床からmm<input id="itemGl" type="number" min="0" step="10" value="${Math.round(item.glMm || 0)}"></label>
       <label>回転°<input id="itemRot" type="number" step="15" value="${Math.round(item.rotation || 0)}"></label>
     </div>
     <div class="buttonRow">
@@ -1387,13 +1404,14 @@ function bindCustomEditor(item){
     item.w = mmToPx(numberValue(document.getElementById("itemW"), pxToMm(item.w)));
     item.h = mmToPx(numberValue(document.getElementById("itemD"), pxToMm(item.h)));
     item.heightMm = numberValue(document.getElementById("itemH"), item.heightMm || 700);
+    item.glMm = numberValue(document.getElementById("itemGl"), item.glMm || 0);
     item.rotation = numberValue(document.getElementById("itemRot"), item.rotation || 0);
     saveDesign(false);
     renderPlan();
     renderLists();
     renderSceneOnly();
   };
-  ["itemLabel","itemColor","itemW","itemD","itemH","itemRot"].forEach((id) => {
+  ["itemLabel","itemColor","itemW","itemD","itemH","itemGl","itemRot"].forEach((id) => {
     const input = document.getElementById(id);
     input.addEventListener("focus", () => {
       editSnapshot = editSnapshot || historySnapshot();
@@ -1546,6 +1564,9 @@ function syncModelInstances(model){
     item.layer = model.layer;
     item.modelParts = cloneModelParts(model.parts);
     item.color = model.color;
+    item.w = mmToPx(model.w);
+    item.h = mmToPx(model.d);
+    item.heightMm = model.h;
   });
 }
 
@@ -1716,9 +1737,35 @@ function renderObjectBuilder(){
   }
   dom.builderNameInput.value = state.builder.label || "作成部品";
   dom.builderLayerInput.value = state.builder.layer || "exterior";
+  const size = modelSizeFromParts(state.builder.parts);
+  dom.builderOverallW.value = Math.round(size.w);
+  dom.builderOverallD.value = Math.round(size.d);
+  dom.builderOverallH.value = Math.round(size.h);
   renderBuilderPreview();
   renderBuilderPartList();
   renderBuilderEditor();
+}
+
+function resizeBuilderModel(input){
+  if(!state.builder || !input) return;
+  const size = modelSizeFromParts(state.builder.parts);
+  const current = input === dom.builderOverallW ? size.w : input === dom.builderOverallD ? size.d : size.h;
+  const target = clamp(numberValue(input, current), 30, 6000);
+  const scale = target / Math.max(1, current);
+  const keepRatio = !!dom.builderKeepRatio.checked;
+  const sx = keepRatio || input === dom.builderOverallW ? scale : 1;
+  const sy = keepRatio || input === dom.builderOverallD ? scale : 1;
+  const sz = keepRatio || input === dom.builderOverallH ? scale : 1;
+  state.builder.parts.forEach((part) => {
+    part.xMm = size.centerX + (part.xMm - size.centerX) * sx;
+    part.yMm = size.centerY + (part.yMm - size.centerY) * sy;
+    part.zMm *= sz;
+    part.wMm *= sx;
+    part.dMm *= sy;
+    part.hMm *= sz;
+  });
+  state.builder.parts = normalizeModelParts(state.builder.parts);
+  renderObjectBuilder();
 }
 
 function renderBuilderPreview(){

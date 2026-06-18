@@ -492,12 +492,10 @@ export class DetailScene3D {
     if(layers.openings){
       openings.forEach((opening) => this.addOpening(opening, yBase, selectedId));
     }
-    if(layers.furniture){
-      existingFurniture.forEach((item) => {
-        if(item.type === "stair") this.addStair(item, yBase, selectedId);
-        else this.addFurnitureBox(item, floorIndex, yBase, selectedId, true);
-      });
-    }
+    existingFurniture.forEach((item) => {
+      if(item.type === "stair") this.addStair(item, yBase, selectedId);
+      else if(layers.guideFurniture) this.addFurnitureBox(item, floorIndex, yBase, selectedId, true);
+    });
     (design.customItems || [])
       .filter((item) => item.floorIndex === floorIndex)
       .filter((item) => sceneItemVisible(item, layers))
@@ -603,6 +601,27 @@ export class DetailScene3D {
       this.root.add(plant);
       return;
     }
+    if(!existing && item.kind === "downlight"){
+      const light = new THREE.Mesh(
+        new THREE.CylinderGeometry(Math.max(0.045, pxToM(item.w) / 2), Math.max(0.045, pxToM(item.w) / 2), hM, 24),
+        mat(item.color || "#fff3b0", 0.96, 0.3)
+      );
+      light.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM + hM / 2, pxToM(item.y + item.h / 2));
+      light.castShadow = true;
+      this.root.add(light);
+      return;
+    }
+    if(!existing && item.kind === "pendantLight"){
+      const group = new THREE.Group();
+      group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));
+      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, Math.max(0.12, hM * 0.65), 10), mat("#44443f", 1, 0.4));
+      cord.position.y = hM * 0.66;
+      const shade = new THREE.Mesh(new THREE.ConeGeometry(Math.max(0.08, pxToM(item.w) / 2), Math.max(0.1, hM * 0.35), 24, 1, true), mat(item.color || "#e2c680", 0.92, 0.4));
+      shade.position.y = hM * 0.18;
+      group.add(cord, shade);
+      this.root.add(group);
+      return;
+    }
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(Math.max(0.05, pxToM(item.w)), hM, Math.max(0.05, pxToM(item.h))),
       mat(item.color || "#c9c9d2", alpha, 0.46, layer === "openings")
@@ -624,7 +643,7 @@ export class DetailScene3D {
     const size = modelSizeFromParts3d(parts);
     const scaleX = (pxToMm(item.w) / Math.max(1, size.w));
     const scaleZ = (pxToMm(item.h) / Math.max(1, size.d));
-    const scaleY = Math.max(scaleX, scaleZ);
+    const scaleY = Math.max(0.01, Number(item.heightMm || size.h) / Math.max(1, size.h));
     const glM = Math.max(0, Number(item.glMm || 0) / 1000);
     const group = new THREE.Group();
     group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));

@@ -100,6 +100,7 @@
             <label><input type="checkbox" data-layer="walls" checked>壁</label>
             <label><input type="checkbox" data-layer="openings" checked>窓/建具</label>
             <label><input type="checkbox" data-layer="furniture" checked>家具</label>
+            <label><input type="checkbox" data-layer="guideFurniture">元図家具</label>
             <label><input type="checkbox" data-layer="shelves" checked>棚</label>
             <label><input type="checkbox" data-layer="exterior" checked>外構</label>
           </div>
@@ -222,6 +223,12 @@
           <option value="exterior">外構に置く</option>
           <option value="furniture">室内に置く</option>
         </select>
+      </div>
+      <div class="builderOverallSize">
+        <label>全体幅mm<input id="builderOverallW" type="number" min="50" max="6000" step="10"></label>
+        <label>全体奥行mm<input id="builderOverallD" type="number" min="50" max="6000" step="10"></label>
+        <label>全体高さmm<input id="builderOverallH" type="number" min="30" max="5000" step="10"></label>
+        <label class="builderRatio"><input id="builderKeepRatio" type="checkbox" checked>比率を保つ</label>
       </div>
       <div class="builderShapeButtons">
         <button type="button" data-builder-add="box">四角</button>

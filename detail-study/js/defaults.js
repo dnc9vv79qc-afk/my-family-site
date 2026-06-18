@@ -7,6 +7,12 @@ export const FURNITURE_LIBRARY = [
   { kind:"bed", label:"ベッド", meta:"ダブル", tone:"blue", w:1400, d:2000, h:520, color:"#c9c2d9", layer:"furniture", category:"家具" },
   { kind:"shelf", label:"可動棚", meta:"900x350", tone:"amber", w:900, d:350, h:2100, color:"#c89b64", layer:"shelves", category:"棚" },
   { kind:"counter", label:"造作カウンター", meta:"1800", tone:"amber", w:1800, d:450, h:900, color:"#bf8f58", layer:"shelves", category:"棚" },
+  { kind:"furringWall", label:"ふかし壁", meta:"W1800 H2400", tone:"wall", w:1800, d:150, h:2400, color:"#e5e2dc", layer:"furniture", category:"造作" },
+  { kind:"dropWall", label:"垂れ壁", meta:"天井から450", tone:"wall", w:1800, d:150, h:450, gl:1950, color:"#e5e2dc", layer:"furniture", category:"造作" },
+  { kind:"underStairWall", label:"階段下収納壁", meta:"W1800 H1800", tone:"wall", w:1800, d:120, h:1800, color:"#ddd9d2", layer:"furniture", category:"造作" },
+  { kind:"niche", label:"ニッチ", meta:"W900 H1200", tone:"amber", w:900, d:180, h:1200, gl:700, color:"#c9b69a", layer:"shelves", category:"造作" },
+  { kind:"downlight", label:"ダウンライト", meta:"天井付", tone:"blue", w:125, d:125, h:45, gl:2350, color:"#fff3b0", layer:"furniture", category:"照明" },
+  { kind:"pendantLight", label:"ペンダント照明", meta:"天井吊り", tone:"blue", w:300, d:300, h:450, gl:1750, color:"#e2c680", layer:"furniture", category:"照明" },
   { kind:"windowNote", label:"窓検討", meta:"1600", tone:"blue", w:1600, d:120, h:1200, color:"#8dc2df", layer:"openings", category:"窓" },
   { kind:"freeObject", label:"自由オブジェクト", meta:"寸法変更", tone:"blue", w:900, d:600, h:900, color:"#b9c0c8", layer:"furniture", category:"自由" }
 ];
@@ -113,7 +119,7 @@ export function makeCustomItem(preset, floorIndex, center){
     w: mmToPx(preset.w),
     h: mmToPx(preset.d),
     heightMm: preset.h,
-    glMm: 0,
+    glMm: Number(preset.gl || 0),
     rotation: 0,
     color: preset.color,
     category: preset.category || "",
