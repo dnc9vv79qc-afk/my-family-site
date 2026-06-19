@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260618-stair-wall-v5";
+import { DetailScene3D } from "./scene3d.js?v=20260619-stair-plan-v6";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,

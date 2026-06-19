@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討ツール 06/18 階段壁修正v5 | MORI</title>
+<title>間取り検討ツール 06/19 階段間取り化v6 | MORI</title>
 
 <style>
 :root{
@@ -1792,7 +1792,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
-<div class="ver-label">06/18 階段壁修正 v5</div>
+<div class="ver-label">06/19 階段間取り化 v6</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -1941,7 +1941,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="modal sheet v2sheet">
 <div class="grabber"></div>
 <h3 style="margin:0 0 10px; text-align:left;">追加</h3>
-<div class="v2grouptag">🏠 間取り（部屋・壁）</div>
+<div class="v2grouptag">🏠 間取り（部屋・壁・階段）</div>
 <div class="v2catgrid">
 <button class="v2cat" id="catRoom" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg><span>部屋</span>
@@ -1954,6 +1954,9 @@ border-bottom-color: rgba(235,235,245,.12);
 </button>
 <button class="v2cat" id="catFrameEdit" type="button">
 <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3,3"/><path d="M9 15l6-6"/></svg><span>外壁を編集</span>
+</button>
+<button class="v2cat" id="catStair" type="button">
+<svg viewBox="0 0 24 24"><path d="M4 18h4v-4h4v-4h4V6h4"/></svg><span>階段</span>
 </button>
 </div>
 <div class="v2grouptag">🛋 内装（建具・家具）</div>
@@ -1992,7 +1995,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <div class="v2group-label">よく使う</div>
 <div class="v2chiprow">
-<label class="chip tiny" title="家具・階段を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
+<label class="chip tiny" title="家具を平面図に表示"><input type="checkbox" id="showFurn" checked>家具</label>
 <label class="chip tiny" title="コンセント・スイッチ記号を平面図に表示"><input type="checkbox" id="showElec" checked>電気</label>
 </div>
 
@@ -2183,9 +2186,9 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="help-row">
 <div class="help-icon">🪜</div>
 <div class="help-content">
-<b>家具の回転・階段（かね折れ対応）</b>
+<b>家具の回転・階段（間取り要素・かね折れ対応）</b>
 階段は配置後に選択して「サイズ」から形（直線/かね折れ）・廻り段数・曲がる向き・大きさ・階高を後から変更できます。
-階段は「追加」→「家具」で「直線」か「かね折れ」を選べます。かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
+階段は間取り要素として常に平面図へ表示され、「追加」→「階段」で配置できます。「直線」か「かね折れ」を選べ、かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
 <div class="help-row">
@@ -2213,7 +2216,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="help-icon">🔀</div>
 <div class="help-content">
 <b>間取り／内装モード</b>
-上部の切替で編集対象が変わります。「間取り」では部屋・壁だけが触れて家具や電気記号は薄く表示、「内装」では建具・家具だけが触れて部屋を誤って動かしません。「追加」で選んだものに応じて自動でも切り替わります。
+上部の切替で編集対象が変わります。「間取り」では部屋・壁・階段が触れて家具や電気記号は薄く表示、「内装」では建具・家具だけが触れて部屋や階段を誤って動かしません。「追加」で選んだものに応じて自動でも切り替わります。
 </div>
 </div>
 <div class="help-row">
@@ -2529,7 +2532,7 @@ let contAddCount = 0;
 
 /* --- v2.6: 編集レイヤー（間取り/内装） --- */
 const LAYER_KEY = 'floorplan_edit_layer_v1';
-let editLayer = 'plan'; // 'plan'=間取り（部屋・壁） / 'interior'=内装（建具・家具・電気）
+let editLayer = 'plan'; // 'plan'=間取り（部屋・壁・階段） / 'interior'=内装（建具・家具・電気）
 try{
 const lv = localStorage.getItem(LAYER_KEY);
 if(lv === 'interior') editLayer = 'interior';
@@ -2546,7 +2549,7 @@ updateLayerUI();
 syncBottomBarState();
 updateWorkHint();
 draw();
-if(!silent) showToast(editLayer === 'plan' ? '間取りモード：部屋・壁を編集' : '内装モード：建具・家具・電気を編集', 1300);
+if(!silent) showToast(editLayer === 'plan' ? '間取りモード：部屋・壁・階段を編集' : '内装モード：建具・家具・電気を編集', 1300);
 }
 
 function updateLayerUI(){
@@ -5125,9 +5128,7 @@ return [it.x + rx, it.y + ry];
 }
 
 function drawStair(it){
-const fc = el('showFurn');
-if(fc && !fc.checked && !isExporting) return;
-const LA = (editLayer === 'plan' && !isExporting) ? 0.4 : 1;
+const LA = (editLayer === 'interior' && !isExporting) ? 0.35 : 1;
 ctx.save();
 ctx.globalAlpha = LA;
 
@@ -6913,8 +6914,8 @@ if(!isMerged && it.type !== 'frame') continue;
 if(isMerged && it.type === 'frame') continue;
 
 // ✅ レイヤー制御：間取りモードでは家具・建具に触れない／内装モードでは部屋・内壁に触れない
-if(isMerged && editLayer === 'plan' && (it.type === 'furn' || it.type === 'stair' || it.type === 'opening')) continue;
-if(isMerged && editLayer === 'interior' && (it.type === 'room' || it.type === 'wallLine')) continue;
+if(isMerged && editLayer === 'plan' && (it.type === 'furn' || it.type === 'opening')) continue;
+if(isMerged && editLayer === 'interior' && (it.type === 'room' || it.type === 'wallLine' || it.type === 'stair')) continue;
 
 if(isLineType(it.type)){
 const r = wallHitTest(worldP, it);
@@ -8578,12 +8579,23 @@ const ly = swap ? p[0] : p[1];
 return stairLocalToWorld(stair, lx, ly);
 })
 }));
+const treadCenter = tread => {
+const count = Math.max(1, tread.points.length);
+return tread.points.reduce((sum, point) => [sum[0] + point[0] / count, sum[1] + point[1] / count], [0, 0]);
+};
+const firstCenter = treadCenter(worldTreads[0]);
+const lastCenter = treadCenter(worldTreads[worldTreads.length - 1]);
+const runHorizontal = Math.abs(lastCenter[0] - firstCenter[0]) >= Math.abs(lastCenter[1] - firstCenter[1]);
 const crossAxis = horiz ? 1 : 0;
 const stairCrossValues = worldTreads.flatMap(tread => tread.points.map(point => point[crossAxis]));
 const stairCrossMin = Math.min(...stairCrossValues);
 const stairCrossMax = Math.max(...stairCrossValues);
-const perimeter = Math.abs(fixed - stairCrossMin) <= half + 0.5
-  || Math.abs(fixed - stairCrossMax) <= half + 0.5;
+// 外側扱いは「階段の進行方向と平行」かつ「外周上」の壁だけ。
+// 直交壁は端部にあっても階段内側扱いとして上側を削除する。
+const perimeter = (horiz === runHorizontal) && (
+  Math.abs(fixed - stairCrossMin) <= half + 0.5
+  || Math.abs(fixed - stairCrossMax) <= half + 0.5
+);
 worldTreads.forEach(({ points: pts, index }) => {
 let clipped = v3dClipPolyHalfPlane(pts, crossAxis, fixed - half, true);
 clipped = v3dClipPolyHalfPlane(clipped, crossAxis, fixed + half, false);
@@ -9628,6 +9640,15 @@ if(isWallPlaceMode) setWallPlaceMode(false);
 if(isMerged) setMergedMode(false);
 updateWorkHint();
 };
+if(el('catStair')) el('catStair').onclick = () => {
+v2CloseSheet('addSheet');
+setEditLayer('plan', true);
+if(isOpeningPlaceMode) setOpeningPlaceMode(false);
+if(isViewMode) setViewMode(false);
+if(isWallPlaceMode) setWallPlaceMode(false);
+if(!isMerged) setMergedMode(true);
+openStairModal();
+};
 
 // --- mm寸法 ---
 try{
@@ -9691,7 +9712,9 @@ if(el('stMirrorL')){ el('stMirrorL').style.background = mr ? 'rgba(10,132,255,.9
 function openFurnModal(target){
 furnEditTarget = target || null;
 const t = el('furnModalTitle');
-if(t) t.textContent = target ? '家具のサイズ変更' : '家具を追加';
+if(t) t.textContent = target
+? (target.type === 'stair' ? '階段のサイズ変更' : '家具のサイズ変更')
+: '家具を追加';
 stairDraft = {
 shape: (target && target.shape) ? target.shape : 'straight',
 winders: (target && target.winders) ? target.winders : 3,
@@ -9716,7 +9739,7 @@ el('furnName').value = p.n;
 el('furnW').value = p.w;
 el('furnD').value = p.d;
 el('furnH').value = p.h;
-if(/階段/.test(p.n) && p.n.includes('L')) stairDraft.shape = 'kane';
+if(/階段/.test(p.n) && (p.n.includes('L') || p.n.includes('かね折れ'))) stairDraft.shape = 'kane';
 syncStairOpts();
 };
 wrap.appendChild(b);
@@ -9724,6 +9747,17 @@ wrap.appendChild(b);
 }
 syncStairOpts();
 el('furnModal').style.display = 'flex';
+}
+
+function openStairModal(){
+openFurnModal(null);
+stairDraft = { shape: 'straight', winders: 3, mirror: false };
+if(el('furnModalTitle')) el('furnModalTitle').textContent = '階段を追加';
+el('furnName').value = '階段(直線)';
+el('furnW').value = '910';
+el('furnD').value = '3640';
+el('furnH').value = '3000';
+syncStairOpts();
 }
 
 function closeFurnModal(){
@@ -9750,6 +9784,7 @@ if(!Number(el('furnW').value) || !Number(el('furnD').value)){
 showToast('幅と奥行（mm）を入力してください');
 return;
 }
+if(isStair && editLayer !== 'plan') setEditLayer('plan', true);
 pushHistory();
 if(furnEditTarget){
 furnEditTarget.label = name;

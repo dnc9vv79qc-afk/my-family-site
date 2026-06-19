@@ -1210,12 +1210,24 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
         return stairPoint3d(stair, lx, ly);
       })
     }));
+    const treadCenter = (tread) => {
+      const count = Math.max(1, tread.points.length);
+      return tread.points.reduce(
+        (sum, point) => [sum[0] + point[0] / count, sum[1] + point[1] / count],
+        [0, 0]
+      );
+    };
+    const firstCenter = treadCenter(worldTreads[0]);
+    const lastCenter = treadCenter(worldTreads[worldTreads.length - 1]);
+    const runHorizontal = Math.abs(lastCenter[0] - firstCenter[0]) >= Math.abs(lastCenter[1] - firstCenter[1]);
     const crossAxis = horizontal ? 1 : 0;
     const stairCrossValues = worldTreads.flatMap((tread) => tread.points.map((point) => point[crossAxis]));
     const stairCrossMin = Math.min(...stairCrossValues);
     const stairCrossMax = Math.max(...stairCrossValues);
-    const perimeter = Math.abs(fixed - stairCrossMin) <= half + 0.5
-      || Math.abs(fixed - stairCrossMax) <= half + 0.5;
+    const perimeter = (horizontal === runHorizontal) && (
+      Math.abs(fixed - stairCrossMin) <= half + 0.5
+      || Math.abs(fixed - stairCrossMax) <= half + 0.5
+    );
     worldTreads.forEach(({ points, index }) => {
       let clipped = clipPolyHalfPlane3d(points, crossAxis, fixed - half, true);
       clipped = clipPolyHalfPlane3d(clipped, crossAxis, fixed + half, false);
