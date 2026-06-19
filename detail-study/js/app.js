@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-detail-controls-v10";
+import { DetailScene3D } from "./scene3d.js?v=20260619-purpose-ui-v11";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -19,10 +19,11 @@ import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, see
 const state = {
   plan: null,
   design: null,
-  view: "3d",
+  view: "plan",
   floorMode: "0",
   selectedId: null,
   cameraPreset: "exterior",
+  workMode: "interior",
   dockMode: "select",
   mobilePanelOpen: false,
   drag: null,
@@ -95,11 +96,11 @@ async function init(){
 
 function cacheDom(){
   [
-    "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
+    "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette","lightingPalette","lightingSummary",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
-    "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickAddCancelBtn","quickAddConfirmBtn",
+    "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderKeepRatio","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
@@ -122,11 +123,24 @@ function bindEvents(){
     const button = event.target.closest("button[data-view]");
     if(!button) return;
     state.view = button.dataset.view;
-    state.dockMode = state.view === "3d" ? "3d" : "select";
+    if(state.view === "plan" && !["select", "browse", "measure"].includes(state.dockMode)) state.dockMode = "select";
     state.mobilePanelOpen = false;
     render();
   });
   dom.modeDock?.addEventListener("click", onDockClick);
+  dom.workTabs?.addEventListener("click", onDockClick);
+  dom.planModes?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-plan-mode]");
+    if(!button) return;
+    state.view = "plan";
+    state.dockMode = button.dataset.planMode;
+    state.measurePoints = state.dockMode === "measure" ? state.measurePoints : [];
+    if(state.dockMode === "browse"){
+      state.selectedId = null;
+      state.mobilePanelOpen = false;
+    }
+    render();
+  });
   dom.floorTabs.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-floor]");
     if(!button) return;
@@ -230,7 +244,7 @@ function bindEvents(){
   dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
   dom.quickAddCancelBtn?.addEventListener("click", closeQuickAdd);
   dom.quickAddConfirmBtn?.addEventListener("click", confirmQuickAdd);
-  [dom.quickAddW, dom.quickAddD, dom.quickAddH, dom.quickAddGl].forEach((input) => {
+  [dom.quickAddW, dom.quickAddD, dom.quickAddH, dom.quickAddGl, dom.quickAddLumens, dom.quickAddKelvin, dom.quickAddBeam].forEach((input) => {
     input?.addEventListener("keydown", (event) => {
       if(event.key === "Enter") confirmQuickAdd();
     });
@@ -253,7 +267,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v10`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v11`;
     saveDesign(false);
     renderPalette();
     render();
@@ -297,6 +311,13 @@ function normalizeCustomItem(item){
   const next = { ...item };
   if(next.kind === "site") next.locked = true;
   if(!next.layer) next.layer = "exterior";
+  if(isLightItem(next)){
+    next.lumens = finiteNumber(next.lumens, next.kind === "ceilingLight" ? 3000 : next.kind === "pendantLight" ? 800 : 600);
+    next.kelvin = finiteNumber(next.kelvin, next.kind === "ceilingLight" ? 4000 : 2700);
+    next.beamDeg = finiteNumber(next.beamDeg, next.kind === "downlight" ? 60 : next.kind === "pendantLight" ? 90 : 120);
+    next.dimming = next.dimming !== false;
+    next.lightOn = next.lightOn !== false;
+  }
   if(Array.isArray(next.modelParts)) next.modelParts = cloneModelParts(next.modelParts);
   return next;
 }
@@ -351,6 +372,7 @@ function historySnapshot(){
     selectedId: state.selectedId,
     floorMode: state.floorMode,
     view: state.view,
+    workMode: state.workMode,
     dockMode: state.dockMode,
     mobilePanelOpen: state.mobilePanelOpen
   };
@@ -370,6 +392,7 @@ function undo(){
   state.selectedId = snapshot.selectedId;
   state.floorMode = snapshot.floorMode || state.floorMode;
   state.view = snapshot.view || state.view;
+  state.workMode = snapshot.workMode || state.workMode;
   state.dockMode = snapshot.dockMode || state.dockMode;
   state.mobilePanelOpen = !!snapshot.mobilePanelOpen;
   state.drag = null;
@@ -390,6 +413,7 @@ function render(){
   renderMetrics();
   renderPlan();
   renderLists();
+  renderLightingSummary();
   renderSelectedPanel();
   renderSceneOnly();
   updateUndoControls();
@@ -436,34 +460,16 @@ function toggleWalkMode(){
 }
 
 function onDockClick(event){
-  const button = event.target.closest("button[data-dock]");
+  const button = event.target.closest("button[data-work]");
   if(!button) return;
-  const mode = button.dataset.dock;
-  const closingActivePanel = state.view === "plan" && state.dockMode === mode && state.mobilePanelOpen;
-  if(closingActivePanel){
-    state.view = "plan";
-    state.dockMode = "select";
-    state.mobilePanelOpen = false;
-    render();
-    return;
-  }
-  state.dockMode = mode;
-  state.measurePoints = mode === "measure" ? state.measurePoints : [];
-  if(mode === "3d"){
-    state.view = "3d";
-    state.mobilePanelOpen = false;
-    render();
-    return;
-  }
-  if(mode === "browse"){
-    state.view = "plan";
-    state.selectedId = null;
-    state.mobilePanelOpen = false;
-    render();
-    return;
-  }
+  const mode = button.dataset.work;
+  const closingActivePanel = state.view === "plan" && state.workMode === mode && state.mobilePanelOpen;
+  state.workMode = mode;
   state.view = "plan";
-  state.mobilePanelOpen = mode !== "measure" && !closingActivePanel;
+  state.dockMode = mode === "review" ? "browse" : "select";
+  state.measurePoints = [];
+  state.mobilePanelOpen = !closingActivePanel;
+  if(mode === "review") state.selectedId = null;
   render();
 }
 
@@ -471,11 +477,15 @@ function updateDockControls(){
   if(!dom.modeDock) return;
   document.body.dataset.view = state.view;
   document.body.dataset.dockMode = state.dockMode;
+  document.body.dataset.workMode = state.workMode;
   document.body.dataset.panelOpen = state.mobilePanelOpen ? "1" : "0";
-  dom.modeDock.querySelectorAll("button[data-dock]").forEach((button) => {
-    const mode = button.dataset.dock;
-    const on = state.view === "3d" ? mode === "3d" : state.view === "list" ? false : mode === state.dockMode;
-    button.classList.toggle("on", on);
+  [dom.modeDock, dom.workTabs].forEach((container) => {
+    container?.querySelectorAll("button[data-work]").forEach((button) => {
+      button.classList.toggle("on", button.dataset.work === state.workMode);
+    });
+  });
+  dom.planModes?.querySelectorAll("button[data-plan-mode]").forEach((button) => {
+    button.classList.toggle("on", button.dataset.planMode === state.dockMode);
   });
 }
 
@@ -664,20 +674,33 @@ function renderMetrics(){
   const guideFurnitureCount = state.layers.guideFurniture ? furn.filter((item) => !isStructuralStair(item)).length : 0;
   const custom = visibleCustomItems();
   const detailedFurnitureCount = custom.filter((item) => item.layer === "furniture" || item.layer === "shelves").length;
+  const lights = custom.filter(isLightItem);
+  const totalLumens = lights.reduce((sum, item) => sum + Math.max(0, Number(item.lumens || 0)), 0);
   const m2 = rooms.reduce((sum, room) => sum + areaM2(room), 0);
-  dom.metricStrip.innerHTML = [
+  const common = [
     `<span>${formatM2(m2)}</span>`,
     `<span>${formatTsubo(m2)}</span>`,
-    `<span>部屋 ${groupRooms(rooms).length}</span>`,
-    `<span>窓/建具 ${openings.length}</span>`,
-    `<span>家具 ${detailedFurnitureCount + guideFurnitureCount}</span>`
-  ].join("");
+    `<span>部屋 ${groupRooms(rooms).length}</span>`
+  ];
+  if(state.workMode === "lighting"){
+    common.push(`<span>照明 ${lights.length}</span>`, `<span>${Math.round(totalLumens).toLocaleString()}lm</span>`);
+  }else if(state.workMode === "site"){
+    common.push(`<span>外構 ${custom.filter((item) => item.layer === "exterior").length}</span>`);
+  }else{
+    common.push(`<span>窓/建具 ${openings.length}</span>`, `<span>家具 ${detailedFurnitureCount + guideFurnitureCount - lights.length}</span>`);
+  }
+  dom.metricStrip.innerHTML = common.join("");
 }
 
 function renderPalette(){
   dom.exteriorPalette.innerHTML = renderLibrary([...customModelLibrary("exterior"), ...EXTERIOR_LIBRARY], "外構");
-  dom.palette.innerHTML = renderLibrary([...customModelLibrary("furniture"), ...FURNITURE_LIBRARY], "検討");
-  [dom.exteriorPalette, dom.palette].forEach((palette) => {
+  dom.palette.innerHTML = renderLibrary([
+    ...customModelLibrary("furniture"),
+    ...FURNITURE_LIBRARY.filter((item) => item.category !== "照明")
+  ], "家具・造作");
+  dom.lightingPalette.innerHTML = renderLibrary(FURNITURE_LIBRARY.filter((item) => item.category === "照明"), "照明");
+  [dom.exteriorPalette, dom.palette, dom.lightingPalette].forEach((palette) => {
+    if(!palette) return;
     palette.onclick = (event) => {
       const editButton = event.target.closest("[data-model-edit]");
       if(editButton){
@@ -860,6 +883,7 @@ function onPlanNudgeClick(event){
       saveDesign(false);
       renderPlan();
       renderLists();
+      renderLightingSummary();
       renderSelectedPanel();
       renderSceneOnly();
     }
@@ -873,6 +897,7 @@ function onPlanNudgeClick(event){
   saveDesign(false);
   renderPlan();
   renderLists();
+  renderLightingSummary();
   renderSelectedPanel();
   renderSceneOnly();
 }
@@ -1111,9 +1136,12 @@ function renderPlan(){
   chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
+  const workLabel = { site:"外構", interior:"家具・造作", lighting:"照明", review:"確認" }[state.workMode] || "図面";
   dom.planHudTitle.textContent = state.dockMode === "browse"
-    ? "閲覧"
-    : selected?.source === "custom" ? `選択: ${selected.item.label}` : "図面操作";
+    ? `${workLabel}・移動`
+    : state.dockMode === "measure"
+      ? `${workLabel}・計測`
+      : selected?.source === "custom" ? `選択: ${selected.item.label}` : workLabel;
   renderPlanNudge();
   renderMeasureHud();
 }
@@ -1274,14 +1302,94 @@ function displayBounds(){
 }
 
 function groupRooms(rooms){
-  const groups = new Map();
-  rooms.forEach((room) => {
-    const floorIndex = Number(room.floorIndex || 0);
-    const key = `${floorIndex}:${room.label || "部屋"}`;
-    if(!groups.has(key)) groups.set(key, { key, floorIndex, label:room.label || "部屋", rooms:[] });
-    groups.get(key).rooms.push(room);
+  const groups = [];
+  const pending = new Set(rooms);
+  while(pending.size){
+    const first = pending.values().next().value;
+    pending.delete(first);
+    const floorIndex = Number(first.floorIndex || 0);
+    const label = first.label || "部屋";
+    const connected = [first];
+    for(let index = 0; index < connected.length; index++){
+      const current = connected[index];
+      [...pending].forEach((candidate) => {
+        if(Number(candidate.floorIndex || 0) !== floorIndex || (candidate.label || "部屋") !== label) return;
+        if(!roomRectsTouch(current, candidate)) return;
+        pending.delete(candidate);
+        connected.push(candidate);
+      });
+    }
+    groups.push({ key:`${floorIndex}:${label}:${first.id}`, floorIndex, label, rooms:connected });
+  }
+  return groups;
+}
+
+function roomRectsTouch(a, b){
+  const tolerance = 2;
+  const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return (overlapX > tolerance && overlapY >= -tolerance)
+    || (overlapY > tolerance && overlapX >= -tolerance);
+}
+
+function isLightItem(item){
+  return !!item && (item.category === "照明" || ["downlight", "pendantLight", "ceilingLight"].includes(item.kind));
+}
+
+function roomLightingRows(){
+  if(!state.plan) return [];
+  const rooms = roomsForFloor(state.plan, state.floorMode);
+  const groups = groupRooms(rooms);
+  const lights = visibleCustomItems().filter(isLightItem);
+  return groups.map((group) => {
+    const groupLights = lights.filter((light) => {
+      if(Number(light.floorIndex || 0) !== Number(group.floorIndex || 0)) return false;
+      const cx = light.x + light.w / 2;
+      const cy = light.y + light.h / 2;
+      return group.rooms.some((room) => cx >= room.x && cx <= room.x + room.w && cy >= room.y && cy <= room.y + room.h);
+    });
+    const area = group.rooms.reduce((sum, room) => sum + areaM2(room), 0);
+    const lumens = groupLights.reduce((sum, light) => sum + (light.lightOn === false ? 0 : Math.max(0, Number(light.lumens || 0))), 0);
+    const lux = area > 0 ? Math.round(lumens * 0.6 / area) : 0;
+    const target = lightingTarget(group.label);
+    const status = lux < target.min ? "dark" : lux > target.max ? "bright" : "ok";
+    return { ...group, area, lights:groupLights, lumens, lux, target, status };
   });
-  return [...groups.values()];
+}
+
+function lightingTarget(label){
+  const text = String(label || "");
+  if(/キッチン/.test(text)) return { min:300, max:500 };
+  if(/LDK|リビング|ダイニング/.test(text)) return { min:200, max:350 };
+  if(/洗面|ランドリー|脱衣/.test(text)) return { min:200, max:400 };
+  if(/玄関|廊下|階段|収納|土間/.test(text)) return { min:75, max:200 };
+  if(/寝室|洋室|和室/.test(text)) return { min:100, max:250 };
+  if(/トイレ|お風呂|浴室/.test(text)) return { min:100, max:300 };
+  return { min:100, max:300 };
+}
+
+function renderLightingSummary(){
+  if(!dom.lightingSummary || !state.plan) return;
+  const rows = roomLightingRows();
+  if(!rows.length){
+    dom.lightingSummary.innerHTML = `<div class="emptySummary">表示中の階に部屋がありません</div>`;
+    return;
+  }
+  dom.lightingSummary.innerHTML = rows.map((row) => {
+    const statusLabel = row.status === "dark" ? "不足" : row.status === "bright" ? "明るめ" : "目安内";
+    return `<button type="button" class="luxRow ${row.status}" data-room-id="${escapeAttr(row.rooms[0].id)}">
+      <span><b>${escapeHtml(row.label)}</b><small>${row.lights.length}灯 / ${Math.round(row.lumens).toLocaleString()}lm</small></span>
+      <span class="luxValue"><b>${row.lux} lx</b><small>${row.target.min}–${row.target.max}lx ${statusLabel}</small></span>
+    </button>`;
+  }).join("");
+  dom.lightingSummary.onclick = (event) => {
+    const row = event.target.closest("[data-room-id]");
+    if(!row) return;
+    state.selectedId = row.dataset.roomId;
+    state.dockMode = "select";
+    state.mobilePanelOpen = true;
+    render();
+  };
 }
 
 function renderRoomGroupSvg(group){
@@ -1320,6 +1428,21 @@ function renderFurnitureSvg(item, existing){
   const rotate = item.rotation ? ` transform="rotate(${item.rotation} ${item.x + item.w / 2} ${item.y + item.h / 2})"` : "";
   if(Array.isArray(item.modelParts) && item.modelParts.length) return renderCustomModelSvg(item, selected, label, rotate);
   if(item.layer === "exterior") return renderExteriorItemSvg(item, selected, label, color, rotate);
+  if(!existing && isLightItem(item)){
+    const cx = item.x + item.w / 2;
+    const cy = item.y + item.h / 2;
+    const beam = clamp(Number(item.beamDeg || 60), 15, 170);
+    const beamRadius = Math.max(12, mmToPx(clamp(Number(item.glMm || 2400) * Math.tan((beam * Math.PI / 180) / 2), 600, 5000)));
+    const influence = state.workMode === "lighting"
+      ? `<circle class="lightInfluence" cx="${cx}" cy="${cy}" r="${beamRadius}" fill="${kelvinCss(item.kelvin)}" fill-opacity=".11" stroke="${kelvinCss(item.kelvin)}" stroke-opacity=".42" stroke-width="1.5" stroke-dasharray="5 4"/>`
+      : "";
+    return `<g class="planItem lightItem${selected}" data-id="${item.id}">
+      ${influence}
+      <circle cx="${cx}" cy="${cy}" r="${Math.max(6, Math.min(12, item.w / 2))}" fill="${color}" stroke="#6d622d" stroke-width="1.5"/>
+      <path d="M ${cx - 4} ${cy} H ${cx + 4} M ${cx} ${cy - 4} V ${cx} ${cy + 4}" stroke="#6d622d" stroke-width="1.4"/>
+      <text x="${cx}" y="${cy + 18}" text-anchor="middle" class="planSub">${Math.round(Number(item.lumens || 0))}lm</text>
+    </g>`;
+  }
   if(item.kind === "plant" || item.kind === "tree"){
     const r = Math.max(4, Math.min(item.w, item.h) / 2);
     return `<g class="planItem${selected}" data-id="${item.id}"><circle cx="${item.x + item.w / 2}" cy="${item.y + item.h / 2}" r="${r}" fill="${color}" stroke="#355d38" stroke-width="1.5"/><text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text></g>`;
@@ -1328,6 +1451,14 @@ function renderFurnitureSvg(item, existing){
     <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/></g>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
   </g>`;
+}
+
+function kelvinCss(kelvin){
+  const k = clamp(Number(kelvin || 3000), 2000, 6500);
+  if(k < 3000) return "#ffd37c";
+  if(k < 4000) return "#ffeab0";
+  if(k < 5000) return "#f7f7e8";
+  return "#d7e9ff";
 }
 
 function isStructuralStair(item){
@@ -1432,8 +1563,11 @@ function renderLists(){
 
 function itemRow(item){
   const on = state.selectedId === item.id ? " on" : "";
+  const detail = isLightItem(item)
+    ? `${Math.round(Number(item.lumens || 0))}lm / ${Math.round(Number(item.kelvin || 0))}K`
+    : `${pxToMm(item.w)}x${pxToMm(item.h)}x${Math.round(item.heightMm || 0)}mm`;
   return `<div class="denseRow${on}" data-id="${item.id}">
-    <div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.category || item.layer)} / ${pxToMm(item.w)}x${pxToMm(item.h)}x${Math.round(item.heightMm || 0)}mm</span></div>
+    <div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.category || item.layer)} / ${detail}</span></div>
     <button type="button" data-select="${item.id}">選択</button>
   </div>`;
 }
@@ -1468,8 +1602,13 @@ function renderSelectedPanel(){
     return;
   }
   if(selected.source === "room"){
-    dom.selectedPanel.innerHTML = renderRoomEditor(selected.item);
-    bindRoomEditor(selected.item);
+    if(state.workMode === "lighting"){
+      dom.selectedPanel.innerHTML = renderRoomLightingEditor(selected.item);
+      bindRoomLightingEditor();
+    }else{
+      dom.selectedPanel.innerHTML = renderRoomEditor(selected.item);
+      bindRoomEditor(selected.item);
+    }
   }else if(selected.source === "custom"){
     dom.selectedPanel.innerHTML = renderCustomEditor(selected.item);
     bindCustomEditor(selected.item);
@@ -1583,6 +1722,31 @@ function renderRoomEditor(room){
     </div>`;
 }
 
+function renderRoomLightingEditor(room){
+  const row = roomLightingRows().find((item) => item.rooms.some((target) => target.id === room.id));
+  if(!row) return `<div class="selectedHead"><div><b>${escapeHtml(room.label)}</b><span>照明計算対象外</span></div></div>`;
+  const statusLabel = row.status === "dark" ? "不足" : row.status === "bright" ? "明るめ" : "目安内";
+  const fixtures = row.lights.length
+    ? row.lights.map((light) => `<button type="button" data-select-light="${escapeAttr(light.id)}">${escapeHtml(light.label)} ${Math.round(light.lumens || 0)}lm</button>`).join("")
+    : `<span class="emptySummary">この部屋には照明がありません</span>`;
+  return `<div class="selectedHead"><div><b>${escapeHtml(row.label)}</b><span>${formatM2(row.area)} / 概算</span></div></div>
+    <div class="roomLuxCard ${row.status}">
+      <b>${row.lux} lx</b>
+      <span>目安 ${row.target.min}–${row.target.max} lx / ${statusLabel}</span>
+      <small>器具光束の60%が床面に届く想定。最終判断は照明メーカーの配光データで確認してください。</small>
+    </div>
+    <div class="buttonRow lightFixtureList">${fixtures}</div>`;
+}
+
+function bindRoomLightingEditor(){
+  dom.selectedPanel.querySelectorAll("[data-select-light]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedId = button.dataset.selectLight;
+      render();
+    });
+  });
+}
+
 function finishOptions(group, active){
   return FINISHES[group].map((item) => `<option value="${item.id}" ${item.id === active ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
 }
@@ -1615,11 +1779,13 @@ function bindRoomEditor(room){
 function matchingRooms(room){
   const floor = state.plan?.floors?.[Number(room.floorIndex || 0)];
   if(!floor) return [room];
-  return (floor.items || []).filter((item) => item.type === "room" && !item.void && item.label === room.label);
+  const rooms = (floor.items || []).filter((item) => item.type === "room" && !item.void);
+  return groupRooms(rooms).find((group) => group.rooms.some((item) => item.id === room.id))?.rooms || [room];
 }
 
 function renderCustomEditor(item){
   const isExterior = item.layer === "exterior";
+  const isLight = isLightItem(item);
   const modelEditButton = Array.isArray(item.modelParts) && item.modelParts.length
     ? `<button type="button" id="editModelBtn">部品を編集</button>`
     : "";
@@ -1632,6 +1798,16 @@ function renderCustomEditor(item){
         <label>固定<input type="text" value="移動不可" disabled></label>
       </div>`;
   }
+  const lightFields = isLight ? `<div class="lightEditor">
+      <div class="blockTitle">照明設定</div>
+      <div class="selectedGrid">
+        <label>明るさ lm<input id="itemLumens" type="number" min="50" max="20000" step="50" value="${Math.round(item.lumens || 600)}"></label>
+        <label>色温度 K<input id="itemKelvin" type="number" min="2000" max="6500" step="100" value="${Math.round(item.kelvin || 2700)}"></label>
+        <label>配光角°<input id="itemBeam" type="number" min="15" max="180" step="5" value="${Math.round(item.beamDeg || 60)}"></label>
+        <label class="checkLine"><input id="itemDimming" type="checkbox" ${item.dimming ? "checked" : ""}>調光対応</label>
+        <label class="checkLine"><input id="itemLightOn" type="checkbox" ${item.lightOn !== false ? "checked" : ""}>点灯して計算</label>
+      </div>
+    </div>` : "";
   return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(isExterior ? (item.category || "外構") : floorLabel(item.floorIndex))}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
     <div class="selectedGrid">
       <label>名前<input id="itemLabel" type="text" maxlength="20" value="${escapeAttr(item.label)}"></label>
@@ -1642,6 +1818,7 @@ function renderCustomEditor(item){
       <label>床からmm<input id="itemGl" type="number" min="0" step="10" value="${Math.round(item.glMm || 0)}"></label>
       <label>回転°<input id="itemRot" type="number" step="15" value="${Math.round(item.rotation || 0)}"></label>
     </div>
+    ${lightFields}
     <div class="buttonRow">
       <button type="button" data-nudge="0,-16">↑</button>
       <button type="button" data-nudge="-16,0">←</button>
@@ -1686,13 +1863,22 @@ function bindCustomEditor(item){
     item.heightMm = numberValue(document.getElementById("itemH"), item.heightMm || 700);
     item.glMm = numberValue(document.getElementById("itemGl"), item.glMm || 0);
     item.rotation = numberValue(document.getElementById("itemRot"), item.rotation || 0);
+    if(isLightItem(item)){
+      item.lumens = clamp(numberValue(document.getElementById("itemLumens"), item.lumens || 600), 50, 20000);
+      item.kelvin = clamp(numberValue(document.getElementById("itemKelvin"), item.kelvin || 2700), 2000, 6500);
+      item.beamDeg = clamp(numberValue(document.getElementById("itemBeam"), item.beamDeg || 60), 15, 180);
+      item.dimming = !!document.getElementById("itemDimming")?.checked;
+      item.lightOn = !!document.getElementById("itemLightOn")?.checked;
+    }
     saveDesign(false);
     renderPlan();
     renderLists();
+    renderLightingSummary();
     renderSceneOnly();
   };
-  ["itemLabel","itemColor","itemW","itemD","itemH","itemGl","itemRot"].forEach((id) => {
+  ["itemLabel","itemColor","itemW","itemD","itemH","itemGl","itemRot","itemLumens","itemKelvin","itemBeam","itemDimming","itemLightOn"].forEach((id) => {
     const input = document.getElementById(id);
+    if(!input) return;
     input.addEventListener("focus", () => {
       editSnapshot = editSnapshot || historySnapshot();
     });
@@ -1753,6 +1939,12 @@ function openQuickAdd(kind){
   dom.quickAddD.value = Math.round(preset.d || 300);
   dom.quickAddH.value = Math.round(preset.h || 700);
   dom.quickAddGl.value = Math.round(preset.gl || 0);
+  const isLight = isLightItem(preset);
+  dom.quickLightFields.hidden = !isLight;
+  dom.quickAddLumens.value = Math.round(preset.lumens || 600);
+  dom.quickAddKelvin.value = Math.round(preset.kelvin || 2700);
+  dom.quickAddBeam.value = Math.round(preset.beamDeg || 60);
+  dom.quickAddDimming.checked = preset.dimming !== false;
   dom.quickAddModal.hidden = false;
   setTimeout(() => dom.quickAddW?.select(), 0);
 }
@@ -1770,7 +1962,11 @@ function confirmQuickAdd(){
     w: clamp(numberValue(dom.quickAddW, 900), 50, 10000),
     d: clamp(numberValue(dom.quickAddD, 300), 20, 10000),
     h: clamp(numberValue(dom.quickAddH, 700), 10, 10000),
-    gl: clamp(numberValue(dom.quickAddGl, 0), 0, 10000)
+    gl: clamp(numberValue(dom.quickAddGl, 0), 0, 10000),
+    lumens: clamp(numberValue(dom.quickAddLumens, 600), 50, 20000),
+    kelvin: clamp(numberValue(dom.quickAddKelvin, 2700), 2000, 6500),
+    beamDeg: clamp(numberValue(dom.quickAddBeam, 60), 15, 180),
+    dimming: !!dom.quickAddDimming.checked
   };
   closeQuickAdd();
   addCustomItem(kind, dimensions);
@@ -1793,6 +1989,13 @@ function addCustomItem(kind, dimensions = null){
     item.h = mmToPx(dimensions.d);
     item.heightMm = dimensions.h;
     item.glMm = dimensions.gl;
+    if(isLightItem(item)){
+      item.lumens = dimensions.lumens;
+      item.kelvin = dimensions.kelvin;
+      item.beamDeg = dimensions.beamDeg;
+      item.dimming = dimensions.dimming;
+      item.lightOn = true;
+    }
     item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
   }
   if(preset.layer === "exterior"){
@@ -1804,6 +2007,7 @@ function addCustomItem(kind, dimensions = null){
   }
   state.design.customItems.push(item);
   state.selectedId = item.id;
+  state.workMode = isLightItem(item) ? "lighting" : preset.layer === "exterior" ? "site" : "interior";
   state.dockMode = "select";
   state.mobilePanelOpen = true;
   saveDesign(false);

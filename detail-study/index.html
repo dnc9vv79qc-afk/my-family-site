@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>詳細検討スタジオ 06/19 区間選択・閲覧操作v10 | MORI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260619-detail-controls-v10">
+  <title>詳細検討スタジオ 06/19 外構・家具・照明 v11 | MORI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260619-purpose-ui-v11">
   <script type="importmap">
     {
       "imports": {
@@ -17,7 +17,7 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <b>詳細検討スタジオ <small>06/19 区間選択・閲覧操作 v10</small></b>
+        <b>詳細検討スタジオ <small>06/19 外構・家具・照明 v11</small></b>
         <span id="layoutMeta">読み込み中</span>
       </div>
       <div class="topActions">
@@ -39,6 +39,12 @@
             <button type="button" data-floor="0" class="on">1F</button>
             <button type="button" data-floor="1">2F</button>
             <button type="button" data-floor="all">全体</button>
+          </div>
+          <div class="purposeTabs" id="workTabs" aria-label="検討内容">
+            <button type="button" data-work="site">外構</button>
+            <button type="button" data-work="interior" class="on">家具・造作</button>
+            <button type="button" data-work="lighting">照明</button>
+            <button type="button" data-work="review">確認</button>
           </div>
           <div class="metricStrip" id="metricStrip"></div>
         </div>
@@ -64,6 +70,11 @@
           <svg id="planSvg" role="img" aria-label="間取り平面図"></svg>
           <div class="planHud" id="planHud">
             <span id="planHudTitle">図面操作</span>
+            <div class="planModes" id="planModes" aria-label="図面操作">
+              <button type="button" data-plan-mode="select" class="on">編集</button>
+              <button type="button" data-plan-mode="browse">移動</button>
+              <button type="button" data-plan-mode="measure">計測</button>
+            </div>
             <div class="hudTools">
               <button type="button" id="zoomOutBtn" aria-label="縮小">−</button>
               <button type="button" id="zoomInBtn" aria-label="拡大">＋</button>
@@ -94,7 +105,7 @@
       </section>
 
       <aside class="inspector" id="inspector">
-        <section class="panelBlock layerBlock">
+        <section class="panelBlock layerBlock workBlock work-review">
           <div class="blockTitle">表示切替</div>
           <div class="toggleGrid" id="layerToggles">
             <label><input type="checkbox" data-layer="site" checked>敷地</label>
@@ -108,12 +119,12 @@
           </div>
         </section>
 
-        <section class="panelBlock focusBlock addBlock">
+        <section class="panelBlock focusBlock addBlock workBlock work-site">
           <div class="blockTitle">敷地・外構</div>
           <div class="palette groupedPalette" id="exteriorPalette"></div>
         </section>
 
-        <section class="panelBlock siteConditionBlock">
+        <section class="panelBlock siteConditionBlock workBlock work-site">
           <div class="blockTitle">敷地条件</div>
           <div class="siteSettingsTabs" id="siteSettingsTabs">
             <button type="button" class="on" data-site-tab="position">建物位置</button>
@@ -150,18 +161,28 @@
           </div>
         </section>
 
-        <section class="panelBlock addBlock">
-          <div class="blockTitle">家具・棚・窓</div>
+        <section class="panelBlock addBlock workBlock work-interior">
+          <div class="blockTitle">家具・造作・窓</div>
           <button class="wideAction objectBuilderOpen" id="openObjectBuilderBtn" type="button">3D部品を作る</button>
           <div class="palette groupedPalette" id="palette"></div>
         </section>
 
-        <section class="panelBlock selectedBlock">
+        <section class="panelBlock addBlock workBlock work-lighting">
+          <div class="blockTitle">照明器具を配置</div>
+          <div class="palette groupedPalette" id="lightingPalette"></div>
+        </section>
+
+        <section class="panelBlock lightingSummaryBlock workBlock work-lighting">
+          <div class="blockTitle">部屋別 明るさ目安</div>
+          <div class="lightingSummary" id="lightingSummary"></div>
+        </section>
+
+        <section class="panelBlock selectedBlock workBlock work-site work-interior work-lighting work-review">
           <div class="blockTitle">選択</div>
           <div id="selectedPanel" class="selectedPanel"></div>
         </section>
 
-        <section class="panelBlock noteBlock">
+        <section class="panelBlock noteBlock workBlock work-review">
           <div class="blockTitle">メモ</div>
           <div class="noteComposer">
             <select id="noteCategory">
@@ -169,6 +190,7 @@
               <option>家具</option>
               <option>棚</option>
               <option>窓</option>
+              <option>照明</option>
               <option>内装</option>
             </select>
             <input id="noteInput" type="text" maxlength="80" placeholder="検討メモ">
@@ -178,13 +200,11 @@
         </section>
       </aside>
     </main>
-    <nav class="modeDock" id="modeDock" aria-label="操作">
-      <button type="button" data-dock="select" class="on"><span>▸</span><b>選択</b></button>
-      <button type="button" data-dock="add"><span>＋</span><b>追加</b></button>
-      <button type="button" data-dock="measure"><span>⌁</span><b>計測</b></button>
-      <button type="button" data-dock="browse"><span>☝</span><b>閲覧</b></button>
-      <button type="button" data-dock="3d"><span>□</span><b>3D</b></button>
-      <button type="button" data-dock="more"><span>…</span><b>他</b></button>
+    <nav class="modeDock" id="modeDock" aria-label="検討内容">
+      <button type="button" data-work="site"><span>⌂</span><b>外構</b></button>
+      <button type="button" data-work="interior" class="on"><span>▣</span><b>家具・造作</b></button>
+      <button type="button" data-work="lighting"><span>☀</span><b>照明</b></button>
+      <button type="button" data-work="review"><span>◎</span><b>確認</b></button>
     </nav>
   </div>
 
@@ -255,11 +275,20 @@
         <label>高さmm<input id="quickAddH" type="number" min="10" max="10000" step="10"></label>
         <label>床からmm<input id="quickAddGl" type="number" min="0" max="10000" step="10"></label>
       </div>
+      <div class="quickLightFields" id="quickLightFields" hidden>
+        <div class="blockTitle">照明設定</div>
+        <div class="selectedGrid">
+          <label>明るさ lm<input id="quickAddLumens" type="number" min="50" max="20000" step="50"></label>
+          <label>色温度 K<input id="quickAddKelvin" type="number" min="2000" max="6500" step="100"></label>
+          <label>配光角°<input id="quickAddBeam" type="number" min="15" max="180" step="5"></label>
+          <label class="checkLine"><input id="quickAddDimming" type="checkbox">調光対応</label>
+        </div>
+      </div>
       <button class="wideAction" id="quickAddConfirmBtn" type="button">この寸法で追加</button>
     </div>
   </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=20260619-detail-controls-v10"></script>
+  <script type="module" src="./js/app.js?v=20260619-purpose-ui-v11"></script>
 </body>
 </html>

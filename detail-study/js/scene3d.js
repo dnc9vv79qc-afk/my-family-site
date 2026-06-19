@@ -629,6 +629,7 @@ export class DetailScene3D {
       light.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM + hM / 2, pxToM(item.y + item.h / 2));
       light.castShadow = true;
       this.root.add(light);
+      this.addPhotometricLight(item, light.position.x, light.position.y - hM * 0.4, light.position.z, "spot");
       return;
     }
     if(!existing && item.kind === "pendantLight"){
@@ -640,6 +641,21 @@ export class DetailScene3D {
       shade.position.y = hM * 0.18;
       group.add(cord, shade);
       this.root.add(group);
+      this.addPhotometricLight(item, group.position.x, group.position.y + hM * 0.08, group.position.z, "point");
+      return;
+    }
+    if(!existing && item.kind === "ceilingLight"){
+      const group = new THREE.Group();
+      group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(Math.max(0.12, pxToM(item.w) / 2), Math.max(0.12, pxToM(item.w) / 2), Math.max(0.05, hM), 32),
+        mat(item.color || "#fff7d4", 0.92, 0.26)
+      );
+      body.position.y = hM / 2;
+      body.castShadow = true;
+      group.add(body);
+      this.root.add(group);
+      this.addPhotometricLight(item, group.position.x, group.position.y, group.position.z, "point");
       return;
     }
     const mesh = new THREE.Mesh(
@@ -656,6 +672,27 @@ export class DetailScene3D {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.root.add(mesh);
+  }
+
+  addPhotometricLight(item, x, y, z, type){
+    if(item.lightOn === false) return;
+    const lumens = clamp(Number(item.lumens || 600), 50, 20000);
+    const color = kelvinColor(Number(item.kelvin || 3000));
+    if(type === "spot"){
+      const angle = clamp(Number(item.beamDeg || 60), 15, 170) * Math.PI / 360;
+      const light = new THREE.SpotLight(color, 0, 12, angle, 0.42, 1.7);
+      light.power = lumens;
+      light.position.set(x, y, z);
+      light.target.position.set(x, Math.max(0, y - 2.2), z);
+      light.castShadow = false;
+      this.root.add(light, light.target);
+      return;
+    }
+    const light = new THREE.PointLight(color, 0, 10, 1.8);
+    light.power = lumens;
+    light.position.set(x, y, z);
+    light.castShadow = false;
+    this.root.add(light);
   }
 
   addCustomModel(item, yBase, selectedId){
@@ -1570,6 +1607,28 @@ function sceneBounds(plan, design, floorMode, layers, padding){
     maxY = Math.max(maxY, item.y + item.h + padding);
   });
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
+}
+
+function kelvinColor(value){
+  const kelvin = clamp(Number(value || 3000), 2000, 6500);
+  const t = kelvin / 100;
+  let r;
+  let g;
+  let b;
+  if(t <= 66){
+    r = 255;
+    g = 99.4708025861 * Math.log(t) - 161.1195681661;
+    b = t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  }else{
+    r = 329.698727446 * Math.pow(t - 60, -0.1332047592);
+    g = 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+    b = 255;
+  }
+  return new THREE.Color(
+    clamp(r, 0, 255) / 255,
+    clamp(g, 0, 255) / 255,
+    clamp(b, 0, 255) / 255
+  );
 }
 
 function clamp(value, min, max){

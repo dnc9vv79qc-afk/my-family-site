@@ -11,8 +11,9 @@ export const FURNITURE_LIBRARY = [
   { kind:"dropWall", label:"垂れ壁", meta:"天井から450", tone:"wall", w:1800, d:150, h:450, gl:1950, color:"#e5e2dc", layer:"furniture", category:"造作" },
   { kind:"underStairWall", label:"階段下収納壁", meta:"W1800 H1800", tone:"wall", w:1800, d:120, h:1800, color:"#ddd9d2", layer:"furniture", category:"造作" },
   { kind:"niche", label:"ニッチ", meta:"W900 H1200", tone:"amber", w:900, d:180, h:1200, gl:700, color:"#c9b69a", layer:"shelves", category:"造作" },
-  { kind:"downlight", label:"ダウンライト", meta:"天井付", tone:"blue", w:125, d:125, h:45, gl:2350, color:"#fff3b0", layer:"furniture", category:"照明" },
-  { kind:"pendantLight", label:"ペンダント照明", meta:"天井吊り", tone:"blue", w:300, d:300, h:450, gl:1750, color:"#e2c680", layer:"furniture", category:"照明" },
+  { kind:"downlight", label:"ダウンライト", meta:"600lm / 2700K", tone:"blue", w:125, d:125, h:45, gl:2350, lumens:600, kelvin:2700, beamDeg:60, dimming:true, color:"#fff3b0", layer:"furniture", category:"照明" },
+  { kind:"pendantLight", label:"ペンダント照明", meta:"800lm / 2700K", tone:"blue", w:300, d:300, h:450, gl:1750, lumens:800, kelvin:2700, beamDeg:90, dimming:true, color:"#e2c680", layer:"furniture", category:"照明" },
+  { kind:"ceilingLight", label:"シーリング照明", meta:"3000lm / 4000K", tone:"blue", w:500, d:500, h:100, gl:2300, lumens:3000, kelvin:4000, beamDeg:120, dimming:true, color:"#fff7d4", layer:"furniture", category:"照明" },
   { kind:"windowNote", label:"窓検討", meta:"1600", tone:"blue", w:1600, d:120, h:1200, color:"#8dc2df", layer:"openings", category:"窓" },
   { kind:"freeObject", label:"自由オブジェクト", meta:"寸法変更", tone:"blue", w:900, d:600, h:900, color:"#b9c0c8", layer:"furniture", category:"自由" }
 ];
@@ -127,6 +128,11 @@ export function makeCustomItem(preset, floorIndex, center){
     meta: preset.meta || "",
     shape: preset.shape || preset.kind,
     locked: !!preset.locked,
+    lumens: Number(preset.lumens || 0),
+    kelvin: Number(preset.kelvin || 0),
+    beamDeg: Number(preset.beamDeg || 0),
+    dimming: !!preset.dimming,
+    lightOn: preset.category === "照明",
     modelId: preset.modelId || "",
     modelParts: preset.modelParts ? cloneModelParts(preset.modelParts) : null
   };

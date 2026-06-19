@@ -55,7 +55,7 @@ button{ border:0; cursor:pointer; }
 .stageToolbar{
   z-index:10;
   display:grid;
-  grid-template-columns:auto auto minmax(0,1fr);
+  grid-template-columns:auto auto auto minmax(0,1fr);
   gap:8px;
   align-items:center;
   padding:10px;
@@ -83,6 +83,24 @@ button{ border:0; cursor:pointer; }
   white-space:nowrap;
 }
 .segmented button.on{ color:#fff; background:#2c6f52; box-shadow:0 1px 5px rgba(0,0,0,.12); }
+.purposeTabs{
+  display:flex;
+  gap:3px;
+  padding:3px;
+  border-radius:9px;
+  background:#efe9dc;
+}
+.purposeTabs button{
+  height:30px;
+  padding:0 10px;
+  border-radius:7px;
+  color:#514a3e;
+  background:transparent;
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.purposeTabs button.on{ color:#fff; background:#a46b24; box-shadow:0 1px 5px rgba(0,0,0,.12); }
 .metricStrip{ min-width:0; display:flex; justify-content:flex-end; align-items:center; gap:6px; overflow:hidden; }
 .metricStrip span{
   flex:0 0 auto;
@@ -249,6 +267,24 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   max-width:calc(100% - 24px);
 }
 .planHud span{ min-width:56px; color:#273026; font-size:11px; font-weight:950; }
+.planModes{
+  display:flex;
+  gap:3px;
+  padding:3px;
+  border-radius:8px;
+  background:rgba(120,128,116,.13);
+}
+.planModes button{
+  height:28px;
+  border-radius:6px;
+  padding:0 9px;
+  color:#4b5149;
+  background:transparent;
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.planModes button.on{ color:#fff; background:var(--blue); }
 .hudTools{ display:flex; gap:4px; overflow:auto; }
 .hudTools button{
   flex:0 0 auto;
@@ -432,6 +468,11 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   background:var(--surface);
   padding:10px;
 }
+.workBlock{ display:none; }
+body[data-work-mode="site"] .work-site,
+body[data-work-mode="interior"] .work-interior,
+body[data-work-mode="lighting"] .work-lighting,
+body[data-work-mode="review"] .work-review{ display:block; }
 .blockTitle{
   margin-bottom:8px;
   font-size:12px;
@@ -674,6 +715,56 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 }
 .quickAddGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 .quickAddGrid label:first-child{ grid-column:1 / -1; }
+.quickLightFields,.lightEditor{
+  display:grid;
+  gap:7px;
+  padding:10px;
+  border:1px solid rgba(200,121,24,.22);
+  border-radius:10px;
+  background:#fffaf0;
+}
+.quickLightFields[hidden]{ display:none; }
+.quickLightFields .blockTitle,.lightEditor .blockTitle{ margin:0; color:#765015; }
+.lightingSummary{ display:grid; gap:7px; }
+.luxRow{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--ink);
+  background:#f7f8f5;
+  text-align:left;
+}
+.luxRow > span{ min-width:0; }
+.luxRow b,.luxRow small{ display:block; }
+.luxRow b{ font-size:12px; font-weight:950; }
+.luxRow small{ margin-top:2px; color:var(--muted); font-size:9px; font-weight:850; }
+.luxRow .luxValue{ text-align:right; }
+.luxRow.dark{ border-color:rgba(40,111,214,.30); background:#eef4ff; }
+.luxRow.ok{ border-color:rgba(47,143,99,.32); background:#edf7f0; }
+.luxRow.bright{ border-color:rgba(200,121,24,.34); background:#fff5e8; }
+.emptySummary{ padding:12px; color:var(--muted); background:#f5f6f3; border-radius:9px; font-size:11px; font-weight:850; }
+.roomLuxCard{
+  display:grid;
+  gap:3px;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#f7f8f5;
+}
+.roomLuxCard b{ font-size:20px; font-weight:950; }
+.roomLuxCard span{ font-size:11px; font-weight:900; }
+.roomLuxCard small{ margin-top:4px; color:var(--muted); font-size:9px; line-height:1.45; font-weight:780; }
+.roomLuxCard.dark{ background:#eef4ff; border-color:rgba(40,111,214,.30); }
+.roomLuxCard.ok{ background:#edf7f0; border-color:rgba(47,143,99,.32); }
+.roomLuxCard.bright{ background:#fff5e8; border-color:rgba(200,121,24,.34); }
+.lightFixtureList button{ background:#fff4cf; border:1px solid rgba(200,121,24,.22); }
+.lightInfluence{ pointer-events:none; }
 .miniList{ display:grid; gap:6px; max-height:280px; overflow:auto; }
 .miniRow{ cursor:pointer; padding:7px 8px; }
 .miniRow.on{ border-color:rgba(40,111,214,.55); background:#f4f8ff; }
@@ -710,7 +801,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   bottom:calc(env(safe-area-inset-bottom) + 14px);
   z-index:70;
   display:none;
-  grid-template-columns:repeat(6,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:4px;
   padding:8px;
   border:1px solid rgba(31,35,28,.10);
@@ -1082,6 +1173,7 @@ body.builderOpen .modeDock{ display:none; }
   .inspector{ border-left:0; border-top:1px solid var(--line); grid-template-columns:repeat(2,minmax(0,1fr)); }
   .selectedBlock{ grid-row:span 2; }
   .stageToolbar{ grid-template-columns:1fr 1fr; }
+  .purposeTabs{ grid-column:1 / -1; }
   .metricStrip{ grid-column:1 / -1; justify-content:flex-start; overflow:auto; }
 }
 @media (min-width: 921px){
@@ -1137,6 +1229,7 @@ body.builderOpen .modeDock{ display:none; }
     background:rgba(255,255,255,.94);
     box-shadow:0 10px 28px rgba(31,35,28,.12);
   }
+  .purposeTabs{ display:none; }
   .segmented{ justify-content:stretch; }
   .segmented button{ flex:1; min-width:0; height:30px; }
   #floorTabs{ min-width:148px; }
@@ -1158,7 +1251,7 @@ body.builderOpen .modeDock{ display:none; }
     bottom:calc(env(safe-area-inset-bottom) + 92px);
     z-index:62;
     grid-template-columns:1fr;
-    max-height:min(28vh,230px);
+    max-height:min(42vh,390px);
     overflow:auto;
     overscroll-behavior:contain;
     padding:10px;
@@ -1179,24 +1272,37 @@ body.builderOpen .modeDock{ display:none; }
   body[data-view="plan"][data-dock-mode="measure"] .inspector{
     display:none;
   }
-  body[data-view="plan"][data-dock-mode="select"] .inspector .selectedBlock,
-  body[data-view="plan"][data-dock-mode="add"] .inspector .addBlock,
-  body[data-view="plan"][data-dock-mode="more"] .inspector .layerBlock,
-  body[data-view="plan"][data-dock-mode="more"] .inspector .siteConditionBlock,
-  body[data-view="plan"][data-dock-mode="more"] .inspector .noteBlock{
+  body[data-view="plan"][data-work-mode="site"] .inspector .work-site,
+  body[data-view="plan"][data-work-mode="interior"] .inspector .work-interior,
+  body[data-view="plan"][data-work-mode="lighting"] .inspector .work-lighting,
+  body[data-view="plan"][data-work-mode="review"] .inspector .work-review{
     display:block;
   }
   .panelBlock{
     border-radius:13px;
     box-shadow:none;
   }
-  .formGrid,.distanceGrid,.selectedGrid,.paletteGrid,.listColumns{ grid-template-columns:1fr; }
+  .formGrid,.distanceGrid,.selectedGrid,.listColumns{ grid-template-columns:1fr; }
+  .paletteGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .layerBlock .toggleGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .noteComposer{ grid-template-columns:1fr; }
   .walkHud{ top:8px; left:8px; }
   .viewPresetBar{ top:54px; left:8px; right:auto; }
   .viewPresetBar button{ min-width:40px; padding:0 8px; }
-  .planNudge{ top:76px; left:auto; right:10px; bottom:auto; z-index:68; width:172px; }
+  .planNudge{ top:112px; left:auto; right:10px; bottom:auto; z-index:68; width:172px; }
+  .planHud{
+    left:8px;
+    right:8px;
+    top:8px;
+    max-width:none;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .planHud > span{ display:none; }
+  .planModes{ flex:1 1 auto; }
+  .planModes button{ flex:1; padding:0 7px; }
+  .hudTools{ flex:1 1 100%; }
+  .hudTools button{ flex:1; padding:0 7px; }
   .measureHud{ left:10px; right:10px; bottom:10px; width:auto; }
   .nudgePad{ grid-template-columns:repeat(3,31px); }
   .roomWarp{ left:8px; right:8px; bottom:8px; }
