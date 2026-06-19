@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-wall-snap-v24";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-door-header-v25";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -568,6 +568,12 @@ export class DetailScene3D {
             this.addWallSlice(slice.seg, slice.y0, slice.y1, wallMat, thickness);
           });
         });
+      });
+      doorOpenings.forEach((opening) => {
+        const thickness = openingWallThickness(opening, wallLines);
+        const doorTop = yBase + SLAB_H_M + 2.0;
+        const wallTop = yBase + SLAB_H_M + WALL_H_M;
+        this.addWallSlice(opening, doorTop, wallTop, wallMat, thickness);
       });
     }
     if(layers.openings){
@@ -1629,6 +1635,23 @@ function frameBounds(frames){
     maxY = Math.max(maxY, frame.y + frame.h);
   });
   return { minX, minY, maxX, maxY };
+}
+
+function openingWallThickness(opening, wallLines){
+  const horizontal = Math.abs(opening.y1 - opening.y2) < 0.1;
+  const fixed = horizontal ? opening.y1 : opening.x1;
+  const lo = horizontal ? Math.min(opening.x1, opening.x2) : Math.min(opening.y1, opening.y2);
+  const hi = horizontal ? Math.max(opening.x1, opening.x2) : Math.max(opening.y1, opening.y2);
+  const wall = wallLines.find((candidate) => {
+    const candidateHorizontal = Math.abs(candidate.y1 - candidate.y2) < 0.1;
+    if(candidateHorizontal !== horizontal) return false;
+    const candidateFixed = horizontal ? candidate.y1 : candidate.x1;
+    if(Math.abs(candidateFixed - fixed) > 5) return false;
+    const candidateLo = horizontal ? Math.min(candidate.x1, candidate.x2) : Math.min(candidate.y1, candidate.y2);
+    const candidateHi = horizontal ? Math.max(candidate.x1, candidate.x2) : Math.max(candidate.y1, candidate.y2);
+    return candidateHi > lo + 1 && candidateLo < hi - 1;
+  });
+  return wall ? Math.max(WALL_T_M, pxToM(wall.thick || 6)) : WALL_T_M;
 }
 
 function outerSegments(frames){

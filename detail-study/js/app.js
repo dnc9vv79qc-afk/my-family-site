@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-wall-snap-v24";
+import { DetailScene3D } from "./scene3d.js?v=20260619-door-header-v25";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-wall-snap-v24";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-snap-v24";
+} from "./data.js?v=20260619-door-header-v25";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-door-header-v25";
 
 const state = {
   plan: null,
@@ -298,7 +298,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 壁寄せ / 06-19 v24`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ドア上壁 / 06-19 v25`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
