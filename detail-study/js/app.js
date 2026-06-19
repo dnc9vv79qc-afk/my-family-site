@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-shared-parts-v20";
+import { DetailScene3D } from "./scene3d.js?v=20260619-wall-sheets-v21";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-shared-parts-v20";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-shared-parts-v20";
+} from "./data.js?v=20260619-wall-sheets-v21";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-sheets-v21";
 
 const state = {
   plan: null,
@@ -34,6 +34,7 @@ const state = {
   measurePoints: [],
   nudgeUi: { x: null, y: null },
   builder: null,
+  wallSheetKey: "",
   siteSettingsTab: "position",
   pendingAddKind: "",
   planView: null,
@@ -104,6 +105,7 @@ function cacheDom(){
     "layoutMeta","editLayoutLink","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
     "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","constructionPalette","exteriorPalette","lightingPalette","lightingSummary","workModeTitle","workModeHint",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
+    "wallSheetBtn","wallSheetModal","wallSheetCloseBtn","wallSheetSaveBtn","wallSheetRooms","wallSheetCanvas",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
     "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderPartList","builderEditor"
@@ -261,6 +263,12 @@ function bindEvents(){
   dom.builderCloseBtn?.addEventListener("click", closeObjectBuilder);
   dom.builderSaveBtn?.addEventListener("click", saveObjectBuilder);
   dom.builderFitBtn?.addEventListener("click", () => builder3d?.fitView());
+  dom.wallSheetBtn?.addEventListener("click", openWallSheet);
+  dom.wallSheetCloseBtn?.addEventListener("click", closeWallSheet);
+  dom.wallSheetSaveBtn?.addEventListener("click", saveWallSheetImage);
+  dom.wallSheetModal?.addEventListener("click", (event) => {
+    if(event.target === dom.wallSheetModal) closeWallSheet();
+  });
   dom.objectBuilder?.addEventListener("click", onObjectBuilderClick);
   dom.objectBuilder?.addEventListener("input", onObjectBuilderInput);
   dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
@@ -290,7 +298,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 共有詳細データ / 06-19 v20`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 壁展開図 / 06-19 v21`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
@@ -2549,6 +2557,402 @@ function addNote(){
   dom.noteInput.value = "";
   saveDesign(false);
   renderLists();
+}
+
+function wallSheetGroups(){
+  if(!state.plan) return [];
+  return groupRooms(roomsForFloor(state.plan, "all")).map((group) => ({
+    ...group,
+    floorIndex:Number(group.floorIndex || 0),
+    key:group.key
+  }));
+}
+
+function openWallSheet(){
+  const groups = wallSheetGroups();
+  if(!groups.length){
+    toast("出力できる部屋がありません");
+    return;
+  }
+  const selected = findSelected();
+  const selectedGroup = selected?.source === "room"
+    ? groups.find((group) => group.rooms.some((room) => room.id === selected.item.id))
+    : null;
+  const floorGroup = groups.find((group) => state.floorMode === "all" || group.floorIndex === Number(state.floorMode));
+  state.wallSheetKey = selectedGroup?.key || floorGroup?.key || groups[0].key;
+  renderWallSheetRooms();
+  drawWallSheet();
+  dom.wallSheetModal.hidden = false;
+  document.body.classList.add("wallSheetOpen");
+}
+
+function closeWallSheet(){
+  dom.wallSheetModal.hidden = true;
+  document.body.classList.remove("wallSheetOpen");
+}
+
+function renderWallSheetRooms(){
+  const groups = wallSheetGroups();
+  const duplicateCount = {};
+  groups.forEach((group) => {
+    duplicateCount[`${group.floorIndex}:${group.label}`] = (duplicateCount[`${group.floorIndex}:${group.label}`] || 0) + 1;
+  });
+  const seen = {};
+  dom.wallSheetRooms.innerHTML = groups.map((group) => {
+    const duplicateKey = `${group.floorIndex}:${group.label}`;
+    seen[duplicateKey] = (seen[duplicateKey] || 0) + 1;
+    const suffix = duplicateCount[duplicateKey] > 1 ? seen[duplicateKey] : "";
+    const on = group.key === state.wallSheetKey ? " on" : "";
+    return `<button type="button" class="${on.trim()}" data-wall-sheet="${escapeAttr(group.key)}">${group.floorIndex + 1}F ${escapeHtml(group.label)}${suffix}</button>`;
+  }).join("");
+  dom.wallSheetRooms.querySelectorAll("[data-wall-sheet]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.wallSheetKey = button.dataset.wallSheet;
+      renderWallSheetRooms();
+      drawWallSheet();
+    });
+  });
+}
+
+function currentWallSheetGroup(){
+  const groups = wallSheetGroups();
+  return groups.find((group) => group.key === state.wallSheetKey) || groups[0] || null;
+}
+
+function roomPerimeterSegments(group){
+  const members = group.rooms;
+  const eps = 2;
+  const segments = [];
+  members.forEach((room) => {
+    for(let side = 0; side < 4; side++){
+      const horizontal = side === 0 || side === 2;
+      const fixed = side === 0 ? room.y : side === 2 ? room.y + room.h : side === 3 ? room.x : room.x + room.w;
+      const full = horizontal ? [room.x, room.x + room.w] : [room.y, room.y + room.h];
+      const covered = [];
+      members.forEach((other) => {
+        if(other === room) return;
+        if(side === 0 && Math.abs(other.y + other.h - room.y) <= eps){
+          covered.push([Math.max(room.x, other.x), Math.min(room.x + room.w, other.x + other.w)]);
+        }else if(side === 2 && Math.abs(other.y - room.y - room.h) <= eps){
+          covered.push([Math.max(room.x, other.x), Math.min(room.x + room.w, other.x + other.w)]);
+        }else if(side === 1 && Math.abs(other.x - room.x - room.w) <= eps){
+          covered.push([Math.max(room.y, other.y), Math.min(room.y + room.h, other.y + other.h)]);
+        }else if(side === 3 && Math.abs(other.x + other.w - room.x) <= eps){
+          covered.push([Math.max(room.y, other.y), Math.min(room.y + room.h, other.y + other.h)]);
+        }
+      });
+      covered.sort((a, b) => a[0] - b[0]);
+      let cursor = full[0];
+      const exposed = [];
+      covered.forEach(([a, b]) => {
+        if(b - a <= eps) return;
+        if(a > cursor + eps) exposed.push([cursor, Math.min(a, full[1])]);
+        cursor = Math.max(cursor, b);
+      });
+      if(cursor < full[1] - eps) exposed.push([cursor, full[1]]);
+      exposed.forEach(([a, b]) => {
+        if(b - a <= eps) return;
+        if(side === 0) segments.push({ x1:a, y1:fixed, x2:b, y2:fixed, ox:a, oy:fixed, ux:1, uy:0, nx:0, ny:1, side, name:"北側" });
+        if(side === 1) segments.push({ x1:fixed, y1:a, x2:fixed, y2:b, ox:fixed, oy:a, ux:0, uy:1, nx:-1, ny:0, side, name:"東側" });
+        if(side === 2) segments.push({ x1:a, y1:fixed, x2:b, y2:fixed, ox:b, oy:fixed, ux:-1, uy:0, nx:0, ny:-1, side, name:"南側" });
+        if(side === 3) segments.push({ x1:fixed, y1:a, x2:fixed, y2:b, ox:fixed, oy:b, ux:0, uy:-1, nx:1, ny:0, side, name:"西側" });
+      });
+    }
+  });
+  return segments.map((segment, index) => ({
+    ...segment,
+    index,
+    lenPx:Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1),
+    lenMm:pxToMm(Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1))
+  }));
+}
+
+function wallSheetOpenings(segment, floor){
+  const tolerance = 10;
+  const horizontal = Math.abs(segment.y1 - segment.y2) < 0.1;
+  return (floor.items || []).filter((item) => item.type === "opening").flatMap((opening) => {
+    const openingHorizontal = Math.abs(opening.y1 - opening.y2) < 0.1;
+    if(horizontal !== openingHorizontal) return [];
+    if(horizontal && Math.abs(opening.y1 - segment.y1) > tolerance) return [];
+    if(!horizontal && Math.abs(opening.x1 - segment.x1) > tolerance) return [];
+    const p1 = (opening.x1 - segment.ox) * segment.ux + (opening.y1 - segment.oy) * segment.uy;
+    const p2 = (opening.x2 - segment.ox) * segment.ux + (opening.y2 - segment.oy) * segment.uy;
+    const a = Math.max(0, Math.min(p1, p2));
+    const b = Math.min(segment.lenPx, Math.max(p1, p2));
+    if(b - a < 2) return [];
+    const isWindow = opening.kind === "window";
+    return [{
+      fromMm:pxToMm(a),
+      widthMm:pxToMm(b - a),
+      bottomMm:isWindow ? Number(opening.winB || 900) : 0,
+      topMm:isWindow ? Number(opening.winT || 2000) : 2020,
+      label:isWindow ? "窓" : opening.kind === "slide" ? "引戸" : opening.kind === "fold" ? "折戸" : "ドア",
+      isWindow
+    }];
+  });
+}
+
+function wallSheetDevices(segment, floor){
+  const tolerance = 5;
+  return (floor.elec || []).flatMap((device) => {
+    let wx = Number(device.wx);
+    let wy = Number(device.wy);
+    let nx = Number(device.nx);
+    let ny = Number(device.ny);
+    if(!Number.isFinite(wx) || !Number.isFinite(wy)){
+      const room = (floor.items || []).find((item) => item.id === device.roomId);
+      const wall = Number(device.wall);
+      const offsetPx = mmToPx(Number(device.x || 0));
+      if(!room || !Number.isFinite(wall)) return [];
+      if(wall === 0){ wx = room.x + offsetPx; wy = room.y; nx = 0; ny = 1; }
+      if(wall === 1){ wx = room.x + room.w; wy = room.y + offsetPx; nx = -1; ny = 0; }
+      if(wall === 2){ wx = room.x + room.w - offsetPx; wy = room.y + room.h; nx = 0; ny = -1; }
+      if(wall === 3){ wx = room.x; wy = room.y + room.h - offsetPx; nx = 1; ny = 0; }
+    }
+    if(!Number.isFinite(wx) || !Number.isFinite(wy)) return [];
+    if(Number.isFinite(nx) && Number.isFinite(ny) && nx * segment.nx + ny * segment.ny < 0.5) return [];
+    const normalDistance = Math.abs((wx - segment.x1) * segment.nx + (wy - segment.y1) * segment.ny);
+    if(normalDistance > tolerance) return [];
+    const alongPx = (wx - segment.ox) * segment.ux + (wy - segment.oy) * segment.uy;
+    if(alongPx < -tolerance || alongPx > segment.lenPx + tolerance) return [];
+    const kind = String(device.kind || "out").startsWith("sw") ? "sw" : "out";
+    return [{
+      xMm:pxToMm(Math.max(0, Math.min(segment.lenPx, alongPx))),
+      heightMm:Number(device.h || (kind === "sw" ? 1200 : 250)),
+      kind,
+      symbol:kind === "sw" ? "S" : "○"
+    }];
+  });
+}
+
+function wallSheetFurniture(segment, floorIndex){
+  const floor = state.plan.floors[floorIndex];
+  const fixed = (floor.items || [])
+    .filter((item) => item.type === "furn" || item.type === "stair")
+    .map((item) => ({
+      ...item,
+      heightMm:Number(item.fh || (item.type === "stair" ? 2400 : 700)),
+      glMm:Number(item.gl || 0)
+    }));
+  const detailed = (state.design.customItems || [])
+    .filter((item) => Number(item.floorIndex || 0) === floorIndex)
+    .filter((item) => item.layer !== "exterior" && !isLightItem(item));
+  const tolerance = mmToPx(500);
+  return [...fixed, ...detailed].flatMap((item) => {
+    const horizontal = Math.abs(segment.y1 - segment.y2) < 0.1;
+    let distance;
+    if(horizontal){
+      distance = segment.ny > 0 ? Math.abs(item.y - segment.y1) : Math.abs(item.y + item.h - segment.y1);
+    }else{
+      distance = segment.nx > 0 ? Math.abs(item.x - segment.x1) : Math.abs(item.x + item.w - segment.x1);
+    }
+    if(distance > tolerance) return [];
+    const corners = [
+      [item.x, item.y],
+      [item.x + item.w, item.y],
+      [item.x, item.y + item.h],
+      [item.x + item.w, item.y + item.h]
+    ];
+    const projected = corners.map(([px, py]) => (px - segment.ox) * segment.ux + (py - segment.oy) * segment.uy);
+    const fromPx = Math.max(0, Math.min(...projected));
+    const toPx = Math.min(segment.lenPx, Math.max(...projected));
+    if(toPx - fromPx < 2) return [];
+    return [{
+      fromMm:pxToMm(fromPx),
+      widthMm:pxToMm(toPx - fromPx),
+      heightMm:Number(item.heightMm || 700),
+      glMm:Number(item.glMm || 0),
+      label:String(item.label || "家具")
+    }];
+  });
+}
+
+function drawWallSheet(){
+  const group = currentWallSheetGroup();
+  if(!group || !dom.wallSheetCanvas) return;
+  const floor = state.plan.floors[group.floorIndex];
+  const segments = roomPerimeterSegments(group);
+  const canvas = dom.wallSheetCanvas;
+  const width = 1800;
+  const columns = 2;
+  const panelWidth = 830;
+  const panelHeight = 500;
+  const gap = 40;
+  const startY = 270;
+  const rows = Math.max(1, Math.ceil(segments.length / columns));
+  canvas.width = width;
+  canvas.height = startY + rows * (panelHeight + gap) + 210;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#17211b";
+  ctx.font = "bold 48px sans-serif";
+  ctx.fillText(`${group.floorIndex + 1}F ${group.label}　電気計画用 壁展開図`, 60, 75);
+  ctx.fillStyle = "#667069";
+  ctx.font = "26px sans-serif";
+  ctx.fillText(`${state.plan.title} / 天井高さ 2400mm / 青:窓　茶:建具　○:コンセント　S:スイッチ`, 60, 120);
+  ctx.font = "24px sans-serif";
+  ctx.fillText("画像保存後、写真アプリのマークアップ等で希望位置・用途・高さを書き込んでください。", 60, 160);
+  drawWallSheetMiniPlan(ctx, group, segments, 1370, 22, 360, 200);
+  segments.forEach((segment, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const x = 50 + column * (panelWidth + gap);
+    const y = startY + row * (panelHeight + gap);
+    drawWallPanel(ctx, segment, floor, group.floorIndex, x, y, panelWidth, panelHeight);
+  });
+  const noteY = canvas.height - 155;
+  ctx.strokeStyle = "#aeb5af";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 8]);
+  ctx.strokeRect(60, noteY, canvas.width - 120, 105);
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#7b837e";
+  ctx.font = "24px sans-serif";
+  ctx.fillText("メモ：回路／用途／必要口数／家具との干渉など", 80, noteY + 34);
+}
+
+function drawWallPanel(ctx, segment, floor, floorIndex, x, y, width, height){
+  const ceilingMm = 2400;
+  ctx.fillStyle = "#f8f8f5";
+  ctx.strokeStyle = "#c9cec9";
+  ctx.lineWidth = 2;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+  ctx.fillStyle = "#1d2721";
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillText(`壁 ${segment.index + 1}　${segment.name}　幅 ${Math.round(segment.lenMm)}mm`, x + 24, y + 40);
+  const areaX = x + 55;
+  const areaY = y + 70;
+  const areaWidth = width - 110;
+  const areaHeight = height - 125;
+  const scale = Math.min(areaWidth / Math.max(300, segment.lenMm), areaHeight / ceilingMm);
+  const wallWidth = segment.lenMm * scale;
+  const wallHeight = ceilingMm * scale;
+  const wallX = areaX + (areaWidth - wallWidth) / 2;
+  const wallY = areaY + areaHeight - wallHeight;
+  ctx.fillStyle = "#fffdfa";
+  ctx.strokeStyle = "#303833";
+  ctx.lineWidth = 4;
+  ctx.fillRect(wallX, wallY, wallWidth, wallHeight);
+  ctx.strokeRect(wallX, wallY, wallWidth, wallHeight);
+  ctx.strokeStyle = "#d9ddd9";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 6]);
+  for(let mm = 500; mm < segment.lenMm; mm += 500){
+    const gx = wallX + mm * scale;
+    ctx.beginPath(); ctx.moveTo(gx, wallY); ctx.lineTo(gx, wallY + wallHeight); ctx.stroke();
+  }
+  for(let mm = 500; mm < ceilingMm; mm += 500){
+    const gy = wallY + wallHeight - mm * scale;
+    ctx.beginPath(); ctx.moveTo(wallX, gy); ctx.lineTo(wallX + wallWidth, gy); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  wallSheetFurniture(segment, floorIndex).forEach((item) => {
+    const fx = wallX + item.fromMm * scale;
+    const fy = wallY + wallHeight - (item.glMm + item.heightMm) * scale;
+    const fw = item.widthMm * scale;
+    const fh = item.heightMm * scale;
+    ctx.fillStyle = "rgba(107,116,111,.13)";
+    ctx.strokeStyle = "#8b948e";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([9, 7]);
+    ctx.fillRect(fx, fy, fw, fh);
+    ctx.strokeRect(fx, fy, fw, fh);
+    ctx.setLineDash([]);
+    if(fw > 60){
+      ctx.fillStyle = "#6d756f";
+      ctx.font = "18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(item.label, fx + fw / 2, fy + fh / 2 + 6);
+    }
+  });
+  wallSheetOpenings(segment, floor).forEach((opening) => {
+    const ox = wallX + opening.fromMm * scale;
+    const oy = wallY + wallHeight - opening.topMm * scale;
+    const ow = opening.widthMm * scale;
+    const oh = (opening.topMm - opening.bottomMm) * scale;
+    ctx.fillStyle = opening.isWindow ? "#dbeef8" : "#ead9c4";
+    ctx.strokeStyle = opening.isWindow ? "#3789b3" : "#98613b";
+    ctx.lineWidth = 3;
+    ctx.fillRect(ox, oy, ow, oh);
+    ctx.strokeRect(ox, oy, ow, oh);
+    ctx.fillStyle = opening.isWindow ? "#28769d" : "#7c4d2e";
+    ctx.font = "bold 21px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(opening.label, ox + ow / 2, oy + oh / 2 + 7);
+  });
+  wallSheetDevices(segment, floor).forEach((device) => {
+    const dx = wallX + device.xMm * scale;
+    const dy = wallY + wallHeight - device.heightMm * scale;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 18, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = device.kind === "sw" ? "#2f9b61" : "#2877d4";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = "bold 21px sans-serif";
+    ctx.fillText(device.symbol, dx, dy + 7);
+    ctx.font = "18px sans-serif";
+    ctx.fillText(`FL+${Math.round(device.heightMm)}`, dx, dy - 27);
+  });
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#68716b";
+  ctx.font = "18px sans-serif";
+  ctx.fillText("0", wallX - 8, wallY + wallHeight + 28);
+  ctx.textAlign = "right";
+  ctx.fillText(`${Math.round(segment.lenMm)}mm`, wallX + wallWidth + 8, wallY + wallHeight + 28);
+  ctx.textAlign = "left";
+}
+
+function drawWallSheetMiniPlan(ctx, group, segments, x, y, width, height){
+  const minX = Math.min(...group.rooms.map((room) => room.x));
+  const minY = Math.min(...group.rooms.map((room) => room.y));
+  const maxX = Math.max(...group.rooms.map((room) => room.x + room.w));
+  const maxY = Math.max(...group.rooms.map((room) => room.y + room.h));
+  const scale = Math.min((width - 30) / Math.max(1, maxX - minX), (height - 30) / Math.max(1, maxY - minY));
+  const ox = x + (width - (maxX - minX) * scale) / 2;
+  const oy = y + (height - (maxY - minY) * scale) / 2;
+  ctx.fillStyle = "#f5f7f5";
+  ctx.fillRect(x, y, width, height);
+  group.rooms.forEach((room) => {
+    ctx.fillStyle = "#e8eee9";
+    ctx.strokeStyle = "#748078";
+    ctx.lineWidth = 2;
+    ctx.fillRect(ox + (room.x - minX) * scale, oy + (room.y - minY) * scale, room.w * scale, room.h * scale);
+    ctx.strokeRect(ox + (room.x - minX) * scale, oy + (room.y - minY) * scale, room.w * scale, room.h * scale);
+  });
+  segments.forEach((segment) => {
+    const sx1 = ox + (segment.x1 - minX) * scale;
+    const sy1 = oy + (segment.y1 - minY) * scale;
+    const sx2 = ox + (segment.x2 - minX) * scale;
+    const sy2 = oy + (segment.y2 - minY) * scale;
+    ctx.strokeStyle = "#2877d4";
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+    ctx.fillStyle = "#2877d4";
+    ctx.font = "bold 18px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(segment.index + 1), (sx1 + sx2) / 2 + segment.nx * 12, (sy1 + sy2) / 2 + segment.ny * 12 + 6);
+  });
+  ctx.textAlign = "left";
+}
+
+function saveWallSheetImage(){
+  const group = currentWallSheetGroup();
+  if(!group || !dom.wallSheetCanvas) return;
+  dom.wallSheetCanvas.toBlob((blob) => {
+    if(!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${state.plan.title || "間取り"}_${group.floorIndex + 1}F_${group.label}_壁展開図.png`.replace(/[\\/:*?"<>|]/g, "_");
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("壁展開図を画像保存しました");
+  }, "image/png");
 }
 
 function exportDesign(){

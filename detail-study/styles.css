@@ -805,6 +805,76 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 .roomLuxCard.dark{ background:#eef4ff; border-color:rgba(40,111,214,.30); }
 .roomLuxCard.ok{ background:#edf7f0; border-color:rgba(47,143,99,.32); }
 .roomLuxCard.bright{ background:#fff5e8; border-color:rgba(200,121,24,.34); }
+.wallSheetOpen{ margin-bottom:8px; background:#286fd6; }
+.wallSheetModal{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));
+  background:rgba(26,30,27,.58);
+  backdrop-filter:blur(12px);
+}
+.wallSheetModal[hidden]{ display:none; }
+.wallSheetCard{
+  width:min(980px,100%);
+  height:100%;
+  margin:auto;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr);
+  overflow:hidden;
+  border-radius:18px;
+  background:#f4f4f1;
+  box-shadow:0 24px 70px rgba(0,0,0,.24);
+}
+.wallSheetTop{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:12px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+}
+.wallSheetTop b{ display:block; font-size:14px; font-weight:950; }
+.wallSheetTop span{ display:block; margin-top:2px; color:var(--muted); font-size:10px; font-weight:800; }
+.wallSheetTop button{
+  height:36px;
+  padding:0 12px;
+  border-radius:8px;
+  color:var(--ink);
+  background:#e9eae7;
+  font-size:12px;
+  font-weight:900;
+}
+#wallSheetSaveBtn{ color:#fff; background:var(--green); }
+.wallSheetRooms{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  padding:9px 10px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+}
+.wallSheetRooms button{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:0 12px;
+  border-radius:999px;
+  color:#3b433d;
+  background:#eef0ec;
+  font-size:11px;
+  font-weight:900;
+}
+.wallSheetRooms button.on{ color:#fff; background:var(--blue); }
+.wallSheetPreview{ min-height:0; overflow:auto; padding:12px; }
+#wallSheetCanvas{
+  display:block;
+  width:min(100%,900px);
+  height:auto;
+  margin:auto;
+  background:#fff;
+  box-shadow:0 8px 28px rgba(31,35,28,.14);
+}
 .lightFixtureList button{ background:#fff4cf; border:1px solid rgba(200,121,24,.22); }
 .lightInfluence{ pointer-events:none; }
 .lightPickRing{
@@ -1241,6 +1311,10 @@ body.builderOpen .modeDock{ display:none; }
   input, select, textarea{
     font-size:16px !important;
   }
+  .wallSheetModal{ padding:0; }
+  .wallSheetCard{ border-radius:0; }
+  .wallSheetTop{ padding-top:calc(env(safe-area-inset-top) + 8px); }
+  .wallSheetTop span{ display:none; }
   html,body{ height:100%; overflow:hidden; overscroll-behavior:none; }
   body{ background:#fff; }
   .app{

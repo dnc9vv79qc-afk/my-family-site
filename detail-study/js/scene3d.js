@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-shared-parts-v20";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-wall-sheets-v21";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
