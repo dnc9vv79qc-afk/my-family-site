@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-stair-half-v17";
+import { DetailScene3D } from "./scene3d.js?v=20260619-input-controls-v19";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -12,10 +12,9 @@ import {
   formatM2,
   formatTsubo,
   pxToMm,
-  mmToPx,
-  GRID_PX
-} from "./data.js?v=20260619-stair-half-v17";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js";
+  mmToPx
+} from "./data.js?v=20260619-input-controls-v19";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-input-controls-v19";
 
 const state = {
   plan: null,
@@ -24,7 +23,7 @@ const state = {
   floorMode: "0",
   selectedId: null,
   cameraPreset: "exterior",
-  workMode: "interior",
+  workMode: "furniture",
   dockMode: "select",
   mobilePanelOpen: false,
   drag: null,
@@ -98,12 +97,12 @@ async function init(){
 
 function cacheDom(){
   [
-    "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette","lightingPalette","lightingSummary",
+    "layoutMeta","editLayoutLink","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","constructionPalette","exteriorPalette","lightingPalette","lightingSummary","workModeTitle","workModeHint",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
     "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
-    "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderKeepRatio","builderPartList","builderEditor"
+    "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
 
@@ -220,7 +219,16 @@ function bindEvents(){
       }
       return;
     }
-    state.selectedId = target.dataset.id;
+    const targetId = target.dataset.id;
+    if(!isSelectableDetailTarget(targetId)){
+      state.selectedId = null;
+      state.mobilePanelOpen = false;
+      render();
+      return;
+    }
+    state.selectedId = targetId;
+    const custom = findCustomById(targetId);
+    if(custom) state.workMode = workModeForItem(custom);
     state.mobilePanelOpen = true;
     state.dockMode = "select";
     render();
@@ -273,14 +281,13 @@ async function loadCurrentLayout(force = false){
   try{
     state.plan = await loadLayout(id);
     state.design = loadDesign(id, force);
-    Object.keys(state.plan.stairWallSegments || {}).forEach((key) => {
-      if(state.design.stairWallSegments) delete state.design.stairWallSegments[key];
-    });
+    state.design.stairWallSegments = {};
     seedFinishes(state.plan, state.design);
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v17`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 固定間取り / 06-19 v19`;
+    dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
     render();
@@ -429,6 +436,7 @@ function render(){
   renderLightingSummary();
   renderSelectedPanel();
   renderSceneOnly();
+  renderWorkModeInfo();
   updateUndoControls();
 }
 
@@ -438,10 +446,7 @@ function renderSceneOnly(){
     plan: state.plan,
     design: {
       ...state.design,
-      stairWallSegments: {
-        ...(state.plan?.stairWallSegments || {}),
-        ...(state.design?.stairWallSegments || {})
-      }
+      stairWallSegments: { ...(state.plan?.stairWallSegments || {}) }
     },
     floorMode: state.floorMode,
     layers: state.layers,
@@ -490,6 +495,18 @@ function onDockClick(event){
   state.mobilePanelOpen = !closingActivePanel;
   if(mode === "review") state.selectedId = null;
   render();
+}
+
+function renderWorkModeInfo(){
+  const info = {
+    furniture:["家具を配置","部屋を選ぶか、家具を追加して図面上で動かします。"],
+    construction:["造作・内装を検討","ふかし壁、ニッチ、棚を追加。部屋を選ぶと仕上げも変更できます。"],
+    lighting:["照明計画","器具を配置し、部屋別の概算照度を確認します。"],
+    site:["外構を配置","駐車、アプローチ、デッキ、植栽などを検討します。"],
+    review:["確認・閲覧","建物と配置物を重ねて確認します。間取り自体はここでは変更しません。"]
+  }[state.workMode] || ["詳細検討","配置物を編集します。"];
+  if(dom.workModeTitle) dom.workModeTitle.textContent = info[0];
+  if(dom.workModeHint) dom.workModeHint.textContent = info[1];
 }
 
 function updateDockControls(){
@@ -705,6 +722,11 @@ function renderMetrics(){
     common.push(`<span>照明 ${lights.length}</span>`, `<span>${Math.round(totalLumens).toLocaleString()}lm</span>`);
   }else if(state.workMode === "site"){
     common.push(`<span>外構 ${custom.filter((item) => item.layer === "exterior").length}</span>`);
+  }else if(state.workMode === "construction"){
+    common.push(
+      `<span>造作 ${custom.filter((item) => ["shelves", "openings"].includes(item.layer) || item.category === "造作").length}</span>`,
+      `<span>家具 ${Math.max(0, detailedFurnitureCount - lights.length)}</span>`
+    );
   }else{
     common.push(`<span>窓/建具 ${openings.length}</span>`, `<span>家具 ${detailedFurnitureCount + guideFurnitureCount - lights.length}</span>`);
   }
@@ -715,10 +737,14 @@ function renderPalette(){
   dom.exteriorPalette.innerHTML = renderLibrary([...customModelLibrary("exterior"), ...EXTERIOR_LIBRARY], "外構");
   dom.palette.innerHTML = renderLibrary([
     ...customModelLibrary("furniture"),
-    ...FURNITURE_LIBRARY.filter((item) => item.category !== "照明")
-  ], "家具・造作");
+    ...FURNITURE_LIBRARY.filter((item) => ["家具", "家電", "自由"].includes(item.category))
+  ], "家具");
+  dom.constructionPalette.innerHTML = renderLibrary(
+    FURNITURE_LIBRARY.filter((item) => ["棚", "造作", "窓"].includes(item.category)),
+    "造作"
+  );
   dom.lightingPalette.innerHTML = renderLibrary(FURNITURE_LIBRARY.filter((item) => item.category === "照明"), "照明");
-  [dom.exteriorPalette, dom.palette, dom.lightingPalette].forEach((palette) => {
+  [dom.exteriorPalette, dom.palette, dom.constructionPalette, dom.lightingPalette].forEach((palette) => {
     if(!palette) return;
     palette.onclick = (event) => {
       const editButton = event.target.closest("[data-model-edit]");
@@ -1142,10 +1168,8 @@ function renderPlan(){
   }
   if(state.layers.walls){
     walls.forEach((wall) => {
-      const selected = state.selectedId === wall.id ? " selected" : "";
-      chunks.push(`<line class="planItem${selected}" data-id="${wall.id}" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`);
+      chunks.push(`<line class="fixedPlanLine" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`);
     });
-    stairWallContacts(items).forEach((contact) => chunks.push(renderStairWallContactSvg(contact)));
   }
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
@@ -1158,7 +1182,7 @@ function renderPlan(){
   chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
   const selected = findSelected();
-  const workLabel = { site:"外構", interior:"家具・造作", lighting:"照明", review:"確認" }[state.workMode] || "図面";
+  const workLabel = { furniture:"家具", construction:"造作・内装", lighting:"照明", site:"外構", review:"確認" }[state.workMode] || "図面";
   dom.planHudTitle.textContent = state.dockMode === "browse"
     ? `${workLabel}・移動`
     : state.dockMode === "measure"
@@ -1435,8 +1459,7 @@ function renderRoomGroupSvg(group){
 
 function renderOpeningSvg(opening){
   const color = opening.kind === "window" ? "#2a91bd" : "#a86a38";
-  const selected = state.selectedId === opening.id ? " selected" : "";
-  return `<g class="planItem${selected}" data-id="${opening.id}">
+  return `<g class="fixedOpening">
     <line x1="${opening.x1}" y1="${opening.y1}" x2="${opening.x2}" y2="${opening.y2}" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
     <line x1="${opening.x1}" y1="${opening.y1}" x2="${opening.x2}" y2="${opening.y2}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
   </g>`;
@@ -1471,9 +1494,13 @@ function renderFurnitureSvg(item, existing){
   }
   if(item.kind === "plant" || item.kind === "tree"){
     const r = Math.max(4, Math.min(item.w, item.h) / 2);
-    return `<g class="planItem${selected}" data-id="${item.id}"><circle cx="${item.x + item.w / 2}" cy="${item.y + item.h / 2}" r="${r}" fill="${color}" stroke="#355d38" stroke-width="1.5"/><text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text></g>`;
+    const cls = existing ? "fixedPlanItem" : `planItem${selected}`;
+    const idAttr = existing ? "" : ` data-id="${item.id}"`;
+    return `<g class="${cls}"${idAttr}><circle cx="${item.x + item.w / 2}" cy="${item.y + item.h / 2}" r="${r}" fill="${color}" stroke="#355d38" stroke-width="1.5"/><text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text></g>`;
   }
-  return `<g class="planItem${guideClass}${selected}" data-id="${item.id}">
+  const itemClass = existing ? `fixedPlanItem${guideClass}` : `planItem${guideClass}${selected}`;
+  const idAttr = existing ? "" : ` data-id="${item.id}"`;
+  return `<g class="${itemClass}"${idAttr}>
     <g${rotate}><rect x="${item.x}" y="${item.y}" width="${Math.max(3, item.w)}" height="${Math.max(3, item.h)}" rx="2" fill="${color}" stroke="rgba(31,35,28,.42)" stroke-width="1.4"/></g>
     <text x="${item.x + item.w / 2}" y="${item.y + item.h / 2 + 3}" text-anchor="middle" class="planSub">${label}</text>
   </g>`;
@@ -1489,6 +1516,24 @@ function kelvinCss(kelvin){
 
 function isStructuralStair(item){
   return !!item && (item.type === "stair" || (item.type === "furn" && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || "")));
+}
+
+function isSelectableDetailTarget(id){
+  if(!id) return false;
+  if(findCustomById(id)) return true;
+  const selected = findSelectedById(id);
+  if(selected?.source !== "room") return false;
+  return ["furniture", "construction", "lighting"].includes(state.workMode);
+}
+
+function findSelectedById(id){
+  if(!id || !state.plan) return null;
+  for(const [floorIndex, floor] of state.plan.floors.entries()){
+    const found = (floor.items || []).find((item) => item.id === id);
+    if(found) return { source:found.type === "room" ? "room" : "plan", item:{ ...found, floorIndex } };
+  }
+  const custom = (state.design?.customItems || []).find((item) => item.id === id);
+  return custom ? { source:"custom", item:custom } : null;
 }
 
 function renderCustomModelSvg(item, selected, label, rotate){
@@ -1617,6 +1662,8 @@ function handleListClick(event){
   const pick = event.target.closest("[data-id]");
   if(pick){
     state.selectedId = pick.dataset.id;
+    const custom = findCustomById(state.selectedId);
+    if(custom) state.workMode = workModeForItem(custom);
     render();
   }
 }
@@ -1631,154 +1678,25 @@ function renderSelectedPanel(){
     if(state.workMode === "lighting"){
       dom.selectedPanel.innerHTML = renderRoomLightingEditor(selected.item);
       bindRoomLightingEditor();
-    }else{
+    }else if(state.workMode === "construction"){
       dom.selectedPanel.innerHTML = renderRoomEditor(selected.item);
       bindRoomEditor(selected.item);
+    }else{
+      dom.selectedPanel.innerHTML = renderRoomPlacementPanel(selected.item);
     }
   }else if(selected.source === "custom"){
     dom.selectedPanel.innerHTML = renderCustomEditor(selected.item);
     bindCustomEditor(selected.item);
-  }else if(selected.source === "wallContact"){
-    dom.selectedPanel.innerHTML = renderWallContactEditor(selected.item);
-    bindWallContactEditor(selected.item);
   }else{
-    dom.selectedPanel.innerHTML = `<div class="selectedHead"><div><b>${escapeHtml(selected.item.label || "既存パーツ")}</b><span>元間取りの要素</span></div></div>`;
+    dom.selectedPanel.innerHTML = `<div class="fixedPlanMessage"><b>固定間取り</b><span>壁・建具・階段の変更は「間取りを修正」から行います。</span></div>`;
   }
 }
 
-function wallContactMode(contact){
-  return state.design.stairWallSegments?.[contact.key]
-    || state.plan?.stairWallSegments?.[contact.key]
-    || state.design.stairWallSegments?.[contact.parentKey]
-    || state.plan?.stairWallSegments?.[contact.parentKey]
-    || state.design.stairWallModes?.[contact.wall.id]
-    || "auto";
-}
-
-function renderWallContactEditor(contact){
-  const mode = wallContactMode(contact);
-  const family = stairContactFamily(contact);
-  const cells = family.map((item) => {
-    const itemMode = wallContactMode(item);
-    const selected = item.key === contact.key ? " selected" : "";
-    return `<button type="button" class="stairPreviewCell mode-${itemMode}${selected}" data-wall-segment="${escapeAttr(item.id)}" aria-label="${item.segmentIndex + 1}区間">
-      <span class="previewWall"></span><b>${item.segmentIndex + 1}</b>
-    </button>`;
-  }).join("");
-  const modeButton = (value, label, sub) => `<button type="button" class="stairModeButton mode-${value} ${mode === value ? "on" : ""}" data-wall-mode="${value}">
-    <b>${label}</b><span>${sub}</span>
-  </button>`;
-  return `<div class="selectedHead"><div><b>階段壁・半マス設定</b><span>${escapeHtml(contact.stair.label || "階段")} / 区間 ${contact.segmentIndex + 1}・約${Math.round(pxToMm(contact.length))}mm</span></div></div>
-    <div class="stairWallPreview">
-      <div class="stairPreviewSteps" aria-hidden="true">${family.map((_, index) => `<i style="height:${Math.round(20 + index * 52 / Math.max(1, family.length - 1))}%"></i>`).join("")}</div>
-      <div class="stairPreviewCells">${cells}</div>
-    </div>
-    <div class="stairPreviewHint">番号をタップして半マスごとに設定</div>
-    <div class="stairModeGrid">
-      ${modeButton("auto", "自動", "階段形状で判定")}
-      ${modeButton("full", "通常壁", "全面を残す")}
-      ${modeButton("upper", "下を抜く", "上だけ壁")}
-      ${modeButton("lower", "上を抜く", "下だけ壁")}
-      ${modeButton("none", "壁なし", "全面を消す")}
-    </div>`;
-}
-
-function bindWallContactEditor(contact){
-  dom.selectedPanel.querySelectorAll("[data-wall-segment]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedId = button.dataset.wallSegment;
-      render();
-    });
-  });
-  dom.selectedPanel.querySelectorAll("[data-wall-mode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      pushHistory();
-      state.design.stairWallSegments ||= {};
-      const value = button.dataset.wallMode;
-      if(value === "auto") delete state.design.stairWallSegments[contact.key];
-      else state.design.stairWallSegments[contact.key] = value;
-      saveDesign(false);
-      renderPlan();
-      renderSelectedPanel();
-      renderSceneOnly();
-      toast(button.querySelector("b")?.textContent || "階段壁を変更");
-    });
-  });
-}
-
-function stairContactFamily(contact){
-  return stairWallContacts(floorItems(state.plan, String(contact.floorIndex)))
-    .filter((item) => item.parentKey === contact.parentKey)
-    .sort((a, b) => a.segmentIndex - b.segmentIndex);
-}
-
-function stairWallContactKey(floorIndex, stair, horizontal, fixed, lo, hi){
-  const q = (value) => Math.round(Number(value || 0) * 10);
-  return `${floorIndex}:${stair.id}:${horizontal ? "h" : "v"}:${q(fixed)}:${q(lo)}:${q(hi)}`;
-}
-
-function stairWallContacts(items){
-  const walls = items.filter((item) => item.type === "wallLine");
-  const stairs = items.filter(isStructuralStair);
-  const contacts = [];
-  walls.forEach((wall) => {
-    const horizontal = Math.abs(wall.y2 - wall.y1) < 0.1;
-    const vertical = Math.abs(wall.x2 - wall.x1) < 0.1;
-    if(!horizontal && !vertical) return;
-    const wallLo = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
-    const wallHi = horizontal ? Math.max(wall.x1, wall.x2) : Math.max(wall.y1, wall.y2);
-    const fixed = horizontal ? wall.y1 : wall.x1;
-    const half = Math.max(2, Number(wall.thick || 6) / 2);
-    stairs.forEach((stair) => {
-      const crossLo = horizontal ? stair.y : stair.x;
-      const crossHi = horizontal ? stair.y + stair.h : stair.x + stair.w;
-      if(fixed < crossLo - half || fixed > crossHi + half) return;
-      const stairLo = horizontal ? stair.x : stair.y;
-      const stairHi = horizontal ? stair.x + stair.w : stair.y + stair.h;
-      const lo = Math.max(wallLo, stairLo);
-      const hi = Math.min(wallHi, stairHi);
-      if(hi - lo <= 0.5) return;
-      const floorIndex = Number(wall.floorIndex ?? stair.floorIndex ?? state.floorMode ?? 0);
-      const parentKey = stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
-      const segmentSize = GRID_PX / 2;
-      const segmentCount = Math.max(1, Math.ceil((hi - lo) / segmentSize));
-      for(let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++){
-        const segmentLo = lo + segmentIndex * segmentSize;
-        const segmentHi = Math.min(hi, segmentLo + segmentSize);
-        if(segmentHi - segmentLo <= 0.5) continue;
-        const key = `${parentKey}:half:${segmentIndex}`;
-        contacts.push({
-          key,
-          parentKey,
-          id:`wallContact:${key}`,
-          wall,
-          stair,
-          horizontal,
-          fixed,
-          lo:segmentLo,
-          hi:segmentHi,
-          length:segmentHi - segmentLo,
-          segmentIndex,
-          segmentCount,
-          floorIndex
-        });
-      }
-    });
-  });
-  return contacts;
-}
-
-function renderStairWallContactSvg(contact){
-  const mode = wallContactMode(contact);
-  const selected = state.selectedId === contact.id ? " selected" : "";
-  const color = mode === "none" ? "#ff3b30" : mode === "upper" ? "#7b61ff" : mode === "lower" ? "#ff9500" : mode === "full" ? "#34a853" : "#1687d9";
-  const attrs = contact.horizontal
-    ? `x1="${contact.lo}" y1="${contact.fixed}" x2="${contact.hi}" y2="${contact.fixed}"`
-    : `x1="${contact.fixed}" y1="${contact.lo}" x2="${contact.fixed}" y2="${contact.hi}"`;
-  return `<g class="stairWallContactGroup${selected}" data-id="${contact.id}">
-    <line class="stairWallContactHit" ${attrs} stroke="transparent" stroke-width="30" stroke-linecap="round"/>
-    <line class="stairWallContact${selected}" ${attrs} stroke="${color}" stroke-width="9" stroke-opacity=".76" stroke-linecap="round"/>
-  </g>`;
+function renderRoomPlacementPanel(room){
+  const rooms = matchingRooms(room);
+  const totalArea = rooms.reduce((sum, item) => sum + areaM2(item), 0);
+  return `<div class="selectedHead"><div><b>${escapeHtml(room.label)}</b><span>${formatM2(totalArea)}</span></div></div>
+    <div class="placementHint"><b>配置先に選択中</b><span>次に追加する家具を、この部屋の中央へ仮配置します。追加後に図面上で移動してください。</span></div>`;
 }
 
 function renderRoomEditor(room){
@@ -2083,7 +2001,7 @@ function addCustomItem(kind, dimensions = null){
   }
   state.design.customItems.push(item);
   state.selectedId = item.id;
-  state.workMode = isLightItem(item) ? "lighting" : preset.layer === "exterior" ? "site" : "interior";
+  state.workMode = workModeForItem(item);
   state.dockMode = "select";
   state.mobilePanelOpen = !isMobileViewport();
   state.nudgeUi = { x:null, y:null };
@@ -2092,6 +2010,13 @@ function addCustomItem(kind, dimensions = null){
   toast(isMobileViewport()
     ? `${preset.label}を追加。青い器具をドラッグして配置`
     : `${preset.label}を追加しました`);
+}
+
+function workModeForItem(item){
+  if(isLightItem(item)) return "lighting";
+  if(item?.layer === "exterior") return "site";
+  if(["棚", "造作", "窓"].includes(item?.category) || ["shelves", "openings"].includes(item?.layer)) return "construction";
+  return "furniture";
 }
 
 function addCustomModelItem(modelId){
@@ -2356,10 +2281,9 @@ function resizeBuilderModel(input){
   const current = input === dom.builderOverallW ? size.w : input === dom.builderOverallD ? size.d : size.h;
   const target = clamp(numberValue(input, current), 30, 6000);
   const scale = target / Math.max(1, current);
-  const keepRatio = !!dom.builderKeepRatio.checked;
-  const sx = keepRatio || input === dom.builderOverallW ? scale : 1;
-  const sy = keepRatio || input === dom.builderOverallD ? scale : 1;
-  const sz = keepRatio || input === dom.builderOverallH ? scale : 1;
+  const sx = input === dom.builderOverallW ? scale : 1;
+  const sy = input === dom.builderOverallD ? scale : 1;
+  const sz = input === dom.builderOverallH ? scale : 1;
   state.builder.parts.forEach((part) => {
     part.xMm = size.centerX + (part.xMm - size.centerX) * sx;
     part.yMm = size.centerY + (part.yMm - size.centerY) * sy;
@@ -2555,10 +2479,6 @@ function visibleCustomItems(){
 
 function findSelected(){
   if(!state.selectedId || !state.plan) return null;
-  if(state.selectedId.startsWith("wallContact:")){
-    const contact = stairWallContacts(floorItems(state.plan, state.floorMode)).find((item) => item.id === state.selectedId);
-    if(contact) return { source:"wallContact", item:contact };
-  }
   for(const [floorIndex, floor] of state.plan.floors.entries()){
     const found = (floor.items || []).find((item) => item.id === state.selectedId);
     if(found) return { source: found.type === "room" ? "room" : "plan", item: { ...found, floorIndex } };

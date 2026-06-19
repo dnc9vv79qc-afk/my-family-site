@@ -45,6 +45,7 @@ button{ border:0; cursor:pointer; }
   color:var(--ink);
   background:rgba(120,128,116,.14);
 }
+.ghostLink{ display:inline-flex; align-items:center; text-decoration:none; }
 .primaryBtn{ color:#fff; background:var(--green); }
 .workspace{
   min-height:0;
@@ -250,6 +251,23 @@ button{ border:0; cursor:pointer; }
     linear-gradient(90deg, rgba(70,76,66,.10) 1px, transparent 1px);
   background-size:32px 32px;
 }
+.fixedPlanBadge{
+  position:absolute;
+  right:12px;
+  top:12px;
+  z-index:3;
+  display:grid;
+  gap:1px;
+  padding:7px 10px;
+  border:1px solid rgba(47,143,99,.20);
+  border-radius:10px;
+  color:#244b36;
+  background:rgba(235,246,239,.90);
+  backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+.fixedPlanBadge b{ font-size:11px; font-weight:950; }
+.fixedPlanBadge span{ font-size:8px; font-weight:800; }
 #planSvg{ display:block; width:100%; height:100%; min-height:0; touch-action:none; }
 body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planHud{
@@ -354,81 +372,14 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   gap:4px;
 }
 .planRoom,.planItem{ cursor:pointer; transition:opacity .12s ease; }
+body[data-work-mode="site"] .planRoom,
+body[data-work-mode="review"] .planRoom{ cursor:default; }
 .planRoom:hover{ opacity:.82; }
 .planRoom.selected rect{ stroke:var(--blue); stroke-width:5; }
 .planItem.selected rect,.planItem.selected circle:not(.lightInfluence){ stroke:var(--blue); stroke-width:4; }
 .planItem.selected:is(line),.planItem.selected line{ stroke:var(--blue) !important; }
-.stairWallContactGroup{ cursor:pointer; touch-action:none; }
-.stairWallContactHit{ pointer-events:stroke; touch-action:none; }
-.stairWallContact{ pointer-events:none; touch-action:none; }
-.stairWallContact.selected{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
-.stairWallContactGroup.selected .stairWallContact{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
-.stairWallPreview{
-  position:relative;
-  height:138px;
-  overflow:hidden;
-  padding:12px 10px 8px;
-  border:1px solid rgba(40,111,214,.22);
-  border-radius:12px;
-  background:linear-gradient(180deg,#f7fbff,#edf2f7);
-}
-.stairPreviewSteps{
-  position:absolute;
-  inset:18px 12px 27px;
-  display:flex;
-  align-items:flex-end;
-  gap:2px;
-  pointer-events:none;
-}
-.stairPreviewSteps i{
-  flex:1;
-  min-width:0;
-  border:1px solid rgba(113,91,59,.35);
-  border-bottom:0;
-  background:linear-gradient(135deg,#e6d5bc,#cdb48e);
-}
-.stairPreviewCells{
-  position:absolute;
-  left:10px;
-  right:10px;
-  bottom:8px;
-  display:flex;
-  gap:3px;
-}
-.stairPreviewCell{
-  position:relative;
-  flex:1;
-  min-width:28px;
-  height:42px;
-  overflow:hidden;
-  border:2px solid transparent;
-  border-radius:7px;
-  background:rgba(255,255,255,.9);
-}
-.stairPreviewCell.selected{ border-color:#ff2d55; box-shadow:0 0 0 2px rgba(255,45,85,.16); }
-.stairPreviewCell .previewWall{ position:absolute; inset:5px 4px 12px; border-radius:2px; background:#1687d9; }
-.stairPreviewCell b{ position:absolute; left:0; right:0; bottom:1px; font-size:9px; font-weight:950; }
-.stairPreviewCell.mode-full .previewWall{ background:#34a853; }
-.stairPreviewCell.mode-upper .previewWall{ top:4px; bottom:24px; background:#7b61ff; }
-.stairPreviewCell.mode-lower .previewWall{ top:18px; bottom:11px; background:#ff9500; }
-.stairPreviewCell.mode-none .previewWall{ background:repeating-linear-gradient(135deg,#ff3b30 0 3px,transparent 3px 6px); }
-.stairPreviewHint{ margin:6px 0 9px; color:var(--muted); font-size:10px; font-weight:850; text-align:center; }
-.stairModeGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
-.stairModeButton{
-  min-height:48px;
-  padding:7px 8px;
-  border:1px solid var(--line);
-  border-radius:9px;
-  color:#273026;
-  background:#f5f6f3;
-  text-align:left;
-}
-.stairModeButton b,.stairModeButton span{ display:block; }
-.stairModeButton b{ font-size:11px; font-weight:950; }
-.stairModeButton span{ margin-top:2px; color:var(--muted); font-size:9px; font-weight:800; }
-.stairModeButton.on{ color:#fff; border-color:transparent; background:var(--blue); }
-.stairModeButton.on span{ color:rgba(255,255,255,.82); }
-.stairModeButton.mode-none{ grid-column:1 / -1; }
+.fixedPlanLine,.fixedOpening,.fixedPlanItem{ pointer-events:none; }
+.fixedPlanItem{ opacity:.72; }
 .planItem:hover{ opacity:.86; }
 .planItem.guideItem{ opacity:.42; }
 .planItem.guideItem rect{ stroke-dasharray:5 4; }
@@ -532,6 +483,16 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   gap:10px;
   align-content:start;
 }
+.workflowIntro{
+  display:grid;
+  gap:3px;
+  padding:11px 12px;
+  border:1px solid rgba(47,143,99,.20);
+  border-radius:10px;
+  background:#edf6f0;
+}
+.workflowIntro b{ color:#1d5137; font-size:13px; font-weight:950; }
+.workflowIntro span{ color:#526158; font-size:10px; line-height:1.45; font-weight:800; }
 .panelBlock{
   border:1px solid var(--line);
   border-radius:8px;
@@ -540,7 +501,8 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 }
 .workBlock{ display:none; }
 body[data-work-mode="site"] .work-site,
-body[data-work-mode="interior"] .work-interior,
+body[data-work-mode="furniture"] .work-furniture,
+body[data-work-mode="construction"] .work-construction,
 body[data-work-mode="lighting"] .work-lighting,
 body[data-work-mode="review"] .work-review{ display:block; }
 .blockTitle{
@@ -735,6 +697,16 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   border-color:transparent !important;
 }
 .selectedPanel{ display:grid; gap:8px; }
+.placementHint,.fixedPlanMessage{
+  display:grid;
+  gap:4px;
+  padding:11px;
+  border:1px solid rgba(40,111,214,.18);
+  border-radius:10px;
+  background:#f2f6fc;
+}
+.placementHint b,.fixedPlanMessage b{ font-size:12px; font-weight:950; }
+.placementHint span,.fixedPlanMessage span{ color:var(--muted); font-size:10px; line-height:1.5; font-weight:800; }
 .selectedHead{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
@@ -890,7 +862,7 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   bottom:calc(env(safe-area-inset-bottom) + 14px);
   z-index:70;
   display:none;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(5,minmax(0,1fr));
   gap:4px;
   padding:8px;
   border:1px solid rgba(31,35,28,.10);
@@ -1100,16 +1072,6 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   font-size:11px;
   font-weight:850;
 }
-.builderOverallSize .builderRatio{
-  grid-column:1 / -1;
-  display:flex;
-  align-items:center;
-  gap:7px;
-  min-height:26px;
-  color:#354039;
-  font-size:11px;
-}
-.builderRatio input{ width:17px; height:17px; accent-color:var(--green); }
 .builderShapeButtons{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -1271,6 +1233,9 @@ body.builderOpen .modeDock{ display:none; }
   .workspace,.stageArea,.inspector{ min-height:0; }
 }
 @media (max-width: 620px){
+  input, select, textarea{
+    font-size:16px !important;
+  }
   html,body{ height:100%; overflow:hidden; overscroll-behavior:none; }
   body{ background:#fff; }
   .app{
@@ -1294,7 +1259,15 @@ body.builderOpen .modeDock{ display:none; }
   }
   .brand b{ font-size:15px; }
   .brand span{ font-size:10px; }
-  .topActions{ display:none; }
+  .brand{ padding-right:92px; }
+  .topActions{
+    position:absolute;
+    top:10px;
+    right:10px;
+    display:block;
+  }
+  .topActions button{ display:none; }
+  .topActions .ghostLink{ height:32px; padding:0 9px; font-size:10px; }
   .workspace{
     min-height:0;
     overflow:hidden;
@@ -1362,7 +1335,8 @@ body.builderOpen .modeDock{ display:none; }
     display:none;
   }
   body[data-view="plan"][data-work-mode="site"] .inspector .work-site,
-  body[data-view="plan"][data-work-mode="interior"] .inspector .work-interior,
+  body[data-view="plan"][data-work-mode="furniture"] .inspector .work-furniture,
+  body[data-view="plan"][data-work-mode="construction"] .inspector .work-construction,
   body[data-view="plan"][data-work-mode="lighting"] .inspector .work-lighting,
   body[data-view="plan"][data-work-mode="review"] .inspector .work-review{
     display:block;
@@ -1387,6 +1361,7 @@ body.builderOpen .modeDock{ display:none; }
     align-items:flex-start;
     flex-wrap:wrap;
   }
+  .fixedPlanBadge{ display:none; }
   .planHud > span{ display:none; }
   .planModes{ flex:1 1 auto; }
   .planModes button{ flex:1; padding:0 7px; }

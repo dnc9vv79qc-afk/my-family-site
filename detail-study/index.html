@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>詳細検討スタジオ 06/19 階段壁半マス v17 | MORI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260619-stair-half-v17">
+  <title>住まい詳細シミュレーター 06/19 入力操作 v19 | MORI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260619-input-controls-v19">
   <script type="importmap">
     {
       "imports": {
@@ -17,10 +17,11 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <b>詳細検討スタジオ <small>06/19 階段壁半マス v17</small></b>
+        <b>住まい詳細シミュレーター <small>06/19 入力操作 v19</small></b>
         <span id="layoutMeta">読み込み中</span>
       </div>
       <div class="topActions">
+        <a class="ghostBtn ghostLink" id="editLayoutLink" href="../madori.html">間取りを修正</a>
         <button class="ghostBtn" id="reloadBtn" type="button">再読込</button>
         <button class="ghostBtn" id="exportBtn" type="button">書出</button>
         <button class="primaryBtn" id="saveBtn" type="button">保存</button>
@@ -41,9 +42,10 @@
             <button type="button" data-floor="all">全体</button>
           </div>
           <div class="purposeTabs" id="workTabs" aria-label="検討内容">
-            <button type="button" data-work="site">外構</button>
-            <button type="button" data-work="interior" class="on">家具・造作</button>
+            <button type="button" data-work="furniture" class="on">家具</button>
+            <button type="button" data-work="construction">造作・内装</button>
             <button type="button" data-work="lighting">照明</button>
+            <button type="button" data-work="site">外構</button>
             <button type="button" data-work="review">確認</button>
           </div>
           <div class="metricStrip" id="metricStrip"></div>
@@ -68,10 +70,11 @@
 
         <div class="stage stagePlan" id="stagePlan" hidden>
           <svg id="planSvg" role="img" aria-label="間取り平面図"></svg>
+          <div class="fixedPlanBadge"><b>固定間取り</b><span>家具・造作・照明・外構だけ編集できます</span></div>
           <div class="planHud" id="planHud">
             <span id="planHudTitle">図面操作</span>
             <div class="planModes" id="planModes" aria-label="図面操作">
-              <button type="button" data-plan-mode="select" class="on">編集</button>
+              <button type="button" data-plan-mode="select" class="on">配置</button>
               <button type="button" data-plan-mode="browse">移動</button>
               <button type="button" data-plan-mode="measure">計測</button>
             </div>
@@ -105,6 +108,11 @@
       </section>
 
       <aside class="inspector" id="inspector">
+        <section class="workflowIntro">
+          <b id="workModeTitle">家具を配置</b>
+          <span id="workModeHint">部屋を選ぶか、家具を追加して図面上で動かします。</span>
+        </section>
+
         <section class="panelBlock layerBlock workBlock work-review">
           <div class="blockTitle">表示切替</div>
           <div class="toggleGrid" id="layerToggles">
@@ -161,10 +169,15 @@
           </div>
         </section>
 
-        <section class="panelBlock addBlock workBlock work-interior">
-          <div class="blockTitle">家具・造作・窓</div>
+        <section class="panelBlock addBlock workBlock work-furniture">
+          <div class="blockTitle">家具を追加</div>
           <button class="wideAction objectBuilderOpen" id="openObjectBuilderBtn" type="button">3D部品を作る</button>
           <div class="palette groupedPalette" id="palette"></div>
+        </section>
+
+        <section class="panelBlock addBlock workBlock work-construction">
+          <div class="blockTitle">造作を追加</div>
+          <div class="palette groupedPalette" id="constructionPalette"></div>
         </section>
 
         <section class="panelBlock addBlock workBlock work-lighting">
@@ -177,8 +190,8 @@
           <div class="lightingSummary" id="lightingSummary"></div>
         </section>
 
-        <section class="panelBlock selectedBlock workBlock work-site work-interior work-lighting work-review">
-          <div class="blockTitle">選択</div>
+        <section class="panelBlock selectedBlock workBlock work-site work-furniture work-construction work-lighting work-review">
+          <div class="blockTitle">配置・設定</div>
           <div id="selectedPanel" class="selectedPanel"></div>
         </section>
 
@@ -201,9 +214,10 @@
       </aside>
     </main>
     <nav class="modeDock" id="modeDock" aria-label="検討内容">
-      <button type="button" data-work="site"><span>⌂</span><b>外構</b></button>
-      <button type="button" data-work="interior" class="on"><span>▣</span><b>家具・造作</b></button>
+      <button type="button" data-work="furniture" class="on"><span>▣</span><b>家具</b></button>
+      <button type="button" data-work="construction"><span>▤</span><b>造作・内装</b></button>
       <button type="button" data-work="lighting"><span>☀</span><b>照明</b></button>
+      <button type="button" data-work="site"><span>⌂</span><b>外構</b></button>
       <button type="button" data-work="review"><span>◎</span><b>確認</b></button>
     </nav>
   </div>
@@ -250,7 +264,6 @@
         <label>全体幅mm<input id="builderOverallW" type="number" min="50" max="6000" step="10"></label>
         <label>全体奥行mm<input id="builderOverallD" type="number" min="50" max="6000" step="10"></label>
         <label>全体高さmm<input id="builderOverallH" type="number" min="30" max="5000" step="10"></label>
-        <label class="builderRatio"><input id="builderKeepRatio" type="checkbox" checked>比率を保つ</label>
       </div>
       <div class="builderShapeButtons">
         <button type="button" data-builder-add="box">四角</button>
@@ -289,6 +302,6 @@
   </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=20260619-stair-half-v17"></script>
+  <script type="module" src="./js/app.js?v=20260619-input-controls-v19"></script>
 </body>
 </html>
