@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-background-v15";
+import { DetailScene3D } from "./scene3d.js?v=20260619-site-v16";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -276,7 +276,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v15`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v16`;
     saveDesign(false);
     renderPalette();
     render();
@@ -2495,7 +2495,9 @@ function placeExteriorItem(item, bounds){
 function visibleCustomItems(){
   if(!state.design) return [];
   if(state.floorMode === "all") return state.design.customItems || [];
-  return (state.design.customItems || []).filter((item) => item.floorIndex === Number(state.floorMode));
+  return (state.design.customItems || []).filter((item) => (
+    item.kind === "site" || item.floorIndex === Number(state.floorMode)
+  ));
 }
 
 function findSelected(){
