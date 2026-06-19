@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-wall-sheets-v21";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-wall-perspectives-v22";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -253,6 +253,72 @@ export class DetailScene3D {
       this.radius = clamp(diag * 1.35 + 5, 9, 52);
     }
     this.needsFrame = true;
+  }
+
+  captureWallPerspective({ floorIndex = 0, segment, roomDepthPx = 96, width = 1200, height = 720 } = {}){
+    if(!this.state?.plan || !segment) return "";
+    const previous = {
+      state:this.state,
+      viewMode:this.viewMode,
+      fov:this.camera.fov,
+      position:this.camera.position.clone(),
+      quaternion:this.camera.quaternion.clone(),
+      aspect:this.camera.aspect,
+      target:this.target.clone(),
+      theta:this.theta,
+      phi:this.phi,
+      radius:this.radius
+    };
+    const captureState = {
+      ...this.state,
+      floorMode:String(floorIndex),
+      selectedId:null,
+      layers:{
+        ...this.state.layers,
+        site:false,
+        exterior:false,
+        rooms:true,
+        walls:true,
+        openings:true,
+        furniture:true,
+        guideFurniture:true,
+        shelves:true
+      }
+    };
+    this.viewMode = "walk";
+    this.state = captureState;
+    this.rebuild();
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.fov = 70;
+    this.camera.updateProjectionMatrix();
+    const midX = pxToM((segment.x1 + segment.x2) / 2);
+    const midZ = pxToM((segment.y1 + segment.y2) / 2);
+    const depth = clamp(pxToM(roomDepthPx) * 0.72, 1.15, 3.4);
+    this.camera.position.set(
+      midX + Number(segment.nx || 0) * depth,
+      1.48,
+      midZ + Number(segment.ny || 0) * depth
+    );
+    this.camera.lookAt(midX, 1.18, midZ);
+    this.renderer.render(this.scene, this.camera);
+    const image = this.canvas.toDataURL("image/png");
+    this.state = previous.state;
+    this.viewMode = previous.viewMode;
+    this.rebuild();
+    const rect = this.canvas.getBoundingClientRect();
+    this.renderer.setSize(Math.max(1, Math.floor(rect.width)), Math.max(1, Math.floor(rect.height)), false);
+    this.camera.fov = previous.fov;
+    this.camera.aspect = previous.aspect;
+    this.camera.position.copy(previous.position);
+    this.camera.quaternion.copy(previous.quaternion);
+    this.camera.updateProjectionMatrix();
+    this.target.copy(previous.target);
+    this.theta = previous.theta;
+    this.phi = previous.phi;
+    this.radius = previous.radius;
+    this.needsFrame = true;
+    return image;
   }
 
   resetOrbitView(){

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>住まい詳細シミュレーター 06/19 壁展開図 v21 | MORI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260619-wall-sheets-v21">
+  <title>住まい詳細シミュレーター 06/19 3D壁パース v22 | MORI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260619-wall-perspectives-v22">
   <script type="importmap">
     {
       "imports": {
@@ -17,7 +17,7 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <b>住まい詳細シミュレーター <small>06/19 壁展開図 v21</small></b>
+        <b>住まい詳細シミュレーター <small>06/19 3D壁パース v22</small></b>
         <span id="layoutMeta">読み込み中</span>
       </div>
       <div class="topActions">
@@ -187,7 +187,7 @@
 
         <section class="panelBlock lightingSummaryBlock workBlock work-lighting">
           <div class="blockTitle">部屋別 明るさ目安</div>
-          <button class="wideAction wallSheetOpen" id="wallSheetBtn" type="button">部屋の壁を画像にする</button>
+          <button class="wideAction wallSheetOpen" id="wallSheetBtn" type="button">部屋の3D壁パースを保存</button>
           <div class="lightingSummary" id="lightingSummary"></div>
         </section>
 
@@ -280,7 +280,7 @@
     <div class="wallSheetCard">
       <div class="wallSheetTop">
         <button type="button" id="wallSheetCloseBtn">閉じる</button>
-        <div><b>電気計画用 壁展開図</b><span>部屋を選び、PNG保存後に写真アプリ等で手書きできます</span></div>
+        <div><b>電気計画用 3D壁パース</b><span>実際の詳細3Dを壁ごとに撮影して1枚にまとめます</span></div>
         <button type="button" id="wallSheetSaveBtn">画像保存</button>
       </div>
       <div class="wallSheetRooms" id="wallSheetRooms"></div>
@@ -315,6 +315,6 @@
   </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=20260619-wall-sheets-v21"></script>
+  <script type="module" src="./js/app.js?v=20260619-wall-perspectives-v22"></script>
 </body>
 </html>

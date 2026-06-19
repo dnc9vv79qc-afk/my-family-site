@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-wall-sheets-v21";
+import { DetailScene3D } from "./scene3d.js?v=20260619-wall-perspectives-v22";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-wall-sheets-v21";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-sheets-v21";
+} from "./data.js?v=20260619-wall-perspectives-v22";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-perspectives-v22";
 
 const state = {
   plan: null,
@@ -298,7 +298,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 壁展開図 / 06-19 v21`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 3D壁パース / 06-19 v22`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
@@ -2767,9 +2767,10 @@ function wallSheetFurniture(segment, floorIndex){
   });
 }
 
-function drawWallSheet(){
+async function drawWallSheet(){
   const group = currentWallSheetGroup();
   if(!group || !dom.wallSheetCanvas) return;
+  const requestedKey = group.key;
   const floor = state.plan.floors[group.floorIndex];
   const segments = roomPerimeterSegments(group);
   const canvas = dom.wallSheetCanvas;
@@ -2785,12 +2786,29 @@ function drawWallSheet(){
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#5e6861";
+  ctx.font = "bold 34px sans-serif";
+  ctx.fillText("詳細3Dから壁パースを作成中…", 60, 80);
+  const perspectives = [];
+  for(const segment of segments){
+    const dataUrl = scene3d?.captureWallPerspective({
+      floorIndex:group.floorIndex,
+      segment,
+      roomDepthPx:wallViewDepthPx(group, segment),
+      width:1200,
+      height:720
+    }) || "";
+    perspectives.push(await loadImage(dataUrl));
+  }
+  if(state.wallSheetKey !== requestedKey) return;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#17211b";
   ctx.font = "bold 48px sans-serif";
-  ctx.fillText(`${group.floorIndex + 1}F ${group.label}　電気計画用 壁展開図`, 60, 75);
+  ctx.fillText(`${group.floorIndex + 1}F ${group.label}　電気計画用 3D壁パース`, 60, 75);
   ctx.fillStyle = "#667069";
   ctx.font = "26px sans-serif";
-  ctx.fillText(`${state.plan.title} / 天井高さ 2400mm / 青:窓　茶:建具　○:コンセント　S:スイッチ`, 60, 120);
+  ctx.fillText(`${state.plan.title} / 詳細側の家具・造作・窓・建具を反映`, 60, 120);
   ctx.font = "24px sans-serif";
   ctx.fillText("画像保存後、写真アプリのマークアップ等で希望位置・用途・高さを書き込んでください。", 60, 160);
   drawWallSheetMiniPlan(ctx, group, segments, 1370, 22, 360, 200);
@@ -2799,7 +2817,7 @@ function drawWallSheet(){
     const row = Math.floor(index / columns);
     const x = 50 + column * (panelWidth + gap);
     const y = startY + row * (panelHeight + gap);
-    drawWallPanel(ctx, segment, floor, group.floorIndex, x, y, panelWidth, panelHeight);
+    drawWallPerspectivePanel(ctx, segment, floor, perspectives[index], x, y, panelWidth, panelHeight);
   });
   const noteY = canvas.height - 155;
   ctx.strokeStyle = "#aeb5af";
@@ -2810,6 +2828,70 @@ function drawWallSheet(){
   ctx.fillStyle = "#7b837e";
   ctx.font = "24px sans-serif";
   ctx.fillText("メモ：回路／用途／必要口数／家具との干渉など", 80, noteY + 34);
+}
+
+function wallViewDepthPx(group, segment){
+  const minX = Math.min(...group.rooms.map((room) => room.x));
+  const minY = Math.min(...group.rooms.map((room) => room.y));
+  const maxX = Math.max(...group.rooms.map((room) => room.x + room.w));
+  const maxY = Math.max(...group.rooms.map((room) => room.y + room.h));
+  return Math.abs(segment.nx) > 0.5 ? maxX - minX : maxY - minY;
+}
+
+function loadImage(src){
+  return new Promise((resolve) => {
+    if(!src){ resolve(null); return; }
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
+}
+
+function drawWallPerspectivePanel(ctx, segment, floor, image, x, y, width, height){
+  ctx.fillStyle = "#f8f8f5";
+  ctx.strokeStyle = "#c9cec9";
+  ctx.lineWidth = 2;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+  ctx.fillStyle = "#1d2721";
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillText(`壁 ${segment.index + 1}　${segment.name}　幅 ${Math.round(segment.lenMm)}mm`, x + 24, y + 38);
+  const imageX = x + 18;
+  const imageY = y + 56;
+  const imageWidth = width - 36;
+  const imageHeight = height - 108;
+  if(image){
+    const sourceRatio = image.width / image.height;
+    const targetRatio = imageWidth / imageHeight;
+    let sx = 0, sy = 0, sw = image.width, sh = image.height;
+    if(sourceRatio > targetRatio){
+      sw = image.height * targetRatio;
+      sx = (image.width - sw) / 2;
+    }else{
+      sh = image.width / targetRatio;
+      sy = (image.height - sh) / 2;
+    }
+    ctx.drawImage(image, sx, sy, sw, sh, imageX, imageY, imageWidth, imageHeight);
+  }else{
+    ctx.fillStyle = "#e8ece9";
+    ctx.fillRect(imageX, imageY, imageWidth, imageHeight);
+    ctx.fillStyle = "#737c76";
+    ctx.font = "24px sans-serif";
+    ctx.fillText("3D画像を作成できませんでした", imageX + 30, imageY + 60);
+  }
+  ctx.fillStyle = "rgba(255,255,255,.88)";
+  ctx.fillRect(imageX + 12, imageY + imageHeight - 42, imageWidth - 24, 30);
+  ctx.fillStyle = "#334039";
+  ctx.font = "19px sans-serif";
+  ctx.fillText(`室内側から壁 ${segment.index + 1} を見る　壁幅 ${Math.round(segment.lenMm)}mm`, imageX + 24, imageY + imageHeight - 20);
+  const devices = wallSheetDevices(segment, floor);
+  if(devices.length){
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#286fd6";
+    ctx.fillText(`既存電気 ${devices.length}箇所`, imageX + imageWidth - 24, imageY + imageHeight - 20);
+    ctx.textAlign = "left";
+  }
 }
 
 function drawWallPanel(ctx, segment, floor, floorIndex, x, y, width, height){
@@ -2948,10 +3030,10 @@ function saveWallSheetImage(){
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${state.plan.title || "間取り"}_${group.floorIndex + 1}F_${group.label}_壁展開図.png`.replace(/[\\/:*?"<>|]/g, "_");
+    link.download = `${state.plan.title || "間取り"}_${group.floorIndex + 1}F_${group.label}_3D壁パース.png`.replace(/[\\/:*?"<>|]/g, "_");
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast("壁展開図を画像保存しました");
+    toast("3D壁パースを画像保存しました");
   }, "image/png");
 }
 
