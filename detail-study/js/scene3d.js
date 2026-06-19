@@ -1097,12 +1097,14 @@ export class DetailScene3D {
 }
 
 function mat(color, opacity = 1, roughness = 0.55, transparent = false){
+  const useTransparency = !!transparent;
   return new THREE.MeshStandardMaterial({
     color: new THREE.Color(color || "#dddddd"),
     roughness,
     metalness: 0.02,
-    transparent: transparent || opacity < 0.99,
-    opacity
+    transparent: useTransparency,
+    opacity: useTransparency ? opacity : 1,
+    depthWrite: !useTransparency
   });
 }
 

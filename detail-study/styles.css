@@ -356,16 +356,20 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planRoom,.planItem{ cursor:pointer; transition:opacity .12s ease; }
 .planRoom:hover{ opacity:.82; }
 .planRoom.selected rect{ stroke:var(--blue); stroke-width:5; }
-.planItem.selected rect,.planItem.selected circle{ stroke:var(--blue); stroke-width:4; }
+.planItem.selected rect,.planItem.selected circle:not(.lightInfluence){ stroke:var(--blue); stroke-width:4; }
 .planItem.selected:is(line),.planItem.selected line{ stroke:var(--blue) !important; }
-.stairWallContact{ cursor:pointer; touch-action:none; }
+.stairWallContactGroup{ cursor:pointer; touch-action:none; }
+.stairWallContactHit{ pointer-events:stroke; touch-action:none; }
+.stairWallContact{ pointer-events:none; touch-action:none; }
 .stairWallContact.selected{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
+.stairWallContactGroup.selected .stairWallContact{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
 .planItem:hover{ opacity:.86; }
 .planItem.guideItem{ opacity:.42; }
 .planItem.guideItem rect{ stroke-dasharray:5 4; }
 .exteriorItem,.planItem,.exteriorItem *,.planItem *{ touch-action:none; user-select:none; -webkit-user-select:none; }
 .exteriorItem{ cursor:grab; }
 .exteriorItem:active{ cursor:grabbing; }
+.siteBoundary{ pointer-events:none; }
 .planLabel{ font-size:9px; font-weight:900; fill:#20241f; pointer-events:none; paint-order:stroke; stroke:#fff; stroke-width:3; stroke-linejoin:round; }
 .planSub{ font-size:6px; font-weight:850; fill:#5e655c; pointer-events:none; paint-order:stroke; stroke:#fff; stroke-width:2; }
 .planDistance{ stroke:#286fd6; stroke-width:1.5; stroke-dasharray:5 4; pointer-events:none; }
@@ -765,6 +769,25 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 .roomLuxCard.bright{ background:#fff5e8; border-color:rgba(200,121,24,.34); }
 .lightFixtureList button{ background:#fff4cf; border:1px solid rgba(200,121,24,.22); }
 .lightInfluence{ pointer-events:none; }
+.lightPickRing{
+  pointer-events:none;
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:lightPickPulse 1.25s ease-in-out infinite;
+}
+.selectedLightLabel{
+  fill:#075fa8;
+  font-size:8px;
+  font-weight:950;
+  paint-order:stroke;
+  stroke:#fff;
+  stroke-width:4;
+  pointer-events:none;
+}
+@keyframes lightPickPulse{
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:.35; transform:scale(1.28); }
+}
 .miniList{ display:grid; gap:6px; max-height:280px; overflow:auto; }
 .miniRow{ cursor:pointer; padding:7px 8px; }
 .miniRow.on{ border-color:rgba(40,111,214,.55); background:#f4f8ff; }

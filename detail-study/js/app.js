@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-purpose-ui-v11";
+import { DetailScene3D } from "./scene3d.js?v=20260619-background-v15";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -38,6 +38,7 @@ const state = {
   planPointers: new Map(),
   planPinch: null,
   planPan: null,
+  suppressPlanClickUntil: 0,
   layers: {
     site: true,
     rooms: true,
@@ -207,9 +208,17 @@ function bindEvents(){
     renderSceneOnly();
   });
   dom.planSvg.addEventListener("click", (event) => {
+    if(Date.now() < state.suppressPlanClickUntil) return;
     if(state.dockMode === "measure" || state.dockMode === "browse") return;
     const target = event.target.closest("[data-id]");
-    if(!target) return;
+    if(!target){
+      if(state.selectedId || state.mobilePanelOpen){
+        state.selectedId = null;
+        state.mobilePanelOpen = false;
+        render();
+      }
+      return;
+    }
     state.selectedId = target.dataset.id;
     state.mobilePanelOpen = true;
     state.dockMode = "select";
@@ -267,7 +276,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v11`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v15`;
     saveDesign(false);
     renderPalette();
     render();
@@ -844,7 +853,10 @@ function onPlanPointerUp(){
     Math.abs(item.w - state.drag.w) > 0.01 ||
     Math.abs(item.h - state.drag.h) > 0.01
   );
-  if(changed) pushHistory(state.drag.before);
+  if(changed){
+    pushHistory(state.drag.before);
+    state.suppressPlanClickUntil = Date.now() + 350;
+  }
   try{ dom.planSvg.releasePointerCapture?.(state.drag.pointerId); }catch(_){}
   state.drag = null;
   document.body.classList.remove("draggingPlan");
@@ -1194,7 +1206,7 @@ function measureDistanceText(a, b){
 
 function renderPlanNudge(){
   const item = findCustomById(state.selectedId);
-  if(!item || item.locked){
+  if(!item || item.locked || (isMobileViewport() && state.mobilePanelOpen)){
     dom.planNudge.hidden = true;
     dom.planNudge.innerHTML = "";
     return;
@@ -1436,11 +1448,15 @@ function renderFurnitureSvg(item, existing){
     const influence = state.workMode === "lighting"
       ? `<circle class="lightInfluence" cx="${cx}" cy="${cy}" r="${beamRadius}" fill="${kelvinCss(item.kelvin)}" fill-opacity=".11" stroke="${kelvinCss(item.kelvin)}" stroke-opacity=".42" stroke-width="1.5" stroke-dasharray="5 4"/>`
       : "";
+    const pickRing = selected
+      ? `<circle class="lightPickRing" cx="${cx}" cy="${cy}" r="18" fill="none" stroke="#1687d9" stroke-width="3"/>`
+      : "";
     return `<g class="planItem lightItem${selected}" data-id="${item.id}">
       ${influence}
+      ${pickRing}
       <circle cx="${cx}" cy="${cy}" r="${Math.max(6, Math.min(12, item.w / 2))}" fill="${color}" stroke="#6d622d" stroke-width="1.5"/>
       <path d="M ${cx - 4} ${cy} H ${cx + 4} M ${cx} ${cy - 4} V ${cx} ${cy + 4}" stroke="#6d622d" stroke-width="1.4"/>
-      <text x="${cx}" y="${cy + 18}" text-anchor="middle" class="planSub">${Math.round(Number(item.lumens || 0))}lm</text>
+      <text x="${cx}" y="${cy + 24}" text-anchor="middle" class="${selected ? "selectedLightLabel" : "planSub"}">${selected ? "配置中 " : ""}${Math.round(Number(item.lumens || 0))}lm</text>
     </g>`;
   }
   if(item.kind === "plant" || item.kind === "tree"){
@@ -1503,9 +1519,9 @@ function renderExteriorItemSvg(item, selected, label, color, rotate){
   const handle = selected && !item.locked ? `<rect data-resize="1" x="${item.x + item.w - 9}" y="${item.y + item.h - 9}" width="18" height="18" rx="4" fill="#286fd6" stroke="#fff" stroke-width="2"/>` : "";
   const commonText = `<text x="${cx}" y="${cy + 3}" text-anchor="middle" class="planSub">${label}</text>`;
   if(item.kind === "site"){
-    return `<g class="${cls}" data-id="${item.id}">
+    return `<g class="siteBoundary">
       <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${item.h}" fill="${color}" fill-opacity=".42" stroke="#59764d" stroke-width="3" stroke-dasharray="10 8"/>
-      <text x="${item.x + 12}" y="${item.y + 18}" class="planSub">${label} 固定</text>${handle}
+      <text x="${item.x + 12}" y="${item.y + 18}" class="planSub">${label}</text>
     </g>`;
   }
   if(item.kind === "porchStep"){
@@ -1706,7 +1722,10 @@ function renderStairWallContactSvg(contact){
   const attrs = contact.horizontal
     ? `x1="${contact.lo}" y1="${contact.fixed}" x2="${contact.hi}" y2="${contact.fixed}"`
     : `x1="${contact.fixed}" y1="${contact.lo}" x2="${contact.fixed}" y2="${contact.hi}"`;
-  return `<line class="stairWallContact${selected}" data-id="${contact.id}" ${attrs} stroke="${color}" stroke-width="9" stroke-opacity=".66" stroke-linecap="round"/>`;
+  return `<g class="stairWallContactGroup${selected}" data-id="${contact.id}">
+    <line class="stairWallContactHit" ${attrs} stroke="transparent" stroke-width="30" stroke-linecap="round"/>
+    <line class="stairWallContact${selected}" ${attrs} stroke="${color}" stroke-width="9" stroke-opacity=".76" stroke-linecap="round"/>
+  </g>`;
 }
 
 function renderRoomEditor(room){
@@ -1977,7 +1996,11 @@ function addCustomItem(kind, dimensions = null){
   if(!preset || !state.plan) return;
   pushHistory();
   const floorIndex = state.floorMode === "all" ? 0 : Number(state.floorMode || 0);
-  const selectedRoom = findSelected()?.source === "room" ? findSelected().item : roomsForFloor(state.plan, String(floorIndex))[0];
+  const selected = findSelected();
+  const rooms = roomsForFloor(state.plan, String(floorIndex));
+  const selectedRoom = selected?.source === "room"
+    ? selected.item
+    : rooms.reduce((largest, room) => !largest || areaM2(room) > areaM2(largest) ? room : largest, null);
   const bounds = floorBounds(state.plan, String(floorIndex), 0);
   const center = selectedRoom
     ? { x: selectedRoom.x + selectedRoom.w / 2, y: selectedRoom.y + selectedRoom.h / 2 }
@@ -2009,10 +2032,13 @@ function addCustomItem(kind, dimensions = null){
   state.selectedId = item.id;
   state.workMode = isLightItem(item) ? "lighting" : preset.layer === "exterior" ? "site" : "interior";
   state.dockMode = "select";
-  state.mobilePanelOpen = true;
+  state.mobilePanelOpen = !isMobileViewport();
+  state.nudgeUi = { x:null, y:null };
   saveDesign(false);
   render();
-  toast(`${preset.label}を追加しました`);
+  toast(isMobileViewport()
+    ? `${preset.label}を追加。青い器具をドラッグして配置`
+    : `${preset.label}を追加しました`);
 }
 
 function addCustomModelItem(modelId){
@@ -2529,6 +2555,10 @@ function safeColor(value, fallback){
 
 function clamp(value, min, max){
   return Math.min(max, Math.max(min, value));
+}
+
+function isMobileViewport(){
+  return window.matchMedia?.("(max-width: 620px)")?.matches ?? window.innerWidth <= 620;
 }
 
 function floorLabel(index){
