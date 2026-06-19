@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-wall-perspectives-v22";
+import { DetailScene3D } from "./scene3d.js?v=20260619-window-frame-v23";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-wall-perspectives-v22";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-perspectives-v22";
+} from "./data.js?v=20260619-window-frame-v23";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-window-frame-v23";
 
 const state = {
   plan: null,
@@ -298,7 +298,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 3D壁パース / 06-19 v22`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 窓表現 / 06-19 v23`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();

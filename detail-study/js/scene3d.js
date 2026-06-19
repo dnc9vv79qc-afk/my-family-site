@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-wall-perspectives-v22";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-window-frame-v23";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -650,21 +650,70 @@ export class DetailScene3D {
     const isWindow = opening.kind === "window";
     const height = isWindow ? Math.max(0.5, ((opening.winT || 2000) - (opening.winB || 900)) / 1000) : 2.02;
     const bottom = isWindow ? (opening.winB || 900) / 1000 : 0.06;
-    const color = isWindow ? "#91c8df" : "#a97343";
-    const material = mat(color, isWindow ? 0.42 : 0.86, 0.36, isWindow);
     const angle = -Math.atan2(dy, dx);
     const offset = isWindow ? 0.065 : 0;
     const normalX = Math.sin(angle);
     const normalZ = Math.cos(angle);
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(len, height, isWindow ? 0.035 : 0.055), material);
-    panel.position.set(
+    const group = new THREE.Group();
+    group.position.set(
       pxToM((opening.x1 + opening.x2) / 2) + normalX * offset,
       yBase + SLAB_H_M + bottom + height / 2,
       pxToM((opening.y1 + opening.y2) / 2) + normalZ * offset
     );
-    panel.rotation.y = angle;
-    if(selectedId === opening.id) panel.scale.y = 1.08;
-    this.root.add(panel);
+    group.rotation.y = angle;
+    if(isWindow){
+      const glassMaterial = new THREE.MeshPhysicalMaterial({
+        color:new THREE.Color("#b9e1ef"),
+        transparent:true,
+        opacity:0.24,
+        roughness:0.08,
+        metalness:0,
+        clearcoat:0.65,
+        clearcoatRoughness:0.1,
+        side:THREE.DoubleSide,
+        depthWrite:false
+      });
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(Math.max(0.08, len - 0.09), Math.max(0.08, height - 0.09), 0.026),
+        glassMaterial
+      );
+      glass.receiveShadow = true;
+      group.add(glass);
+      const frameMat = mat("#596469", 0.98, 0.28);
+      const frame = 0.052;
+      const depth = 0.072;
+      addBox(group, 0, height / 2 - frame / 2, 0, len, frame, depth, frameMat);
+      addBox(group, 0, -height / 2 + frame / 2, 0, len, frame, depth, frameMat);
+      addBox(group, -len / 2 + frame / 2, 0, 0, frame, height, depth, frameMat);
+      addBox(group, len / 2 - frame / 2, 0, 0, frame, height, depth, frameMat);
+      const panels = Math.max(1, Number(opening.panels || (len > 1.15 ? 2 : 1)));
+      for(let index = 1; index < panels; index++){
+        addBox(group, -len / 2 + len * index / panels, 0, 0.008, 0.038, height - frame * 1.4, depth + 0.006, frameMat);
+      }
+      const shine = new THREE.Mesh(
+        new THREE.PlaneGeometry(Math.max(0.06, len - 0.18), 0.035),
+        new THREE.MeshBasicMaterial({
+          color:0xffffff,
+          transparent:true,
+          opacity:0.38,
+          side:THREE.DoubleSide,
+          depthWrite:false
+        })
+      );
+      shine.position.set(0, height * 0.24, 0.025);
+      shine.rotation.z = -0.08;
+      group.add(shine);
+      const sill = addBox(group, 0, -height / 2 - 0.025, 0.018, len + 0.08, 0.045, 0.13, mat("#d8d4ca", 1, 0.55));
+      sill.receiveShadow = true;
+    }else{
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(len, height, 0.055),
+        mat("#a97343", 0.86, 0.36)
+      );
+      group.add(panel);
+    }
+    if(selectedId === opening.id) group.scale.y = 1.08;
+    this.root.add(group);
   }
 
   addFurnitureBox(item, floorIndex, yBase, selectedId, existing){
