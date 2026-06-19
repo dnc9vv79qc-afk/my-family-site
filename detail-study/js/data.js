@@ -70,6 +70,7 @@ export function normalizePlan(data, id, updateTime = ""){
     activeFloor: Number.isInteger(data.activeFloor) ? data.activeFloor : 0,
     isMerged: !!data.isMerged,
     readonly: !!data.readonly,
+    stairWallSegments: data.stairWallSegments && typeof data.stairWallSegments === "object" ? { ...data.stairWallSegments } : {},
     updateTime,
     floors
   };

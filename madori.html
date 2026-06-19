@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>間取り検討ツール 06/19 階段間取り化v6 | MORI</title>
+<title>間取り検討ツール 06/19 階段壁半マスv7 | MORI</title>
 
 <style>
 :root{
@@ -18,6 +18,34 @@
 --shadow: 0 10px 30px rgba(0,0,0,.10);
 --radius2: 26px;
 }
+
+.stair-wall-modal{ max-height:82vh; overflow:auto; text-align:left; }
+.stair-wall-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.stair-wall-head h3{ margin:0; font-size:17px; }
+.stair-wall-head span{ display:block; margin-top:2px; color:#777; font-size:11px; }
+.stair-wall-family{ margin-bottom:12px; padding:10px; border:1px solid rgba(60,60,67,.14); border-radius:14px; background:#f7f8f6; }
+.stair-wall-family-title{ margin-bottom:7px; color:#555; font-size:11px; font-weight:800; }
+.stair-wall-preview{ position:relative; height:116px; overflow:hidden; border-radius:11px; background:linear-gradient(180deg,#f7fbff,#e9eef4); }
+.stair-wall-steps{ position:absolute; inset:12px 8px 30px; display:flex; align-items:flex-end; gap:2px; pointer-events:none; }
+.stair-wall-steps i{ flex:1; min-width:0; border:1px solid rgba(113,91,59,.35); border-bottom:0; background:linear-gradient(135deg,#e7d8c1,#cbb18a); }
+.stair-wall-cells{ position:absolute; left:7px; right:7px; bottom:6px; display:flex; gap:3px; }
+.stair-wall-cell{ position:relative; flex:1; min-width:28px; height:40px; padding:0; overflow:hidden; border:2px solid transparent; border-radius:7px; background:#fff; color:#333; }
+.stair-wall-cell.selected{ border-color:#ff2d55; box-shadow:0 0 0 2px rgba(255,45,85,.15); }
+.stair-wall-cell em{ position:absolute; inset:4px 3px 11px; border-radius:2px; background:#1687d9; }
+.stair-wall-cell b{ position:absolute; left:0; right:0; bottom:0; font-size:9px; text-align:center; }
+.stair-wall-cell.mode-full em{ background:#34a853; }
+.stair-wall-cell.mode-upper em{ bottom:23px; background:#7b61ff; }
+.stair-wall-cell.mode-lower em{ top:18px; background:#ff9500; }
+.stair-wall-cell.mode-none em{ background:repeating-linear-gradient(135deg,#ff3b30 0 3px,transparent 3px 6px); }
+.stair-wall-modes{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-top:10px; }
+.stair-wall-mode{ min-height:44px; padding:6px 8px; border:1px solid rgba(60,60,67,.14); border-radius:9px; background:#fff; color:#333; text-align:left; }
+.stair-wall-mode b,.stair-wall-mode span{ display:block; }
+.stair-wall-mode b{ font-size:11px; }
+.stair-wall-mode span{ margin-top:2px; color:#777; font-size:9px; }
+.stair-wall-mode.on{ color:#fff; border-color:transparent; background:#0a84ff; }
+.stair-wall-mode.on span{ color:rgba(255,255,255,.8); }
+.stair-wall-mode[data-mode="none"]{ grid-column:1 / -1; }
+.stair-wall-empty{ padding:18px; border-radius:12px; background:#f3f3f1; color:#666; font-size:12px; line-height:1.6; }
 
 @media (prefers-color-scheme: dark){
 :root{
@@ -1792,7 +1820,7 @@ border-bottom-color: rgba(235,235,245,.12);
 
 <body>
 
-<div class="ver-label">06/19 階段間取り化 v6</div>
+<div class="ver-label">06/19 階段壁半マス v7</div>
 <div id="canvas-container"><canvas id="canvas"></canvas></div>
 
 <!-- ===== v2: 上部バー ===== -->
@@ -1857,6 +1885,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <button class="pill" id="ceilDropBtn" data-sub="下がり天井" type="button" style="display:none;">下天</button>
 <button class="pill" id="furnRotateBtn" data-sub="90°回す" type="button" style="display:none;">回転</button>
 <button class="pill" id="furnSizeBtn" data-sub="mm指定" type="button" style="display:none;">サイズ</button>
+<button class="pill" id="stairWallBtn" data-sub="半マス設定" type="button" style="display:none;">階段壁</button>
 </div>
 
 <!-- ===== v2: ドック ===== -->
@@ -2188,6 +2217,7 @@ border-bottom-color: rgba(235,235,245,.12);
 <div class="help-content">
 <b>家具の回転・階段（間取り要素・かね折れ対応）</b>
 階段は配置後に選択して「サイズ」から形（直線/かね折れ）・廻り段数・曲がる向き・大きさ・階高を後から変更できます。
+階段を選択して「階段壁」を押すと、接している内壁を半マス（約455mm）ごとに「通常壁／下を抜く／上を抜く／壁なし」へ変更できます。設定は通常3Dと詳細3Dの両方に反映されます。
 階段は間取り要素として常に平面図へ表示され、「追加」→「階段」で配置できます。「直線」か「かね折れ」を選べ、かね折れは入口側で廻り段（段数2〜5）で90°向きを変え、その先を横一直線で上り切ります（直線部の段数はサイズから自動計算）。階段は0.5マス単位でサイズ・位置を調整でき、間取りにきっちり合わせられます。「曲がる向き（右/左）」と配置後の「回転」を組み合わせれば、横から入って90°曲がる形などどの向きにもできます。配置後は右下ハンドルで大きさ、「回転」で向き、「サイズ」で幅・奥行・階高(mm)を変更できます。3Dは廻り段も含めてステップ状に立ち上がります。3D天井高は「他」シートで変更でき、歩行中は外壁を通り抜けません。
 </div>
 </div>
@@ -2320,6 +2350,16 @@ border-bottom-color: rgba(235,235,245,.12);
 <button class="pill" id="furnCancelBtn" type="button" style="flex:1;">キャンセル</button>
 <button class="pill" id="furnOkBtn" type="button" style="flex:1; background:rgba(10,132,255,.92); color:#fff;">OK</button>
 </div>
+</div>
+</div>
+
+<div id="stairWallModal" class="modal-overlay">
+<div class="modal sheet stair-wall-modal">
+<div class="stair-wall-head">
+<div><h3>階段まわりの壁</h3><span>半マス（約455mm）ごとに設定</span></div>
+<button class="pill" id="stairWallCloseBtn" type="button">閉じる</button>
+</div>
+<div id="stairWallEditor"></div>
 </div>
 </div>
 
@@ -2593,6 +2633,7 @@ let floors = [
 ];
 let activeFloor = 0;
 let items = floors[0].items;
+let stairWallSegments = {};
 
 function syncActiveFloor(){
 floors[activeFloor].items = items;
@@ -2615,7 +2656,8 @@ return {
 formatVersion: 2,
 floors: fs,
 activeFloor,
-items: fs[0].items
+items: fs[0].items,
+stairWallSegments: {...stairWallSegments}
 };
 }
 let selectedItem = null;
@@ -2885,7 +2927,8 @@ isMerged,
 camera: {...camera},
 scale,
 layoutId,
-title: currentTitle
+title: currentTitle,
+stairWallSegments: {...stairWallSegments}
 };
 }
 
@@ -2912,6 +2955,7 @@ ensureIds();
 normalizeZ();
 quantizeAllToGrid(getSnapStep());
 isMerged = !!s.isMerged;
+stairWallSegments = (s.stairWallSegments && typeof s.stairWallSegments === 'object') ? {...s.stairWallSegments} : {};
 camera = s.camera ? {...s.camera} : {x:0,y:0};
 scale = typeof s.scale === "number" ? s.scale : 1.0;
 layoutId = s.layoutId ?? layoutId;
@@ -5190,6 +5234,133 @@ ctx.fillText(lbl, it.x + it.w / 2, it.y + fs * 1.1);
 ctx.restore();
 }
 
+let stairWallEditorKey = '';
+
+function stairWallParentKey(floorIndex, stair, horizontal, fixed, lo, hi){
+const q = value => Math.round(Number(value || 0) * 10);
+return `${floorIndex}:${stair.id}:${horizontal ? 'h' : 'v'}:${q(fixed)}:${q(lo)}:${q(hi)}`;
+}
+
+function stairWallContactsFor(stair, floorIndex = activeFloor){
+if(!stair) return [];
+const source = floors[floorIndex]?.items || [];
+const contacts = [];
+source.filter(it => it.type === 'wallLine').forEach(wall => {
+const horizontal = Math.abs(wall.y2 - wall.y1) < 0.1;
+const vertical = Math.abs(wall.x2 - wall.x1) < 0.1;
+if(!horizontal && !vertical) return;
+const wallLo = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
+const wallHi = horizontal ? Math.max(wall.x1, wall.x2) : Math.max(wall.y1, wall.y2);
+const fixed = horizontal ? wall.y1 : wall.x1;
+const halfThickness = Math.max(2, Number(wall.thick || WALL_DEFAULT_THICK) / 2);
+const crossLo = horizontal ? stair.y : stair.x;
+const crossHi = horizontal ? stair.y + stair.h : stair.x + stair.w;
+if(fixed < crossLo - halfThickness || fixed > crossHi + halfThickness) return;
+const stairLo = horizontal ? stair.x : stair.y;
+const stairHi = horizontal ? stair.x + stair.w : stair.y + stair.h;
+const lo = Math.max(wallLo, stairLo);
+const hi = Math.min(wallHi, stairHi);
+if(hi - lo <= 0.5) return;
+const parentKey = stairWallParentKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
+const segmentSize = GRID_SIZE / 2;
+const segmentCount = Math.max(1, Math.ceil((hi - lo) / segmentSize));
+for(let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++){
+const segmentLo = lo + segmentIndex * segmentSize;
+const segmentHi = Math.min(hi, segmentLo + segmentSize);
+if(segmentHi - segmentLo <= 0.5) continue;
+const key = `${parentKey}:half:${segmentIndex}`;
+contacts.push({
+key, parentKey, wall, stair, horizontal, fixed,
+lo: segmentLo, hi: segmentHi,
+segmentIndex, segmentCount, floorIndex
+});
+}
+});
+return contacts;
+}
+
+function stairWallModeFor(contact){
+return stairWallSegments[contact.key] || stairWallSegments[contact.parentKey] || 'auto';
+}
+
+function stairWallModeColor(mode){
+return mode === 'none' ? '#ff3b30'
+: mode === 'upper' ? '#7b61ff'
+: mode === 'lower' ? '#ff9500'
+: mode === 'full' ? '#34a853'
+: '#1687d9';
+}
+
+function drawStairWallSettings(){
+if(!selectedItem || selectedItem.type !== 'stair' || editLayer !== 'plan') return;
+const contacts = stairWallContactsFor(selectedItem);
+ctx.save();
+ctx.lineCap = 'round';
+contacts.forEach(contact => {
+ctx.strokeStyle = stairWallModeColor(stairWallModeFor(contact));
+ctx.lineWidth = (contact.key === stairWallEditorKey ? 13 : 9) / scale;
+ctx.globalAlpha = contact.key === stairWallEditorKey ? 1 : .78;
+ctx.beginPath();
+if(contact.horizontal){
+ctx.moveTo(contact.lo, contact.fixed);
+ctx.lineTo(contact.hi, contact.fixed);
+}else{
+ctx.moveTo(contact.fixed, contact.lo);
+ctx.lineTo(contact.fixed, contact.hi);
+}
+ctx.stroke();
+});
+ctx.restore();
+}
+
+function openStairWallEditor(){
+if(!selectedItem || selectedItem.type !== 'stair' || isReadOnly) return;
+const contacts = stairWallContactsFor(selectedItem);
+if(!contacts.length){
+showToast('階段に接している内壁がありません', 1400);
+return;
+}
+if(!contacts.some(contact => contact.key === stairWallEditorKey)) stairWallEditorKey = contacts[0].key;
+renderStairWallEditor();
+el('stairWallModal').style.display = 'flex';
+draw();
+}
+
+function renderStairWallEditor(){
+const stair = selectedItem?.type === 'stair' ? selectedItem : null;
+const contacts = stairWallContactsFor(stair);
+const wrap = el('stairWallEditor');
+if(!stair || !contacts.length){
+wrap.innerHTML = '<div class="stair-wall-empty">階段に接している内壁がありません。内壁を階段の辺に合わせてから設定してください。</div>';
+return;
+}
+const families = new Map();
+contacts.forEach(contact => {
+if(!families.has(contact.parentKey)) families.set(contact.parentKey, []);
+families.get(contact.parentKey).push(contact);
+});
+const selected = contacts.find(contact => contact.key === stairWallEditorKey) || contacts[0];
+stairWallEditorKey = selected.key;
+const familyHtml = [...families.values()].map((family, familyIndex) => {
+family.sort((a,b) => a.segmentIndex - b.segmentIndex);
+const cells = family.map(contact => {
+const mode = stairWallModeFor(contact);
+return `<button class="stair-wall-cell mode-${mode}${contact.key === stairWallEditorKey ? ' selected' : ''}" type="button" data-stair-wall-key="${escapeHtml(contact.key)}"><em></em><b>${contact.segmentIndex + 1}</b></button>`;
+}).join('');
+const steps = family.map((_, index) => `<i style="height:${Math.round(20 + index * 52 / Math.max(1, family.length - 1))}%"></i>`).join('');
+return `<section class="stair-wall-family"><div class="stair-wall-family-title">接触壁 ${familyIndex + 1}・番号をタップ</div><div class="stair-wall-preview"><div class="stair-wall-steps">${steps}</div><div class="stair-wall-cells">${cells}</div></div></section>`;
+}).join('');
+const mode = stairWallModeFor(selected);
+const modeButton = (value, label, sub) => `<button class="stair-wall-mode${mode === value ? ' on' : ''}" type="button" data-mode="${value}"><b>${label}</b><span>${sub}</span></button>`;
+wrap.innerHTML = familyHtml + `<div class="stair-wall-modes">
+${modeButton('auto','自動','階段形状で判定')}
+${modeButton('full','通常壁','全面を残す')}
+${modeButton('upper','下を抜く','上だけ壁')}
+${modeButton('lower','上を抜く','下だけ壁')}
+${modeButton('none','壁なし','全面を消す')}
+</div>`;
+}
+
 /* v2.4: 家具の描画 */
 function drawFurn(it){
 const fc = el('showFurn');
@@ -5580,6 +5751,7 @@ function drawMerged(){
   items.forEach(it => { if(it.type === 'opening') drawOpening(it); });
   drawVoidOverlay();
   items.forEach(it => { if(it.type === 'stair') drawStair(it); });
+  drawStairWallSettings();
   items.forEach(it => { if(it.type === 'furn') drawFurn(it); });
   drawElecSymbols();
 
@@ -6234,6 +6406,7 @@ items = floors[activeFloor].items;
 updateFloorUI();
 currentTitle = data.title || DEFAULT_TITLE;
 isReadOnly = !!data.readonly;
+stairWallSegments = (data.stairWallSegments && typeof data.stairWallSegments === 'object') ? {...data.stairWallSegments} : {};
 
 setTitle(currentTitle, {silent:true});
 
@@ -8549,7 +8722,7 @@ return out;
 }
 
 /* 階段外周壁は踏み板より上、階段内側・直交壁は踏み板より下だけ残す。 */
-function v3dWallSlicesUnderStairs(seg, stairs, yBase, topY){
+function v3dWallSlicesUnderStairs(seg, stairs, yBase, topY, floorIndex){
 const horiz = Math.abs(seg.y2 - seg.y1) < 0.5;
 const vert = Math.abs(seg.x2 - seg.x1) < 0.5;
 if(!seg.inner || (!horiz && !vert)) return [{ seg, y0: yBase, y1: topY }];
@@ -8561,6 +8734,9 @@ const profiles = [];
 
 (stairs || []).forEach(stair => {
 if(!stair || !v3dIsStairItem(stair)) return;
+const overrides = stairWallContactsFor(stair, floorIndex).filter(contact => (
+contact.horizontal === horiz && Math.abs(contact.fixed - fixed) <= half + 0.5
+));
 const riseMm = (typeof stair.fh === 'number' && stair.fh > 0) ? stair.fh : 3000;
 const totalRise = riseMm * PX_PER_MM;
 const swap = (stair.dir === 1 || stair.dir === 3);
@@ -8605,9 +8781,29 @@ const lo = Math.max(axisLo, Math.min(...along));
 const hi = Math.min(axisHi, Math.max(...along));
 if(hi - lo <= 0.5) return;
 const treadTop = yBase + stepH * (index + 1);
-profiles.push(perimeter
-? { lo, hi, mode: 'upper', y: Math.min(topY, treadTop + 0.4) }
-: { lo, hi, mode: 'lower', y: Math.min(topY, treadTop - board - 0.4) });
+const cuts = [lo, hi];
+overrides.forEach(contact => {
+if(contact.hi <= lo || contact.lo >= hi) return;
+cuts.push(Math.max(lo, contact.lo), Math.min(hi, contact.hi));
+});
+cuts.sort((a,b) => a-b);
+const uniqueCuts = cuts.filter((value, cutIndex) => cutIndex === 0 || Math.abs(value - cuts[cutIndex - 1]) > 0.2);
+for(let cutIndex = 0; cutIndex < uniqueCuts.length - 1; cutIndex++){
+const partLo = uniqueCuts[cutIndex], partHi = uniqueCuts[cutIndex + 1];
+if(partHi - partLo <= 0.5) continue;
+const mid = (partLo + partHi) / 2;
+const contact = overrides.find(item => mid >= item.lo - 0.1 && mid <= item.hi + 0.1);
+const storedMode = contact ? stairWallModeFor(contact) : 'auto';
+if(storedMode === 'full') continue;
+const mode = ['upper','lower','none'].includes(storedMode)
+? storedMode
+: (perimeter ? 'upper' : 'lower');
+profiles.push(mode === 'none'
+? { lo:partLo, hi:partHi, mode:'none', y:yBase }
+: mode === 'upper'
+? { lo:partLo, hi:partHi, mode:'upper', y:Math.min(topY, treadTop + 0.4) }
+: { lo:partLo, hi:partHi, mode:'lower', y:Math.min(topY, treadTop - board - 0.4) });
+}
 });
 });
 
@@ -8624,6 +8820,7 @@ const mid = (lo + hi) / 2;
 const hits = profiles.filter(profile => mid >= profile.lo - 0.1 && mid <= profile.hi + 0.1);
 let y0 = yBase, y1 = topY;
 if(hits.length){
+if(hits.some(profile => profile.mode === 'none')) continue;
 const upper = hits.filter(profile => profile.mode === 'upper');
 const lower = hits.filter(profile => profile.mode === 'lower');
 if(upper.length) y0 = Math.max(...upper.map(profile => profile.y));
@@ -8642,7 +8839,7 @@ function v3dIsStairItem(item){
 return !!item && (item.type === 'stair' || (item.type === 'furn' && /(?:^階段|直線階段|かね折れ階段)/.test(item.label || '')));
 }
 
-function v3dBuildFloor(T, group, fItems, upperVoids){
+function v3dBuildFloor(T, group, fItems, upperVoids, floorIndex){
 const mats = v3dBuildFloor._mats || (v3dBuildFloor._mats = {
 wall: new T.MeshLambertMaterial({ color: 0xf7f4ef }),
 slab: new T.MeshLambertMaterial({ color: 0xe3e3e8 }),
@@ -8845,7 +9042,7 @@ segs.push({ x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2, t: clamp((it.thick ?? WA
 segs.forEach(seg => {
 const { solids, overs } = v3dCutWall(seg, openings);
 solids.forEach(s => {
-v3dWallSlicesUnderStairs({ ...s, t: seg.t, inner: !!seg.inner }, stairs, yBase, topY).forEach(slice => {
+v3dWallSlicesUnderStairs({ ...s, t: seg.t, inner: !!seg.inner }, stairs, yBase, topY, floorIndex).forEach(slice => {
 const m = v3dPartBox(T, slice.seg, seg.t, slice.y0, slice.y1, mats.wall);
 if(m) group.add(m);
 });
@@ -8980,7 +9177,7 @@ floors.forEach((f, idx) => {
 const g = new T.Group();
 g.position.y = idx * (V3D_WALL_H + V3D_SLAB_T);
 const up = (floors[idx + 1] && floors[idx + 1].items) ? floors[idx + 1].items.filter(it => it.type === 'room' && it.void) : [];
-v3dBuildFloor(T, g, f.items || [], up);
+v3dBuildFloor(T, g, f.items || [], up, idx);
 v3dFloorGroups[idx] = g;
 v3dRoot.add(g);
 });
@@ -9541,6 +9738,7 @@ const furnSel = !!(selectedItem && selectedItem.type === 'furn') && !isReadOnly;
 const stairSel = !!(selectedItem && selectedItem.type === 'stair') && !isReadOnly;
 if(el('furnSizeBtn')) el('furnSizeBtn').style.display = (furnSel || stairSel) ? '' : 'none';
 if(el('furnRotateBtn')) el('furnRotateBtn').style.display = (furnSel || stairSel) ? '' : 'none';
+if(el('stairWallBtn')) el('stairWallBtn').style.display = stairSel ? '' : 'none';
 if(opSel){
 if(el('editNameBtn')) el('editNameBtn').style.display = 'none';
 if(el('selectedColorLabel')) el('selectedColorLabel').style.display = 'none';
@@ -9562,6 +9760,35 @@ draw();
 if(el('dockAdd')) el('dockAdd').onclick = () => {
 if(isReadOnly){ showToast('閲覧専用です。「コピーして編集」をどうぞ'); return; }
 v2OpenSheet('addSheet');
+};
+
+if(el('stairWallBtn')) el('stairWallBtn').onclick = openStairWallEditor;
+if(el('stairWallCloseBtn')) el('stairWallCloseBtn').onclick = () => {
+el('stairWallModal').style.display = 'none';
+stairWallEditorKey = '';
+draw();
+};
+if(el('stairWallModal')) el('stairWallModal').onclick = e => {
+if(e.target.id !== 'stairWallModal') return;
+el('stairWallCloseBtn').click();
+};
+if(el('stairWallEditor')) el('stairWallEditor').onclick = e => {
+const cell = e.target.closest('[data-stair-wall-key]');
+if(cell){
+stairWallEditorKey = cell.dataset.stairWallKey;
+renderStairWallEditor();
+draw();
+return;
+}
+const modeButton = e.target.closest('[data-mode]');
+if(!modeButton || !stairWallEditorKey) return;
+pushHistory();
+if(modeButton.dataset.mode === 'auto') delete stairWallSegments[stairWallEditorKey];
+else stairWallSegments[stairWallEditorKey] = modeButton.dataset.mode;
+renderStairWallEditor();
+draw();
+scheduleAutoSave();
+showToast(`${modeButton.querySelector('b')?.textContent || '階段壁'}に変更`, 900);
 };
 if(el('dock3d')) el('dock3d').onclick = () => open3DViewer();
 if(el('v3dBackBtn')) el('v3dBackBtn').onclick = () => close3DViewer();

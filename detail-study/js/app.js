@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-site-v16";
+import { DetailScene3D } from "./scene3d.js?v=20260619-stair-half-v17";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -12,8 +12,9 @@ import {
   formatM2,
   formatTsubo,
   pxToMm,
-  mmToPx
-} from "./data.js";
+  mmToPx,
+  GRID_PX
+} from "./data.js?v=20260619-stair-half-v17";
 import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js";
 
 const state = {
@@ -272,11 +273,14 @@ async function loadCurrentLayout(force = false){
   try{
     state.plan = await loadLayout(id);
     state.design = loadDesign(id, force);
+    Object.keys(state.plan.stairWallSegments || {}).forEach((key) => {
+      if(state.design.stairWallSegments) delete state.design.stairWallSegments[key];
+    });
     seedFinishes(state.plan, state.design);
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v16`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v17`;
     saveDesign(false);
     renderPalette();
     render();
@@ -432,7 +436,13 @@ function renderSceneOnly(){
   if(!scene3d || !state.plan) return;
   scene3d.setState({
     plan: state.plan,
-    design: state.design,
+    design: {
+      ...state.design,
+      stairWallSegments: {
+        ...(state.plan?.stairWallSegments || {}),
+        ...(state.design?.stairWallSegments || {})
+      }
+    },
     floorMode: state.floorMode,
     layers: state.layers,
     selectedId: state.selectedId
@@ -1638,37 +1648,68 @@ function renderSelectedPanel(){
 
 function wallContactMode(contact){
   return state.design.stairWallSegments?.[contact.key]
+    || state.plan?.stairWallSegments?.[contact.key]
+    || state.design.stairWallSegments?.[contact.parentKey]
+    || state.plan?.stairWallSegments?.[contact.parentKey]
     || state.design.stairWallModes?.[contact.wall.id]
     || "auto";
 }
 
 function renderWallContactEditor(contact){
   const mode = wallContactMode(contact);
-  return `<div class="selectedHead"><div><b>階段接触区間</b><span>${escapeHtml(contact.stair.label || "階段")} / ${Math.round(pxToMm(contact.length))}mm</span></div></div>
-    <div class="selectedGrid">
-      <label>この区間<select id="stairWallMode">
-        <option value="auto" ${mode === "auto" ? "selected" : ""}>自動判定</option>
-        <option value="full" ${mode === "full" ? "selected" : ""}>通常壁（全面）</option>
-        <option value="upper" ${mode === "upper" ? "selected" : ""}>下を抜く（上だけ壁）</option>
-        <option value="lower" ${mode === "lower" ? "selected" : ""}>上を抜く（下だけ壁）</option>
-        <option value="none" ${mode === "none" ? "selected" : ""}>壁なし</option>
-      </select></label>
-      <label>設定単位<input type="text" value="階段との接触区間" disabled></label>
+  const family = stairContactFamily(contact);
+  const cells = family.map((item) => {
+    const itemMode = wallContactMode(item);
+    const selected = item.key === contact.key ? " selected" : "";
+    return `<button type="button" class="stairPreviewCell mode-${itemMode}${selected}" data-wall-segment="${escapeAttr(item.id)}" aria-label="${item.segmentIndex + 1}区間">
+      <span class="previewWall"></span><b>${item.segmentIndex + 1}</b>
+    </button>`;
+  }).join("");
+  const modeButton = (value, label, sub) => `<button type="button" class="stairModeButton mode-${value} ${mode === value ? "on" : ""}" data-wall-mode="${value}">
+    <b>${label}</b><span>${sub}</span>
+  </button>`;
+  return `<div class="selectedHead"><div><b>階段壁・半マス設定</b><span>${escapeHtml(contact.stair.label || "階段")} / 区間 ${contact.segmentIndex + 1}・約${Math.round(pxToMm(contact.length))}mm</span></div></div>
+    <div class="stairWallPreview">
+      <div class="stairPreviewSteps" aria-hidden="true">${family.map((_, index) => `<i style="height:${Math.round(20 + index * 52 / Math.max(1, family.length - 1))}%"></i>`).join("")}</div>
+      <div class="stairPreviewCells">${cells}</div>
+    </div>
+    <div class="stairPreviewHint">番号をタップして半マスごとに設定</div>
+    <div class="stairModeGrid">
+      ${modeButton("auto", "自動", "階段形状で判定")}
+      ${modeButton("full", "通常壁", "全面を残す")}
+      ${modeButton("upper", "下を抜く", "上だけ壁")}
+      ${modeButton("lower", "上を抜く", "下だけ壁")}
+      ${modeButton("none", "壁なし", "全面を消す")}
     </div>`;
 }
 
 function bindWallContactEditor(contact){
-  const input = document.getElementById("stairWallMode");
-  input?.addEventListener("change", () => {
-    pushHistory();
-    state.design.stairWallSegments ||= {};
-    if(input.value === "auto") delete state.design.stairWallSegments[contact.key];
-    else state.design.stairWallSegments[contact.key] = input.value;
-    saveDesign(false);
-    renderPlan();
-    renderSceneOnly();
-    toast(input.options[input.selectedIndex].textContent);
+  dom.selectedPanel.querySelectorAll("[data-wall-segment]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedId = button.dataset.wallSegment;
+      render();
+    });
   });
+  dom.selectedPanel.querySelectorAll("[data-wall-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      pushHistory();
+      state.design.stairWallSegments ||= {};
+      const value = button.dataset.wallMode;
+      if(value === "auto") delete state.design.stairWallSegments[contact.key];
+      else state.design.stairWallSegments[contact.key] = value;
+      saveDesign(false);
+      renderPlan();
+      renderSelectedPanel();
+      renderSceneOnly();
+      toast(button.querySelector("b")?.textContent || "階段壁を変更");
+    });
+  });
+}
+
+function stairContactFamily(contact){
+  return stairWallContacts(floorItems(state.plan, String(contact.floorIndex)))
+    .filter((item) => item.parentKey === contact.parentKey)
+    .sort((a, b) => a.segmentIndex - b.segmentIndex);
 }
 
 function stairWallContactKey(floorIndex, stair, horizontal, fixed, lo, hi){
@@ -1698,18 +1739,30 @@ function stairWallContacts(items){
       const hi = Math.min(wallHi, stairHi);
       if(hi - lo <= 0.5) return;
       const floorIndex = Number(wall.floorIndex ?? stair.floorIndex ?? state.floorMode ?? 0);
-      contacts.push({
-        key:stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi),
-        id:`wallContact:${stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi)}`,
-        wall,
-        stair,
-        horizontal,
-        fixed,
-        lo,
-        hi,
-        length:hi - lo,
-        floorIndex
-      });
+      const parentKey = stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
+      const segmentSize = GRID_PX / 2;
+      const segmentCount = Math.max(1, Math.ceil((hi - lo) / segmentSize));
+      for(let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++){
+        const segmentLo = lo + segmentIndex * segmentSize;
+        const segmentHi = Math.min(hi, segmentLo + segmentSize);
+        if(segmentHi - segmentLo <= 0.5) continue;
+        const key = `${parentKey}:half:${segmentIndex}`;
+        contacts.push({
+          key,
+          parentKey,
+          id:`wallContact:${key}`,
+          wall,
+          stair,
+          horizontal,
+          fixed,
+          lo:segmentLo,
+          hi:segmentHi,
+          length:segmentHi - segmentLo,
+          segmentIndex,
+          segmentCount,
+          floorIndex
+        });
+      }
     });
   });
   return contacts;

@@ -363,6 +363,72 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .stairWallContact{ pointer-events:none; touch-action:none; }
 .stairWallContact.selected{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
 .stairWallContactGroup.selected .stairWallContact{ stroke:#ff2d55 !important; stroke-width:13; stroke-opacity:.9; }
+.stairWallPreview{
+  position:relative;
+  height:138px;
+  overflow:hidden;
+  padding:12px 10px 8px;
+  border:1px solid rgba(40,111,214,.22);
+  border-radius:12px;
+  background:linear-gradient(180deg,#f7fbff,#edf2f7);
+}
+.stairPreviewSteps{
+  position:absolute;
+  inset:18px 12px 27px;
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  pointer-events:none;
+}
+.stairPreviewSteps i{
+  flex:1;
+  min-width:0;
+  border:1px solid rgba(113,91,59,.35);
+  border-bottom:0;
+  background:linear-gradient(135deg,#e6d5bc,#cdb48e);
+}
+.stairPreviewCells{
+  position:absolute;
+  left:10px;
+  right:10px;
+  bottom:8px;
+  display:flex;
+  gap:3px;
+}
+.stairPreviewCell{
+  position:relative;
+  flex:1;
+  min-width:28px;
+  height:42px;
+  overflow:hidden;
+  border:2px solid transparent;
+  border-radius:7px;
+  background:rgba(255,255,255,.9);
+}
+.stairPreviewCell.selected{ border-color:#ff2d55; box-shadow:0 0 0 2px rgba(255,45,85,.16); }
+.stairPreviewCell .previewWall{ position:absolute; inset:5px 4px 12px; border-radius:2px; background:#1687d9; }
+.stairPreviewCell b{ position:absolute; left:0; right:0; bottom:1px; font-size:9px; font-weight:950; }
+.stairPreviewCell.mode-full .previewWall{ background:#34a853; }
+.stairPreviewCell.mode-upper .previewWall{ top:4px; bottom:24px; background:#7b61ff; }
+.stairPreviewCell.mode-lower .previewWall{ top:18px; bottom:11px; background:#ff9500; }
+.stairPreviewCell.mode-none .previewWall{ background:repeating-linear-gradient(135deg,#ff3b30 0 3px,transparent 3px 6px); }
+.stairPreviewHint{ margin:6px 0 9px; color:var(--muted); font-size:10px; font-weight:850; text-align:center; }
+.stairModeGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.stairModeButton{
+  min-height:48px;
+  padding:7px 8px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  color:#273026;
+  background:#f5f6f3;
+  text-align:left;
+}
+.stairModeButton b,.stairModeButton span{ display:block; }
+.stairModeButton b{ font-size:11px; font-weight:950; }
+.stairModeButton span{ margin-top:2px; color:var(--muted); font-size:9px; font-weight:800; }
+.stairModeButton.on{ color:#fff; border-color:transparent; background:var(--blue); }
+.stairModeButton.on span{ color:rgba(255,255,255,.82); }
+.stairModeButton.mode-none{ grid-column:1 / -1; }
 .planItem:hover{ opacity:.86; }
 .planItem.guideItem{ opacity:.42; }
 .planItem.guideItem rect{ stroke-dasharray:5 4; }

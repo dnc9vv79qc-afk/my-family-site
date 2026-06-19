@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds } from "./data.js";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-stair-half-v17";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -1253,8 +1253,24 @@ function stairWallOverrides3d(wall, stairs, floorIndex, storedModes, legacyWallM
     const lo = Math.max(wallLo, stairLo);
     const hi = Math.min(wallHi, stairHi);
     if(hi - lo <= 0.5) return;
-    const key = stairWallContactKey3d(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
-    out.push({ stairId:stair.id, lo, hi, mode:storedModes[key] || legacyWallModes[wall.id] || "auto", key });
+    const parentKey = stairWallContactKey3d(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
+    const segmentSize = GRID_PX / 2;
+    const segmentCount = Math.max(1, Math.ceil((hi - lo) / segmentSize));
+    for(let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++){
+      const segmentLo = lo + segmentIndex * segmentSize;
+      const segmentHi = Math.min(hi, segmentLo + segmentSize);
+      if(segmentHi - segmentLo <= 0.5) continue;
+      const key = `${parentKey}:half:${segmentIndex}`;
+      out.push({
+        stairId:stair.id,
+        lo:segmentLo,
+        hi:segmentHi,
+        mode:storedModes[key] || storedModes[parentKey] || legacyWallModes[wall.id] || "auto",
+        key,
+        parentKey,
+        segmentIndex
+      });
+    }
   });
   return out;
 }
@@ -1271,15 +1287,8 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM, overrides = []){
   const half = Math.max(0.5, mToPx(thicknessM) / 2);
   const profiles = [];
   (stairs || []).forEach((stair) => {
-    const override = overrides.find((item) => item.stairId === stair.id);
-    const wallMode = override?.mode || "auto";
-    if(wallMode === "full") return;
-    if(wallMode === "none"){
-      const lo = Math.max(axisLo, override.lo);
-      const hi = Math.min(axisHi, override.hi);
-      if(hi - lo > 0.5) profiles.push({ lo, hi, mode:"none", y:bottom });
-      return;
-    }
+    const stairOverrides = overrides.filter((item) => item.stairId === stair.id);
+    if(!stairOverrides.length) return;
     const swap = stair.dir === 1 || stair.dir === 3;
     const localW = swap ? stair.h : stair.w;
     const localD = swap ? stair.w : stair.h;
@@ -1321,14 +1330,29 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM, overrides = []){
       const hi = Math.min(axisHi, Math.max(...along));
       if(hi - lo <= 0.5) return;
       const treadTop = bottom + stepRise * (index + 1);
-      const mode = wallMode === "upper" || wallMode === "lower" || wallMode === "none"
-        ? wallMode
-        : (perimeter ? "upper" : "lower");
-      profiles.push(mode === "none"
-        ? { lo, hi, mode:"none", y:bottom }
-        : mode === "upper"
-        ? { lo, hi, mode:"upper", y:Math.min(top, treadTop + 0.005) }
-        : { lo, hi, mode:"lower", y:Math.min(top, treadTop - board - 0.005) });
+      const cuts = [lo, hi];
+      stairOverrides.forEach((override) => {
+        if(override.hi <= lo || override.lo >= hi) return;
+        cuts.push(Math.max(lo, override.lo), Math.min(hi, override.hi));
+      });
+      cuts.sort((a, b) => a - b);
+      const unique = cuts.filter((value, cutIndex) => cutIndex === 0 || Math.abs(value - cuts[cutIndex - 1]) > 0.2);
+      for(let cutIndex = 0; cutIndex < unique.length - 1; cutIndex++){
+        const partLo = unique[cutIndex];
+        const partHi = unique[cutIndex + 1];
+        if(partHi - partLo <= 0.5) continue;
+        const mid = (partLo + partHi) / 2;
+        const wallMode = stairOverrides.find((override) => mid >= override.lo - 0.1 && mid <= override.hi + 0.1)?.mode || "auto";
+        if(wallMode === "full") continue;
+        const mode = wallMode === "upper" || wallMode === "lower" || wallMode === "none"
+          ? wallMode
+          : (perimeter ? "upper" : "lower");
+        profiles.push(mode === "none"
+          ? { lo:partLo, hi:partHi, mode:"none", y:bottom }
+          : mode === "upper"
+          ? { lo:partLo, hi:partHi, mode:"upper", y:Math.min(top, treadTop + 0.005) }
+          : { lo:partLo, hi:partHi, mode:"lower", y:Math.min(top, treadTop - board - 0.005) });
+      }
     });
   });
   if(!profiles.length) return [{ seg, y0:bottom, y1:top }];
