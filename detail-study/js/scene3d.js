@@ -490,9 +490,15 @@ export class DetailScene3D {
       const stairs = existingFurniture.filter(isStructuralStair3d);
       wallLines.forEach((wall) => {
         const thickness = Math.max(WALL_T_M, pxToM(wall.thick || 6));
-        const stairWallMode = design.stairWallModes?.[wall.id] || "auto";
+        const stairWallOverrides = stairWallOverrides3d(
+          wall,
+          stairs,
+          floorIndex,
+          design.stairWallSegments || {},
+          design.stairWallModes || {}
+        );
         splitByOpenings(wall, doorOpenings).forEach((solid) => {
-          stairWallSlices3d(solid, stairs, yBase, thickness, stairWallMode).forEach((slice) => {
+          stairWallSlices3d(solid, stairs, yBase, thickness, stairWallOverrides).forEach((slice) => {
             this.addWallSlice(slice.seg, slice.y0, slice.y1, wallMat, thickness);
           });
         });
@@ -1185,12 +1191,40 @@ function clipPolyHalfPlane3d(poly, axis, limit, keepGreater){
   return out;
 }
 
-function stairWallSlices3d(seg, stairs, yBase, thicknessM, wallMode = "auto"){
+function stairWallContactKey3d(floorIndex, stair, horizontal, fixed, lo, hi){
+  const q = (value) => Math.round(Number(value || 0) * 10);
+  return `${floorIndex}:${stair.id}:${horizontal ? "h" : "v"}:${q(fixed)}:${q(lo)}:${q(hi)}`;
+}
+
+function stairWallOverrides3d(wall, stairs, floorIndex, storedModes, legacyWallModes){
+  const horizontal = Math.abs(wall.y2 - wall.y1) < 0.1;
+  const vertical = Math.abs(wall.x2 - wall.x1) < 0.1;
+  if(!horizontal && !vertical) return [];
+  const wallLo = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
+  const wallHi = horizontal ? Math.max(wall.x1, wall.x2) : Math.max(wall.y1, wall.y2);
+  const fixed = horizontal ? wall.y1 : wall.x1;
+  const half = Math.max(2, Number(wall.thick || 6) / 2);
+  const out = [];
+  (stairs || []).forEach((stair) => {
+    const crossLo = horizontal ? stair.y : stair.x;
+    const crossHi = horizontal ? stair.y + stair.h : stair.x + stair.w;
+    if(fixed < crossLo - half || fixed > crossHi + half) return;
+    const stairLo = horizontal ? stair.x : stair.y;
+    const stairHi = horizontal ? stair.x + stair.w : stair.y + stair.h;
+    const lo = Math.max(wallLo, stairLo);
+    const hi = Math.min(wallHi, stairHi);
+    if(hi - lo <= 0.5) return;
+    const key = stairWallContactKey3d(floorIndex, stair, horizontal, fixed, stairLo, stairHi);
+    out.push({ stairId:stair.id, lo, hi, mode:storedModes[key] || legacyWallModes[wall.id] || "auto", key });
+  });
+  return out;
+}
+
+function stairWallSlices3d(seg, stairs, yBase, thicknessM, overrides = []){
   const horizontal = Math.abs(seg.y2 - seg.y1) < 0.1;
   const vertical = Math.abs(seg.x2 - seg.x1) < 0.1;
   const bottom = yBase + SLAB_H_M;
   const top = bottom + WALL_H_M;
-  if(wallMode === "full") return [{ seg, y0:bottom, y1:top }];
   if(!horizontal && !vertical) return [{ seg, y0:bottom, y1:top }];
   const axisLo = horizontal ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
   const axisHi = horizontal ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
@@ -1198,6 +1232,15 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM, wallMode = "auto"){
   const half = Math.max(0.5, mToPx(thicknessM) / 2);
   const profiles = [];
   (stairs || []).forEach((stair) => {
+    const override = overrides.find((item) => item.stairId === stair.id);
+    const wallMode = override?.mode || "auto";
+    if(wallMode === "full") return;
+    if(wallMode === "none"){
+      const lo = Math.max(axisLo, override.lo);
+      const hi = Math.min(axisHi, override.hi);
+      if(hi - lo > 0.5) profiles.push({ lo, hi, mode:"none", y:bottom });
+      return;
+    }
     const swap = stair.dir === 1 || stair.dir === 3;
     const localW = swap ? stair.h : stair.w;
     const localD = swap ? stair.w : stair.h;
@@ -1239,10 +1282,12 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM, wallMode = "auto"){
       const hi = Math.min(axisHi, Math.max(...along));
       if(hi - lo <= 0.5) return;
       const treadTop = bottom + stepRise * (index + 1);
-      const mode = wallMode === "upper" || wallMode === "lower"
+      const mode = wallMode === "upper" || wallMode === "lower" || wallMode === "none"
         ? wallMode
         : (perimeter ? "upper" : "lower");
-      profiles.push(mode === "upper"
+      profiles.push(mode === "none"
+        ? { lo, hi, mode:"none", y:bottom }
+        : mode === "upper"
         ? { lo, hi, mode:"upper", y:Math.min(top, treadTop + 0.005) }
         : { lo, hi, mode:"lower", y:Math.min(top, treadTop - board - 0.005) });
     });
@@ -1261,6 +1306,7 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM, wallMode = "auto"){
     let y0 = bottom;
     let y1 = top;
     if(hits.length){
+      if(hits.some((profile) => profile.mode === "none")) continue;
       const upper = hits.filter((profile) => profile.mode === "upper");
       const lower = hits.filter((profile) => profile.mode === "lower");
       if(upper.length) y0 = Math.max(...upper.map((profile) => profile.y));

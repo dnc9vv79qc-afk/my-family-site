@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-detail-wall-v8";
+import { DetailScene3D } from "./scene3d.js?v=20260619-detail-controls-v10";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -36,6 +36,7 @@ const state = {
   planView: null,
   planPointers: new Map(),
   planPinch: null,
+  planPan: null,
   layers: {
     site: true,
     rooms: true,
@@ -252,7 +253,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v8`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v10`;
     saveDesign(false);
     renderPalette();
     render();
@@ -286,7 +287,7 @@ function mergeDesign(base, saved){
     finishes: { ...base.finishes, ...(saved.finishes || {}) },
     customItems: Array.isArray(saved.customItems) ? saved.customItems.map(normalizeCustomItem) : [],
     customModels: Array.isArray(saved.customModels) ? saved.customModels.map(normalizeCustomModel) : [],
-    stairWallModes: saved.stairWallModes && typeof saved.stairWallModes === "object" ? { ...saved.stairWallModes } : {},
+    stairWallSegments: saved.stairWallSegments && typeof saved.stairWallSegments === "object" ? { ...saved.stairWallSegments } : {},
     notes: Array.isArray(saved.notes) ? saved.notes : base.notes
   };
   return merged;
@@ -995,8 +996,21 @@ function onPlanWheel(event){
 
 function onPlanZoomPointerDown(event){
   state.planPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if(state.planPointers.size === 1 && state.dockMode === "browse"){
+    planViewport(displayBounds());
+    state.planPan = {
+      pointerId:event.pointerId,
+      clientX:event.clientX,
+      clientY:event.clientY,
+      cx:state.planView?.cx,
+      cy:state.planView?.cy,
+      moved:false
+    };
+    try{ dom.planSvg.setPointerCapture?.(event.pointerId); }catch(_){}
+  }
   if(state.planPointers.size === 2){
     state.drag = null;
+    state.planPan = null;
     document.body.classList.remove("draggingPlan");
     const points = [...state.planPointers.values()];
     state.planPinch = {
@@ -1009,6 +1023,21 @@ function onPlanZoomPointerDown(event){
 function onPlanZoomPointerMove(event){
   if(!state.planPointers.has(event.pointerId)) return;
   state.planPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if(state.planPan && state.planPointers.size === 1 && state.planPan.pointerId === event.pointerId){
+    event.preventDefault();
+    const bounds = displayBounds();
+    const viewport = planViewport(bounds);
+    const rect = dom.planSvg.getBoundingClientRect();
+    if(rect.width > 0 && rect.height > 0){
+      const dx = event.clientX - state.planPan.clientX;
+      const dy = event.clientY - state.planPan.clientY;
+      state.planView.cx = state.planPan.cx - dx * viewport.width / rect.width;
+      state.planView.cy = state.planPan.cy - dy * viewport.height / rect.height;
+      state.planPan.moved ||= Math.hypot(dx, dy) > 3;
+      renderPlan();
+    }
+    return;
+  }
   if(!state.planPinch || state.planPointers.size < 2) return;
   event.preventDefault();
   const points = [...state.planPointers.values()];
@@ -1027,6 +1056,10 @@ function onPlanZoomPointerMove(event){
 function onPlanZoomPointerUp(event){
   state.planPointers.delete(event.pointerId);
   if(state.planPointers.size < 2) state.planPinch = null;
+  if(state.planPan?.pointerId === event.pointerId){
+    try{ dom.planSvg.releasePointerCapture?.(event.pointerId); }catch(_){}
+    state.planPan = null;
+  }
 }
 
 function snap(value){
@@ -1065,6 +1098,7 @@ function renderPlan(){
       const selected = state.selectedId === wall.id ? " selected" : "";
       chunks.push(`<line class="planItem${selected}" data-id="${wall.id}" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`);
     });
+    stairWallContacts(items).forEach((contact) => chunks.push(renderStairWallContactSvg(contact)));
   }
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
@@ -1439,39 +1473,101 @@ function renderSelectedPanel(){
   }else if(selected.source === "custom"){
     dom.selectedPanel.innerHTML = renderCustomEditor(selected.item);
     bindCustomEditor(selected.item);
-  }else if(selected.item.type === "wallLine"){
-    dom.selectedPanel.innerHTML = renderWallEditor(selected.item);
-    bindWallEditor(selected.item);
+  }else if(selected.source === "wallContact"){
+    dom.selectedPanel.innerHTML = renderWallContactEditor(selected.item);
+    bindWallContactEditor(selected.item);
   }else{
     dom.selectedPanel.innerHTML = `<div class="selectedHead"><div><b>${escapeHtml(selected.item.label || "既存パーツ")}</b><span>元間取りの要素</span></div></div>`;
   }
 }
 
-function renderWallEditor(wall){
-  const mode = state.design.stairWallModes?.[wall.id] || "auto";
-  return `<div class="selectedHead"><div><b>内壁</b><span>階段と接する部分の残し方</span></div></div>
+function wallContactMode(contact){
+  return state.design.stairWallSegments?.[contact.key]
+    || state.design.stairWallModes?.[contact.wall.id]
+    || "auto";
+}
+
+function renderWallContactEditor(contact){
+  const mode = wallContactMode(contact);
+  return `<div class="selectedHead"><div><b>階段接触区間</b><span>${escapeHtml(contact.stair.label || "階段")} / ${Math.round(pxToMm(contact.length))}mm</span></div></div>
     <div class="selectedGrid">
-      <label>階段部分<select id="stairWallMode">
+      <label>この区間<select id="stairWallMode">
         <option value="auto" ${mode === "auto" ? "selected" : ""}>自動判定</option>
         <option value="full" ${mode === "full" ? "selected" : ""}>通常壁（全面）</option>
         <option value="upper" ${mode === "upper" ? "selected" : ""}>下を抜く（上だけ壁）</option>
         <option value="lower" ${mode === "lower" ? "selected" : ""}>上を抜く（下だけ壁）</option>
+        <option value="none" ${mode === "none" ? "selected" : ""}>壁なし</option>
       </select></label>
-      <label>壁厚<input type="number" value="${Math.round(wall.thick || 6)}" disabled></label>
+      <label>設定単位<input type="text" value="階段との接触区間" disabled></label>
     </div>`;
 }
 
-function bindWallEditor(wall){
+function bindWallContactEditor(contact){
   const input = document.getElementById("stairWallMode");
   input?.addEventListener("change", () => {
     pushHistory();
-    state.design.stairWallModes ||= {};
-    if(input.value === "auto") delete state.design.stairWallModes[wall.id];
-    else state.design.stairWallModes[wall.id] = input.value;
+    state.design.stairWallSegments ||= {};
+    if(input.value === "auto") delete state.design.stairWallSegments[contact.key];
+    else state.design.stairWallSegments[contact.key] = input.value;
     saveDesign(false);
+    renderPlan();
     renderSceneOnly();
     toast(input.options[input.selectedIndex].textContent);
   });
+}
+
+function stairWallContactKey(floorIndex, stair, horizontal, fixed, lo, hi){
+  const q = (value) => Math.round(Number(value || 0) * 10);
+  return `${floorIndex}:${stair.id}:${horizontal ? "h" : "v"}:${q(fixed)}:${q(lo)}:${q(hi)}`;
+}
+
+function stairWallContacts(items){
+  const walls = items.filter((item) => item.type === "wallLine");
+  const stairs = items.filter(isStructuralStair);
+  const contacts = [];
+  walls.forEach((wall) => {
+    const horizontal = Math.abs(wall.y2 - wall.y1) < 0.1;
+    const vertical = Math.abs(wall.x2 - wall.x1) < 0.1;
+    if(!horizontal && !vertical) return;
+    const wallLo = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
+    const wallHi = horizontal ? Math.max(wall.x1, wall.x2) : Math.max(wall.y1, wall.y2);
+    const fixed = horizontal ? wall.y1 : wall.x1;
+    const half = Math.max(2, Number(wall.thick || 6) / 2);
+    stairs.forEach((stair) => {
+      const crossLo = horizontal ? stair.y : stair.x;
+      const crossHi = horizontal ? stair.y + stair.h : stair.x + stair.w;
+      if(fixed < crossLo - half || fixed > crossHi + half) return;
+      const stairLo = horizontal ? stair.x : stair.y;
+      const stairHi = horizontal ? stair.x + stair.w : stair.y + stair.h;
+      const lo = Math.max(wallLo, stairLo);
+      const hi = Math.min(wallHi, stairHi);
+      if(hi - lo <= 0.5) return;
+      const floorIndex = Number(wall.floorIndex ?? stair.floorIndex ?? state.floorMode ?? 0);
+      contacts.push({
+        key:stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi),
+        id:`wallContact:${stairWallContactKey(floorIndex, stair, horizontal, fixed, stairLo, stairHi)}`,
+        wall,
+        stair,
+        horizontal,
+        fixed,
+        lo,
+        hi,
+        length:hi - lo,
+        floorIndex
+      });
+    });
+  });
+  return contacts;
+}
+
+function renderStairWallContactSvg(contact){
+  const mode = wallContactMode(contact);
+  const selected = state.selectedId === contact.id ? " selected" : "";
+  const color = mode === "none" ? "#ff3b30" : mode === "upper" ? "#7b61ff" : mode === "lower" ? "#ff9500" : mode === "full" ? "#34a853" : "#1687d9";
+  const attrs = contact.horizontal
+    ? `x1="${contact.lo}" y1="${contact.fixed}" x2="${contact.hi}" y2="${contact.fixed}"`
+    : `x1="${contact.fixed}" y1="${contact.lo}" x2="${contact.fixed}" y2="${contact.hi}"`;
+  return `<line class="stairWallContact${selected}" data-id="${contact.id}" ${attrs} stroke="${color}" stroke-width="9" stroke-opacity=".66" stroke-linecap="round"/>`;
 }
 
 function renderRoomEditor(room){
@@ -2174,6 +2270,10 @@ function visibleCustomItems(){
 
 function findSelected(){
   if(!state.selectedId || !state.plan) return null;
+  if(state.selectedId.startsWith("wallContact:")){
+    const contact = stairWallContacts(floorItems(state.plan, state.floorMode)).find((item) => item.id === state.selectedId);
+    if(contact) return { source:"wallContact", item:contact };
+  }
   for(const [floorIndex, floor] of state.plan.floors.entries()){
     const found = (floor.items || []).find((item) => item.id === state.selectedId);
     if(found) return { source: found.type === "room" ? "room" : "plan", item: { ...found, floorIndex } };

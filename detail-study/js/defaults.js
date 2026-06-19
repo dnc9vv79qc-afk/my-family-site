@@ -74,7 +74,7 @@ export function createDefaultDesign(layoutId){
     finishes: {},
     customItems: [],
     customModels: [],
-    stairWallModes: {},
+    stairWallSegments: {},
     notes: [
       { id: uid(), category:"外構", text:"駐車2台と玄関アプローチの幅を確認", done:false },
       { id: uid(), category:"家具", text:"LDKのソファ・ダイニング間隔を確認", done:false },
