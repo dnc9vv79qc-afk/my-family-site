@@ -54,6 +54,38 @@ export async function loadLayout(layoutId = DEFAULT_LAYOUT_ID){
   return normalizePlan(data, id, doc.updateTime || data.updatedAt || "");
 }
 
+export async function loadDetailDesign(layoutId = DEFAULT_LAYOUT_ID){
+  const encoded = encodeURIComponent(layoutId || DEFAULT_LAYOUT_ID);
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/layouts/${encoded}?key=${API_KEY}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if(response.status === 404) return null;
+  if(!response.ok) throw new Error(`詳細データを取得できませんでした (${response.status})`);
+  const doc = await response.json();
+  const data = firestoreValueToJson({ mapValue: { fields: doc.fields || {} } });
+  if(typeof data.detailDesignPayload !== "string") return null;
+  try{
+    return JSON.parse(data.detailDesignPayload);
+  }catch(_){
+    return null;
+  }
+}
+
+export async function saveDetailDesign(layoutId, design){
+  const encoded = encodeURIComponent(layoutId || DEFAULT_LAYOUT_ID);
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/layouts/${encoded}?updateMask.fieldPaths=detailDesignPayload&updateMask.fieldPaths=detailDesignUpdatedAt&key=${API_KEY}`;
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fields: {
+        detailDesignPayload: { stringValue: JSON.stringify(design) },
+        detailDesignUpdatedAt: { timestampValue: new Date().toISOString() }
+      }
+    })
+  });
+  if(!response.ok) throw new Error(`詳細データを共有保存できませんでした (${response.status})`);
+}
+
 export function normalizePlan(data, id, updateTime = ""){
   const rawFloors = Array.isArray(data.floors) && data.floors.length
     ? data.floors

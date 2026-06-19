@@ -1087,16 +1087,21 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   font-weight:900;
 }
 .builderPartList{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  display:flex;
   gap:7px;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  scroll-snap-type:x proximity;
+  padding:1px 1px 5px;
 }
 .builderPart{
+  flex:0 0 min(156px,44vw);
   display:flex;
   align-items:center;
   gap:7px;
   padding:7px 8px;
   text-align:left;
+  scroll-snap-align:start;
 }
 .builderPart.on{ background:#eaf0fb; border-color:rgba(40,111,214,.40); }
 .builderPart span{

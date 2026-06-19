@@ -1,8 +1,10 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-input-controls-v19";
+import { DetailScene3D } from "./scene3d.js?v=20260619-shared-parts-v20";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
   loadLayout,
+  loadDetailDesign,
+  saveDetailDesign,
   floorBounds,
   floorItems,
   roomsForFloor,
@@ -13,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-input-controls-v19";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-input-controls-v19";
+} from "./data.js?v=20260619-shared-parts-v20";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-shared-parts-v20";
 
 const state = {
   plan: null,
@@ -54,6 +56,8 @@ const state = {
 const dom = {};
 let scene3d = null;
 let builder3d = null;
+let cloudSaveTimer = 0;
+let cloudSaveRevision = 0;
 let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", init);
@@ -280,13 +284,13 @@ async function loadCurrentLayout(force = false){
   dom.layoutMeta.textContent = `ID ${id} を読み込み中`;
   try{
     state.plan = await loadLayout(id);
-    state.design = loadDesign(id, force);
+    state.design = await loadDesign(id, force);
     state.design.stairWallSegments = {};
     seedFinishes(state.plan, state.design);
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 固定間取り / 06-19 v19`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 共有詳細データ / 06-19 v20`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
@@ -298,19 +302,51 @@ async function loadCurrentLayout(force = false){
   }
 }
 
-function loadDesign(layoutId, force){
+async function loadDesign(layoutId, force){
+  let local = null;
   if(!force){
     try{
       const raw = localStorage.getItem(storageKey(layoutId));
-      if(raw){
-        const saved = JSON.parse(raw);
-        if(saved && saved.version === 1) return mergeDesign(createDefaultDesign(layoutId), saved);
-      }
+      if(raw) local = JSON.parse(raw);
     }catch(error){
       console.warn(error);
     }
   }
+  try{
+    const shared = await loadDetailDesign(layoutId);
+    if(shared?.version === 1){
+      const migrated = local?.version === 1 ? mergeLocalAndShared(local, shared) : shared;
+      return mergeDesign(createDefaultDesign(layoutId), migrated);
+    }
+  }catch(error){
+    console.warn(error);
+    toast("共有データを取得できないため、この端末のデータを表示します");
+  }
+  if(local?.version === 1) return mergeDesign(createDefaultDesign(layoutId), local);
   return createDefaultDesign(layoutId);
+}
+
+function mergeLocalAndShared(local, shared){
+  return {
+    ...local,
+    ...shared,
+    exterior: { ...(local.exterior || {}), ...(shared.exterior || {}) },
+    finishes: { ...(local.finishes || {}), ...(shared.finishes || {}) },
+    customItems: mergeById(local.customItems, shared.customItems),
+    customModels: mergeById(local.customModels, shared.customModels),
+    notes: mergeById(local.notes, shared.notes)
+  };
+}
+
+function mergeById(localItems, sharedItems){
+  const merged = new Map();
+  (Array.isArray(localItems) ? localItems : []).forEach((item) => {
+    if(item?.id) merged.set(item.id, item);
+  });
+  (Array.isArray(sharedItems) ? sharedItems : []).forEach((item) => {
+    if(item?.id) merged.set(item.id, item);
+  });
+  return [...merged.values()];
 }
 
 function mergeDesign(base, saved){
@@ -383,7 +419,24 @@ function storageKey(layoutId){
 function saveDesign(showToast = true){
   if(!state.plan || !state.design) return;
   localStorage.setItem(storageKey(state.plan.id), JSON.stringify(state.design));
-  if(showToast) toast("保存しました");
+  scheduleCloudSave(showToast);
+}
+
+function scheduleCloudSave(showToast){
+  const revision = ++cloudSaveRevision;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = window.setTimeout(async () => {
+    if(!state.plan || !state.design || revision !== cloudSaveRevision) return;
+    const layoutId = state.plan.id;
+    const snapshot = JSON.parse(JSON.stringify(state.design));
+    try{
+      await saveDetailDesign(layoutId, snapshot);
+      if(showToast) toast("共有保存しました");
+    }catch(error){
+      console.warn(error);
+      if(showToast) toast("端末には保存しましたが、共有保存に失敗しました");
+    }
+  }, showToast ? 0 : 600);
 }
 
 function historySnapshot(){
