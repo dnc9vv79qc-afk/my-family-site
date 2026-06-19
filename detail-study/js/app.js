@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-stair-plan-v6";
+import { DetailScene3D } from "./scene3d.js?v=20260619-detail-wall-v8";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -32,6 +32,10 @@ const state = {
   nudgeUi: { x: null, y: null },
   builder: null,
   siteSettingsTab: "position",
+  pendingAddKind: "",
+  planView: null,
+  planPointers: new Map(),
+  planPinch: null,
   layers: {
     site: true,
     rooms: true,
@@ -91,9 +95,10 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","exteriorPalette",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
+    "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickAddCancelBtn","quickAddConfirmBtn",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderKeepRatio","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
@@ -126,6 +131,7 @@ function bindEvents(){
     if(!button) return;
     state.floorMode = (scene3d?.isWalkMode() && button.dataset.floor === "all") ? "0" : button.dataset.floor;
     state.selectedId = null;
+    state.planView = null;
     render();
   });
   dom.layerToggles.addEventListener("change", (event) => {
@@ -136,10 +142,12 @@ function bindEvents(){
   });
   dom.centerPlanBtn.addEventListener("click", () => {
     state.view = "plan";
-    state.floorMode = "0";
+    state.planView = null;
     state.mobilePanelOpen = false;
     render();
   });
+  dom.zoomInBtn?.addEventListener("click", () => zoomPlan(1.25));
+  dom.zoomOutBtn?.addEventListener("click", () => zoomPlan(0.8));
   dom.clearSelectionBtn.addEventListener("click", () => {
     state.selectedId = null;
     state.mobilePanelOpen = false;
@@ -188,18 +196,26 @@ function bindEvents(){
     const target = event.target.closest("[data-id]");
     if(!target) return;
     state.selectedId = target.dataset.id;
-    state.mobilePanelOpen = false;
+    state.mobilePanelOpen = true;
+    state.dockMode = "select";
     render();
   });
   dom.planSvg.addEventListener("pointerdown", onPlanPointerDown);
+  dom.planSvg.addEventListener("pointerdown", onPlanZoomPointerDown);
+  dom.planSvg.addEventListener("pointermove", onPlanZoomPointerMove);
+  dom.planSvg.addEventListener("pointerup", onPlanZoomPointerUp);
+  dom.planSvg.addEventListener("pointercancel", onPlanZoomPointerUp);
+  dom.planSvg.addEventListener("wheel", onPlanWheel, { passive:false });
   dom.planNudge.addEventListener("click", onPlanNudgeClick);
   dom.planNudge.addEventListener("pointerdown", onPlanNudgePointerDown);
   window.addEventListener("pointermove", onPlanPointerMove);
   window.addEventListener("pointermove", onNudgePointerMove);
   window.addEventListener("pointerup", onPlanPointerUp);
   window.addEventListener("pointerup", onNudgePointerUp);
+  window.addEventListener("pointerup", onPlanZoomPointerUp);
   window.addEventListener("pointercancel", onPlanPointerUp);
   window.addEventListener("pointercancel", onNudgePointerUp);
+  window.addEventListener("pointercancel", onPlanZoomPointerUp);
   dom.addNoteBtn.addEventListener("click", addNote);
   dom.noteInput.addEventListener("keydown", (event) => {
     if(event.key === "Enter") addNote();
@@ -211,6 +227,16 @@ function bindEvents(){
   dom.objectBuilder?.addEventListener("click", onObjectBuilderClick);
   dom.objectBuilder?.addEventListener("input", onObjectBuilderInput);
   dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
+  dom.quickAddCancelBtn?.addEventListener("click", closeQuickAdd);
+  dom.quickAddConfirmBtn?.addEventListener("click", confirmQuickAdd);
+  [dom.quickAddW, dom.quickAddD, dom.quickAddH, dom.quickAddGl].forEach((input) => {
+    input?.addEventListener("keydown", (event) => {
+      if(event.key === "Enter") confirmQuickAdd();
+    });
+  });
+  dom.quickAddModal?.addEventListener("click", (event) => {
+    if(event.target === dom.quickAddModal) closeQuickAdd();
+  });
   [dom.builderOverallW, dom.builderOverallD, dom.builderOverallH].forEach((input) => {
     input?.addEventListener("change", () => resizeBuilderModel(input));
   });
@@ -224,8 +250,9 @@ async function loadCurrentLayout(force = false){
     state.design = loadDesign(id, force);
     seedFinishes(state.plan, state.design);
     state.floorMode = String(state.plan.activeFloor || 0);
+    state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-18b`;
+    dom.layoutMeta.textContent = `${state.plan.title} / ${id} / 06-19 v8`;
     saveDesign(false);
     renderPalette();
     render();
@@ -259,6 +286,7 @@ function mergeDesign(base, saved){
     finishes: { ...base.finishes, ...(saved.finishes || {}) },
     customItems: Array.isArray(saved.customItems) ? saved.customItems.map(normalizeCustomItem) : [],
     customModels: Array.isArray(saved.customModels) ? saved.customModels.map(normalizeCustomModel) : [],
+    stairWallModes: saved.stairWallModes && typeof saved.stairWallModes === "object" ? { ...saved.stairWallModes } : {},
     notes: Array.isArray(saved.notes) ? saved.notes : base.notes
   };
   return merged;
@@ -639,7 +667,7 @@ function renderMetrics(){
   dom.metricStrip.innerHTML = [
     `<span>${formatM2(m2)}</span>`,
     `<span>${formatTsubo(m2)}</span>`,
-    `<span>部屋 ${rooms.length}</span>`,
+    `<span>部屋 ${groupRooms(rooms).length}</span>`,
     `<span>窓/建具 ${openings.length}</span>`,
     `<span>家具 ${detailedFurnitureCount + guideFurnitureCount}</span>`
   ].join("");
@@ -667,7 +695,7 @@ function renderPalette(){
       }
       const button = event.target.closest("button[data-kind]");
       if(!button) return;
-      addCustomItem(button.dataset.kind);
+      openQuickAdd(button.dataset.kind);
     };
   });
 }
@@ -928,6 +956,79 @@ function svgPoint(event){
   return { x: p.x, y: p.y };
 }
 
+function planViewport(bounds = displayBounds()){
+  if(!state.planView){
+    state.planView = {
+      cx: bounds.minX + bounds.width / 2,
+      cy: bounds.minY + bounds.height / 2,
+      zoom: 1
+    };
+  }
+  const zoom = clamp(Number(state.planView.zoom || 1), 0.45, 6);
+  const width = bounds.width / zoom;
+  const height = bounds.height / zoom;
+  return {
+    minX: state.planView.cx - width / 2,
+    minY: state.planView.cy - height / 2,
+    width,
+    height
+  };
+}
+
+function zoomPlan(factor, anchor = null){
+  const bounds = displayBounds();
+  const before = planViewport(bounds);
+  const point = anchor || { x:before.minX + before.width / 2, y:before.minY + before.height / 2 };
+  const nextZoom = clamp(state.planView.zoom * factor, 0.45, 6);
+  const ratio = state.planView.zoom / nextZoom;
+  state.planView.cx = point.x + (state.planView.cx - point.x) * ratio;
+  state.planView.cy = point.y + (state.planView.cy - point.y) * ratio;
+  state.planView.zoom = nextZoom;
+  renderPlan();
+}
+
+function onPlanWheel(event){
+  if(state.view !== "plan") return;
+  event.preventDefault();
+  zoomPlan(event.deltaY < 0 ? 1.16 : 0.86, svgPoint(event));
+}
+
+function onPlanZoomPointerDown(event){
+  state.planPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if(state.planPointers.size === 2){
+    state.drag = null;
+    document.body.classList.remove("draggingPlan");
+    const points = [...state.planPointers.values()];
+    state.planPinch = {
+      distance:Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
+      zoom:state.planView?.zoom || 1
+    };
+  }
+}
+
+function onPlanZoomPointerMove(event){
+  if(!state.planPointers.has(event.pointerId)) return;
+  state.planPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
+  if(!state.planPinch || state.planPointers.size < 2) return;
+  event.preventDefault();
+  const points = [...state.planPointers.values()];
+  const distance = Math.max(20, Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y));
+  const rect = dom.planSvg.getBoundingClientRect();
+  const centerEvent = {
+    clientX:(points[0].x + points[1].x) / 2,
+    clientY:(points[0].y + points[1].y) / 2
+  };
+  const anchor = svgPoint(centerEvent);
+  const targetZoom = clamp(state.planPinch.zoom * distance / Math.max(20, state.planPinch.distance), 0.45, 6);
+  const current = state.planView?.zoom || 1;
+  if(rect.width > 0 && Math.abs(targetZoom - current) > 0.005) zoomPlan(targetZoom / current, anchor);
+}
+
+function onPlanZoomPointerUp(event){
+  state.planPointers.delete(event.pointerId);
+  if(state.planPointers.size < 2) state.planPinch = null;
+}
+
 function snap(value){
   return Math.round(value / 8) * 8;
 }
@@ -943,7 +1044,8 @@ function findCustomById(id){
 function renderPlan(){
   if(!state.plan) return;
   const bounds = displayBounds();
-  dom.planSvg.setAttribute("viewBox", `${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`);
+  const viewport = planViewport(bounds);
+  dom.planSvg.setAttribute("viewBox", `${viewport.minX} ${viewport.minY} ${viewport.width} ${viewport.height}`);
   const items = floorItems(state.plan, state.floorMode);
   const rooms = items.filter((item) => item.type === "room" && !item.void);
   const frames = items.filter((item) => item.type === "frame");
@@ -956,10 +1058,13 @@ function renderPlan(){
     chunks.push(`<rect x="${frame.x}" y="${frame.y}" width="${frame.w}" height="${frame.h}" fill="#fffef9" stroke="rgba(31,35,28,.34)" stroke-width="2"/>`);
   });
   if(state.layers.rooms){
-    rooms.forEach((room) => chunks.push(renderRoomSvg(room)));
+    groupRooms(rooms).forEach((group) => chunks.push(renderRoomGroupSvg(group)));
   }
   if(state.layers.walls){
-    walls.forEach((wall) => chunks.push(`<line x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`));
+    walls.forEach((wall) => {
+      const selected = state.selectedId === wall.id ? " selected" : "";
+      chunks.push(`<line class="planItem${selected}" data-id="${wall.id}" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`);
+    });
   }
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
@@ -1134,19 +1239,33 @@ function displayBounds(){
   return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
 }
 
-function renderRoomSvg(room){
-  const selected = state.selectedId === room.id ? " selected" : "";
+function groupRooms(rooms){
+  const groups = new Map();
+  rooms.forEach((room) => {
+    const floorIndex = Number(room.floorIndex || 0);
+    const key = `${floorIndex}:${room.label || "部屋"}`;
+    if(!groups.has(key)) groups.set(key, { key, floorIndex, label:room.label || "部屋", rooms:[] });
+    groups.get(key).rooms.push(room);
+  });
+  return [...groups.values()];
+}
+
+function renderRoomGroupSvg(group){
+  const room = group.rooms[0];
+  const ids = new Set(group.rooms.map((item) => item.id));
+  const selected = ids.has(state.selectedId) ? " selected" : "";
   const finish = state.design.finishes?.[room.id] || {};
   const floorDef = FINISHES.floor.find((item) => item.id === finish.floor);
   const fill = floorDef?.color || room.color || "#fff3e0";
-  const cx = room.x + room.w / 2;
-  const cy = room.y + room.h / 2;
-  const name = escapeHtml(room.label || "部屋");
-  const area = formatM2(areaM2(room));
+  const totalArea = group.rooms.reduce((sum, item) => sum + areaM2(item), 0);
+  const totalWeight = group.rooms.reduce((sum, item) => sum + Math.max(1, item.w * item.h), 0);
+  const cx = group.rooms.reduce((sum, item) => sum + (item.x + item.w / 2) * Math.max(1, item.w * item.h), 0) / totalWeight;
+  const cy = group.rooms.reduce((sum, item) => sum + (item.y + item.h / 2) * Math.max(1, item.w * item.h), 0) / totalWeight;
+  const rects = group.rooms.map((item) => `<rect x="${item.x}" y="${item.y}" width="${item.w}" height="${item.h}" fill="${fill}" stroke="rgba(31,35,28,.18)" stroke-width=".8"/>`).join("");
   return `<g class="planRoom${selected}" data-id="${room.id}">
-    <rect x="${room.x}" y="${room.y}" width="${room.w}" height="${room.h}" fill="${fill}" stroke="rgba(31,35,28,.34)" stroke-width="1.5"/>
-    <text x="${cx}" y="${cy - 2}" text-anchor="middle" class="planLabel">${name}</text>
-    <text x="${cx}" y="${cy + 9}" text-anchor="middle" class="planSub">${area}</text>
+    ${rects}
+    <text x="${cx}" y="${cy - 2}" text-anchor="middle" class="planLabel">${escapeHtml(group.label)}</text>
+    <text x="${cx}" y="${cy + 9}" text-anchor="middle" class="planSub">${formatM2(totalArea)}</text>
   </g>`;
 }
 
@@ -1320,14 +1439,46 @@ function renderSelectedPanel(){
   }else if(selected.source === "custom"){
     dom.selectedPanel.innerHTML = renderCustomEditor(selected.item);
     bindCustomEditor(selected.item);
+  }else if(selected.item.type === "wallLine"){
+    dom.selectedPanel.innerHTML = renderWallEditor(selected.item);
+    bindWallEditor(selected.item);
   }else{
     dom.selectedPanel.innerHTML = `<div class="selectedHead"><div><b>${escapeHtml(selected.item.label || "既存パーツ")}</b><span>元間取りの要素</span></div></div>`;
   }
 }
 
+function renderWallEditor(wall){
+  const mode = state.design.stairWallModes?.[wall.id] || "auto";
+  return `<div class="selectedHead"><div><b>内壁</b><span>階段と接する部分の残し方</span></div></div>
+    <div class="selectedGrid">
+      <label>階段部分<select id="stairWallMode">
+        <option value="auto" ${mode === "auto" ? "selected" : ""}>自動判定</option>
+        <option value="full" ${mode === "full" ? "selected" : ""}>通常壁（全面）</option>
+        <option value="upper" ${mode === "upper" ? "selected" : ""}>下を抜く（上だけ壁）</option>
+        <option value="lower" ${mode === "lower" ? "selected" : ""}>上を抜く（下だけ壁）</option>
+      </select></label>
+      <label>壁厚<input type="number" value="${Math.round(wall.thick || 6)}" disabled></label>
+    </div>`;
+}
+
+function bindWallEditor(wall){
+  const input = document.getElementById("stairWallMode");
+  input?.addEventListener("change", () => {
+    pushHistory();
+    state.design.stairWallModes ||= {};
+    if(input.value === "auto") delete state.design.stairWallModes[wall.id];
+    else state.design.stairWallModes[wall.id] = input.value;
+    saveDesign(false);
+    renderSceneOnly();
+    toast(input.options[input.selectedIndex].textContent);
+  });
+}
+
 function renderRoomEditor(room){
+  const rooms = matchingRooms(room);
   const finish = state.design.finishes[room.id] || {};
-  return `<div class="selectedHead"><div><b>${escapeHtml(room.label)}</b><span>${formatM2(areaM2(room))}</span></div></div>
+  const totalArea = rooms.reduce((sum, item) => sum + areaM2(item), 0);
+  return `<div class="selectedHead"><div><b>${escapeHtml(room.label)}</b><span>${formatM2(totalArea)} / ${rooms.length}ブロックを一括</span></div></div>
     <div class="selectedGrid">
       <label>床<select id="floorFinish">${finishOptions("floor", finish.floor)}</select></label>
       <label>壁<select id="wallFinish">${finishOptions("wall", finish.wall)}</select></label>
@@ -1341,6 +1492,7 @@ function finishOptions(group, active){
 }
 
 function bindRoomEditor(room){
+  const rooms = matchingRooms(room);
   const finish = state.design.finishes[room.id] || (state.design.finishes[room.id] = {});
   let editSnapshot = null;
   [["floorFinish","floor"],["wallFinish","wall"],["ceilingFinish","ceiling"],["roomMemo","memo"]].forEach(([id, key]) => {
@@ -1353,12 +1505,21 @@ function bindRoomEditor(room){
         pushHistory(editSnapshot);
         editSnapshot = null;
       }
-      finish[key] = event.target.value;
+      rooms.forEach((target) => {
+        const targetFinish = state.design.finishes[target.id] || (state.design.finishes[target.id] = {});
+        targetFinish[key] = event.target.value;
+      });
       saveDesign(false);
       renderPlan();
       renderSceneOnly();
     });
   });
+}
+
+function matchingRooms(room){
+  const floor = state.plan?.floors?.[Number(room.floorIndex || 0)];
+  if(!floor) return [room];
+  return (floor.items || []).filter((item) => item.type === "room" && !item.void && item.label === room.label);
 }
 
 function renderCustomEditor(item){
@@ -1486,7 +1647,40 @@ function bindCustomEditor(item){
   });
 }
 
-function addCustomItem(kind){
+function openQuickAdd(kind){
+  const preset = allLibraryItems().find((item) => item.kind === kind);
+  if(!preset || !dom.quickAddModal) return;
+  state.pendingAddKind = kind;
+  dom.quickAddTitle.textContent = `${preset.label}を追加`;
+  dom.quickAddLabel.value = preset.label || "";
+  dom.quickAddW.value = Math.round(preset.w || 900);
+  dom.quickAddD.value = Math.round(preset.d || 300);
+  dom.quickAddH.value = Math.round(preset.h || 700);
+  dom.quickAddGl.value = Math.round(preset.gl || 0);
+  dom.quickAddModal.hidden = false;
+  setTimeout(() => dom.quickAddW?.select(), 0);
+}
+
+function closeQuickAdd(){
+  state.pendingAddKind = "";
+  if(dom.quickAddModal) dom.quickAddModal.hidden = true;
+}
+
+function confirmQuickAdd(){
+  const kind = state.pendingAddKind;
+  if(!kind) return;
+  const dimensions = {
+    label: dom.quickAddLabel.value.trim(),
+    w: clamp(numberValue(dom.quickAddW, 900), 50, 10000),
+    d: clamp(numberValue(dom.quickAddD, 300), 20, 10000),
+    h: clamp(numberValue(dom.quickAddH, 700), 10, 10000),
+    gl: clamp(numberValue(dom.quickAddGl, 0), 0, 10000)
+  };
+  closeQuickAdd();
+  addCustomItem(kind, dimensions);
+}
+
+function addCustomItem(kind, dimensions = null){
   const preset = allLibraryItems().find((item) => item.kind === kind);
   if(!preset || !state.plan) return;
   pushHistory();
@@ -1497,6 +1691,14 @@ function addCustomItem(kind){
     ? { x: selectedRoom.x + selectedRoom.w / 2, y: selectedRoom.y + selectedRoom.h / 2 }
     : { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
   const item = makeCustomItem(preset, floorIndex, center);
+  if(dimensions){
+    item.label = dimensions.label || item.label;
+    item.w = mmToPx(dimensions.w);
+    item.h = mmToPx(dimensions.d);
+    item.heightMm = dimensions.h;
+    item.glMm = dimensions.gl;
+    item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
+  }
   if(preset.layer === "exterior"){
     item.floorIndex = 0;
     state.view = "plan";
@@ -1507,7 +1709,7 @@ function addCustomItem(kind){
   state.design.customItems.push(item);
   state.selectedId = item.id;
   state.dockMode = "select";
-  state.mobilePanelOpen = false;
+  state.mobilePanelOpen = true;
   saveDesign(false);
   render();
   toast(`${preset.label}を追加しました`);

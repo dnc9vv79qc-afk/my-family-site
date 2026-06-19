@@ -232,7 +232,7 @@ button{ border:0; cursor:pointer; }
     linear-gradient(90deg, rgba(70,76,66,.10) 1px, transparent 1px);
   background-size:32px 32px;
 }
-#planSvg{ display:block; width:100%; height:100%; min-height:0; }
+#planSvg{ display:block; width:100%; height:100%; min-height:0; touch-action:none; }
 body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planHud{
   position:absolute;
@@ -246,10 +246,12 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   border-radius:9px;
   background:rgba(255,255,255,.86);
   backdrop-filter:blur(12px);
+  max-width:calc(100% - 24px);
 }
 .planHud span{ min-width:56px; color:#273026; font-size:11px; font-weight:950; }
-.hudTools{ display:flex; gap:4px; }
+.hudTools{ display:flex; gap:4px; overflow:auto; }
 .hudTools button{
+  flex:0 0 auto;
   height:28px;
   border-radius:7px;
   padding:0 9px;
@@ -319,6 +321,7 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
 .planRoom:hover{ opacity:.82; }
 .planRoom.selected rect{ stroke:var(--blue); stroke-width:5; }
 .planItem.selected rect,.planItem.selected circle{ stroke:var(--blue); stroke-width:4; }
+.planItem.selected:is(line),.planItem.selected line{ stroke:var(--blue) !important; }
 .planItem:hover{ opacity:.86; }
 .planItem.guideItem{ opacity:.42; }
 .planItem.guideItem rect{ stroke-dasharray:5 4; }
@@ -639,6 +642,36 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
   font-weight:850;
 }
 .dangerBtn{ color:#fff; background:var(--red); }
+.quickAddModal{
+  position:fixed;
+  inset:0;
+  z-index:90;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(20,24,20,.34);
+  backdrop-filter:blur(8px);
+}
+.quickAddModal[hidden]{ display:none; }
+.quickAddCard{
+  width:min(440px,100%);
+  display:grid;
+  gap:12px;
+  padding:16px;
+  border:1px solid rgba(31,35,28,.14);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(20,24,20,.24);
+}
+.quickAddCard .selectedHead button{
+  height:32px;
+  padding:0 12px;
+  border-radius:9px;
+  background:rgba(120,128,116,.14);
+  font-weight:900;
+}
+.quickAddGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+.quickAddGrid label:first-child{ grid-column:1 / -1; }
 .miniList{ display:grid; gap:6px; max-height:280px; overflow:auto; }
 .miniRow{ cursor:pointer; padding:7px 8px; }
 .miniRow.on{ border-color:rgba(40,111,214,.55); background:#f4f8ff; }

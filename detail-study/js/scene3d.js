@@ -490,8 +490,9 @@ export class DetailScene3D {
       const stairs = existingFurniture.filter(isStructuralStair3d);
       wallLines.forEach((wall) => {
         const thickness = Math.max(WALL_T_M, pxToM(wall.thick || 6));
+        const stairWallMode = design.stairWallModes?.[wall.id] || "auto";
         splitByOpenings(wall, doorOpenings).forEach((solid) => {
-          stairWallSlices3d(solid, stairs, yBase, thickness).forEach((slice) => {
+          stairWallSlices3d(solid, stairs, yBase, thickness, stairWallMode).forEach((slice) => {
             this.addWallSlice(slice.seg, slice.y0, slice.y1, wallMat, thickness);
           });
         });
@@ -1184,11 +1185,12 @@ function clipPolyHalfPlane3d(poly, axis, limit, keepGreater){
   return out;
 }
 
-function stairWallSlices3d(seg, stairs, yBase, thicknessM){
+function stairWallSlices3d(seg, stairs, yBase, thicknessM, wallMode = "auto"){
   const horizontal = Math.abs(seg.y2 - seg.y1) < 0.1;
   const vertical = Math.abs(seg.x2 - seg.x1) < 0.1;
   const bottom = yBase + SLAB_H_M;
   const top = bottom + WALL_H_M;
+  if(wallMode === "full") return [{ seg, y0:bottom, y1:top }];
   if(!horizontal && !vertical) return [{ seg, y0:bottom, y1:top }];
   const axisLo = horizontal ? Math.min(seg.x1, seg.x2) : Math.min(seg.y1, seg.y2);
   const axisHi = horizontal ? Math.max(seg.x1, seg.x2) : Math.max(seg.y1, seg.y2);
@@ -1237,7 +1239,10 @@ function stairWallSlices3d(seg, stairs, yBase, thicknessM){
       const hi = Math.min(axisHi, Math.max(...along));
       if(hi - lo <= 0.5) return;
       const treadTop = bottom + stepRise * (index + 1);
-      profiles.push(perimeter
+      const mode = wallMode === "upper" || wallMode === "lower"
+        ? wallMode
+        : (perimeter ? "upper" : "lower");
+      profiles.push(mode === "upper"
         ? { lo, hi, mode:"upper", y:Math.min(top, treadTop + 0.005) }
         : { lo, hi, mode:"lower", y:Math.min(top, treadTop - board - 0.005) });
     });
