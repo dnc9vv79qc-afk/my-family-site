@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-window-frame-v23";
+import { DetailScene3D } from "./scene3d.js?v=20260619-wall-snap-v24";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,8 +15,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-window-frame-v23";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-window-frame-v23";
+} from "./data.js?v=20260619-wall-snap-v24";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-wall-snap-v24";
 
 const state = {
   plan: null,
@@ -298,7 +298,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / 窓表現 / 06-19 v23`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 壁寄せ / 06-19 v24`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
@@ -1840,6 +1840,9 @@ function renderCustomEditor(item){
   const modelEditButton = Array.isArray(item.modelParts) && item.modelParts.length
     ? `<button type="button" id="editModelBtn">部品を編集</button>`
     : "";
+  const wallSnapButton = !isExterior && !isLight
+    ? `<button type="button" id="snapWallBtn">最寄りの壁に付ける</button>`
+    : "";
   if(item.locked){
     return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>固定・敷地条件で変更</span></div></div>
       <div class="selectedGrid">
@@ -1876,6 +1879,7 @@ function renderCustomEditor(item){
       <button type="button" data-nudge="16,0">→</button>
       <button type="button" data-nudge="0,16">↓</button>
       <button type="button" id="rotateItemBtn">90°回転</button>
+      ${wallSnapButton}
       <button type="button" id="duplicateItemBtn">複製</button>
       ${modelEditButton}
     </div>`;
@@ -1944,6 +1948,7 @@ function bindCustomEditor(item){
     saveDesign(false);
     render();
   });
+  document.getElementById("snapWallBtn")?.addEventListener("click", () => snapItemToNearestWall(item));
   document.getElementById("duplicateItemBtn").addEventListener("click", () => duplicateCustomItem(item.id));
   document.getElementById("editModelBtn")?.addEventListener("click", () => {
     const modelId = item.modelId || "";
@@ -1978,6 +1983,57 @@ function bindCustomEditor(item){
       render();
     });
   });
+}
+
+function snapItemToNearestWall(item){
+  const floorIndex = Number(item.floorIndex || 0);
+  const floor = state.plan?.floors?.[floorIndex];
+  if(!floor) return;
+  const rooms = (floor.items || []).filter((room) => room.type === "room" && !room.void);
+  if(!rooms.length) return;
+  const cx = item.x + item.w / 2;
+  const cy = item.y + item.h / 2;
+  const room = rooms.find((candidate) => (
+    cx >= candidate.x && cx <= candidate.x + candidate.w
+    && cy >= candidate.y && cy <= candidate.y + candidate.h
+  )) || rooms.reduce((best, candidate) => {
+    const nx = clamp(cx, candidate.x, candidate.x + candidate.w);
+    const ny = clamp(cy, candidate.y, candidate.y + candidate.h);
+    const distance = Math.hypot(cx - nx, cy - ny);
+    return !best || distance < best.distance ? { room:candidate, distance } : best;
+  }, null)?.room;
+  if(!room) return;
+  const group = groupRooms(rooms.map((candidate) => ({ ...candidate, floorIndex })))
+    .find((candidate) => candidate.rooms.some((member) => member.id === room.id));
+  if(!group) return;
+  const segments = roomPerimeterSegments(group);
+  const radians = Number(item.rotation || 0) * Math.PI / 180;
+  const halfW = item.w / 2;
+  const halfD = item.h / 2;
+  const extentX = Math.abs(Math.cos(radians)) * halfW + Math.abs(Math.sin(radians)) * halfD;
+  const extentY = Math.abs(Math.sin(radians)) * halfW + Math.abs(Math.cos(radians)) * halfD;
+  let best = null;
+  segments.forEach((segment) => {
+    const tangentExtent = Math.abs(segment.ux) * extentX + Math.abs(segment.uy) * extentY;
+    const normalExtent = Math.abs(segment.nx) * extentX + Math.abs(segment.ny) * extentY;
+    const rawAlong = (cx - segment.ox) * segment.ux + (cy - segment.oy) * segment.uy;
+    const minAlong = Math.min(segment.lenPx / 2, tangentExtent);
+    const maxAlong = Math.max(segment.lenPx / 2, segment.lenPx - tangentExtent);
+    const along = clamp(rawAlong, minAlong, maxAlong);
+    const wallX = segment.ox + segment.ux * along;
+    const wallY = segment.oy + segment.uy * along;
+    const targetX = wallX + segment.nx * normalExtent;
+    const targetY = wallY + segment.ny * normalExtent;
+    const distance = Math.hypot(targetX - cx, targetY - cy);
+    if(!best || distance < best.distance) best = { targetX, targetY, distance, segment };
+  });
+  if(!best) return;
+  pushHistory();
+  item.x = best.targetX - item.w / 2;
+  item.y = best.targetY - item.h / 2;
+  saveDesign(false);
+  render();
+  toast(`${best.segment.name}の壁に付けました`);
 }
 
 function openQuickAdd(kind){
