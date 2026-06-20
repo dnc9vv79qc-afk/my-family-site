@@ -1,8 +1,9 @@
-import { DetailScene3D } from "./scene3d.js?v=20260619-door-header-v25";
+import { DetailScene3D } from "./scene3d.js?v=20260620-layout-list-v26";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
   loadLayout,
+  listSavedLayouts,
   loadDetailDesign,
   saveDetailDesign,
   floorBounds,
@@ -15,8 +16,8 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260619-door-header-v25";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260619-door-header-v25";
+} from "./data.js?v=20260620-layout-list-v26";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260620-layout-list-v26";
 
 const state = {
   plan: null,
@@ -102,7 +103,7 @@ async function init(){
 
 function cacheDom(){
   [
-    "layoutMeta","editLayoutLink","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
+    "layoutMeta","editLayoutLink","openLayoutsBtn","savedLayoutsModal","savedLayoutsCloseBtn","savedLayoutsList","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
     "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","constructionPalette","exteriorPalette","lightingPalette","lightingSummary","workModeTitle","workModeHint",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "wallSheetBtn","wallSheetModal","wallSheetCloseBtn","wallSheetSaveBtn","wallSheetRooms","wallSheetCanvas",
@@ -114,6 +115,11 @@ function cacheDom(){
 
 function bindEvents(){
   dom.reloadBtn.addEventListener("click", () => loadCurrentLayout(false));
+  dom.openLayoutsBtn?.addEventListener("click", openSavedLayouts);
+  dom.savedLayoutsCloseBtn?.addEventListener("click", closeSavedLayouts);
+  dom.savedLayoutsModal?.addEventListener("click", (event) => {
+    if(event.target === dom.savedLayoutsModal) closeSavedLayouts();
+  });
   dom.saveBtn.addEventListener("click", () => saveDesign(true));
   dom.exportBtn.addEventListener("click", exportDesign);
   dom.walkModeBtn.addEventListener("click", toggleWalkMode);
@@ -298,7 +304,7 @@ async function loadCurrentLayout(force = false){
     state.floorMode = String(state.plan.activeFloor || 0);
     state.planView = null;
     state.selectedId = null;
-    dom.layoutMeta.textContent = `${state.plan.title} / ドア上壁 / 06-19 v25`;
+    dom.layoutMeta.textContent = `${state.plan.title} / 保存一覧 / 06-20 v26`;
     dom.editLayoutLink.href = `../madori.html?id=${encodeURIComponent(id)}`;
     saveDesign(false);
     renderPalette();
@@ -308,6 +314,57 @@ async function loadCurrentLayout(force = false){
     dom.layoutMeta.textContent = "間取りを読み込めませんでした";
     toast(error.message || "読み込みに失敗しました");
   }
+}
+
+async function openSavedLayouts(){
+  if(!dom.savedLayoutsModal) return;
+  dom.savedLayoutsModal.hidden = false;
+  dom.savedLayoutsList.innerHTML = `<div class="savedLayoutsEmpty">保存済み間取りを読み込み中…</div>`;
+  try{
+    const layouts = await listSavedLayouts();
+    renderSavedLayouts(layouts);
+  }catch(error){
+    console.warn(error);
+    dom.savedLayoutsList.innerHTML = `<div class="savedLayoutsEmpty">一覧を取得できませんでした。通信状態を確認してください。</div>`;
+  }
+}
+
+function closeSavedLayouts(){
+  if(dom.savedLayoutsModal) dom.savedLayoutsModal.hidden = true;
+}
+
+function renderSavedLayouts(layouts){
+  if(!layouts.length){
+    dom.savedLayoutsList.innerHTML = `<div class="savedLayoutsEmpty">保存済みの間取りがありません。</div>`;
+    return;
+  }
+  const currentId = state.plan?.id || "";
+  dom.savedLayoutsList.innerHTML = layouts.map((layout) => {
+    const current = layout.id === currentId ? " current" : "";
+    const badge = layout.hasDetail ? `<span class="savedDetailBadge">詳細保存あり</span>` : `<span class="savedPlanBadge">間取りのみ</span>`;
+    return `<article class="savedLayoutRow${current}">
+      <div class="savedLayoutInfo">
+        <b>${escapeHtml(layout.title)}</b>
+        <span>${badge}<small>${escapeHtml(formatSavedLayoutDate(layout.updatedAt))}</small></span>
+      </div>
+      <div class="savedLayoutActions">
+        <a href="./?id=${encodeURIComponent(layout.id)}">詳細を開く</a>
+        <a class="secondary" href="../madori.html?id=${encodeURIComponent(layout.id)}">間取りを修正</a>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function formatSavedLayoutDate(value){
+  if(!value) return "";
+  const date = new Date(value);
+  if(!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleString("ja-JP", {
+    month:"2-digit",
+    day:"2-digit",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
 }
 
 async function loadDesign(layoutId, force){

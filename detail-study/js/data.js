@@ -54,6 +54,27 @@ export async function loadLayout(layoutId = DEFAULT_LAYOUT_ID){
   return normalizePlan(data, id, doc.updateTime || data.updatedAt || "");
 }
 
+export async function listSavedLayouts(){
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/layouts?pageSize=100&key=${API_KEY}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if(!response.ok) throw new Error(`保存済み間取りを取得できませんでした (${response.status})`);
+  const payload = await response.json();
+  return (payload.documents || []).map((doc) => {
+    const data = firestoreValueToJson({ mapValue: { fields: doc.fields || {} } });
+    const id = decodeURIComponent(String(doc.name || "").split("/").pop() || "");
+    return {
+      id,
+      title:String(data.title || "間取り"),
+      hasDetail:typeof data.detailDesignPayload === "string" && data.detailDesignPayload.length > 0,
+      updatedAt:data.detailDesignUpdatedAt || data.updatedAt || doc.updateTime || ""
+    };
+  }).filter((item) => item.id).sort((a, b) => {
+    const detailOrder = Number(b.hasDetail) - Number(a.hasDetail);
+    if(detailOrder) return detailOrder;
+    return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+  });
+}
+
 export async function loadDetailDesign(layoutId = DEFAULT_LAYOUT_ID){
   const encoded = encodeURIComponent(layoutId || DEFAULT_LAYOUT_ID);
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/layouts/${encoded}?key=${API_KEY}`;

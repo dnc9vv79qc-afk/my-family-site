@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260619-door-header-v25";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260620-layout-list-v26";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
