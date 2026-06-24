@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-roomwarp-v28";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-pdf-lighting-v29";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -885,6 +885,22 @@ export class DetailScene3D {
       this.addPhotometricLight(item, group.position.x, group.position.y, group.position.z, "point");
       return;
     }
+    if(!existing && ["wallLight", "spotLight", "sensorLight"].includes(item.kind)){
+      const group = new THREE.Group();
+      group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM + hM / 2, pxToM(item.y + item.h / 2));
+      group.rotation.y = ((item.rotation || 0) * Math.PI) / 180;
+      const isSpot = item.kind === "spotLight";
+      const geometry = isSpot
+        ? new THREE.CylinderGeometry(Math.max(0.045, pxToM(item.w) / 2), Math.max(0.045, pxToM(item.w) / 2), Math.max(0.06, hM), 20)
+        : new THREE.BoxGeometry(Math.max(0.06, pxToM(item.w)), Math.max(0.06, hM), Math.max(0.04, pxToM(item.h)));
+      const body = new THREE.Mesh(geometry, lightFixtureMaterial(item, this.isLightingMode()));
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      this.root.add(group);
+      this.addPhotometricLight(item, group.position.x, group.position.y, group.position.z, isSpot ? "spot" : "point");
+      return;
+    }
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(Math.max(0.05, pxToM(item.w)), hM, Math.max(0.05, pxToM(item.h))),
       mat(item.color || "#c9c9d2", alpha, 0.46, layer === "openings")
@@ -1331,7 +1347,7 @@ const heatMaterialCache = new Map();
 function lightingItemsForFloor(design, floorIndex){
   return (design?.customItems || []).filter((item) => {
     if(Number(item.floorIndex || 0) !== Number(floorIndex || 0)) return false;
-    return item.category === "照明" || ["downlight", "pendantLight", "ceilingLight"].includes(item.kind);
+    return Number(item.lumens || 0) > 0 && (item.category === "照明" || ["downlight", "pendantLight", "ceilingLight", "wallLight", "spotLight", "sensorLight"].includes(item.kind));
   });
 }
 

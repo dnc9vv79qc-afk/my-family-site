@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260624-roomwarp-v28";
+import { DetailScene3D } from "./scene3d.js?v=20260624-pdf-lighting-v29";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -16,10 +16,10 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260624-roomwarp-v28";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260624-roomwarp-v28";
+} from "./data.js?v=20260624-pdf-lighting-v29";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260624-pdf-lighting-v29";
 
-const DETAIL_VERSION_LABEL = "06/24 部屋移動修正 v28";
+const DETAIL_VERSION_LABEL = "06/24 PDF照明カタログ v29";
 const LIGHTING_DEFAULTS = {
   scene: "night",
   quality: "standard",
@@ -116,7 +116,7 @@ function cacheDom(){
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "wallSheetBtn","wallSheetModal","wallSheetCloseBtn","wallSheetSaveBtn","wallSheetRooms","wallSheetCanvas",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
-    "quickAddModal","quickAddTitle","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
+    "quickAddModal","quickAddTitle","quickAddProductInfo","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
@@ -953,7 +953,10 @@ function renderPalette(){
     FURNITURE_LIBRARY.filter((item) => ["棚", "造作", "窓"].includes(item.category)),
     "造作"
   );
-  dom.lightingPalette.innerHTML = renderLibrary(FURNITURE_LIBRARY.filter((item) => item.category === "照明"), "照明");
+  dom.lightingPalette.innerHTML = renderLibrary(
+    FURNITURE_LIBRARY.filter((item) => item.category === "照明" || item.lightingProduct),
+    "照明"
+  );
   [dom.exteriorPalette, dom.palette, dom.constructionPalette, dom.lightingPalette].forEach((palette) => {
     if(!palette) return;
     palette.onclick = (event) => {
@@ -983,8 +986,21 @@ function renderLibrary(items, fallbackCategory){
   const categories = [...new Set(items.map((item) => item.category || fallbackCategory))];
   return categories.map((category) => {
     const buttons = items.filter((item) => (item.category || fallbackCategory) === category).map((item) => {
-      const button = `<button type="button" data-kind="${escapeAttr(item.kind)}" ${item.modelId ? `data-model-id="${escapeAttr(item.modelId)}"` : ""} data-tone="${item.tone}">
-        <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>
+      const image = item.image
+        ? `<span class="catalogThumb"><img src="${escapeAttr(item.image)}" alt="${escapeAttr(item.label)}"></span>`
+        : "";
+      const specs = item.productCode || item.planTag || item.specSummary
+        ? `<span class="catalogSpecs">
+            ${item.productCode ? `<em>品番 ${escapeHtml(item.productCode)}</em>` : ""}
+            ${item.planTag ? `<em>${escapeHtml(item.planTag)}</em>` : ""}
+            ${item.quantityHint ? `<em>${escapeHtml(item.quantityHint)}</em>` : ""}
+            ${item.specSummary ? `<small>${escapeHtml(item.specSummary)}</small>` : ""}
+          </span>`
+        : "";
+      const libraryKey = item.libraryId || item.kind;
+      const button = `<button type="button" class="${item.image ? "catalogCard" : ""}" data-kind="${escapeAttr(libraryKey)}" ${item.modelId ? `data-model-id="${escapeAttr(item.modelId)}"` : ""} data-tone="${item.tone}">
+        ${image}
+        <b>${escapeHtml(item.label)}</b><span>${escapeHtml(item.meta || "")}</span>${specs}
       </button>`;
       return item.modelId
         ? `<div class="paletteModel">${button}<div class="paletteModelActions">
@@ -1589,7 +1605,9 @@ function roomRectsTouch(a, b){
 }
 
 function isLightItem(item){
-  return !!item && (item.category === "照明" || ["downlight", "pendantLight", "ceilingLight"].includes(item.kind));
+  if(!item) return false;
+  if(["downlight", "pendantLight", "ceilingLight", "wallLight", "spotLight", "sensorLight"].includes(item.kind)) return Number(item.lumens || 0) > 0;
+  return item.category === "照明" && Number(item.lumens || 0) > 0;
 }
 
 function roomLightingRows(){
@@ -2094,7 +2112,20 @@ function renderCustomEditor(item){
         <label class="checkLine"><input id="itemLightOn" type="checkbox" ${item.lightOn !== false ? "checked" : ""}>点灯して計算</label>
       </div>
     </div>` : "";
+  const productInfo = item.productCode || item.productSpec || item.productImage
+    ? `<div class="productInfoCard">
+        ${item.productImage ? `<img src="${escapeAttr(item.productImage)}" alt="${escapeAttr(item.productCode || item.label)}">` : ""}
+        <div>
+          <b>${escapeHtml(item.productCode || item.label)}</b>
+          ${item.sourcePlan ? `<span>${escapeHtml(item.sourcePlan)}</span>` : ""}
+          ${item.planTag ? `<span>図面記号 ${escapeHtml(item.planTag)}</span>` : ""}
+          ${item.quantityHint ? `<span>配置目安 ${escapeHtml(item.quantityHint)}</span>` : ""}
+          ${item.productSpec ? `<small>${escapeHtml(item.productSpec)}</small>` : ""}
+        </div>
+      </div>`
+    : "";
   return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(isExterior ? (item.category || "外構") : floorLabel(item.floorIndex))}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
+    ${productInfo}
     <div class="selectedGrid">
       <label>名前<input id="itemLabel" type="text" maxlength="20" value="${escapeAttr(item.label)}"></label>
       <label>色<input id="itemColor" type="color" value="${escapeAttr(item.color || "#c9c9d2")}"></label>
@@ -2269,10 +2300,24 @@ function snapItemToNearestWall(item){
 }
 
 function openQuickAdd(kind){
-  const preset = allLibraryItems().find((item) => item.kind === kind);
+  const preset = allLibraryItems().find((item) => (item.libraryId || item.kind) === kind || item.kind === kind);
   if(!preset || !dom.quickAddModal) return;
   state.pendingAddKind = kind;
   dom.quickAddTitle.textContent = `${preset.label}を追加`;
+  if(dom.quickAddProductInfo){
+    dom.quickAddProductInfo.innerHTML = preset.productCode || preset.specSummary || preset.image
+      ? `<div class="productInfoCard quickProductInfo">
+          ${preset.image ? `<img src="${escapeAttr(preset.image)}" alt="${escapeAttr(preset.productCode || preset.label)}">` : ""}
+          <div>
+            <b>${escapeHtml(preset.productCode || preset.label)}</b>
+            ${preset.sourcePlan ? `<span>${escapeHtml(preset.sourcePlan)}</span>` : ""}
+            ${preset.planTag ? `<span>図面記号 ${escapeHtml(preset.planTag)}</span>` : ""}
+            ${preset.quantityHint ? `<span>配置目安 ${escapeHtml(preset.quantityHint)}</span>` : ""}
+            ${preset.specSummary ? `<small>${escapeHtml(preset.specSummary)}</small>` : ""}
+          </div>
+        </div>`
+      : "";
+  }
   dom.quickAddLabel.value = preset.label || "";
   dom.quickAddW.value = Math.round(preset.w || 900);
   dom.quickAddD.value = Math.round(preset.d || 300);
@@ -2285,7 +2330,7 @@ function openQuickAdd(kind){
   dom.quickAddBeam.value = Math.round(preset.beamDeg || 60);
   dom.quickAddDimming.checked = preset.dimming !== false;
   dom.quickAddModal.hidden = false;
-  setTimeout(() => dom.quickAddW?.select(), 0);
+  if(!preset.lightingProduct) setTimeout(() => dom.quickAddW?.select(), 0);
 }
 
 function closeQuickAdd(){
@@ -2312,7 +2357,7 @@ function confirmQuickAdd(){
 }
 
 function addCustomItem(kind, dimensions = null){
-  const preset = allLibraryItems().find((item) => item.kind === kind);
+  const preset = allLibraryItems().find((item) => (item.libraryId || item.kind) === kind || item.kind === kind);
   if(!preset || !state.plan) return;
   pushHistory();
   const floorIndex = state.floorMode === "all" ? 0 : Number(state.floorMode || 0);
@@ -2339,7 +2384,7 @@ function addCustomItem(kind, dimensions = null){
       item.dimming = dimensions.dimming;
       item.lightOn = true;
     }
-    item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
+    if(!item.lightingProduct) item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
   }
   if(preset.layer === "exterior"){
     item.floorIndex = 0;
