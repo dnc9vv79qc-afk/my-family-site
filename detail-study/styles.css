@@ -1700,6 +1700,45 @@ body.builderOpen .modeDock{ display:none; }
     bottom:calc(env(safe-area-inset-bottom) + 88px);
   }
   body[data-view="3d"] .roomWarp{
-    bottom:calc(env(safe-area-inset-bottom) + 82px);
+    top:calc(env(safe-area-inset-top) + 162px);
+    bottom:auto;
+    left:10px;
+    right:10px;
+    z-index:74;
+    padding:7px;
+    border-radius:14px;
+    background:rgba(255,255,255,.90);
+    box-shadow:0 8px 24px rgba(31,35,28,.12);
+  }
+  body[data-view="3d"] .roomWarp button{
+    height:34px;
+    padding:0 12px;
+    font-size:12px;
+  }
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuick{
+    right:10px;
+    bottom:calc(env(safe-area-inset-bottom) + 92px);
+    width:min(172px,calc(100% - 126px));
+    gap:5px;
+    padding:8px;
+    border-radius:14px;
+  }
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuickHead{
+    display:block;
+  }
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuickHead b,
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuickHead span{
+    display:block;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuickRow{
+    gap:4px;
+  }
+  body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuickRow button{
+    height:30px;
+    padding:0 4px;
+    font-size:10px;
   }
 }

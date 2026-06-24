@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260624-lighting-sim-v27";
+import { DetailScene3D } from "./scene3d.js?v=20260624-roomwarp-v28";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -16,10 +16,10 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260624-lighting-sim-v27";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260624-lighting-sim-v27";
+} from "./data.js?v=20260624-roomwarp-v28";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260624-roomwarp-v28";
 
-const DETAIL_VERSION_LABEL = "06/24 照明シミュレーション v27";
+const DETAIL_VERSION_LABEL = "06/24 部屋移動修正 v28";
 const LIGHTING_DEFAULTS = {
   scene: "night",
   quality: "standard",

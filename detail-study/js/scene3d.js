@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-lighting-sim-v27";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-roomwarp-v28";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
