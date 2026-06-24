@@ -177,6 +177,47 @@ button{ border:0; cursor:pointer; }
   font-weight:900;
 }
 .viewPresetBar button.on{ color:#fff; background:#286fd6; }
+.lighting3dQuick{
+  position:absolute;
+  right:12px;
+  bottom:76px;
+  z-index:8;
+  width:min(248px,calc(100% - 24px));
+  display:none;
+  gap:7px;
+  padding:10px;
+  border:1px solid rgba(31,35,28,.12);
+  border-radius:16px;
+  background:rgba(255,255,255,.88);
+  box-shadow:0 12px 34px rgba(31,35,28,.14);
+  backdrop-filter:blur(16px);
+}
+body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuick{ display:grid; }
+.lighting3dQuickHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.lighting3dQuickHead b{ font-size:12px; font-weight:950; color:#1f2a23; }
+.lighting3dQuickHead span{ color:#667069; font-size:10px; font-weight:850; }
+.lighting3dQuickRow{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+}
+.lighting3dQuickRow button{
+  height:32px;
+  border-radius:9px;
+  background:rgba(120,128,116,.13);
+  color:#263026;
+  font-size:11px;
+  font-weight:950;
+}
+.lighting3dQuickRow button.on{
+  color:#fff;
+  background:#286fd6;
+}
 .roomWarp{
   position:absolute;
   z-index:4;
@@ -767,6 +808,66 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 }
 .quickLightFields[hidden]{ display:none; }
 .quickLightFields .blockTitle,.lightEditor .blockTitle{ margin:0; color:#765015; }
+.lightingSimBlock{
+  display:grid;
+  gap:10px;
+  border-color:rgba(40,111,214,.18);
+  background:linear-gradient(180deg,#f7fbff 0%,#fffaf0 100%);
+}
+.lightingSimNote,.lightingSimHint{
+  color:#667069;
+  font-size:10px;
+  line-height:1.45;
+  font-weight:850;
+}
+.lightingControlGroup{
+  display:grid;
+  gap:5px;
+}
+.lightingControlGroup > span{
+  color:#3d4740;
+  font-size:10px;
+  font-weight:950;
+}
+.lightingButtonGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+.lightingButtonGrid button{
+  min-height:48px;
+  padding:7px 5px;
+  border:1px solid rgba(31,35,28,.1);
+  border-radius:10px;
+  background:#fff;
+  color:#263026;
+  font-size:12px;
+  line-height:1.12;
+  font-weight:950;
+}
+.lightingButtonGrid button small{
+  display:block;
+  margin-top:3px;
+  color:#778078;
+  font-size:9px;
+  font-weight:850;
+}
+.lightingButtonGrid button.on{
+  color:#fff;
+  border-color:#286fd6;
+  background:#286fd6;
+  box-shadow:0 5px 16px rgba(40,111,214,.22);
+}
+.lightingButtonGrid button.on small{ color:rgba(255,255,255,.84); }
+.lightingChecks{
+  display:grid;
+  gap:5px;
+}
+.lightingChecks .checkLine{
+  min-height:34px;
+  border-radius:9px;
+  background:rgba(255,255,255,.72);
+}
 .lightingSummary{ display:grid; gap:7px; }
 .luxRow{
   width:100%;

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>住まい詳細シミュレーター 06/20 保存一覧 v26 | MORI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260620-layout-list-v26">
+  <title>住まい詳細シミュレーター 06/24 照明シミュレーション v27 | MORI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260624-lighting-sim-v27">
   <script type="importmap">
     {
       "imports": {
@@ -17,7 +17,7 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <b>住まい詳細シミュレーター <small>06/20 保存一覧 v26</small></b>
+        <b>住まい詳細シミュレーター <small>06/24 照明シミュレーション v27</small></b>
         <span id="layoutMeta">読み込み中</span>
       </div>
       <div class="topActions">
@@ -63,6 +63,19 @@
             <button type="button" data-preset="exterior">外観</button>
             <button type="button" data-preset="top">俯瞰</button>
             <button type="button" data-preset="interior">内観</button>
+          </div>
+          <div class="lighting3dQuick" id="lighting3dQuick">
+            <div class="lighting3dQuickHead"><b>照明3D</b><span id="lighting3dQuickText">夜 / 反射1回</span></div>
+            <div class="lighting3dQuickRow">
+              <button type="button" data-light-scene="night">夜</button>
+              <button type="button" data-light-scene="evening">夕方</button>
+              <button type="button" data-light-scene="day">昼</button>
+            </div>
+            <div class="lighting3dQuickRow">
+              <button type="button" data-light-quality="direct">軽量</button>
+              <button type="button" data-light-quality="standard">標準</button>
+              <button type="button" data-light-quality="high">高品質</button>
+            </div>
           </div>
           <div class="roomWarp" id="roomWarp"></div>
           <div class="walkStick" id="walkStick"><div id="walkStickKnob"></div></div>
@@ -184,6 +197,32 @@
         <section class="panelBlock addBlock workBlock work-lighting">
           <div class="blockTitle">照明器具を配置</div>
           <div class="palette groupedPalette" id="lightingPalette"></div>
+        </section>
+
+        <section class="panelBlock lightingSimBlock workBlock work-lighting">
+          <div class="blockTitle">照明シミュレーション</div>
+          <div class="lightingSimNote">普通3Dとは分離。照明モードの3Dだけ暗さ・反射・日射を反映します。</div>
+          <div class="lightingControlGroup">
+            <span>シーン</span>
+            <div class="lightingButtonGrid" id="lightingSceneMode">
+              <button type="button" data-light-scene="night">夜<br><small>照明のみ</small></button>
+              <button type="button" data-light-scene="evening">夕方<br><small>弱い日射</small></button>
+              <button type="button" data-light-scene="day">昼<br><small>日射込み</small></button>
+            </div>
+          </div>
+          <div class="lightingControlGroup">
+            <span>品質</span>
+            <div class="lightingButtonGrid" id="lightingQualityMode">
+              <button type="button" data-light-quality="direct">軽量<br><small>直接光</small></button>
+              <button type="button" data-light-quality="standard">標準<br><small>反射1回</small></button>
+              <button type="button" data-light-quality="high">高品質<br><small>反射2回</small></button>
+            </div>
+          </div>
+          <div class="lightingChecks">
+            <label class="checkLine"><input id="lightingHeatmapInput" type="checkbox">床の明るさを色で表示</label>
+            <label class="checkLine"><input id="lightingWallGlowInput" type="checkbox">壁面の明るさも表示</label>
+          </div>
+          <div class="lightingSimHint" id="lightingSimHint"></div>
         </section>
 
         <section class="panelBlock lightingSummaryBlock workBlock work-lighting">
@@ -326,6 +365,6 @@
   </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=20260620-layout-list-v26"></script>
+  <script type="module" src="./js/app.js?v=20260624-lighting-sim-v27"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260620-layout-list-v26";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-lighting-sim-v27";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -52,16 +52,17 @@ export class DetailScene3D {
   }
 
   initLights(){
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d3c7, 0.78));
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0xd8d3c7, 0.78);
+    this.scene.add(this.hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 1.1);
     sun.position.set(10, 16, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1536, 1536);
     this.scene.add(sun);
     this.sun = sun;
-    const fill = new THREE.DirectionalLight(0xbfd7ff, 0.24);
-    fill.position.set(-10, 5, -8);
-    this.scene.add(fill);
+    this.fill = new THREE.DirectionalLight(0xbfd7ff, 0.24);
+    this.fill.position.set(-10, 5, -8);
+    this.scene.add(this.fill);
   }
 
   initControls(){
@@ -201,6 +202,30 @@ export class DetailScene3D {
 
   isWalkMode(){
     return this.viewMode === "walk";
+  }
+
+  isLightingMode(){
+    return !!this.state?.lighting?.enabled;
+  }
+
+  applyLightingEnvironment(){
+    const settings = this.state?.lighting || {};
+    if(!settings.enabled){
+      this.scene.background = new THREE.Color("#e8eef4");
+      this.renderer.toneMappingExposure = 1.08;
+      if(this.hemi) this.hemi.intensity = 0.78;
+      if(this.sun) this.sun.intensity = 1.1;
+      if(this.fill) this.fill.intensity = 0.24;
+      return;
+    }
+    const scene = settings.scene || "night";
+    const night = scene === "night";
+    const evening = scene === "evening";
+    this.scene.background = new THREE.Color(night ? "#1f252d" : evening ? "#d8d4c8" : "#edf3fb");
+    this.renderer.toneMappingExposure = night ? 0.82 : evening ? 0.98 : 1.06;
+    if(this.hemi) this.hemi.intensity = night ? 0.08 : evening ? 0.2 : 0.42;
+    if(this.sun) this.sun.intensity = night ? 0 : evening ? 0.34 : 0.95;
+    if(this.fill) this.fill.intensity = night ? 0.02 : evening ? 0.08 : 0.16;
   }
 
   setWalkMode(on){
@@ -407,6 +432,7 @@ export class DetailScene3D {
   rebuild(){
     clearGroup(this.root);
     if(!this.state?.plan) return;
+    this.applyLightingEnvironment();
     const { plan, design, floorMode, layers, selectedId } = this.state;
     const bounds = sceneBounds(plan, design, floorMode, layers, 96);
     this.lastBounds = bounds;
@@ -548,6 +574,9 @@ export class DetailScene3D {
     if(this.isWalkMode() && layers.rooms){
       this.addCeiling(frames, yBase);
     }
+    if(this.isLightingMode() && layers.rooms && this.state?.lighting?.showHeatmap !== false){
+      this.addLightingFloorHeatmap(floor, floorIndex, yBase, design);
+    }
     if(layers.walls){
       const wallMat = mat(design.exterior?.wallColor || "#f5f1e9", 0.96, 0.68);
       const outer = outerSegments(frames);
@@ -575,6 +604,9 @@ export class DetailScene3D {
         const wallTop = yBase + SLAB_H_M + WALL_H_M;
         this.addWallSlice(opening, doorTop, wallTop, wallMat, thickness);
       });
+      if(this.isLightingMode() && this.state?.lighting?.showWallGlow !== false){
+        this.addLightingWallGlow(floor, floorIndex, yBase, design, [...outer, ...wallLines]);
+      }
     }
     if(layers.openings){
       openings.forEach((opening) => this.addOpening(opening, yBase, selectedId));
@@ -601,6 +633,80 @@ export class DetailScene3D {
     mesh.position.set(pxToM(room.x + room.w / 2), yBase + height / 2 + index * 0.002, pxToM(room.y + room.h / 2));
     mesh.receiveShadow = true;
     this.root.add(mesh);
+  }
+
+  addLightingFloorHeatmap(floor, floorIndex, yBase, design){
+    const settings = this.state?.lighting || {};
+    const rooms = (floor.items || []).filter((item) => item.type === "room" && !item.void);
+    if(!rooms.length) return;
+    const lights = lightingItemsForFloor(design, floorIndex);
+    const windows = (floor.items || []).filter((item) => item.type === "opening" && item.kind === "window");
+    const stepM = settings.quality === "high" ? 0.45 : settings.quality === "direct" ? 0.8 : 0.6;
+    const y = yBase + SLAB_H_M + 0.064;
+    const maxTiles = settings.quality === "high" ? 520 : 360;
+    let count = 0;
+    rooms.forEach((room) => {
+      if(count >= maxTiles) return;
+      const roomW = pxToM(room.w);
+      const roomD = pxToM(room.h);
+      const cols = clamp(Math.ceil(roomW / stepM), 1, 12);
+      const rows = clamp(Math.ceil(roomD / stepM), 1, 12);
+      const tileW = roomW / cols;
+      const tileD = roomD / rows;
+      for(let row = 0; row < rows; row++){
+        for(let col = 0; col < cols; col++){
+          if(count >= maxTiles) return;
+          const px = room.x + (col + 0.5) * room.w / cols;
+          const py = room.y + (row + 0.5) * room.h / rows;
+          const lux = estimateLux3d(px, py, floorIndex, lights, windows, settings);
+          const material = heatMaterial(lux, 0.34);
+          const mesh = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.04, tileW * 0.92), 0.012, Math.max(0.04, tileD * 0.92)), material);
+          mesh.position.set(pxToM(px), y + count * 0.00001, pxToM(py));
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
+          this.root.add(mesh);
+          count++;
+        }
+      }
+    });
+  }
+
+  addLightingWallGlow(floor, floorIndex, yBase, design, segments){
+    const settings = this.state?.lighting || {};
+    const lights = lightingItemsForFloor(design, floorIndex);
+    const windows = (floor.items || []).filter((item) => item.type === "opening" && item.kind === "window");
+    const stepPx = settings.quality === "high" ? 18 : 24;
+    const y = yBase + SLAB_H_M + 1.18;
+    const h = 1.85;
+    const maxPanels = settings.quality === "high" ? 360 : 240;
+    let count = 0;
+    segments.forEach((seg) => {
+      if(count >= maxPanels) return;
+      const dx = (seg.x2 || 0) - (seg.x1 || 0);
+      const dy = (seg.y2 || 0) - (seg.y1 || 0);
+      const len = Math.hypot(dx, dy);
+      if(len < 18) return;
+      const pieces = clamp(Math.ceil(len / stepPx), 1, 18);
+      const angle = -Math.atan2(dy, dx);
+      const nx = dy / len;
+      const ny = -dx / len;
+      for(let i = 0; i < pieces; i++){
+        if(count >= maxPanels) return;
+        const t = (i + 0.5) / pieces;
+        const px = (seg.x1 || 0) + dx * t;
+        const py = (seg.y1 || 0) + dy * t;
+        const lux = estimateLux3d(px + nx * 5, py + ny * 5, floorIndex, lights, windows, settings) * 0.72;
+        if(lux < 18 && settings.scene === "night") continue;
+        const material = heatMaterial(lux, 0.22);
+        const panel = new THREE.Mesh(new THREE.BoxGeometry(pxToM(len / pieces * 0.9), h, 0.008), material);
+        panel.position.set(pxToM(px + nx * 1.6), y, pxToM(py + ny * 1.6));
+        panel.rotation.y = angle;
+        panel.castShadow = false;
+        panel.receiveShadow = false;
+        this.root.add(panel);
+        count++;
+      }
+    });
   }
 
   addWall(seg, yBase, material, thickness){
@@ -745,7 +851,7 @@ export class DetailScene3D {
     if(!existing && item.kind === "downlight"){
       const light = new THREE.Mesh(
         new THREE.CylinderGeometry(Math.max(0.045, pxToM(item.w) / 2), Math.max(0.045, pxToM(item.w) / 2), hM, 24),
-        mat(item.color || "#fff3b0", 0.96, 0.3)
+        lightFixtureMaterial(item, this.isLightingMode())
       );
       light.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM + hM / 2, pxToM(item.y + item.h / 2));
       light.castShadow = true;
@@ -758,7 +864,7 @@ export class DetailScene3D {
       group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));
       const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, Math.max(0.12, hM * 0.65), 10), mat("#44443f", 1, 0.4));
       cord.position.y = hM * 0.66;
-      const shade = new THREE.Mesh(new THREE.ConeGeometry(Math.max(0.08, pxToM(item.w) / 2), Math.max(0.1, hM * 0.35), 24, 1, true), mat(item.color || "#e2c680", 0.92, 0.4));
+      const shade = new THREE.Mesh(new THREE.ConeGeometry(Math.max(0.08, pxToM(item.w) / 2), Math.max(0.1, hM * 0.35), 24, 1, true), lightFixtureMaterial(item, this.isLightingMode()));
       shade.position.y = hM * 0.18;
       group.add(cord, shade);
       this.root.add(group);
@@ -770,7 +876,7 @@ export class DetailScene3D {
       group.position.set(pxToM(item.x + item.w / 2), yBase + SLAB_H_M + glM, pxToM(item.y + item.h / 2));
       const body = new THREE.Mesh(
         new THREE.CylinderGeometry(Math.max(0.12, pxToM(item.w) / 2), Math.max(0.12, pxToM(item.w) / 2), Math.max(0.05, hM), 32),
-        mat(item.color || "#fff7d4", 0.92, 0.26)
+        lightFixtureMaterial(item, this.isLightingMode())
       );
       body.position.y = hM / 2;
       body.castShadow = true;
@@ -797,15 +903,18 @@ export class DetailScene3D {
 
   addPhotometricLight(item, x, y, z, type){
     if(item.lightOn === false) return;
+    if(!this.isLightingMode()) return;
     const lumens = clamp(Number(item.lumens || 600), 50, 20000);
     const color = kelvinColor(Number(item.kelvin || 3000));
+    const useShadow = (this.state?.lighting?.quality || "standard") !== "direct";
     if(type === "spot"){
       const angle = clamp(Number(item.beamDeg || 60), 15, 170) * Math.PI / 360;
       const light = new THREE.SpotLight(color, 0, 12, angle, 0.42, 1.7);
       light.power = lumens;
       light.position.set(x, y, z);
       light.target.position.set(x, Math.max(0, y - 2.2), z);
-      light.castShadow = false;
+      light.castShadow = useShadow;
+      if(useShadow) light.shadow.mapSize.set(512, 512);
       this.root.add(light, light.target);
       return;
     }
@@ -1215,6 +1324,107 @@ export class DetailScene3D {
     );
     this.camera.lookAt(this.target);
   }
+}
+
+const heatMaterialCache = new Map();
+
+function lightingItemsForFloor(design, floorIndex){
+  return (design?.customItems || []).filter((item) => {
+    if(Number(item.floorIndex || 0) !== Number(floorIndex || 0)) return false;
+    return item.category === "照明" || ["downlight", "pendantLight", "ceilingLight"].includes(item.kind);
+  });
+}
+
+function estimateLux3d(x, y, floorIndex, lights, windows, settings){
+  const direct = lights.reduce((sum, light) => sum + lightPointLux3d(light, x, y), 0);
+  const bounces = lightingBounces3d(settings);
+  const reflect = bounces === 0 ? 0 : direct * (bounces === 1 ? 0.18 : 0.28);
+  const daylight = daylightLux3d(x, y, floorIndex, windows, settings);
+  return Math.max(0, direct + reflect + daylight);
+}
+
+function lightPointLux3d(light, x, y){
+  if(!light || light.lightOn === false) return 0;
+  const lumens = clamp(Number(light.lumens || 0), 0, 20000);
+  if(lumens <= 0) return 0;
+  const lx = pxToM((light.x || 0) + (light.w || 0) / 2);
+  const ly = pxToM((light.y || 0) + (light.h || 0) / 2);
+  const px = pxToM(x);
+  const py = pxToM(y);
+  const horizontal = Math.hypot(px - lx, py - ly);
+  const height = clamp(Number(light.glMm || 2350) / 1000, 0.35, 3.2);
+  const distance2 = Math.max(0.12, height * height + horizontal * horizontal);
+  const incidence = clamp(height / Math.sqrt(distance2), 0, 1);
+  const beamDeg = clamp(Number(light.beamDeg || (light.kind === "ceilingLight" ? 120 : 70)), 15, 180);
+  const half = beamDeg * Math.PI / 360;
+  const angle = Math.atan2(horizontal, height);
+  if(angle > half * 1.16) return 0;
+  const edge = angle > half ? clamp(1 - (angle - half) / Math.max(0.01, half * 0.16), 0, 1) : 1;
+  const solidAngle = Math.max(0.35, 2 * Math.PI * (1 - Math.cos(half)));
+  const candela = lumens / solidAngle;
+  const diffuser = light.kind === "ceilingLight" ? 0.82 : light.kind === "pendantLight" ? 0.72 : 0.95;
+  return candela * incidence * edge * diffuser / distance2;
+}
+
+function daylightLux3d(x, y, floorIndex, windows, settings){
+  if((settings?.scene || "night") === "night") return 0;
+  const base = settings.scene === "day" ? 180 : 48;
+  let lux = 0;
+  windows.forEach((opening) => {
+    if(opening.floorIndex !== undefined && Number(opening.floorIndex) !== Number(floorIndex || 0)) return;
+    const cx = ((opening.x1 || 0) + (opening.x2 || 0)) / 2;
+    const cy = ((opening.y1 || 0) + (opening.y2 || 0)) / 2;
+    const widthM = Math.max(0.3, pxToM(Math.hypot((opening.x2 || 0) - (opening.x1 || 0), (opening.y2 || 0) - (opening.y1 || 0))));
+    const heightM = Math.max(0.4, (Number(opening.winT || 2000) - Number(opening.winB || 900)) / 1000);
+    const distM = Math.max(0.45, pxToM(Math.hypot(x - cx, y - cy)));
+    const areaFactor = clamp(widthM * heightM / 2.0, 0.25, 2.2);
+    lux += base * areaFactor / (1 + distM * 0.72);
+  });
+  return lux;
+}
+
+function lightingBounces3d(settings){
+  if(settings?.quality === "high") return 2;
+  if(settings?.quality === "direct") return 0;
+  return 1;
+}
+
+function heatMaterial(lux, alpha = 0.32){
+  const color = heatColor(lux);
+  const opacity = clamp(alpha + Math.min(0.18, lux / 1200 * 0.18), 0.16, 0.52);
+  const key = `${color}:${opacity.toFixed(2)}`;
+  if(!heatMaterialCache.has(key)){
+    heatMaterialCache.set(key, new THREE.MeshBasicMaterial({
+      color:new THREE.Color(color),
+      transparent:true,
+      opacity,
+      depthWrite:false,
+      blending:THREE.NormalBlending
+    }));
+  }
+  return heatMaterialCache.get(key);
+}
+
+function heatColor(lux){
+  if(lux < 35) return "#2554c7";
+  if(lux < 75) return "#3aa6ff";
+  if(lux < 150) return "#3fd37f";
+  if(lux < 300) return "#f1d84a";
+  if(lux < 600) return "#f29b38";
+  return "#ef4c35";
+}
+
+function lightFixtureMaterial(item, lightingMode){
+  const base = new THREE.Color(item.color || "#fff3b0");
+  if(!lightingMode || item.lightOn === false) return mat(item.color || "#fff3b0", 0.96, 0.3);
+  const glow = kelvinColor(Number(item.kelvin || 3000));
+  return new THREE.MeshStandardMaterial({
+    color:base,
+    roughness:0.24,
+    metalness:0.02,
+    emissive:glow,
+    emissiveIntensity:clamp(Number(item.lumens || 600) / 1400, 0.28, 1.25)
+  });
 }
 
 function mat(color, opacity = 1, roughness = 0.55, transparent = false){
