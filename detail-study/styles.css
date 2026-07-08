@@ -395,7 +395,7 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   font-weight:900;
 }
 .nudgeMiniHead button[data-duplicate-selected]{ background:var(--green); }
-.nudgeSteps{ display:grid; grid-template-columns:1fr 1fr 1.25fr; gap:4px; }
+.nudgeSteps{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
 .nudgeSteps button,.nudgePad button{
   min-width:0;
   height:28px;
@@ -406,11 +406,45 @@ body.draggingPlan{ overflow:hidden; overscroll-behavior:none; }
   font-weight:900;
 }
 .nudgeSteps button.on{ color:#fff; background:var(--green); }
+.nudgeSteps button[data-snap-wall]{ color:#fff; background:var(--blue); }
 .nudgePad{
   display:grid;
   grid-template-columns:repeat(3,32px);
   justify-content:center;
   gap:4px;
+}
+.snap3dPanel{
+  position:absolute;
+  right:12px;
+  top:112px;
+  z-index:6;
+  width:min(210px, calc(100% - 24px));
+  display:grid;
+  gap:7px;
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:rgba(255,255,255,.92);
+  box-shadow:0 12px 30px rgba(31,35,28,.14);
+  backdrop-filter:blur(14px);
+}
+.snap3dPanel[hidden]{ display:none; }
+.snap3dPanel b{
+  min-width:0;
+  color:#1f2c24;
+  font-size:12px;
+  font-weight:950;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.snap3dPanel button{
+  height:34px;
+  border-radius:10px;
+  color:#fff;
+  background:var(--blue);
+  font-size:13px;
+  font-weight:950;
 }
 .planRoom,.planItem{ cursor:pointer; transition:opacity .12s ease; }
 body[data-work-mode="site"] .planRoom,
@@ -1815,6 +1849,12 @@ body.builderOpen .modeDock{ display:none; }
     height:34px;
     padding:0 12px;
     font-size:12px;
+  }
+  body[data-view="3d"] .snap3dPanel{
+    top:calc(env(safe-area-inset-top) + 208px);
+    right:10px;
+    width:min(188px, calc(100% - 20px));
+    z-index:75;
   }
   body[data-view="3d"][data-work-mode="lighting"] .lighting3dQuick{
     right:10px;

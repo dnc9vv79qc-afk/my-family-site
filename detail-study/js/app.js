@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260708-plan-pan-v30";
+import { DetailScene3D } from "./scene3d.js?v=20260708-wall-snap-v31";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -16,10 +16,10 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260708-plan-pan-v30";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260708-plan-pan-v30";
+} from "./data.js?v=20260708-wall-snap-v31";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260708-wall-snap-v31";
 
-const DETAIL_VERSION_LABEL = "07/08 平面移動高速化 v30";
+const DETAIL_VERSION_LABEL = "07/08 壁付け操作 v31";
 const LIGHTING_DEFAULTS = {
   scene: "night",
   quality: "standard",
@@ -112,7 +112,7 @@ async function init(){
 function cacheDom(){
   [
     "layoutMeta","editLayoutLink","openLayoutsBtn","savedLayoutsModal","savedLayoutsCloseBtn","savedLayoutsList","reloadBtn","exportBtn","saveBtn","viewTabs","floorTabs","workTabs","metricStrip","stage3d","stagePlan","stageList",
-    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","lighting3dQuick","lighting3dQuickText","roomWarp","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","constructionPalette","exteriorPalette","lightingPalette","lightingSceneMode","lightingQualityMode","lightingHeatmapInput","lightingWallGlowInput","lightingSimHint","lightingSummary","workModeTitle","workModeHint",
+    "sceneCanvas","walkHud","walkModeBtn","reset3dBtn","walkStatus","viewPresetBar","lighting3dQuick","lighting3dQuickText","roomWarp","snap3dPanel","walkStick","walkStickKnob","planSvg","planHud","planModes","planNudge","planHudTitle","centerPlanBtn","zoomInBtn","zoomOutBtn","clearSelectionBtn","undoBtn","measureHud","measureText","clearMeasureBtn","layerToggles","siteSettingsTabs","siteNorthInput","siteEastInput","siteSouthInput","siteWestInput","siteEqualInput","siteEqualBtn","applySiteBtn","setbackInput","parkingInput","deckInput","northInput","wallColorInput","porchTileInput","fenceInput","palette","constructionPalette","exteriorPalette","lightingPalette","lightingSceneMode","lightingQualityMode","lightingHeatmapInput","lightingWallGlowInput","lightingSimHint","lightingSummary","workModeTitle","workModeHint",
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "wallSheetBtn","wallSheetModal","wallSheetCloseBtn","wallSheetSaveBtn","wallSheetRooms","wallSheetCanvas",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
@@ -286,6 +286,14 @@ function bindEvents(){
   dom.planSvg.addEventListener("wheel", onPlanWheel, { passive:false });
   dom.planNudge.addEventListener("click", onPlanNudgeClick);
   dom.planNudge.addEventListener("pointerdown", onPlanNudgePointerDown);
+  dom.snap3dPanel?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-snap-wall]");
+    if(!button) return;
+    const item = findCustomById(state.selectedId);
+    if(!canSnapToWall(item)) return;
+    event.preventDefault();
+    snapItemToNearestWall(item);
+  });
   window.addEventListener("pointermove", onPlanPointerMove);
   window.addEventListener("pointermove", onNudgePointerMove);
   window.addEventListener("pointerup", onPlanPointerUp);
@@ -641,6 +649,7 @@ function render(){
   renderLightingSummary();
   renderSelectedPanel();
   renderSceneOnly();
+  renderSnap3dPanel();
   renderWorkModeInfo();
   updateUndoControls();
 }
@@ -662,6 +671,18 @@ function renderSceneOnly(){
     }
   });
   update3dControls();
+}
+
+function renderSnap3dPanel(){
+  if(!dom.snap3dPanel) return;
+  const item = findCustomById(state.selectedId);
+  const visible = state.view === "3d" && canSnapToWall(item);
+  dom.snap3dPanel.hidden = !visible;
+  if(!visible){
+    dom.snap3dPanel.innerHTML = "";
+    return;
+  }
+  dom.snap3dPanel.innerHTML = `<b>${escapeHtml(item.label || "選択中")}</b><button type="button" data-snap-wall="1">最寄りの壁付け</button>`;
 }
 
 function renderViewTabs(){
@@ -1127,7 +1148,7 @@ function onPlanPointerUp(){
 }
 
 function onPlanNudgeClick(event){
-  const button = event.target.closest("button[data-move],button[data-size-step],button[data-rotate-step],button[data-delete-selected],button[data-duplicate-selected]");
+  const button = event.target.closest("button[data-move],button[data-size-step],button[data-rotate-step],button[data-snap-wall],button[data-delete-selected],button[data-duplicate-selected]");
   if(!button) return;
   const item = findCustomById(state.selectedId);
   if(!item) return;
@@ -1161,6 +1182,10 @@ function onPlanNudgeClick(event){
       renderSelectedPanel();
       renderSceneOnly();
     }
+    return;
+  }
+  if(button.dataset.snapWall){
+    if(canSnapToWall(item)) snapItemToNearestWall(item);
     return;
   }
   const [mx, my] = button.dataset.move.split(",").map(Number);
@@ -1481,12 +1506,14 @@ function renderPlanNudge(){
     return;
   }
   const step = Number(item.nudgeMm || 100);
+  const wallSnapButton = canSnapToWall(item) ? `<button type="button" data-snap-wall="1">壁付け</button>` : "";
   dom.planNudge.hidden = false;
   dom.planNudge.innerHTML = `<div class="nudgeMiniHead"><b>${escapeHtml(item.label || "選択中")}</b><div><button type="button" data-duplicate-selected="1">複製</button><button type="button" data-delete-selected="1">削除</button></div></div>
     <div class="nudgeSteps">
       <button type="button" data-size-step="10" class="${step === 10 ? "on" : ""}">1cm</button>
       <button type="button" data-size-step="100" class="${step === 100 ? "on" : ""}">10cm</button>
       <button type="button" data-rotate-step="90">90°回転</button>
+      ${wallSnapButton}
     </div>
     <div class="nudgePad">
       <span></span><button type="button" data-move="0,-1">↑</button><span></span>
@@ -1617,6 +1644,10 @@ function isLightItem(item){
   if(!item) return false;
   if(["downlight", "pendantLight", "ceilingLight", "wallLight", "spotLight", "sensorLight"].includes(item.kind)) return Number(item.lumens || 0) > 0;
   return item.category === "照明" && Number(item.lumens || 0) > 0;
+}
+
+function canSnapToWall(item){
+  return !!item && !item.locked && item.layer !== "exterior" && !isLightItem(item);
 }
 
 function roomLightingRows(){
@@ -2099,7 +2130,7 @@ function renderCustomEditor(item){
   const modelEditButton = Array.isArray(item.modelParts) && item.modelParts.length
     ? `<button type="button" id="editModelBtn">部品を編集</button>`
     : "";
-  const wallSnapButton = !isExterior && !isLight
+  const wallSnapButton = canSnapToWall(item)
     ? `<button type="button" id="snapWallBtn">最寄りの壁に付ける</button>`
     : "";
   if(item.locked){
