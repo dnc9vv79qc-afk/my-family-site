@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260624-pdf-lighting-v29";
+import { DetailScene3D } from "./scene3d.js?v=20260708-plan-pan-v30";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -16,10 +16,10 @@ import {
   formatTsubo,
   pxToMm,
   mmToPx
-} from "./data.js?v=20260624-pdf-lighting-v29";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260624-pdf-lighting-v29";
+} from "./data.js?v=20260708-plan-pan-v30";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260708-plan-pan-v30";
 
-const DETAIL_VERSION_LABEL = "06/24 PDF照明カタログ v29";
+const DETAIL_VERSION_LABEL = "07/08 平面移動高速化 v30";
 const LIGHTING_DEFAULTS = {
   scene: "night",
   quality: "standard",
@@ -1275,7 +1275,13 @@ function planViewport(bounds = displayBounds()){
   };
 }
 
-function zoomPlan(factor, anchor = null){
+function applyPlanViewBox(){
+  if(!dom.planSvg || !state.plan) return;
+  const viewport = planViewport(displayBounds());
+  dom.planSvg.setAttribute("viewBox", `${viewport.minX} ${viewport.minY} ${viewport.width} ${viewport.height}`);
+}
+
+function zoomPlan(factor, anchor = null, renderFull = true){
   const bounds = displayBounds();
   const before = planViewport(bounds);
   const point = anchor || { x:before.minX + before.width / 2, y:before.minY + before.height / 2 };
@@ -1284,7 +1290,8 @@ function zoomPlan(factor, anchor = null){
   state.planView.cx = point.x + (state.planView.cx - point.x) * ratio;
   state.planView.cy = point.y + (state.planView.cy - point.y) * ratio;
   state.planView.zoom = nextZoom;
-  renderPlan();
+  if(renderFull) renderPlan();
+  else applyPlanViewBox();
 }
 
 function onPlanWheel(event){
@@ -1296,6 +1303,7 @@ function onPlanWheel(event){
 function onPlanZoomPointerDown(event){
   state.planPointers.set(event.pointerId, { x:event.clientX, y:event.clientY });
   if(state.planPointers.size === 1 && state.dockMode === "browse"){
+    event.preventDefault();
     planViewport(displayBounds());
     state.planPan = {
       pointerId:event.pointerId,
@@ -1333,7 +1341,7 @@ function onPlanZoomPointerMove(event){
       state.planView.cx = state.planPan.cx - dx * viewport.width / rect.width;
       state.planView.cy = state.planPan.cy - dy * viewport.height / rect.height;
       state.planPan.moved ||= Math.hypot(dx, dy) > 3;
-      renderPlan();
+      applyPlanViewBox();
     }
     return;
   }
@@ -1349,7 +1357,7 @@ function onPlanZoomPointerMove(event){
   const anchor = svgPoint(centerEvent);
   const targetZoom = clamp(state.planPinch.zoom * distance / Math.max(20, state.planPinch.distance), 0.45, 6);
   const current = state.planView?.zoom || 1;
-  if(rect.width > 0 && Math.abs(targetZoom - current) > 0.005) zoomPlan(targetZoom / current, anchor);
+  if(rect.width > 0 && Math.abs(targetZoom - current) > 0.005) zoomPlan(targetZoom / current, anchor, false);
 }
 
 function onPlanZoomPointerUp(event){
@@ -1357,6 +1365,7 @@ function onPlanZoomPointerUp(event){
   if(state.planPointers.size < 2) state.planPinch = null;
   if(state.planPan?.pointerId === event.pointerId){
     try{ dom.planSvg.releasePointerCapture?.(event.pointerId); }catch(_){}
+    if(state.planPan.moved) state.suppressPlanClickUntil = Date.now() + 250;
     state.planPan = null;
   }
 }

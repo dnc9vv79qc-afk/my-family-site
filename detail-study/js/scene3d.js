@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260624-pdf-lighting-v29";
+import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260708-plan-pan-v30";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
