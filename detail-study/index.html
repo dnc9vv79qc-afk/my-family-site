@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>住まい詳細シミュレーター 07/08 壁付け操作 v31 | MORI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260708-wall-snap-v31">
+  <title>住まい詳細シミュレーター 07/09 窓寸法・補完内壁 v33 | MORI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260709-window-wall-v33">
   <script type="importmap">
     {
       "imports": {
@@ -17,7 +17,7 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <b>住まい詳細シミュレーター <small>07/08 壁付け操作 v31</small></b>
+        <b>住まい詳細シミュレーター <small>07/09 窓寸法・補完内壁 v33</small></b>
         <span id="layoutMeta">読み込み中</span>
       </div>
       <div class="topActions">
@@ -346,6 +346,18 @@
         <button type="button" id="quickAddCancelBtn">閉じる</button>
       </div>
       <div id="quickAddProductInfo"></div>
+      <div class="ichijoWindowBox" id="quickIchijoWindowBox" hidden>
+        <label>一条窓番号
+          <input id="quickIchijoWindowCode" type="text" inputmode="text" placeholder="例 JM5930N+1238 / 5930">
+        </label>
+        <div class="ichijoWindowHint" id="quickIchijoWindowHint">番号を入れると幅・高さを概算入力します</div>
+        <div class="ichijoWindowActions">
+          <button type="button" data-window-gl="900">下端900</button>
+          <button type="button" data-window-gl="1100">下端1100</button>
+          <button type="button" data-window-top="2000">上端2000</button>
+          <button type="button" data-window-top="2200">上端2200</button>
+        </div>
+      </div>
       <div class="selectedGrid quickAddGrid">
         <label>名前<input id="quickAddLabel" type="text" maxlength="20"></label>
         <label>幅mm<input id="quickAddW" type="number" min="50" max="10000" step="10"></label>
@@ -367,6 +379,6 @@
   </section>
 
   <div class="toast" id="toast" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=20260708-wall-snap-v31"></script>
+  <script type="module" src="./js/app.js?v=20260709-window-wall-v33"></script>
 </body>
 </html>

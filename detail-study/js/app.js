@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260708-wall-snap-v31";
+import { DetailScene3D } from "./scene3d.js?v=20260709-window-wall-v33";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -15,11 +15,13 @@ import {
   formatM2,
   formatTsubo,
   pxToMm,
-  mmToPx
-} from "./data.js?v=20260708-wall-snap-v31";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260708-wall-snap-v31";
+  mmToPx,
+  implicitRoomWalls
+} from "./data.js?v=20260709-window-wall-v33";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260709-window-wall-v33";
 
-const DETAIL_VERSION_LABEL = "07/08 壁付け操作 v31";
+const DETAIL_VERSION_LABEL = "07/09 窓寸法・補完内壁 v33";
+const SHAKU_MM = 303.03;
 const LIGHTING_DEFAULTS = {
   scene: "night",
   quality: "standard",
@@ -116,7 +118,7 @@ function cacheDom(){
     "selectedPanel","itemListLarge","noteList","noteListLarge","noteInput","noteCategory",
     "wallSheetBtn","wallSheetModal","wallSheetCloseBtn","wallSheetSaveBtn","wallSheetRooms","wallSheetCanvas",
     "addNoteBtn","toast","viewBadge","modeDock","inspector","openObjectBuilderBtn","objectBuilder",
-    "quickAddModal","quickAddTitle","quickAddProductInfo","quickAddLabel","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
+    "quickAddModal","quickAddTitle","quickAddProductInfo","quickAddLabel","quickIchijoWindowBox","quickIchijoWindowCode","quickIchijoWindowHint","quickAddW","quickAddD","quickAddH","quickAddGl","quickLightFields","quickAddLumens","quickAddKelvin","quickAddBeam","quickAddDimming","quickAddCancelBtn","quickAddConfirmBtn",
     "builderCloseBtn","builderSaveBtn","builderPreview","builderFitBtn","builderReadout","builderSizeText","builderSnapInput","builderNameInput","builderLayerInput","builderOverallW","builderOverallD","builderOverallH","builderPartList","builderEditor"
   ].forEach((id) => { dom[id] = document.getElementById(id); });
 }
@@ -321,10 +323,33 @@ function bindEvents(){
   dom.builderSnapInput?.addEventListener("change", () => builder3d?.setSnap(dom.builderSnapInput.value));
   dom.quickAddCancelBtn?.addEventListener("click", closeQuickAdd);
   dom.quickAddConfirmBtn?.addEventListener("click", confirmQuickAdd);
-  [dom.quickAddW, dom.quickAddD, dom.quickAddH, dom.quickAddGl, dom.quickAddLumens, dom.quickAddKelvin, dom.quickAddBeam].forEach((input) => {
+  [dom.quickIchijoWindowCode, dom.quickAddW, dom.quickAddD, dom.quickAddH, dom.quickAddGl, dom.quickAddLumens, dom.quickAddKelvin, dom.quickAddBeam].forEach((input) => {
     input?.addEventListener("keydown", (event) => {
       if(event.key === "Enter") confirmQuickAdd();
     });
+  });
+  dom.quickIchijoWindowCode?.addEventListener("input", () => applyIchijoWindowCode({
+    codeInput: dom.quickIchijoWindowCode,
+    widthInput: dom.quickAddW,
+    heightInput: dom.quickAddH,
+    glInput: dom.quickAddGl,
+    hint: dom.quickIchijoWindowHint,
+    labelInput: dom.quickAddLabel
+  }));
+  dom.quickIchijoWindowBox?.addEventListener("click", (event) => {
+    const glButton = event.target.closest("button[data-window-gl]");
+    const topButton = event.target.closest("button[data-window-top]");
+    if(glButton){
+      dom.quickAddGl.value = Number(glButton.dataset.windowGl || 0);
+      updateQuickIchijoWindowHint();
+      return;
+    }
+    if(topButton){
+      const top = Number(topButton.dataset.windowTop || 0);
+      const height = numberValue(dom.quickAddH, 0);
+      dom.quickAddGl.value = Math.max(0, Math.round(top - height));
+      updateQuickIchijoWindowHint();
+    }
   });
   dom.quickAddModal?.addEventListener("click", (event) => {
     if(event.target === dom.quickAddModal) closeQuickAdd();
@@ -1415,7 +1440,7 @@ function renderPlan(){
   const items = floorItems(state.plan, state.floorMode);
   const rooms = items.filter((item) => item.type === "room" && !item.void);
   const frames = items.filter((item) => item.type === "frame");
-  const walls = items.filter((item) => item.type === "wallLine");
+  const walls = [...items.filter((item) => item.type === "wallLine"), ...implicitRoomWalls(items)];
   const openings = items.filter((item) => item.type === "opening");
   const furn = items.filter((item) => item.type === "furn" || item.type === "stair");
   const chunks = [];
@@ -1426,18 +1451,18 @@ function renderPlan(){
   if(state.layers.rooms){
     groupRooms(rooms).forEach((group) => chunks.push(renderRoomGroupSvg(group)));
   }
+  furn.filter((item) => isStructuralStair(item) || state.layers.guideFurniture).forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
+  visibleCustomItems().forEach((item) => {
+    if(isItemLayerVisible(item)) chunks.push(renderFurnitureSvg(item, false));
+  });
   if(state.layers.walls){
     walls.forEach((wall) => {
-      chunks.push(`<line class="fixedPlanLine" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#1f241f" stroke-width="${Math.max(4, wall.thick || 8)}" stroke-linecap="square"/>`);
+      chunks.push(`<line class="fixedPlanLine fixedWallLine" x1="${wall.x1}" y1="${wall.y1}" x2="${wall.x2}" y2="${wall.y2}" stroke="#161b16" stroke-width="${Math.max(5, wall.thick || 8)}" stroke-linecap="square"/>`);
     });
   }
   if(state.layers.openings){
     openings.forEach((opening) => chunks.push(renderOpeningSvg(opening)));
   }
-  furn.filter((item) => isStructuralStair(item) || state.layers.guideFurniture).forEach((item) => chunks.push(renderFurnitureSvg(item, true)));
-  visibleCustomItems().forEach((item) => {
-    if(isItemLayerVisible(item)) chunks.push(renderFurnitureSvg(item, false));
-  });
   if(state.layers.site) chunks.push(renderSiteDistanceSvg());
   chunks.push(renderMeasureSvg());
   dom.planSvg.innerHTML = chunks.join("");
@@ -1648,6 +1673,77 @@ function isLightItem(item){
 
 function canSnapToWall(item){
   return !!item && !item.locked && item.layer !== "exterior" && !isLightItem(item);
+}
+
+function isWindowStudyItem(item){
+  return !!item && (item.kind === "windowNote" || item.category === "窓" || item.layer === "openings");
+}
+
+function parseIchijoWindowCode(raw){
+  const source = String(raw || "").trim().toUpperCase();
+  if(!source) return null;
+  const compact = source.replace(/\s+/g, "");
+  const sizeMatch = compact.match(/(\d{4})(?!\d)/);
+  if(!sizeMatch) return { source, error:"4桁の窓番号が見つかりません" };
+  const sizeCode = sizeMatch[1];
+  const widthShaku = Number(sizeCode.slice(0, 2)) / 10;
+  const heightShaku = Number(sizeCode.slice(2, 4)) / 10;
+  if(!Number.isFinite(widthShaku) || !Number.isFinite(heightShaku) || widthShaku <= 0 || heightShaku <= 0){
+    return { source, error:"窓番号を読み取れません" };
+  }
+  const flMatch = compact.match(/[+＋]\s*(\d{3,4})/);
+  const bottomMm = flMatch ? Number(flMatch[1]) : null;
+  const widthMm = Math.round(widthShaku * SHAKU_MM * 10);
+  const heightMm = Math.round(heightShaku * SHAKU_MM * 10);
+  return {
+    source,
+    sizeCode,
+    widthShaku,
+    heightShaku,
+    widthMm,
+    heightMm,
+    bottomMm:Number.isFinite(bottomMm) ? bottomMm : null
+  };
+}
+
+function ichijoWindowText(parsed, glInput = null){
+  if(!parsed) return "番号を入れると幅・高さを概算入力します";
+  if(parsed.error) return parsed.error;
+  const bottom = Number.isFinite(parsed.bottomMm)
+    ? parsed.bottomMm
+    : (glInput ? numberValue(glInput, 0) : null);
+  const top = Number.isFinite(bottom) ? bottom + parsed.heightMm : null;
+  const topText = Number.isFinite(top) ? ` / 上端 約${Math.round(top)}mm` : "";
+  const bottomText = Number.isFinite(bottom) ? ` / 下端 ${Math.round(bottom)}mm` : "";
+  return `${parsed.sizeCode}: 幅 約${Math.round(parsed.widthMm / 10)}cm × 高さ 約${Math.round(parsed.heightMm / 10)}cm${bottomText}${topText}`;
+}
+
+function applyIchijoWindowCode({ codeInput, widthInput, heightInput, glInput, hint, labelInput, item = null }){
+  const parsed = parseIchijoWindowCode(codeInput?.value);
+  if(!parsed || parsed.error){
+    if(hint) hint.textContent = ichijoWindowText(parsed);
+    return null;
+  }
+  if(widthInput) widthInput.value = parsed.widthMm;
+  if(heightInput) heightInput.value = parsed.heightMm;
+  if(glInput && Number.isFinite(parsed.bottomMm)) glInput.value = parsed.bottomMm;
+  if(labelInput && /^窓検討$|^窓$/.test(labelInput.value.trim())){
+    labelInput.value = `窓 ${parsed.source.replace(/[+＋]\d{3,4}/, "")}`;
+  }
+  if(item){
+    item.ichijoWindowCode = parsed.source;
+    item.w = mmToPx(parsed.widthMm);
+    item.heightMm = parsed.heightMm;
+    if(Number.isFinite(parsed.bottomMm)) item.glMm = parsed.bottomMm;
+    item.meta = `一条 ${parsed.sizeCode} W${parsed.widthMm} H${parsed.heightMm}`;
+  }
+  if(hint) hint.textContent = ichijoWindowText(parsed, glInput);
+  return parsed;
+}
+
+function updateQuickIchijoWindowHint(){
+  if(!dom.quickIchijoWindowHint) return;
+  dom.quickIchijoWindowHint.textContent = ichijoWindowText(parseIchijoWindowCode(dom.quickIchijoWindowCode?.value), dom.quickAddGl);
 }
 
 function roomLightingRows(){
@@ -2164,8 +2260,23 @@ function renderCustomEditor(item){
         </div>
       </div>`
     : "";
+  const ichijoWindowBox = isWindowStudyItem(item)
+    ? `<div class="ichijoWindowBox">
+        <label>一条窓番号
+          <input id="itemIchijoWindowCode" type="text" inputmode="text" placeholder="例 JM5930N+1238 / 5930" value="${escapeAttr(item.ichijoWindowCode || "")}">
+        </label>
+        <div class="ichijoWindowHint" id="itemIchijoWindowHint">${escapeHtml(ichijoWindowText(parseIchijoWindowCode(item.ichijoWindowCode || ""), null))}</div>
+        <div class="ichijoWindowActions">
+          <button type="button" data-item-window-gl="900">下端900</button>
+          <button type="button" data-item-window-gl="1100">下端1100</button>
+          <button type="button" data-item-window-top="2000">上端2000</button>
+          <button type="button" data-item-window-top="2200">上端2200</button>
+        </div>
+      </div>`
+    : "";
   return `<div class="selectedHead"><div><b>${escapeHtml(item.label)}</b><span>${escapeHtml(isExterior ? (item.category || "外構") : floorLabel(item.floorIndex))}</span></div><button class="dangerBtn" id="deleteItemBtn" type="button">削除</button></div>
     ${productInfo}
+    ${ichijoWindowBox}
     <div class="selectedGrid">
       <label>名前<input id="itemLabel" type="text" maxlength="20" value="${escapeAttr(item.label)}"></label>
       <label>色<input id="itemColor" type="color" value="${escapeAttr(item.color || "#c9c9d2")}"></label>
@@ -2242,6 +2353,60 @@ function bindCustomEditor(item){
     });
     input.addEventListener("input", update);
   });
+  const ichijoInput = document.getElementById("itemIchijoWindowCode");
+  if(ichijoInput){
+    ichijoInput.addEventListener("focus", () => {
+      editSnapshot = editSnapshot || historySnapshot();
+    });
+    ichijoInput.addEventListener("input", () => {
+      const parsed = applyIchijoWindowCode({
+        codeInput: ichijoInput,
+        widthInput: document.getElementById("itemW"),
+        heightInput: document.getElementById("itemH"),
+        glInput: document.getElementById("itemGl"),
+        hint: document.getElementById("itemIchijoWindowHint"),
+        labelInput: document.getElementById("itemLabel"),
+        item
+      });
+      if(!parsed || parsed.error) return;
+      if(editSnapshot){
+        pushHistory(editSnapshot);
+        editSnapshot = null;
+      }
+      item.ichijoWindowCode = parsed.source;
+      item.ichijoWindowSizeCode = parsed.sizeCode;
+      saveDesign(false);
+      renderPlan();
+      renderLists();
+      renderLightingSummary();
+      renderSceneOnly();
+    });
+    document.querySelectorAll("[data-item-window-gl],[data-item-window-top]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if(editSnapshot){
+          pushHistory(editSnapshot);
+          editSnapshot = null;
+        }else{
+          pushHistory();
+        }
+        const glInput = document.getElementById("itemGl");
+        if(button.dataset.itemWindowGl){
+          item.glMm = Number(button.dataset.itemWindowGl || 0);
+        }else{
+          const top = Number(button.dataset.itemWindowTop || 0);
+          item.glMm = Math.max(0, Math.round(top - Number(item.heightMm || 0)));
+        }
+        if(glInput) glInput.value = Math.round(item.glMm || 0);
+        const hint = document.getElementById("itemIchijoWindowHint");
+        if(hint) hint.textContent = ichijoWindowText(parseIchijoWindowCode(ichijoInput.value), glInput);
+        saveDesign(false);
+        renderPlan();
+        renderLists();
+        renderLightingSummary();
+        renderSceneOnly();
+      });
+    });
+  }
   document.getElementById("deleteItemBtn").addEventListener("click", () => {
     deleteCustomItem(item.id);
   });
@@ -2363,6 +2528,12 @@ function openQuickAdd(kind){
   dom.quickAddD.value = Math.round(preset.d || 300);
   dom.quickAddH.value = Math.round(preset.h || 700);
   dom.quickAddGl.value = Math.round(preset.gl || 0);
+  const isWindow = isWindowStudyItem(preset);
+  if(dom.quickIchijoWindowBox){
+    dom.quickIchijoWindowBox.hidden = !isWindow;
+    dom.quickIchijoWindowCode.value = "";
+    dom.quickIchijoWindowHint.textContent = "番号を入れると幅・高さを概算入力します";
+  }
   const isLight = isLightItem(preset);
   dom.quickLightFields.hidden = !isLight;
   dom.quickAddLumens.value = Math.round(preset.lumens || 600);
@@ -2381,6 +2552,9 @@ function closeQuickAdd(){
 function confirmQuickAdd(){
   const kind = state.pendingAddKind;
   if(!kind) return;
+  const parsedWindow = dom.quickIchijoWindowBox && !dom.quickIchijoWindowBox.hidden
+    ? parseIchijoWindowCode(dom.quickIchijoWindowCode?.value)
+    : null;
   const dimensions = {
     label: dom.quickAddLabel.value.trim(),
     w: clamp(numberValue(dom.quickAddW, 900), 50, 10000),
@@ -2390,7 +2564,9 @@ function confirmQuickAdd(){
     lumens: clamp(numberValue(dom.quickAddLumens, 600), 50, 20000),
     kelvin: clamp(numberValue(dom.quickAddKelvin, 2700), 2000, 6500),
     beamDeg: clamp(numberValue(dom.quickAddBeam, 60), 15, 180),
-    dimming: !!dom.quickAddDimming.checked
+    dimming: !!dom.quickAddDimming.checked,
+    ichijoWindowCode: parsedWindow && !parsedWindow.error ? parsedWindow.source : "",
+    ichijoWindowSizeCode: parsedWindow && !parsedWindow.error ? parsedWindow.sizeCode : ""
   };
   closeQuickAdd();
   addCustomItem(kind, dimensions);
@@ -2424,7 +2600,13 @@ function addCustomItem(kind, dimensions = null){
       item.dimming = dimensions.dimming;
       item.lightOn = true;
     }
-    if(!item.lightingProduct) item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
+    const hasIchijoWindowCode = isWindowStudyItem(item) && dimensions.ichijoWindowCode;
+    if(hasIchijoWindowCode){
+      item.ichijoWindowCode = dimensions.ichijoWindowCode;
+      item.ichijoWindowSizeCode = dimensions.ichijoWindowSizeCode || "";
+      item.meta = `一条 ${dimensions.ichijoWindowSizeCode || dimensions.ichijoWindowCode} W${Math.round(dimensions.w)} H${Math.round(dimensions.h)}`;
+    }
+    if(!item.lightingProduct && !hasIchijoWindowCode) item.meta = `W${Math.round(dimensions.w)} D${Math.round(dimensions.d)} H${Math.round(dimensions.h)}`;
   }
   if(preset.layer === "exterior"){
     item.floorIndex = 0;

@@ -933,6 +933,52 @@ input[type="checkbox"]{ width:16px; height:16px; accent-color:var(--green); }
 }
 .quickAddGrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 .quickAddGrid label:first-child{ grid-column:1 / -1; }
+.ichijoWindowBox{
+  display:grid;
+  gap:8px;
+  padding:10px;
+  border:1px solid rgba(40,111,214,.20);
+  border-radius:12px;
+  background:#f5f9ff;
+}
+.ichijoWindowBox[hidden]{ display:none; }
+.ichijoWindowBox label{
+  display:grid;
+  gap:5px;
+  color:#2d3a4d;
+  font-size:12px;
+  font-weight:900;
+}
+.ichijoWindowBox input{
+  height:36px;
+  border:1px solid rgba(40,111,214,.22);
+  border-radius:10px;
+  padding:0 10px;
+  background:#fff;
+  color:#1f2a23;
+  font-size:16px;
+  font-weight:850;
+}
+.ichijoWindowHint{
+  color:#506071;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.45;
+}
+.ichijoWindowActions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;
+}
+.ichijoWindowActions button{
+  min-width:0;
+  height:30px;
+  border-radius:8px;
+  background:rgba(40,111,214,.12);
+  color:#2359a5;
+  font-size:11px;
+  font-weight:900;
+}
 .quickLightFields,.lightEditor{
   display:grid;
   gap:7px;

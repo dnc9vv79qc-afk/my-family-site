@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX } from "./data.js?v=20260708-wall-snap-v31";
+import { pxToM, pxToMm, floorBounds, GRID_PX, implicitRoomWalls } from "./data.js?v=20260709-window-wall-v33";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;
@@ -562,7 +562,7 @@ export class DetailScene3D {
     const frames = items.filter((item) => item.type === "frame");
     const openings = items.filter((item) => item.type === "opening");
     const doorOpenings = openings.filter((item) => item.kind !== "window");
-    const wallLines = items.filter((item) => item.type === "wallLine");
+    const wallLines = [...items.filter((item) => item.type === "wallLine"), ...implicitRoomWalls(items)];
     const existingFurniture = items.filter((item) => item.type === "furn" || item.type === "stair");
     if(layers.rooms){
       rooms.forEach((room, index) => this.addRoom(room, floorIndex, yBase, design, selectedId, index));

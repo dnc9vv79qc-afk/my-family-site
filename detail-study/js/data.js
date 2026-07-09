@@ -206,6 +206,50 @@ export function furnitureForFloor(plan, floorMode = "all"){
   return floorItems(plan, floorMode).filter((item) => item.type === "furn" || item.type === "stair");
 }
 
+export function implicitRoomWalls(items = []){
+  const rooms = (items || []).filter((item) => item.type === "room" && !item.void);
+  const explicitWalls = (items || []).filter((item) => item.type === "wallLine");
+  const out = [];
+  const eps = 2.5;
+  const hasExplicitWall = (horizontal, fixed, lo, hi) => explicitWalls.some((wall) => {
+    const wallHorizontal = Math.abs((wall.y1 || 0) - (wall.y2 || 0)) < 0.1;
+    if(wallHorizontal !== horizontal) return false;
+    const wallFixed = horizontal ? wall.y1 : wall.x1;
+    if(Math.abs(wallFixed - fixed) > eps) return false;
+    const wallLo = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
+    const wallHi = horizontal ? Math.max(wall.x1, wall.x2) : Math.max(wall.y1, wall.y2);
+    return wallLo < hi - eps && wallHi > lo + eps;
+  });
+  const pushWall = (horizontal, fixed, lo, hi, a, b) => {
+    if(hi - lo <= eps) return;
+    if(hasExplicitWall(horizontal, fixed, lo, hi)) return;
+    const labelA = String(a.label || "");
+    const labelB = String(b.label || "");
+    if(labelA && labelB && labelA === labelB) return;
+    const key = `${horizontal ? "h" : "v"}:${Math.round(fixed * 10)}:${Math.round(lo * 10)}:${Math.round(hi * 10)}`;
+    if(out.some((wall) => wall.key === key)) return;
+    out.push(horizontal
+      ? { id:`implicit_${key}`, key, type:"wallLine", label:"補完内壁", x1:lo, y1:fixed, x2:hi, y2:fixed, thick:4, implicit:true }
+      : { id:`implicit_${key}`, key, type:"wallLine", label:"補完内壁", x1:fixed, y1:lo, x2:fixed, y2:hi, thick:4, implicit:true });
+  };
+  for(let i = 0; i < rooms.length; i++){
+    for(let j = i + 1; j < rooms.length; j++){
+      const a = rooms[i];
+      const b = rooms[j];
+      if(a.floorIndex !== undefined && b.floorIndex !== undefined && Number(a.floorIndex) !== Number(b.floorIndex)) continue;
+      if(Math.abs((a.x + a.w) - b.x) <= eps || Math.abs((b.x + b.w) - a.x) <= eps){
+        const fixed = Math.abs((a.x + a.w) - b.x) <= eps ? a.x + a.w : b.x + b.w;
+        pushWall(false, fixed, Math.max(a.y, b.y), Math.min(a.y + a.h, b.y + b.h), a, b);
+      }
+      if(Math.abs((a.y + a.h) - b.y) <= eps || Math.abs((b.y + b.h) - a.y) <= eps){
+        const fixed = Math.abs((a.y + a.h) - b.y) <= eps ? a.y + a.h : b.y + b.h;
+        pushWall(true, fixed, Math.max(a.x, b.x), Math.min(a.x + a.w, b.x + b.w), a, b);
+      }
+    }
+  }
+  return out;
+}
+
 export function formatM2(value){
   return `${value.toFixed(value >= 10 ? 1 : 2)}m²`;
 }
