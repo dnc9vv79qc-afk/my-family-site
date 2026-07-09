@@ -1,4 +1,4 @@
-import { DetailScene3D } from "./scene3d.js?v=20260709-window-wall-v33";
+import { DetailScene3D } from "./scene3d.js?v=20260709-window-label-v34";
 import { ObjectBuilder3D } from "./object-builder-3d.js";
 import {
   DEFAULT_LAYOUT_ID,
@@ -17,10 +17,10 @@ import {
   pxToMm,
   mmToPx,
   implicitRoomWalls
-} from "./data.js?v=20260709-window-wall-v33";
-import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260709-window-wall-v33";
+} from "./data.js?v=20260709-window-label-v34";
+import { FURNITURE_LIBRARY, EXTERIOR_LIBRARY, FINISHES, createDefaultDesign, seedFinishes, makeCustomItem, uid, cloneModelParts } from "./defaults.js?v=20260709-window-label-v34";
 
-const DETAIL_VERSION_LABEL = "07/09 窓寸法・補完内壁 v33";
+const DETAIL_VERSION_LABEL = "07/09 窓記号表示 v34";
 const SHAKU_MM = 303.03;
 const LIGHTING_DEFAULTS = {
   scene: "night",
@@ -1905,9 +1905,17 @@ function renderRoomGroupSvg(group){
 
 function renderOpeningSvg(opening){
   const color = opening.kind === "window" ? "#2a91bd" : "#a86a38";
+  const label = opening.kind === "window" ? String(opening.ichijoWindowCode || opening.windowCode || opening.code || opening.label || "").trim() : "";
+  const mx = (Number(opening.x1 || 0) + Number(opening.x2 || 0)) / 2;
+  const my = (Number(opening.y1 || 0) + Number(opening.y2 || 0)) / 2;
+  const horizontal = Math.abs(Number(opening.y1 || 0) - Number(opening.y2 || 0)) < 0.1;
+  const labelX = mx + (horizontal ? 0 : 9);
+  const labelY = my + (horizontal ? -7 : 0);
+  const transform = horizontal ? "" : ` transform="rotate(-90 ${labelX} ${labelY})"`;
   return `<g class="fixedOpening">
     <line x1="${opening.x1}" y1="${opening.y1}" x2="${opening.x2}" y2="${opening.y2}" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
     <line x1="${opening.x1}" y1="${opening.y1}" x2="${opening.x2}" y2="${opening.y2}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    ${label ? `<text x="${labelX}" y="${labelY}" text-anchor="middle" class="openingCodeLabel"${transform}>${escapeHtml(label)}</text>` : ""}
   </g>`;
 }
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { pxToM, pxToMm, floorBounds, GRID_PX, implicitRoomWalls } from "./data.js?v=20260709-window-wall-v33";
+import { pxToM, pxToMm, floorBounds, GRID_PX, implicitRoomWalls } from "./data.js?v=20260709-window-label-v34";
 import { FINISHES } from "./defaults.js";
 
 const FLOOR_HEIGHT_M = 2.72;

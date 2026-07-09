@@ -454,6 +454,16 @@ body[data-work-mode="review"] .planRoom{ cursor:default; }
 .planItem.selected rect,.planItem.selected circle:not(.lightInfluence){ stroke:var(--blue); stroke-width:4; }
 .planItem.selected:is(line),.planItem.selected line{ stroke:var(--blue) !important; }
 .fixedPlanLine,.fixedOpening,.fixedPlanItem{ pointer-events:none; }
+.openingCodeLabel{
+  paint-order:stroke;
+  stroke:#fff;
+  stroke-width:2.8px;
+  stroke-linejoin:round;
+  fill:#176f99;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.2px;
+}
 .fixedPlanItem{ opacity:.72; }
 .planItem:hover{ opacity:.86; }
 .planItem.guideItem{ opacity:.42; }
