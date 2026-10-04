@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>WOD記録</title>
+<style>
+:root{
+  --bg:#f6f7f9;
+  --panel:#fff;
+  --text:#15161a;
+  --muted:#6f747c;
+  --line:rgba(20,24,32,.12);
+  --accent:#0a84ff;
+  --good:#34c759;
+  --warn:#ff9500;
+  --bad:#ff3b30;
+  --chip:#eef0f3;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#000;
+    --panel:#1c1c1e;
+    --text:#f2f2f7;
+    --muted:#98989f;
+    --line:rgba(255,255,255,.14);
+    --chip:#2c2c2e;
+  }
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; -webkit-text-size-adjust:100%; }
+button{ border:0; cursor:pointer; font:inherit; color:inherit; background:none; }
+.top{
+  position:sticky; top:0; z-index:5;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  border-bottom:.5px solid var(--line);
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+}
+.toprow{ display:flex; align-items:center; gap:10px; }
+.toprow h1{ margin:0; font-size:20px; font-weight:900; flex:1; }
+.count{ font-size:12px; color:var(--muted); font-weight:700; }
+.tools{ display:flex; gap:8px; margin-top:8px; }
+.tools input{
+  flex:1; min-width:0; height:36px; padding:0 12px; border-radius:10px;
+  border:.5px solid var(--line); background:var(--panel); color:var(--text); font-size:16px;
+}
+.seg{ display:flex; background:var(--chip); border-radius:10px; padding:2px; }
+.seg button{ padding:0 10px; height:32px; border-radius:8px; font-size:13px; font-weight:700; color:var(--muted); white-space:nowrap; }
+.seg button.on{ background:var(--panel); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+main{ padding:12px 16px calc(env(safe-area-inset-bottom) + 40px); max-width:720px; margin:0 auto; }
+.month{ font-size:13px; font-weight:800; color:var(--muted); margin:18px 4px 8px; }
+.card{
+  background:var(--panel); border-radius:16px; padding:14px 14px 12px; margin-bottom:12px;
+  border:.5px solid var(--line);
+}
+.chead{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.chead .d{ font-size:18px; font-weight:900; }
+.chead .t{ font-size:13px; color:var(--muted); font-weight:700; }
+.badge{ font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; background:var(--chip); color:var(--muted); }
+.badge.ok{ background:color-mix(in srgb,var(--good) 18%,transparent); color:var(--good); }
+.badge.rec{ background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); }
+.menu{ margin:10px 0 0; white-space:pre-wrap; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; font-family:inherit; }
+.menu mark{ background:color-mix(in srgb,var(--warn) 35%,transparent); color:inherit; border-radius:3px; }
+.lbl{ display:block; font-size:11px; font-weight:800; color:var(--muted); margin:12px 0 4px; }
+textarea{
+  width:100%; min-height:64px; padding:10px; border-radius:10px; resize:vertical;
+  border:.5px solid var(--line); background:var(--bg); color:var(--text); font:16px/1.5 inherit; font-family:inherit;
+}
+.photos{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+.photos img{ width:72px; height:72px; object-fit:cover; border-radius:10px; border:.5px solid var(--line); }
+.addph{
+  width:72px; height:72px; border-radius:10px; border:1.5px dashed var(--line);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  font-size:11px; color:var(--muted); font-weight:700; cursor:pointer;
+}
+.addph b{ font-size:22px; line-height:1; }
+.addph input{ display:none; }
+.cfoot{ display:flex; justify-content:flex-end; margin-top:8px; }
+.link{ font-size:12px; color:var(--muted); text-decoration:underline; padding:4px; }
+.empty{ text-align:center; color:var(--muted); font-size:14px; line-height:1.7; padding:40px 10px; }
+details.setup{ background:var(--panel); border-radius:16px; border:.5px solid var(--line); margin-top:24px; padding:4px 14px; }
+details.setup summary{ font-weight:800; padding:10px 0; cursor:pointer; }
+details.setup ol{ padding-left:20px; font-size:14px; line-height:1.7; }
+details.setup p{ font-size:13px; color:var(--muted); line-height:1.6; }
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; height:40px; padding:0 16px;
+  border-radius:10px; background:var(--accent); color:#fff; font-weight:800; font-size:14px; margin:4px 6px 4px 0;
+}
+.btn.sub{ background:var(--chip); color:var(--text); }
+.toast{
+  position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 20px); transform:translateX(-50%);
+  background:#111; color:#fff; padding:10px 16px; border-radius:12px; font-size:14px; font-weight:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.3); z-index:20; opacity:0; transition:opacity .2s; pointer-events:none; max-width:calc(100vw - 32px);
+}
+.toast.show{ opacity:1; }
+.viewer{ position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:30; display:none; flex-direction:column; }
+.viewer.show{ display:flex; }
+.viewer img{ flex:1; min-height:0; width:100%; object-fit:contain; }
+.viewer .vbar{ display:flex; justify-content:space-between; padding:calc(env(safe-area-inset-top) + 8px) 16px 8px; }
+.viewer .vbar button{ color:#fff; font-weight:800; font-size:15px; padding:8px; }
+.viewer .vbar .del{ color:#ff6b61; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="toprow">
+    <h1>WOD記録</h1>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="検索（例: Bench, Snatch）">
+    <div class="seg" id="filter">
+      <button data-f="all" class="on">全部</button>
+      <button data-f="todo">未記録</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="list"></div>
+
+  <details class="setup" id="setup">
+    <summary>取り込み設定・バックアップ</summary>
+    <ol>
+      <li>下の「ブックマークレットをコピー」を押す</li>
+      <li>Safariで適当なページをブックマーク（名前は「WOD取込」など）</li>
+      <li>ブックマークを編集し、URL欄をコピーした内容に置き換えて保存</li>
+      <li>hacomonoにログインして <b>アクティビティ</b> 画面を開く</li>
+      <li>アドレスバーに「WOD取込」と入力 → 候補のブックマークをタップ</li>
+      <li>自動で全件読み込み・「詳細を見る」を展開してこのページに戻ってきます</li>
+    </ol>
+    <button class="btn" id="copyBm">ブックマークレットをコピー</button>
+    <p>同じ日を再度取り込んでも、記録メモや写真は消えません（メニューだけ更新）。データはこの端末のブラウザ内に保存されます。</p>
+    <hr style="border:0;border-top:.5px solid var(--line);margin:12px 0">
+    <button class="btn sub" id="exportBtn">バックアップを書き出し</button>
+    <label class="btn sub">バックアップを読み込み<input type="file" id="importFile" accept="application/json,.json" hidden></label>
+    <p>バックアップはメニューと記録メモのみ（写真は含みません）。</p>
+  </details>
+</main>
+
+<div class="viewer" id="viewer">
+  <div class="vbar"><button class="del" id="vdel">削除</button><button id="vclose">閉じる</button></div>
+  <img id="vimg" alt="">
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- hacomono のアクティビティ画面で実行するブックマークレット本体。__TARGET__ はこのページのURLに置換される -->
+<script type="text/plain" id="bmSrc">
+(async()=>{
+const T="__TARGET__";
+const sl=ms=>new Promise(r=>setTimeout(r,ms));
+const box=document.createElement("div");
+box.style.cssText="position:fixed;left:10px;right:10px;bottom:20px;z-index:2147483647;background:#111;color:#fff;padding:14px;border-radius:12px;font:15px/1.5 sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);text-align:center";
+document.body.appendChild(box);
+const say=m=>{box.textContent=m;};
+const tx=e=>(e.innerText||"").trim();
+const leaves=(re,max)=>[...document.querySelectorAll("body *")].filter(e=>{
+  if(e===box||box.contains(e))return false;
+  const c=e.textContent||"";
+  if(max&&c.length>max)return false;
+  if(!re.test(c.replace(/\s+/g," ")))return false;
+  if(!re.test(tx(e).replace(/\s+/g," ")))return false;
+  return ![...e.children].some(k=>re.test(tx(k).replace(/\s+/g," ")));
+});
+const scrollAll=()=>{
+  window.scrollTo(0,document.documentElement.scrollHeight);
+  document.querySelectorAll("body *").forEach(e=>{if(e.scrollHeight>e.clientHeight+40){const o=getComputedStyle(e).overflowY;if(o==="auto"||o==="scroll")e.scrollTop=e.scrollHeight;}});
+};
+const D=/(\d{4})\/(\d{1,2})\/(\d{1,2})\s*[(（][^)）]*[)）]\s*(\d{1,2}:\d{2})\s*[-–~〜ー]\s*(\d{1,2}:\d{2})/;
+const DG=new RegExp(D.source,"g");
+const cnt=s=>(s.match(DG)||[]).length;
+say("読み込み中…");
+let last=-1,same=0;
+for(let i=0;i<60&&same<3;i++){
+  scrollAll();
+  const more=leaves(/^(もっと見る|もっと表示|さらに表示|さらに読み込む|もっと読み込む)/,20);
+  more.forEach(e=>e.click());
+  await sl(900);
+  const n=cnt(document.body.innerText);
+  if(n===last&&!more.length)same++;else same=0;
+  last=n;
+  say("読み込み中… "+n+"件");
+}
+const dets=leaves(/^詳細を見る/,12);
+dets.forEach(e=>e.click());
+if(dets.length)await sl(1500);
+say("抽出中…");
+const p=n=>String(n).padStart(2,"0");
+const items=[];const seen=new Set();
+for(const el of leaves(D,200)){
+  let c=el;
+  while(c.parentElement&&c.parentElement!==document.body&&cnt(tx(c.parentElement).replace(/\s+/g," "))===1)c=c.parentElement;
+  const t=tx(c);
+  const m=t.match(D);
+  if(!m)continue;
+  const date=m[1]+"-"+p(m[2])+"-"+p(m[3]);
+  const status=t.slice(0,m.index).split("\n").map(s=>s.trim()).filter(Boolean).join(" ");
+  let rest=t.slice(m.index+m[0].length).split("\n").map(s=>s.trim());
+  const skip=()=>{while(rest.length&&!rest[0])rest.shift();};
+  skip();const cls=rest.shift()||"";
+  skip();let loc="";
+  if(rest.length&&/ルーム|NANKAI|Sakai|店|スタジオ/.test(rest[0]))loc=rest.shift();
+  rest=rest.filter(s=>!/^(閉じる|詳細を見る)/.test(s));
+  const menu=rest.join("\n").replace(/\n{3,}/g,"\n\n").trim();
+  const k=date+" "+m[4]+" "+cls;
+  if(seen.has(k))continue;seen.add(k);
+  items.push({date,start:m[4],end:m[5],cls,loc,status,menu});
+}
+if(!items.length){say("メニューが見つかりませんでした。アクティビティ画面で実行してください。（タップで閉じる）");box.onclick=()=>box.remove();return;}
+say(items.length+"件を抽出。移動します…");
+const json=JSON.stringify({v:1,items});
+let h="j:"+encodeURIComponent(json);
+try{
+  const s=new Blob([json]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  const b=new Uint8Array(await new Response(s).arrayBuffer());
+  let bin="";for(let i=0;i<b.length;i+=8192)bin+=String.fromCharCode.apply(null,b.subarray(i,i+8192));
+  h="z:"+btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}catch(_){}
+location.href=T+"#import="+h;
+})();
+</script>
+
+<script>
+(() => {
+const KEY = 'cfwod.v1';
+const $ = s => document.querySelector(s);
+const WD = ['日','月','火','水','木','金','土'];
+
+let db = { entries: {} };
+try { const s = localStorage.getItem(KEY); if (s) db = JSON.parse(s); } catch (_) {}
+if (!db.entries) db.entries = {};
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (_) { toast('保存に失敗しました（容量不足?）'); } };
+
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+// ---- photos (IndexedDB) ----
+let idbP = null;
+function idb() {
+  if (!idbP) idbP = new Promise((res, rej) => {
+    const r = indexedDB.open('cfwod', 1);
+    r.onupgradeneeded = () => {
+      const st = r.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+      st.createIndex('entry', 'entry');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return idbP;
+}
+async function tx(mode, fn) {
+  const d = await idb();
+  return new Promise((res, rej) => {
+    const t = d.transaction('photos', mode);
+    const out = fn(t.objectStore('photos'));
+    t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+    t.onerror = () => rej(t.error);
+  });
+}
+const photosOf = entry => tx('readonly', st => st.index('entry').getAll(entry));
+const delPhoto = id => tx('readwrite', st => st.delete(id));
+async function resize(file, max, q) {
+  const bmp = await createImageBitmap(file).catch(() => null);
+  let src = bmp, w, h;
+  if (bmp) { w = bmp.width; h = bmp.height; }
+  else {
+    src = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+    w = src.naturalWidth; h = src.naturalHeight;
+  }
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(res, 'image/jpeg', q));
+}
+async function addPhotos(entry, files) {
+  for (const f of files) {
+    const [full, thumb] = await Promise.all([resize(f, 1600, .85), resize(f, 240, .7)]);
+    await tx('readwrite', st => st.add({ entry, full, thumb, at: Date.now() }));
+  }
+}
+
+// ---- import ----
+const idOf = it => `${it.date}_${it.start}_${it.cls}`;
+function merge(items) {
+  let added = 0, updated = 0;
+  for (const it of items) {
+    if (!it || !it.date) continue;
+    const id = idOf(it);
+    const cur = db.entries[id];
+    if (!cur) { db.entries[id] = { id, note: '', ...it }; added++; }
+    else {
+      for (const k of ['end', 'loc', 'status']) if (it[k]) cur[k] = it[k];
+      if (it.menu && it.menu !== cur.menu) { cur.menu = it.menu; updated++; }
+      if (it.note && !cur.note) cur.note = it.note;
+    }
+  }
+  save();
+  return { added, updated };
+}
+async function decodeHash(h) {
+  if (h.startsWith('j:')) return JSON.parse(decodeURIComponent(h.slice(2)));
+  if (h.startsWith('z:')) {
+    const b64 = h.slice(2).replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const s = new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return JSON.parse(await new Response(s).text());
+  }
+  throw new Error('bad format');
+}
+async function importFromHash() {
+  const m = location.hash.match(/^#import=(.+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const data = await decodeHash(m[1]);
+    const r = merge(data.items || []);
+    toast(`${(data.items || []).length}件読み込み（新規${r.added}・更新${r.updated}）`);
+  } catch (e) {
+    toast('取り込みに失敗しました');
+  }
+  render();
+}
+
+// ---- render ----
+let filter = 'all';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function hl(text, q) {
+  const e = esc(text);
+  if (!q) return e;
+  const re = new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  return e.replace(re, s => `<mark>${s}</mark>`);
+}
+const objUrls = [];
+function render() {
+  objUrls.splice(0).forEach(u => URL.revokeObjectURL(u));
+  const q = $('#q').value.trim();
+  const ql = q.toLowerCase();
+  const all = Object.values(db.entries).sort((a, b) => (b.date + b.start.padStart(5, '0')).localeCompare(a.date + a.start.padStart(5, '0')));
+  const list = all.filter(e =>
+    (filter === 'all' || !e.note.trim()) &&
+    (!ql || (e.menu + '\n' + e.note + '\n' + e.cls).toLowerCase().includes(ql)));
+  $('#count').textContent = `${all.length}回`;
+  const box = $('#list');
+  box.innerHTML = '';
+  if (!all.length) {
+    box.innerHTML = `<div class="empty">まだ記録がありません。<br>下の「取り込み設定」からブックマークレットを登録して、<br>hacomonoのアクティビティ画面で実行してください。</div>`;
+    $('#setup').open = true;
+    return;
+  }
+  if (!list.length) { box.innerHTML = `<div class="empty">該当なし</div>`; return; }
+  let month = '';
+  for (const e of list) {
+    const [y, mo, d] = e.date.split('-').map(Number);
+    const ym = `${y}年${mo}月`;
+    if (ym !== month) {
+      month = ym;
+      const h = document.createElement('div');
+      h.className = 'month'; h.textContent = ym;
+      box.appendChild(h);
+    }
+    const wd = WD[new Date(y, mo - 1, d).getDay()];
+    const card = document.createElement('section');
+    card.className = 'card';
+    const st = e.status ? `<span class="badge ${/チェックイン|出席|受講/.test(e.status) ? 'ok' : ''}">${esc(e.status)}</span>` : '';
+    const rec = e.note.trim() ? '<span class="badge rec">記録済</span>' : '';
+    card.innerHTML = `
+      <div class="chead"><span class="d">${mo}/${d}(${wd})</span><span class="t">${esc(e.start)}–${esc(e.end || '')} ${esc(e.cls)}</span>${st}${rec}</div>
+      <div class="menu">${e.menu ? hl(e.menu, q) : '<span style="color:var(--muted)">（メニューなし）</span>'}</div>
+      <label class="lbl">記録（重量・結果）</label>
+      <textarea placeholder="例: Bench 50-55-57.5-60-60kg&#10;WOD 4R+10 / DB 22.5kg">${esc(e.note)}</textarea>
+      <div class="photos"><label class="addph"><b>＋</b>写真<input type="file" accept="image/*" multiple></label></div>
+      <div class="cfoot"><button class="link del">この日を削除</button></div>`;
+    const ta = card.querySelector('textarea');
+    let t;
+    ta.addEventListener('input', () => { e.note = ta.value; clearTimeout(t); t = setTimeout(save, 300); });
+    ta.addEventListener('blur', () => { save(); if (filter === 'todo') render(); });
+    const ph = card.querySelector('.photos');
+    const showPhotos = async () => {
+      ph.querySelectorAll('img').forEach(i => i.remove());
+      const ps = await photosOf(e.id).catch(() => []);
+      for (const p of ps) {
+        const u = URL.createObjectURL(p.thumb); objUrls.push(u);
+        const img = document.createElement('img');
+        img.src = u; img.alt = '';
+        img.onclick = () => openViewer(p, showPhotos);
+        ph.insertBefore(img, ph.lastElementChild);
+      }
+    };
+    card.querySelector('.addph input').addEventListener('change', async ev => {
+      const files = [...ev.target.files]; ev.target.value = '';
+      if (!files.length) return;
+      toast('写真を保存中…');
+      try { await addPhotos(e.id, files); toast('写真を保存しました'); } catch (_) { toast('写真の保存に失敗しました'); }
+      showPhotos();
+    });
+    card.querySelector('.del').onclick = async () => {
+      if (!confirm(`${mo}/${d} の記録を削除しますか？（写真も削除）`)) return;
+      const ps = await photosOf(e.id).catch(() => []);
+      for (const p of ps) await delPhoto(p.id).catch(() => {});
+      delete db.entries[e.id]; save(); render();
+    };
+    box.appendChild(card);
+    showPhotos();
+  }
+}
+
+// ---- viewer ----
+let viewing = null;
+function openViewer(p, after) {
+  const u = URL.createObjectURL(p.full);
+  $('#vimg').src = u;
+  viewing = { p, after, u };
+  $('#viewer').classList.add('show');
+}
+function closeViewer() {
+  if (viewing) URL.revokeObjectURL(viewing.u);
+  viewing = null;
+  $('#viewer').classList.remove('show');
+  $('#vimg').removeAttribute('src');
+}
+$('#vclose').onclick = closeViewer;
+$('#vdel').onclick = async () => {
+  if (!viewing || !confirm('この写真を削除しますか？')) return;
+  const { p, after } = viewing;
+  await delPhoto(p.id);
+  closeViewer();
+  after();
+};
+
+// ---- misc ----
+let tt;
+function toast(m) {
+  const el = $('#toast');
+  el.textContent = m; el.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2800);
+}
+$('#q').addEventListener('input', render);
+$('#filter').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  filter = b.dataset.f;
+  $('#filter').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+function bookmarklet() {
+  const target = location.origin + location.pathname;
+  const code = $('#bmSrc').textContent.replace('__TARGET__', target)
+    .split('\n').map(s => s.trim()).filter(Boolean).join('\n');
+  return 'javascript:' + encodeURIComponent(code);
+}
+$('#copyBm').onclick = async () => {
+  const s = bookmarklet();
+  try { await navigator.clipboard.writeText(s); toast('コピーしました'); }
+  catch (_) { prompt('コピーしてください', s); }
+};
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ v: 1, items: Object.values(db.entries) }, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wod-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#importFile').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; ev.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const r = merge(data.items || []);
+    toast(`読み込み完了（新規${r.added}・更新${r.updated}）`);
+    render();
+  } catch (_) { toast('読み込みに失敗しました'); }
+});
+window.addEventListener('hashchange', importFromHash);
+
+render();
+importFromHash();
+})();
+</script>
+</body>
+</html>
