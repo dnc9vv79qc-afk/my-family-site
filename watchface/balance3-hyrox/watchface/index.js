@@ -334,7 +334,11 @@ function buildPage2() {
   // 縁の 24 時間リング: 固定の目盛り + 日の出〜日の入りの弧 + 雨の弧 + 日の出入りと今の時刻の印
   const R = P.ring
   mk(1, widget.IMG, { x: 0, y: 0, src: R.src, show_level: NORMAL })
-  const arcOpts = (a) => ({ x: 0, y: 0, w: 480, h: 480, radius: a.radius, line_width: a.width, color: a.color, start_angle: -90, end_angle: -89, show_level: NORMAL })
+  // ARC は w×h の枠の内側に描かれる（radius は効かない）ので、線の中心が radius に来るよう枠を決める
+  const arcOpts = (a) => {
+    const R = Math.round(a.radius + a.width / 2)
+    return { x: 240 - R, y: 240 - R, w: 2 * R, h: 2 * R, radius: R, line_width: a.width, color: a.color, start_angle: -90, end_angle: -89, show_level: NORMAL }
+  }
   const dayArc = mk(1, widget.ARC, arcOpts(R.day_arc))
   const rainArcs = [0, 1, 2, 3, 4, 5, 6, 7].map(() => {
     const w = mk(1, widget.ARC, arcOpts(R.rain_arc))
