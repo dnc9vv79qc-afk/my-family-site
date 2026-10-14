@@ -50,4 +50,4 @@ python3 tools/gen_assets.py
    - `zeus build` で `dist/*.zab` だけ作ることもできる
    - シミュレーターで確認する場合は `zeus dev`
 
-`app.json` の `appId` は仮の値。Zepp の開発者コンソールでウォッチフェイスを登録して発行された ID に置き換える。
+`app.json` の `appId`（1131180）は Zepp 開発者コンソールで発行したもの。
