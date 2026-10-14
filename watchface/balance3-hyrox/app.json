@@ -1,0 +1,60 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1131180,
+    "appName": "HYROX Face",
+    "appType": "watchface",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "vender": "family",
+    "description": "HYROX style digital watchface for Amazfit Balance 3 Ti",
+    "icon": "images/icon.png"
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "3.0",
+      "target": "3.0",
+      "minVersion": "3.0"
+    }
+  },
+  "targets": {
+    "balance3": {
+      "module": {
+        "watchface": {
+          "path": "watchface/index",
+          "main": 1,
+          "editable": 1,
+          "lockscreen": 1
+        }
+      },
+      "platforms": [
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145472
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145473
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145475
+        }
+      ],
+      "designWidth": 480
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "name": "HYROX Face"
+    },
+    "ja-JP": {
+      "name": "HYROX Face"
+    }
+  },
+  "defaultLanguage": "en-US",
+  "debug": false
+}
