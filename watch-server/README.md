@@ -6,7 +6,7 @@
 - 時計（Zepp アプリのサイドサービス）に最新データを JSON で返す
 - 現在地まわりの簡易地図を PNG で返す
   - OpenStreetMap のデータ（OpenFreeMap のベクタータイル）から道路・鉄道・川・水域・公園だけを抜き出して暗い配色で描き直す
-  - 道路の描画量は `detail` で 3 段階（1: 大通りと鉄道 / 2: + 中くらいの道 / 3: + 細い道）
+  - 道路の描画量は `detail` で 3 段階（1: 大通りと鉄道 / 2: + 中くらいの道・建物 / 3: + 細い道）
   - 今日の軌跡（オレンジの線）と現在地（オレンジの点）を重ねる
   - 現在地が地図の端（中心から 20% より外）に寄ったときだけ中心を移す。普段は地図が揺れない
 
@@ -17,8 +17,9 @@
 | パス | 認証 | 内容 |
 | --- | --- | --- |
 | `POST /api/owntracks` | Basic（`OWNTRACKS_USER` / `OWNTRACKS_PASS`） | OwnTracks の HTTP モードの送信先 |
-| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, batt, vel, today_km, view }` |
-| `GET /api/map?key=…&detail=2` | `WATCH_KEY` | 地図 PNG（既定 480×156、zoom 16 ≒ 1px 2m）。`w` `h` `zoom` `detail` で変更 |
+| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, hpa_trend_3h, place, batt, vel, today_km, view }`。`place` は座標から OpenStreetMap（Nominatim）で引いた地名をローマ字大文字にしたもの（例: `NISHIKU KUJO`、約 100m 単位で 30 日キャッシュ） |
+| `GET /api/map?key=…&detail=2` | `WATCH_KEY` | 地図 PNG（既定 480×156、zoom 16 ≒ 1px 2m）。`w` `h` `zoom` `detail` で変更。detail 2 以上で建物も描く |
+| `GET /api/chart?key=…` | `WATCH_KEY` | iPhone の気圧（OwnTracks の `p`）の直近 24 時間の折れ線 PNG（既定 220×44） |
 
 ## 環境変数（Vercel の Settings → Environment Variables）
 

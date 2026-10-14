@@ -62,7 +62,7 @@ Page(
           store().setItem('state', Object.assign({}, state, { synced: now }))
           w.status.setProperty(prop.TEXT, state.ok ? `LINK ${ago(state.age)}` : 'NO DATA')
           w.line1.setProperty(prop.TEXT, `${state.hpa != null ? state.hpa + ' hPa' : '-- hPa'}  ·  ${state.today_km} km`)
-          w.line2.setProperty(prop.TEXT, state.lat != null ? `${state.lat.toFixed(4)}N ${state.lon.toFixed(4)}E` : '')
+          w.line2.setProperty(prop.TEXT, state.place || (state.lat != null ? `${state.lat.toFixed(4)}N ${state.lon.toFixed(4)}E` : ''))
         })
         .catch((e) => {
           w.status.setProperty(prop.TEXT, 'ERROR')
@@ -73,8 +73,9 @@ Page(
     onReceivedFile(file) {
       file.on('change', (ev) => {
         if (ev.data.readyState !== 'transferred') return
-        store().setItem('map', { path: file.filePath, ts: Math.floor(Date.now() / 1000) })
-        this.state.w.map && this.state.w.map.setProperty(prop.SRC, file.filePath)
+        const type = (file.params && file.params.type) || 'map'
+        store().setItem(type, { path: file.filePath, ts: Math.floor(Date.now() / 1000) })
+        if (type === 'map' && this.state.w.map) this.state.w.map.setProperty(prop.SRC, file.filePath)
       })
     },
   }),

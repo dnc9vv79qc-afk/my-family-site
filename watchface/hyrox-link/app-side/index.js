@@ -1,6 +1,6 @@
 // スマホ（Zepp アプリ）側: watch-server から最新データと地図を取り、地図は時計用に変換して転送する
 import { BaseSideService, settingsLib, convertLib } from '@zeppos/zml/base-side'
-import { DEFAULT_SERVER, MAP_W, MAP_H } from '../shared'
+import { DEFAULT_SERVER, MAP_W, MAP_H, CHART_W, CHART_H } from '../shared'
 
 function config() {
   const server = String(settingsLib.getItem('server') || DEFAULT_SERVER).trim().replace(/\/+$/, '')
@@ -23,7 +23,7 @@ function downloadOnce(svc, url, filePath) {
 
 AppSideService(
   BaseSideService({
-    state: { sending: null },
+    state: { sending: {} },
 
     onInit() {},
     onRun() {},
@@ -39,14 +39,21 @@ AppSideService(
 
       let map = false
       if (state.ok) {
-        const url = `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`
-        await downloadOnce(this, url, 'map.png')
-        await convertLib.convert({ filePath: 'data://download/map.png', targetFilePath: 'data://download/map_watch.png' })
-        if (this.state.sending) this.state.sending.cancel()
-        this.state.sending = this.sendFile('data://download/map_watch.png', { type: 'map', ts: String(state.now) })
+        await this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now)
         map = true
+        // 気圧グラフは失敗しても同期全体は成功扱い
+        await this.sendImage('chart', `${c.server}/api/chart?${q}&w=${CHART_W}&h=${CHART_H}`, state.now).catch(() => {})
       }
       return { state, map }
+    },
+
+    // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）
+    async sendImage(type, url, ts) {
+      await downloadOnce(this, url, `${type}.png`)
+      const dst = `data://download/${type}_watch.png`
+      await convertLib.convert({ filePath: `data://download/${type}.png`, targetFilePath: dst })
+      if (this.state.sending[type]) this.state.sending[type].cancel()
+      this.state.sending[type] = this.sendFile(dst, { type, ts: String(ts) })
     },
 
     onRequest(req, res) {

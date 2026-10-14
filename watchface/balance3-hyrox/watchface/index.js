@@ -184,8 +184,9 @@ function placeWidgets(p, P, brandCfg) {
   const raw = createWidget(widget.TEXT, Object.assign({}, base, { char_space: 0, text_size: P.size - 2 }))
 
   return function update() {
-    const city = readCityName()
-    const label = placeLabel(city)
+    const fromLink = linkPlace()
+    const city = fromLink || readCityName()
+    const label = fromLink || placeLabel(city)
     const on = page === p
     roman.setProperty(prop.TEXT, label || '')
     raw.setProperty(prop.TEXT, label ? '' : city || (brand ? '' : '--'))
@@ -227,28 +228,28 @@ function p2value(c) {
 
 // ---- 連携アプリ（HYROX Link）が共有するデータと地図
 const LINK_APP_ID = 1131196
-let linkMapTs = 0
-let linkMapSlot = 0
+const linkFiles = {} // kind -> { ts, slot }
 
 function readLink() {
   try {
     const s = new LocalStorage(LINK_APP_ID, 'link.json')
     if (!s.isExisted()) return null
-    return { state: s.getItem('state', null), map: s.getItem('map', null) }
+    return { state: s.getItem('state', null), map: s.getItem('map', null), chart: s.getItem('chart', null) }
   } catch (e) {
     logger.log('link read failed')
     return null
   }
 }
 
-// 連携アプリの地図ファイルを自分の data に写して IMG で使う。同じ名前だと表示が更新されないので 2 つを交互に使う
-function copyLinkMap(map) {
-  if (!map || !map.path) return null
-  if (map.ts === linkMapTs) return `data://live_map_${linkMapSlot}.png`
+// 連携アプリのファイルを自分の data に写して IMG で使う。同じ名前だと表示が更新されないので 2 つを交互に使う
+function copyLinkFile(kind, entry) {
+  if (!entry || !entry.path) return null
+  const cur = linkFiles[kind] || { ts: 0, slot: 0 }
+  if (entry.ts === cur.ts) return `data://live_${kind}_${cur.slot}.png`
   try {
     const fs = new FileSystem(LINK_APP_ID)
     let buf = null
-    for (const p of [map.path, map.path.replace(/^data:\/\//, '')]) {
+    for (const p of [entry.path, entry.path.replace(/^data:\/\//, '')]) {
       try {
         buf = fs.readFileSync({ path: p })
       } catch (e) {
@@ -257,15 +258,23 @@ function copyLinkMap(map) {
       if (buf) break
     }
     if (!buf) return null
-    linkMapSlot = 1 - linkMapSlot
-    const dst = `data://live_map_${linkMapSlot}.png`
+    const slot = 1 - cur.slot
+    const dst = `data://live_${kind}_${slot}.png`
     writeFileSync({ path: dst, data: buf })
-    linkMapTs = map.ts
+    linkFiles[kind] = { ts: entry.ts, slot }
     return dst
   } catch (e) {
-    logger.log('link map copy failed')
+    logger.log('link file copy failed')
     return null
   }
+}
+
+// 同期した地名（6 時間以内のものだけ使う）
+function linkPlace() {
+  const link = readLink()
+  const st = link && link.state
+  if (!st || !st.place || !st.synced) return null
+  return Math.floor(Date.now() / 1000) - st.synced < 6 * 3600 ? st.place : null
 }
 
 function ago(sec) {
@@ -280,6 +289,19 @@ function buildPage2() {
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
   const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
   mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
+  const chart = mk(1, widget.IMG, { x: P.chart.x, y: P.chart.y, w: P.chart.w, h: P.chart.h, src: L.blank, show_level: NORMAL })
+  const trend = mk(1, widget.TEXT, {
+    x: P.trend.x,
+    y: P.trend.y,
+    w: P.trend.w,
+    h: P.trend.h,
+    color: P.trend.color,
+    text_size: P.trend.size,
+    align_h: align.CENTER_H,
+    align_v: align.CENTER_V,
+    text: '',
+    show_level: NORMAL,
+  })
   const coords = mk(1, widget.TEXT, {
     x: P.coords.x,
     y: P.coords.y,
@@ -300,8 +322,16 @@ function buildPage2() {
       const sec = Math.max(0, Math.floor(Date.now() / 1000) - tst)
       coords.setProperty(prop.TEXT, `${st.lat.toFixed(3)}°N ${st.lon.toFixed(3)}°E · LINK ${ago(sec)}`)
     }
-    const src = link && copyLinkMap(link.map)
+    const src = link && copyLinkFile('map', link.map)
     if (src) liveMap.setProperty(prop.SRC, src)
+    const csrc = link && copyLinkFile('chart', link.chart)
+    if (csrc) chart.setProperty(prop.SRC, csrc)
+    if (st && typeof st.hpa_trend_3h === 'number') {
+      const d = st.hpa_trend_3h
+      trend.setProperty(prop.TEXT, `iPhone ${st.hpa} hPa  ${d > 0 ? '▲' : d < 0 ? '▼' : '='}${Math.abs(d)} / 3h`)
+    } else if (st && st.hpa != null) {
+      trend.setProperty(prop.TEXT, `iPhone ${st.hpa} hPa`)
+    }
   })
   ;['pres', 'alt', 'temp', 'high', 'low', 'sunset', 'bat', 'steps', 'trail'].forEach((k) => p2value(P[k]))
   if (data_type.BATTERY !== undefined) {
