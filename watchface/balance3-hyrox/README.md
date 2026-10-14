@@ -51,3 +51,8 @@ python3 tools/gen_assets.py
    - シミュレーターで確認する場合は `zeus dev`
 
 `app.json` の `appId`（1131180）は Zepp 開発者コンソールで発行したもの。
+
+## ビルド済みファイル（release/）
+
+- `release/HYROX_Face-1.0.0.zab` … ビルド済みのインストールパッケージ
+- `release/balance3ti-qr.png` … Balance 3 Ti への転送用 QR コード（**2026-10-21 まで有効**）。Zepp アプリ → プロフィール → 開発者モード → スキャン で読み取る。期限が切れたら `zeus preview` で作り直す
