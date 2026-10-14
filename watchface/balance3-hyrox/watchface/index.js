@@ -234,7 +234,7 @@ function readLink() {
   try {
     const s = new LocalStorage(LINK_APP_ID, 'link.json')
     if (!s.isExisted()) return null
-    return { state: s.getItem('state', null), map: s.getItem('map', null) }
+    return { state: s.getItem('state', null), map: s.getItem('map', null), hud: s.getItem('hud', null) }
   } catch (e) {
     logger.log('link read failed')
     return null
@@ -289,21 +289,7 @@ function buildPage2() {
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
   const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
   mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
-  const ticker = P.ticker.map((t) =>
-    mk(1, widget.TEXT, {
-      x: t.x,
-      y: t.y,
-      w: t.w,
-      h: t.h,
-      color: t.color,
-      text_size: t.size,
-      align_h: align.CENTER_H,
-      align_v: align.CENTER_V,
-      text_style: text_style.ELLIPSIS,
-      text: '',
-      show_level: NORMAL,
-    }),
-  )
+  const hud = mk(1, widget.IMG, { x: P.hud.x, y: P.hud.y, w: P.hud.w, h: P.hud.h, src: L.blank, show_level: NORMAL })
   const coords = mk(1, widget.TEXT, {
     x: P.coords.x,
     y: P.coords.y,
@@ -326,8 +312,8 @@ function buildPage2() {
     }
     const src = link && copyLinkFile('map', link.map)
     if (src) liveMap.setProperty(prop.SRC, src)
-    const lines = (st && st.ticker) || []
-    ticker.forEach((w, i) => w.setProperty(prop.TEXT, lines[i] || ''))
+    const hsrc = link && copyLinkFile('hud', link.hud)
+    if (hsrc) hud.setProperty(prop.SRC, hsrc)
   })
   ;['pres', 'alt', 'temp', 'high', 'low', 'sunset', 'bat', 'steps', 'trail'].forEach((k) => p2value(P[k]))
   if (data_type.BATTERY !== undefined) {

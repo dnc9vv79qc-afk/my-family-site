@@ -23,6 +23,7 @@ export async function rainSoon(lat, lon) {
       rain_in_min: first < 0 ? null : first * 15,
       sum_2h: Math.round(mm.reduce((a, b) => a + b, 0) * 10) / 10,
       prob: Math.max(0, ...(j.hourly?.precipitation_probability || [0])),
+      slots: mm.slice(0, 8), // 15 分ごとの降水量（mm）
     }
     await cacheSet(key, out, 600)
     return out

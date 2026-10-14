@@ -41,6 +41,8 @@ AppSideService(
       if (state.ok) {
         await this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now)
         map = true
+        // HUD（アイコン列）は失敗しても同期全体は成功扱い
+        await this.sendImage('hud', `${c.server}/api/hud?${q}`, state.now).catch(() => {})
       }
       return { state, map }
     },
