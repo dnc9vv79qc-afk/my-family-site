@@ -14,6 +14,8 @@ import os
 
 from PIL import Image, ImageDraw, ImageFont
 
+from complications import CATALOG, SLOTS
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, 'tools', 'fonts')
 IMG_DIR = os.path.join(ROOT, 'assets', 'balance3.r', 'images')
@@ -106,46 +108,112 @@ def icon(size, painter):
     return big.resize((size, size), Image.LANCZOS)
 
 
-def paint_smiley(d, s):
-    c = s / 2
-    for i in range(12):
-        a = math.radians(i * 30)
-        r1, r2 = s * 0.40, s * 0.49
-        d.line([(c + r1 * math.sin(a), c - r1 * math.cos(a)),
-                (c + r2 * math.sin(a), c - r2 * math.cos(a))], fill=YELLOW, width=round(s * 0.07))
-    r = s * 0.31
-    d.ellipse([c - r, c - r, c + r, c + r], outline=YELLOW, width=round(s * 0.08))
-    e = s * 0.045
-    for ex in (c - s * 0.11, c + s * 0.11):
-        d.ellipse([ex - e, c - s * 0.08 - e, ex + e, c - s * 0.08 + e], fill=YELLOW)
-    m = s * 0.16
-    d.arc([c - m, c - m * 0.9, c + m, c + m * 1.1], 20, 160, fill=YELLOW, width=round(s * 0.065))
+# ---------------------------------------------------------------- 表示枠
+
+ICON_SIZE = 28
+LABEL_W = 110
+TIPS_W = 132
 
 
-def paint_bolt(d, s):
-    pts = [(0.62, 0.02), (0.18, 0.56), (0.47, 0.56), (0.36, 0.98), (0.82, 0.42), (0.53, 0.42), (0.66, 0.02)]
-    d.polygon([(x * s, y * s) for x, y in pts], fill=YELLOW)
+def slot_x(slot):
+    return round(slot['cx'] - slot['w'] / 2)
 
 
-def paint_heart(d, s):
-    pts = []
-    for i in range(200):
-        t = 2 * math.pi * i / 200
-        x = 16 * math.sin(t) ** 3
-        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
-        pts.append((s / 2 + x * s / 34, s * 0.45 - y * s / 34))
-    d.polygon(pts, fill=YELLOW)
+def slot_geometry(slot, ds):
+    """枠内の相対座標: 数字の上端 y と、アイコン/ラベルの中心 y。"""
+    if slot['style'] == 'top':
+        return dict(value_y=40, deco_cy=19)
+    if slot['style'] == 'mid':
+        return dict(value_y=6, deco_cy=47)
+    return dict(value_y=6, deco_cy=50)
 
 
-def paint_flame(d, s):
-    outer = [(0.50, 0.00), (0.60, 0.14), (0.72, 0.28), (0.82, 0.42), (0.88, 0.57), (0.88, 0.72),
-             (0.82, 0.85), (0.70, 0.95), (0.50, 1.00), (0.30, 0.95), (0.18, 0.85), (0.12, 0.72),
-             (0.13, 0.56), (0.20, 0.42), (0.27, 0.33), (0.30, 0.47), (0.38, 0.52), (0.40, 0.36),
-             (0.44, 0.20)]
-    d.polygon([(x * s, y * s) for x, y in outer], fill=YELLOW)
-    inner = [(0.52, 0.50), (0.62, 0.64), (0.66, 0.76), (0.62, 0.87), (0.50, 0.91), (0.38, 0.87),
-             (0.34, 0.76), (0.40, 0.66), (0.44, 0.72)]
-    d.polygon([(x * s, y * s) for x, y in inner], fill=(0, 0, 0, 0))
+def build_complications(val_w, val_y):
+    f_lab = font(400, 19)
+    types = {}
+    deco = {}
+    for t in CATALOG:
+        k = t['key']
+        ic = icon(ICON_SIZE, t['icon'])
+        li = label_image(t['label'], f_lab, GRAY)
+        lab = Image.new('RGBA', (LABEL_W, li.height), (0, 0, 0, 0))
+        lab.paste(li, ((LABEL_W - li.width) // 2, 0), li)
+        deco[k] = (ic, lab)
+        types[k] = dict(icon=save(ic, f'comp/icon/{k}.png'), label=save(lab, f'comp/label/{k}.png'),
+                        label_h=lab.height, title=t['title'], unit=t.get('unit'), sep=t.get('sep'),
+                        negative=bool(t.get('negative')))
+
+    def ds_for(slot):
+        return val_y if slot['style'] == 'mid' else val_w
+
+    def render(slot, key):
+        t = next(c for c in CATALOG if c['key'] == key)
+        ds = ds_for(slot)
+        g = slot_geometry(slot, ds)
+        img = Image.new('RGBA', (slot['w'], slot['h']), (0, 0, 0, 0))
+        text = t['sample'] + (t.get('unit') or '')
+        ds.draw(img, text, (slot['w'] - ds.text_width(text)) / 2, g['value_y'])
+        ic, lab = deco[key]
+        if slot['style'] == 'mid':
+            img.alpha_composite(lab, ((slot['w'] - LABEL_W) // 2, round(g['deco_cy'] - lab.height / 2)))
+        else:
+            img.alpha_composite(ic, ((slot['w'] - ICON_SIZE) // 2, round(g['deco_cy'] - ICON_SIZE / 2)))
+        return img
+
+    # 編集画面用の素材（枠の形ごと）
+    styles = {}
+    for slot in SLOTS:
+        st = slot['style']
+        if st in styles:
+            continue
+        w, h = slot['w'], slot['h']
+        sel = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(sel).rounded_rectangle([1, 1, w - 2, h - 2], radius=12, outline=YELLOW, width=3)
+        unsel = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(unsel).rounded_rectangle([1, 1, w - 2, h - 2], radius=12,
+                                                outline=(120, 120, 120, 255), width=2)
+        styles[st] = dict(select=save(sel, f'comp/edit/{st}_select.png'),
+                          unselect=save(unsel, f'comp/edit/{st}_unselect.png'),
+                          preview={c['key']: save(render(slot, c['key']), f'comp/preview/{st}/{c["key"]}.png')
+                                   for c in CATALOG})
+
+    tips = Image.new('RGBA', (TIPS_W, 36), (0, 0, 0, 0))
+    ImageDraw.Draw(tips).rounded_rectangle([0, 0, TIPS_W - 1, 35], radius=18, fill=(30, 30, 30, 255),
+                                           outline=YELLOW, width=2)
+    tips_path = save(tips, 'comp/edit/tips.png')
+
+    slots = []
+    for slot in SLOTS:
+        ds = ds_for(slot)
+        g = slot_geometry(slot, ds)
+        x = slot_x(slot)
+        tips_y = -40 if slot['style'] == 'bot' else slot['h'] + 4
+        slots.append(dict(
+            edit_id=slot['edit_id'], style=slot['style'], x=x, y=slot['y'], w=slot['w'], h=slot['h'],
+            default=slot['default'],
+            value=dict(x=x, y=slot['y'] + g['value_y'], w=slot['w'], h=ds.h),
+            icon=dict(x=round(slot['cx'] - ICON_SIZE / 2), y=round(slot['y'] + g['deco_cy'] - ICON_SIZE / 2)),
+            label=dict(x=round(slot['cx'] - LABEL_W / 2), cy=slot['y'] + g['deco_cy']),
+            font='y' if ds is val_y else 'w',
+            tips_x=(slot['w'] - TIPS_W) // 2, tips_y=tips_y,
+        ))
+
+    def font_info(ds):
+        return dict(digits=ds.paths, invalid=ds.extra_paths['-'], negative=ds.extra_paths['-'],
+                    dot=ds.extra_paths['.'], colon=ds.extra_paths[':'],
+                    units={'%': ds.extra_paths['%'], '°': ds.extra_paths['°']})
+
+    # 編集モードのマスク
+    mask100 = Image.new('RGBA', (W, H), (0, 0, 0, 255))
+    mask70 = Image.new('RGBA', (W, H), (0, 0, 0, 178))
+    blank = Image.new('RGBA', (8, 8), (0, 0, 0, 0))
+
+    return dict(render=render, layout=dict(
+        types=types, order=[c['key'] for c in CATALOG], slots=slots, edit_styles=styles,
+        tips=tips_path, fonts=dict(w=font_info(val_w), y=font_info(val_y)),
+        mask100=save(mask100, 'comp/edit/mask100.png'), mask70=save(mask70, 'comp/edit/mask70.png'),
+        blank=save(blank, 'comp/blank.png'),
+    ))
 
 
 # ---------------------------------------------------------------- 外周の弧
@@ -214,8 +282,8 @@ def main():
     time_big = DigitSet('time', 700, 124, WHITE, sx=0.78)
     time_aod = DigitSet('time_aod', 500, 124, AOD_GRAY, sx=0.78)
     sec = DigitSet('sec', 700, 44, YELLOW, sx=0.88)
-    val_w = DigitSet('val_w', 700, 34, WHITE, sx=0.86, extra='%-')
-    val_y = DigitSet('val_y', 700, 32, YELLOW, sx=0.86, extra='-.')
+    val_w = DigitSet('val_w', 700, 34, WHITE, sx=0.86, extra='%-.:°')
+    val_y = DigitSet('val_y', 700, 32, YELLOW, sx=0.86, extra='%-.:°')
     day = DigitSet('day', 700, 34, WHITE, sx=0.86)
 
     # ---- 時刻
@@ -285,20 +353,9 @@ def main():
     layout['date'] = dict(month_x=round(date_cx - mon_w / 2), month_y=mon_y, month=mon_paths,
                           day_x=round(date_cx - day.w), day_y=day_y, day=day.paths)
 
-    # ---- データ表示
-    def val(name, ds, cx, y, kind, unit=None):
-        w = 120
-        layout[name] = dict(x=round(cx - w / 2), y=y, w=w, h=ds.h, font=ds.paths, kind=kind,
-                            unit=ds.extra_paths.get(unit) if unit else None,
-                            invalid=ds.extra_paths['-'])
-
-    val('stress', val_w, 132, 98, 'STRESS')
-    val('battery', val_w, 346, 98, 'BATTERY', unit='%')
-    val('epoc', val_y, 116, 148, 'TRAINING_LOAD')
-    val('steps', val_y, 240, 148, 'STEP')
-    val('vo2max', val_y, 364, 148, 'VO2MAX')
-    val('heart', val_w, 130, 358, 'HEART')
-    val('cal', val_w, 350, 358, 'CAL')
+    # ---- 表示枠（コンプリケーション）
+    comp = build_complications(val_w, val_y)
+    layout.update(comp['layout'])
 
     # ---- 外周の弧（IMG_LEVEL 用、各 11 段階）
     arc_kinds = {'tl': 'STEP', 'tr': 'BATTERY', 'bl': 'CAL', 'br': 'HEART'}
@@ -323,16 +380,7 @@ def main():
                fill=(28, 28, 28, 255), outline=(75, 75, 75, 255), width=2 * SS)
     bg.alpha_composite(big.resize((W, H), Image.LANCZOS))
 
-    # アイコン
-    for painter, cx, cy, size in [(paint_smiley, 132, 77, 30), (paint_bolt, 346, 77, 26),
-                                  (paint_heart, 130, 402, 24), (paint_flame, 350, 401, 26)]:
-        ic = icon(size, painter)
-        bg.alpha_composite(ic, (round(cx - size / 2), round(cy - size / 2)))
-
-    # ラベル・区切り線
-    f_lab = font(400, 19)
-    for s, cx in [('EPOC', 116), ('Steps', 240), ('VO2max', 364)]:
-        text_center(d, cx, 189, s, f_lab, GRAY)
+    # 区切り線
     for x in (174, 306):
         d.line([(x, 146), (x, 202)], fill=DIVIDER, width=2)
 
@@ -359,18 +407,6 @@ def main():
         x0, y0, imgs = arc_imgs[key]
         pv.alpha_composite(imgs[level], (x0, y0))
 
-    def put(ds, name, s):
-        L = layout[name]
-        cx = L['x'] + L['w'] / 2
-        ds.draw(pv, s, cx - ds.text_width(s) / 2, L['y'])
-
-    put(val_w, 'stress', '46')
-    put(val_w, 'battery', '84%')
-    put(val_y, 'epoc', '292')
-    put(val_y, 'steps', '1918')
-    put(val_y, 'vo2max', '53')
-    put(val_w, 'heart', '76')
-    put(val_w, 'cal', '50')
     time_big.draw(pv, '09', hour_x, ty)
     time_big.draw(pv, '24', minute_x, ty)
     sec.draw(pv, '25', layout['sec']['x'], sec_y)
@@ -378,7 +414,17 @@ def main():
     pv.alpha_composite(week_imgs[2], (row_x, row_y))
     pv.alpha_composite(mon_imgs[9], (layout['date']['month_x'], mon_y))
     day.draw(pv, '14', layout['date']['day_x'], day_y)
+    base = pv.copy()
+    for slot in SLOTS:
+        pv.alpha_composite(comp['render'](slot, slot['default']), (slot_x(slot), slot['y']))
     pv.save(os.path.join(ROOT, 'preview.png'))
+
+    # 表示枠を入れ替えた例
+    alt = base.copy()
+    alt_keys = ['READINESS', 'SPO2', 'RECOVERY_TIME', 'DISTANCE', 'PAI_DAILY', 'SUN_SET', 'WEATHER_CURRENT']
+    for slot, key in zip(SLOTS, alt_keys):
+        alt.alpha_composite(comp['render'](slot, key), (slot_x(slot), slot['y']))
+    alt.save(os.path.join(ROOT, 'preview_alt.png'))
 
     # ウォッチフェイス一覧用アイコン
     icon_img = pv.resize((240, 240), Image.LANCZOS)

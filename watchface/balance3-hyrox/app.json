@@ -26,7 +26,7 @@
         "watchface": {
           "path": "watchface/index",
           "main": 1,
-          "editable": 0,
+          "editable": 1,
           "lockscreen": 1
         }
       },

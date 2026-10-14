@@ -1,4 +1,4 @@
-import { createWidget, widget, align, show_level, data_type } from '@zos/ui'
+import { createWidget, widget, align, prop, show_level, data_type, edit_type } from '@zos/ui'
 import { log } from '@zos/utils'
 import { L } from './layout'
 
@@ -6,42 +6,18 @@ const logger = log.getLogger('hyrox-face')
 
 const NORMAL = show_level.ONLY_NORMAL
 const AOD = show_level.ONAL_AOD
+const EDIT = show_level.ONLY_EDIT
 
-// 機種・OS バージョンによって無いデータ種別もあるので、存在しなければ "--" を出す
-function dataType(kind) {
-  const t = data_type[kind]
-  if (t === undefined) logger.log(`data_type.${kind} is not supported`)
-  return t
-}
+// edit_type が無い環境では data_type と同じ値を使う（公式サンプルも両者を同一視している）
+const ET = edit_type || data_type
 
-function value(cfg) {
-  const type = dataType(cfg.kind)
-  if (type === undefined) {
-    createWidget(widget.IMG, { x: cfg.x + cfg.w / 2 - 12, y: cfg.y, src: cfg.invalid, show_level: NORMAL })
-    return
-  }
-  const opts = {
-    x: cfg.x,
-    y: cfg.y,
-    w: cfg.w,
-    h: cfg.h,
-    type,
-    font_array: cfg.font,
-    h_space: 0,
-    align_h: align.CENTER_H,
-    invalid_image: cfg.invalid,
-    show_level: NORMAL,
-  }
-  if (cfg.unit) {
-    opts.unit_en = cfg.unit
-    opts.unit_sc = cfg.unit
-    opts.unit_tc = cfg.unit
-  }
-  createWidget(widget.TEXT_IMG, opts)
+// 機種・OS バージョンで使えないデータ種別は選択肢から外す
+function supported(key) {
+  return data_type[key] !== undefined && ET[key] !== undefined
 }
 
 function arc(cfg) {
-  const type = dataType(cfg.kind)
+  const type = data_type[cfg.kind]
   if (type === undefined) {
     createWidget(widget.IMG, { x: cfg.x, y: cfg.y, src: cfg.src[0], show_level: NORMAL })
     return
@@ -53,6 +29,86 @@ function arc(cfg) {
     image_length: cfg.src.length,
     type,
     show_level: NORMAL,
+  })
+}
+
+// 表示枠: 編集グループを作り、ユーザーが選んだデータを描く
+function complication(slot) {
+  const keys = L.order.filter(supported)
+  const style = L.edit_styles[slot.style]
+  const defaultKey = supported(slot.default) ? slot.default : keys[0]
+
+  const group = createWidget(widget.WATCHFACE_EDIT_GROUP, {
+    edit_id: slot.edit_id,
+    x: slot.x,
+    y: slot.y,
+    w: slot.w,
+    h: slot.h,
+    select_image: style.select,
+    un_select_image: style.unselect,
+    default_type: ET[defaultKey],
+    optional_types: keys.map((k) => ({
+      type: ET[k],
+      preview: style.preview[k],
+      title_en: L.types[k].title,
+      title_sc: L.types[k].title,
+      title_tc: L.types[k].title,
+    })),
+    count: keys.length,
+    tips_BG: L.tips,
+    tips_x: slot.tips_x,
+    tips_y: slot.tips_y,
+    tips_width: 132,
+    tips_margin: 6,
+  })
+
+  const current = group.getProperty(prop.CURRENT_TYPE)
+  let key = keys.find((k) => ET[k] === current || data_type[k] === current)
+  if (!key) key = defaultKey
+  const t = L.types[key]
+  const f = L.fonts[slot.font]
+
+  if (slot.style === 'mid') {
+    createWidget(widget.IMG, {
+      x: slot.label.x,
+      y: Math.round(slot.label.cy - t.label_h / 2),
+      src: t.label,
+      show_level: NORMAL,
+    })
+  } else {
+    createWidget(widget.IMG, { x: slot.icon.x, y: slot.icon.y, src: t.icon, show_level: NORMAL })
+  }
+
+  const opts = {
+    x: slot.value.x - 10,
+    y: slot.value.y,
+    w: slot.value.w + 20,
+    h: slot.value.h,
+    type: data_type[key],
+    font_array: f.digits,
+    h_space: 0,
+    align_h: align.CENTER_H,
+    invalid_image: f.invalid,
+    show_level: NORMAL,
+  }
+  if (t.unit) {
+    opts.unit_en = f.units[t.unit]
+    opts.unit_sc = f.units[t.unit]
+    opts.unit_tc = f.units[t.unit]
+  }
+  if (t.sep === 'dot') opts.dot_image = f.dot
+  if (t.sep === 'colon') opts.dot_image = f.colon
+  if (t.negative) opts.negative_image = f.negative
+  createWidget(widget.TEXT_IMG, opts)
+
+  // タップで対応する純正アプリを開く
+  createWidget(widget.IMG_CLICK, {
+    x: slot.x,
+    y: slot.y,
+    w: slot.w,
+    h: slot.h,
+    src: L.blank,
+    type: data_type[key],
   })
 }
 
@@ -81,7 +137,7 @@ WatchFace({
       show_level: NORMAL | AOD,
     })
 
-    ;['stress', 'battery', 'epoc', 'steps', 'vo2max', 'heart', 'cal'].forEach((k) => value(L[k]))
+    L.slots.forEach(complication)
 
     // 時刻（通常表示）
     createWidget(widget.IMG_TIME, {
@@ -139,6 +195,10 @@ WatchFace({
       week_sc: L.week.src,
       show_level: NORMAL | AOD,
     })
+
+    // 編集モードの背景マスク
+    createWidget(widget.WATCHFACE_EDIT_MASK, { x: 0, y: 0, w: 480, h: 480, src: L.mask100, show_level: EDIT })
+    createWidget(widget.WATCHFACE_EDIT_FG_MASK, { x: 0, y: 0, w: 480, h: 480, src: L.mask70, show_level: EDIT })
   },
 
   onInit() {
