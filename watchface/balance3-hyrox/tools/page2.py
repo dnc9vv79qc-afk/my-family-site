@@ -73,7 +73,9 @@ def build(g):
     value('sunset', mid, 95, 202, 'SUN_SET', w=100, sep='colon')
     label(240, 182, 'LOC')
     L['place'] = dict(x=152, y=191, w=176, h=24, size=19, space=2, color=0xFFFFFF)
-    label(240, 225, f'{HOME[0]:.3f}°N  {HOME[1]:.3f}°E', f=font(400, 12), spacing=0)
+    # 座標と LINK（最終同期）は時計側で書き換えるので TEXT ウィジェットにする
+    L['coords'] = dict(x=152, y=216, w=176, h=18, size=12, color=0x8C8C8C,
+                       text=f'{HOME[0]:.3f}°N  {HOME[1]:.3f}°E')
     label(372, 188, 'BAT')
     bars = []
     for lv in range(6):
@@ -121,20 +123,10 @@ def build(g):
     d.line([(35, 320), (445, 320)], fill=LINE, width=1)
 
     # ---- 地図
+    # bg には自宅周辺の固定地図。連携アプリ（HYROX Link）から届いた地図はその上に IMG で重ね、
+    # さらに上に透過のオーバーレイ（グリッド・ラベル・縮尺）を重ねる
     mp = build_map(W, MAP_H).convert('RGBA')
     bg.alpha_composite(mp, (0, MAP_Y))
-    grid = Image.new('RGBA', (W, MAP_H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grid)
-    for x in range(0, W, 40):
-        gd.line([(x, 0), (x, MAP_H)], fill=(255, 255, 255, 14))
-    for y in range(0, MAP_H, 40):
-        gd.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
-    # 上端を黒へなじませる
-    for y in range(18):
-        gd.line([(0, y), (W, y)], fill=(0, 0, 0, round(255 * (1 - y / 18))))
-    bg.alpha_composite(grid, (0, MAP_Y))
-    d = ImageDraw.Draw(bg)
-
     hx, hy = 240, MAP_Y + MAP_H // 2
     halo = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     hd = ImageDraw.Draw(halo)
@@ -142,22 +134,35 @@ def build(g):
     hd.ellipse([hx - 8, hy - 8, hx + 8, hy + 8], fill=WHITE)
     hd.ellipse([hx - 5, hy - 5, hx + 5, hy + 5], fill=ORANGE)
     bg.alpha_composite(halo)
+    d = ImageDraw.Draw(bg)
     text_center(d, hx + 34, hy - 1, 'HOME', font(500, 12), WHITE, spacing=1)
 
+    ov = Image.new('RGBA', (W, MAP_H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    for x in range(0, W, 40):
+        od.line([(x, 0), (x, MAP_H)], fill=(255, 255, 255, 14))
+    for y in range(0, MAP_H, 40):
+        od.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
+    for y in range(18):  # 上端を黒へなじませる
+        od.line([(0, y), (W, y)], fill=(0, 0, 0, round(255 * (1 - y / 18))))
+    oy = lambda y: y - MAP_Y  # noqa: E731
+
     # 左: 歩数、右: 今日の移動距離
-    label(100, 384, 'STEPS')
+    text_center(od, 100, oy(384), 'STEPS', f_lab, GRAY, spacing=1)
     value('steps', xs, 100, 396, 'STEP', w=80)
-    label(380, 384, 'TRAIL')
+    text_center(od, 380, oy(384), 'TRAIL', f_lab, GRAY, spacing=1)
     value('trail', xs, 380, 396, 'DISTANCE', w=80, unit_img=unit('km', xs, 11), sep='dot')
 
-    # 縮尺 200m
+    # 縮尺 200m（サーバーの地図も同じズーム 16）
     px200 = round(200 / meters_per_px())
     sx0 = 240 - px200 // 2
-    d.line([(sx0, 444), (sx0 + px200, 444)], fill=(200, 200, 200, 255), width=2)
+    od.line([(sx0, oy(444)), (sx0 + px200, oy(444))], fill=(200, 200, 200, 255), width=2)
     for x in (sx0, sx0 + px200):
-        d.line([(x, 439), (x, 449)], fill=(200, 200, 200, 255), width=2)
-    text_center(d, 240, 434, '200m', font(500, 11), (200, 200, 200, 255))
-    text_center(d, 240, 461, '© OpenStreetMap', font(400, 9), (110, 110, 110, 255))
+        od.line([(x, oy(439)), (x, oy(449))], fill=(200, 200, 200, 255), width=2)
+    text_center(od, 240, oy(434), '200m', font(500, 11), (200, 200, 200, 255))
+    text_center(od, 240, oy(461), '© OpenStreetMap', font(400, 9), (110, 110, 110, 255))
+    L['map'] = dict(x=0, y=MAP_Y, w=W, h=MAP_H, overlay=save(ov, 'p2/map_overlay.png'))
+    bg.alpha_composite(ov, (0, MAP_Y))
 
     # 円形にマスク
     mask = Image.new('L', (W * g.SS, H * g.SS), 0)
@@ -191,6 +196,7 @@ def build(g):
     put('trail', xs, '3.42')
     text_center(ImageDraw.Draw(pv), L['place']['x'] + L['place']['w'] / 2, L['place']['y'] + 12,
                 'NISHIKU KUJO', font(500, 19), WHITE, spacing=2)
+    text_center(ImageDraw.Draw(pv), 240, 225, L['coords']['text'], font(400, 12), GRAY)
     pv.alpha_composite(week_imgs[3], (L['week']['x'], L['week']['y']))
     day.draw(pv, '17', L['date']['day_x'], L['date']['day_y'])
     pv.alpha_composite(mon_imgs[8], (L['date']['month_x'], L['date']['month_y']))

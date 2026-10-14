@@ -1,0 +1,53 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1131196,
+    "appName": "HYROX Link",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "icon": "icon.png",
+    "vender": "family",
+    "description": "Sync location, pressure and a live map from watch-server to the HYROX Face watchface"
+  },
+  "permissions": ["data:os.device.info", "device:os.local_storage"],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "3.6",
+      "target": "3.6",
+      "minVersion": "3.6"
+    }
+  },
+  "targets": {
+    "balance3": {
+      "module": {
+        "page": {
+          "pages": ["page/index"]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "platforms": [
+        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145472 },
+        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145473 },
+        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145475 }
+      ],
+      "designWidth": 480
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "HYROX Link"
+    },
+    "ja-JP": {
+      "appName": "HYROX Link"
+    }
+  },
+  "defaultLanguage": "en-US"
+}

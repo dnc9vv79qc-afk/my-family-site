@@ -904,6 +904,15 @@ export const L = {
       "space": 2,
       "color": 16777215
     },
+    "coords": {
+      "x": 152,
+      "y": 216,
+      "w": 176,
+      "h": 18,
+      "size": 12,
+      "color": 9211020,
+      "text": "34.677°N  135.474°E"
+    },
     "bat_bars": {
       "x": 392,
       "y": 180,
@@ -1063,6 +1072,13 @@ export const L = {
       "unit": "images/p2/unit_trail.png",
       "dot": "images/p2_xs/46.png",
       "negative": null
+    },
+    "map": {
+      "x": 0,
+      "y": 324,
+      "w": 480,
+      "h": 156,
+      "overlay": "images/p2/map_overlay.png"
     },
     "bg": "images/p2/bg.png"
   },

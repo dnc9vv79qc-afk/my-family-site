@@ -1,6 +1,8 @@
 import { createWidget, widget, align, prop, event, show_level, text_style, data_type, edit_type } from '@zos/ui'
 import { Weather } from '@zos/sensor'
 import { log } from '@zos/utils'
+import { LocalStorage, FileSystem } from '@zos/share-storage'
+import { writeFileSync } from '@zos/fs'
 import { L } from './layout'
 import { placeLabel } from './romaji'
 
@@ -223,9 +225,84 @@ function p2value(c) {
   mk(1, widget.TEXT_IMG, opts)
 }
 
+// ---- 連携アプリ（HYROX Link）が共有するデータと地図
+const LINK_APP_ID = 1131196
+let linkMapTs = 0
+let linkMapSlot = 0
+
+function readLink() {
+  try {
+    const s = new LocalStorage(LINK_APP_ID, 'link.json')
+    if (!s.isExisted()) return null
+    return { state: s.getItem('state', null), map: s.getItem('map', null) }
+  } catch (e) {
+    logger.log('link read failed')
+    return null
+  }
+}
+
+// 連携アプリの地図ファイルを自分の data に写して IMG で使う。同じ名前だと表示が更新されないので 2 つを交互に使う
+function copyLinkMap(map) {
+  if (!map || !map.path) return null
+  if (map.ts === linkMapTs) return `data://live_map_${linkMapSlot}.png`
+  try {
+    const fs = new FileSystem(LINK_APP_ID)
+    let buf = null
+    for (const p of [map.path, map.path.replace(/^data:\/\//, '')]) {
+      try {
+        buf = fs.readFileSync({ path: p })
+      } catch (e) {
+        buf = null
+      }
+      if (buf) break
+    }
+    if (!buf) return null
+    linkMapSlot = 1 - linkMapSlot
+    const dst = `data://live_map_${linkMapSlot}.png`
+    writeFileSync({ path: dst, data: buf })
+    linkMapTs = map.ts
+    return dst
+  } catch (e) {
+    logger.log('link map copy failed')
+    return null
+  }
+}
+
+function ago(sec) {
+  if (sec < 60) return `${sec}s`
+  if (sec < 3600) return `${Math.floor(sec / 60)}m`
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h`
+  return `${Math.floor(sec / 86400)}d`
+}
+
 function buildPage2() {
   const P = L.p2
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
+  const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
+  mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
+  const coords = mk(1, widget.TEXT, {
+    x: P.coords.x,
+    y: P.coords.y,
+    w: P.coords.w,
+    h: P.coords.h,
+    color: P.coords.color,
+    text_size: P.coords.size,
+    align_h: align.CENTER_H,
+    align_v: align.CENTER_V,
+    text: P.coords.text,
+    show_level: NORMAL,
+  })
+  pageListeners.push(function updateLink() {
+    const link = readLink()
+    const st = link && link.state
+    if (st && st.ok && st.lat != null) {
+      const tst = st.now - (st.age || 0)
+      const sec = Math.max(0, Math.floor(Date.now() / 1000) - tst)
+      coords.setProperty(prop.TEXT, `${st.lat.toFixed(3)}°N ${st.lon.toFixed(3)}°E · LINK ${ago(sec)}`)
+    }
+    const src = link && copyLinkMap(link.map)
+    if (src) liveMap.setProperty(prop.SRC, src)
+  })
   ;['pres', 'alt', 'temp', 'high', 'low', 'sunset', 'bat', 'steps', 'trail'].forEach((k) => p2value(P[k]))
   if (data_type.BATTERY !== undefined) {
     mk(1, widget.IMG_LEVEL, {
