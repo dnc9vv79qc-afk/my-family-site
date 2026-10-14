@@ -21,7 +21,7 @@ export const STYLE = {
   water: '#0f3340',
   waterway: '#1a5c70',
   park: '#0d1a15',
-  building: { fill: '#15191c', stroke: '#1f2428' },
+  building: { fill: '#262c32', stroke: '#3a424a' },
   rail: '#6c7178',
   road: {
     motorway: { color: '#c8ccd0', width: 3.4 },

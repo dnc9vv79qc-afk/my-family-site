@@ -15,7 +15,8 @@ UA = 'family-watchface/1.0 (personal watchface; github.com/dnc9vv79qc-afk/my-fam
 
 # 道路は 3 段階: 幹線（明るく太い）/ 一般道（細いグレー）/ 細街路（ごく暗い）
 BG = (10, 12, 14)
-BLOCK = (17, 20, 23)
+BLOCK = (38, 44, 50)  # 建物
+EDGE = (64, 72, 80)  # 建物のふち
 MINOR = (44, 49, 54)
 MIDROAD = (108, 115, 121)
 MAJOR = (200, 204, 208)
@@ -61,8 +62,10 @@ def _classify(rgb):
         return 'minor'
     if _near(rgb, (200, 250, 204), 16) or _near(rgb, (173, 209, 158), 16) or _near(rgb, (170, 224, 203), 14):
         return 'park'
-    if _near(rgb, (217, 208, 201), 8) or _near(rgb, (196, 182, 171), 8):
+    if _near(rgb, (217, 208, 201), 8):
         return 'block'
+    if _near(rgb, (196, 182, 171), 8):
+        return 'edge'
     return 'bg'
 
 
@@ -78,7 +81,7 @@ def build_map(w, h):
             mosaic.paste(_tile(tx, ty), ((tx - tx0) * 256, (ty - ty0) * 256))
     src = mosaic.crop((x0 - tx0 * 256, y0 - ty0 * 256, x0 - tx0 * 256 + w, y0 - ty0 * 256 + h))
 
-    masks = {k: Image.new('L', (w, h), 0) for k in ('water', 'major', 'mid', 'minor', 'park', 'block')}
+    masks = {k: Image.new('L', (w, h), 0) for k in ('water', 'major', 'mid', 'minor', 'park', 'block', 'edge')}
     px = src.load()
     mp = {k: m.load() for k, m in masks.items()}
     for y in range(h):
@@ -94,7 +97,7 @@ def build_map(w, h):
     masks['minor'] = masks['minor'].filter(ImageFilter.MinFilter(3))
 
     out = Image.new('RGB', (w, h), BG)
-    for k, color in (('block', BLOCK), ('park', PARK), ('water', WATER), ('minor', MINOR), ('mid', MIDROAD),
+    for k, color in (('block', BLOCK), ('edge', EDGE), ('park', PARK), ('water', WATER), ('minor', MINOR), ('mid', MIDROAD),
                      ('major', MAJOR)):
         out.paste(color, (0, 0), masks[k].filter(ImageFilter.GaussianBlur(0.6)))
     return out
