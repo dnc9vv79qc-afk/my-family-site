@@ -461,7 +461,7 @@ function buildPage2() {
     second_follow: 0,
     show_level: NORMAL,
   })
-  pageToggle(1, { x: 140, y: 240, w: 330, h: 80 })
+  pageToggle(1, { x: 140, y: 224, w: 320, h: 70 })
   return placeWidgets(1, P.place, null)
 }
 
