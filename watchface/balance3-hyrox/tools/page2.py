@@ -48,9 +48,10 @@ def build(g):
                        dot=ds.extra_paths.get({'dot': '.', 'colon': ':'}.get(sep)) if sep else None,
                        negative=ds.extra_paths.get('-') if negative else None)
 
-    # ---- 最上部: iPhone の気圧の推移（HYROX Link で同期したときだけ表示）
-    L['chart'] = dict(x=140, y=50, w=200, h=40)
-    L['trend'] = dict(x=140, y=34, w=200, h=16, size=12, color=0x8C8C8C)
+    # ---- 最上部: サーバーが状況に応じて作る短い情報 3 行（HYROX Link で同期したときだけ表示）
+    L['ticker'] = [dict(x=140, y=30, w=200, h=18, size=13, color=0x8C8C8C),
+                   dict(x=120, y=50, w=240, h=18, size=13, color=0xFFFFFF),
+                   dict(x=110, y=70, w=260, h=18, size=13, color=0xFF8C1A)]
 
     # ---- 1 段目: 気圧 / 高度 / 気温
     for x in (183, 297):

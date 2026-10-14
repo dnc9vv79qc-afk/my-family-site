@@ -5,5 +5,3 @@ export const LINK_STORAGE = 'link.json'
 export const DEFAULT_SERVER = 'https://my-family-site-six.vercel.app'
 export const MAP_W = 480
 export const MAP_H = 156
-export const CHART_W = 200
-export const CHART_H = 40

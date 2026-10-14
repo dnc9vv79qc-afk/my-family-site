@@ -1,6 +1,6 @@
 // スマホ（Zepp アプリ）側: watch-server から最新データと地図を取り、地図は時計用に変換して転送する
 import { BaseSideService, settingsLib, convertLib } from '@zeppos/zml/base-side'
-import { DEFAULT_SERVER, MAP_W, MAP_H, CHART_W, CHART_H } from '../shared'
+import { DEFAULT_SERVER, MAP_W, MAP_H } from '../shared'
 
 function config() {
   const server = String(settingsLib.getItem('server') || DEFAULT_SERVER).trim().replace(/\/+$/, '')
@@ -41,8 +41,6 @@ AppSideService(
       if (state.ok) {
         await this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now)
         map = true
-        // 気圧グラフは失敗しても同期全体は成功扱い
-        await this.sendImage('chart', `${c.server}/api/chart?${q}&w=${CHART_W}&h=${CHART_H}`, state.now).catch(() => {})
       }
       return { state, map }
     },

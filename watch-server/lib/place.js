@@ -31,7 +31,7 @@ export async function placeName(lat, lon) {
   if (hit) return hit.name
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&accept-language=en&lat=${lat}&lon=${lon}`
-    const res = await fetch(url, { headers: { 'User-Agent': UA } })
+    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) })
     if (!res.ok) return null
     const name = formatPlace((await res.json()).address)
     await cacheSet(key, { name }, 30 * 86400)

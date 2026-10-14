@@ -17,7 +17,7 @@
 | パス | 認証 | 内容 |
 | --- | --- | --- |
 | `POST /api/owntracks` | Basic（`OWNTRACKS_USER` / `OWNTRACKS_PASS`） | OwnTracks の HTTP モードの送信先 |
-| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, hpa_trend_3h, place, batt, vel, today_km, view }`。`place` は座標から OpenStreetMap（Nominatim）で引いた地名をローマ字大文字にしたもの（例: `NISHIKU KUJO`、約 100m 単位で 30 日キャッシュ） |
+| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, hpa_trend_3h, ticker, place, batt, vel, today_km, view }`。`ticker` は時計の 2 ページ目上部にそのまま出す短い情報 3 行（つながり方・iPhone の電池 / 家からの距離・速さ・今日の移動 / 雨予報・気圧の変化・気温）。中身は `lib/ticker.js` で決める。雨予報は Open-Meteo（無料・キー不要、10 分キャッシュ）。`place` は座標から OpenStreetMap（Nominatim）で引いた地名をローマ字大文字にしたもの（例: `NISHIKU KUJO`、約 100m 単位で 30 日キャッシュ） |
 | `GET /api/map?key=…&detail=2` | `WATCH_KEY` | 地図 PNG（既定 480×156、zoom 16 ≒ 1px 2m）。`w` `h` `zoom` `detail` で変更。detail 2 以上で建物も描く |
 | `GET /api/chart?key=…` | `WATCH_KEY` | iPhone の気圧（OwnTracks の `p`）の直近 24 時間の折れ線 PNG（既定 220×44） |
 
@@ -26,6 +26,7 @@
 | 名前 | 内容 |
 | --- | --- |
 | `WATCH_KEY` | 時計から読むときの合言葉（長いランダム文字列） |
+| `HOME_LAT` / `HOME_LON` | 家の座標（任意。「HOME 2.4km」「AT HOME」の表示に使う。省略時は九条あたり） |
 | `OWNTRACKS_USER` / `OWNTRACKS_PASS` | OwnTracks から送るときのユーザー名・パスワード |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Upstash Redis（Vercel の Storage から追加すると自動で入る） |
 

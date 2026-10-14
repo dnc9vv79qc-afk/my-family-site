@@ -234,7 +234,7 @@ function readLink() {
   try {
     const s = new LocalStorage(LINK_APP_ID, 'link.json')
     if (!s.isExisted()) return null
-    return { state: s.getItem('state', null), map: s.getItem('map', null), chart: s.getItem('chart', null) }
+    return { state: s.getItem('state', null), map: s.getItem('map', null) }
   } catch (e) {
     logger.log('link read failed')
     return null
@@ -289,19 +289,21 @@ function buildPage2() {
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
   const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
   mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
-  const chart = mk(1, widget.IMG, { x: P.chart.x, y: P.chart.y, w: P.chart.w, h: P.chart.h, src: L.blank, show_level: NORMAL })
-  const trend = mk(1, widget.TEXT, {
-    x: P.trend.x,
-    y: P.trend.y,
-    w: P.trend.w,
-    h: P.trend.h,
-    color: P.trend.color,
-    text_size: P.trend.size,
-    align_h: align.CENTER_H,
-    align_v: align.CENTER_V,
-    text: '',
-    show_level: NORMAL,
-  })
+  const ticker = P.ticker.map((t) =>
+    mk(1, widget.TEXT, {
+      x: t.x,
+      y: t.y,
+      w: t.w,
+      h: t.h,
+      color: t.color,
+      text_size: t.size,
+      align_h: align.CENTER_H,
+      align_v: align.CENTER_V,
+      text_style: text_style.ELLIPSIS,
+      text: '',
+      show_level: NORMAL,
+    }),
+  )
   const coords = mk(1, widget.TEXT, {
     x: P.coords.x,
     y: P.coords.y,
@@ -324,14 +326,8 @@ function buildPage2() {
     }
     const src = link && copyLinkFile('map', link.map)
     if (src) liveMap.setProperty(prop.SRC, src)
-    const csrc = link && copyLinkFile('chart', link.chart)
-    if (csrc) chart.setProperty(prop.SRC, csrc)
-    if (st && typeof st.hpa_trend_3h === 'number') {
-      const d = st.hpa_trend_3h
-      trend.setProperty(prop.TEXT, `iPhone ${st.hpa} hPa  ${d > 0 ? '▲' : d < 0 ? '▼' : '='}${Math.abs(d)} / 3h`)
-    } else if (st && st.hpa != null) {
-      trend.setProperty(prop.TEXT, `iPhone ${st.hpa} hPa`)
-    }
+    const lines = (st && st.ticker) || []
+    ticker.forEach((w, i) => w.setProperty(prop.TEXT, lines[i] || ''))
   })
   ;['pres', 'alt', 'temp', 'high', 'low', 'sunset', 'bat', 'steps', 'trail'].forEach((k) => p2value(P[k]))
   if (data_type.BATTERY !== undefined) {
