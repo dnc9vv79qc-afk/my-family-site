@@ -4,9 +4,20 @@ import { Redis } from '@upstash/redis'
 
 const TRAIL_MAX = 720 // 軌跡として残す点の数（1 分おきなら半日分）
 
+// Vercel で Upstash をつなぐと、Prefix の付け方によって環境変数名が変わる
+// （KV_REST_API_URL / UPSTASH_REDIS_REST_URL / TEST_KV_REST_API_URL など）ので末尾で探す
+function envBySuffix(...suffixes) {
+  for (const suffix of suffixes) {
+    if (process.env[suffix]) return process.env[suffix]
+    const key = Object.keys(process.env).find((k) => k.toUpperCase().endsWith('_' + suffix))
+    if (key && process.env[key]) return process.env[key]
+  }
+  return null
+}
+
 function redis() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+  const url = envBySuffix('KV_REST_API_URL', 'REDIS_REST_URL')
+  const token = envBySuffix('KV_REST_API_TOKEN', 'REDIS_REST_TOKEN')
   return url && token ? new Redis({ url, token }) : null
 }
 
