@@ -13,12 +13,14 @@ ZOOM = 16
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.tile_cache')
 UA = 'family-watchface/1.0 (personal watchface; github.com/dnc9vv79qc-afk/my-family-site)'
 
+# 道路は 3 段階: 幹線（明るく太い）/ 一般道（細いグレー）/ 細街路（ごく暗い）
 BG = (10, 12, 14)
-BLOCK = (20, 23, 26)
-MINOR = (78, 84, 90)
-MAJOR = (150, 156, 162)
-WATER = (22, 70, 88)
-PARK = (16, 30, 22)
+BLOCK = (17, 20, 23)
+MINOR = (44, 49, 54)
+MIDROAD = (108, 115, 121)
+MAJOR = (200, 204, 208)
+WATER = (15, 51, 64)
+PARK = (13, 26, 21)
 
 
 def meters_per_px(lat=HOME[0], zoom=ZOOM):
@@ -51,9 +53,10 @@ def _classify(rgb):
     r, g, b = rgb
     if _near(rgb, (170, 211, 223), 14):
         return 'water'
-    if _near(rgb, (232, 146, 162), 18) or _near(rgb, (249, 178, 156), 16) or _near(rgb, (252, 214, 164), 14) \
-            or _near(rgb, (247, 250, 191), 10):
+    if _near(rgb, (232, 146, 162), 18) or _near(rgb, (249, 178, 156), 16) or _near(rgb, (252, 214, 164), 14):
         return 'major'
+    if _near(rgb, (247, 250, 191), 10):
+        return 'mid'
     if min(r, g, b) >= 250:
         return 'minor'
     if _near(rgb, (200, 250, 204), 16) or _near(rgb, (173, 209, 158), 16) or _near(rgb, (170, 224, 203), 14):
@@ -75,7 +78,7 @@ def build_map(w, h):
             mosaic.paste(_tile(tx, ty), ((tx - tx0) * 256, (ty - ty0) * 256))
     src = mosaic.crop((x0 - tx0 * 256, y0 - ty0 * 256, x0 - tx0 * 256 + w, y0 - ty0 * 256 + h))
 
-    masks = {k: Image.new('L', (w, h), 0) for k in ('water', 'major', 'minor', 'park', 'block')}
+    masks = {k: Image.new('L', (w, h), 0) for k in ('water', 'major', 'mid', 'minor', 'park', 'block')}
     px = src.load()
     mp = {k: m.load() for k, m in masks.items()}
     for y in range(h):
@@ -85,10 +88,13 @@ def build_map(w, h):
                 mp[k][x, y] = 255
 
     # 文字の白いふちどり（細い）を消し、道路だけ残す
-    for k in ('minor', 'major'):
+    for k in ('minor', 'mid', 'major'):
         masks[k] = masks[k].filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
+    # 細街路は細く
+    masks['minor'] = masks['minor'].filter(ImageFilter.MinFilter(3))
 
     out = Image.new('RGB', (w, h), BG)
-    for k, color in (('block', BLOCK), ('park', PARK), ('water', WATER), ('minor', MINOR), ('major', MAJOR)):
+    for k, color in (('block', BLOCK), ('park', PARK), ('water', WATER), ('minor', MINOR), ('mid', MIDROAD),
+                     ('major', MAJOR)):
         out.paste(color, (0, 0), masks[k].filter(ImageFilter.GaussianBlur(0.6)))
     return out

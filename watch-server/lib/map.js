@@ -14,22 +14,23 @@ const ROAD_CLASSES = {
   3: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service'],
 }
 
+// 道路は 3 段階: 幹線（明るく太い）/ 一般道（細いグレー）/ 細街路（ごく暗い）。
+// オレンジは現在地と軌跡だけ。グリッド・方位・縮尺は時計側のオーバーレイが描く
 export const STYLE = {
   bg: '#0a0c0e',
-  grid: 'rgba(255,255,255,0.05)',
-  water: '#123e4c',
-  waterway: '#1f6f86',
-  park: '#10201a',
-  building: { fill: '#1d2227', stroke: '#2c3339' },
-  rail: '#8a8f96',
+  water: '#0f3340',
+  waterway: '#1a5c70',
+  park: '#0d1a15',
+  building: { fill: '#15191c', stroke: '#1f2428' },
+  rail: '#6c7178',
   road: {
-    motorway: { color: '#c9ced4', width: 3.2 },
-    trunk: { color: '#c9ced4', width: 3.0 },
-    primary: { color: '#aeb4ba', width: 2.6 },
-    secondary: { color: '#7d848b', width: 2.0 },
-    tertiary: { color: '#6a7178', width: 1.6 },
-    minor: { color: '#3f454b', width: 1.1 },
-    service: { color: '#33393e', width: 0.8 },
+    motorway: { color: '#c8ccd0', width: 3.4 },
+    trunk: { color: '#c8ccd0', width: 3.2 },
+    primary: { color: '#c8ccd0', width: 2.8 },
+    secondary: { color: '#6f767c', width: 1.6 },
+    tertiary: { color: '#6f767c', width: 1.4 },
+    minor: { color: '#30363b', width: 1.0 },
+    service: { color: '#262b30', width: 0.8 },
   },
   accent: '#ff8c1a',
 }
@@ -79,13 +80,13 @@ function pathD(rings, close) {
  * @param {number} o.lat 地図の中心
  * @param {number} o.lon
  * @param {number} [o.w=480] 画像サイズ
- * @param {number} [o.h=156]
+ * @param {number} [o.h=160]
  * @param {number} [o.zoom=16] 表示ズーム（16 で 1px ≒ 2m）
  * @param {1|2|3} [o.detail=2] 道路の描画量
  * @param {Array<[number,number]>} [o.trail] 軌跡 [lat, lon][]
  * @param {[number,number]} [o.here] 現在地 [lat, lon]（中心とずれていてもよい）
  */
-export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail = 2, trail = [], here = null }) {
+export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail = 2, trail = [], here = null }) {
   const [cx, cy] = project(lat, lon, zoom)
   const left = cx - w / 2
   const top = cy - h / 2
@@ -137,8 +138,6 @@ export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail 
 
   const S = STYLE
   const parts = [`<rect width="${w}" height="${h}" fill="${S.bg}"/>`]
-  for (let x = 0; x < w; x += 40) parts.push(`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="${S.grid}"/>`)
-  for (let y = 0; y < h; y += 40) parts.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="${S.grid}"/>`)
   if (layers.park.length) parts.push(`<path d="${layers.park.join('')}" fill="${S.park}"/>`)
   if (layers.water.length) parts.push(`<path d="${layers.water.join('')}" fill="${S.water}"/>`)
   if (layers.building.length)
@@ -166,13 +165,15 @@ export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail 
   }
   if (trail.length > 1) {
     const pts = trail.map(toPx).map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-    parts.push(`<polyline points="${pts}" fill="none" stroke="${S.accent}" stroke-opacity="0.85" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`)
+    parts.push(`<polyline points="${pts}" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`)
+    parts.push(`<polyline points="${pts}" fill="none" stroke="${S.accent}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`)
   }
   if (here) {
     const [x, y] = toPx(here)
-    parts.push(`<circle cx="${x}" cy="${y}" r="13" fill="${S.accent}" fill-opacity="0.25"/>`)
-    parts.push(`<circle cx="${x}" cy="${y}" r="7" fill="#fff"/>`)
-    parts.push(`<circle cx="${x}" cy="${y}" r="4.5" fill="${S.accent}"/>`)
+    parts.push(`<circle cx="${x}" cy="${y}" r="16" fill="${S.accent}" fill-opacity="0.2" stroke="${S.accent}" stroke-opacity="0.65" stroke-width="1"/>`)
+    parts.push(`<circle cx="${x}" cy="${y}" r="7.5" fill="#000"/>`)
+    parts.push(`<circle cx="${x}" cy="${y}" r="6.5" fill="${S.accent}"/>`)
+    parts.push(`<circle cx="${x}" cy="${y}" r="2.5" fill="#fff"/>`)
   }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${parts.join('')}</svg>`

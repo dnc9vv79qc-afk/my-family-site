@@ -753,15 +753,15 @@ export const L = {
   "p2": {
     "hud": {
       "x": 180,
-      "y": 56,
+      "y": 40,
       "w": 120,
       "h": 34
     },
     "pres": {
-      "x": 70,
-      "y": 116,
+      "x": 75,
+      "y": 104,
       "w": 110,
-      "h": 24,
+      "h": 22,
       "kind": "ALTIMETER",
       "font": [
         "images/p2_val/0.png",
@@ -783,9 +783,9 @@ export const L = {
     },
     "alt": {
       "x": 185,
-      "y": 116,
+      "y": 104,
       "w": 110,
-      "h": 24,
+      "h": 22,
       "kind": "ALTITUDE",
       "font": [
         "images/p2_val/0.png",
@@ -806,10 +806,10 @@ export const L = {
       "negative": "images/p2_val/45.png"
     },
     "temp": {
-      "x": 300,
-      "y": 116,
+      "x": 295,
+      "y": 104,
       "w": 110,
-      "h": 24,
+      "h": 22,
       "kind": "WEATHER_CURRENT",
       "font": [
         "images/p2_val/0.png",
@@ -831,9 +831,9 @@ export const L = {
     },
     "high": {
       "x": 334,
-      "y": 146,
+      "y": 134,
       "w": 28,
-      "h": 13,
+      "h": 12,
       "kind": "WEATHER_HIGH",
       "font": [
         "images/p2_xs/0.png",
@@ -855,9 +855,9 @@ export const L = {
     },
     "low": {
       "x": 374,
-      "y": 146,
+      "y": 134,
       "w": 28,
-      "h": 13,
+      "h": 12,
       "kind": "WEATHER_LOW",
       "font": [
         "images/p2_xs/0.png",
@@ -878,10 +878,10 @@ export const L = {
       "negative": "images/p2_xs/45.png"
     },
     "sunset": {
-      "x": 45,
-      "y": 202,
+      "x": 47,
+      "y": 182,
       "w": 100,
-      "h": 18,
+      "h": 17,
       "kind": "SUN_SET",
       "font": [
         "images/p2_mid/0.png",
@@ -903,25 +903,25 @@ export const L = {
     },
     "place": {
       "x": 152,
-      "y": 191,
+      "y": 177,
       "w": 176,
       "h": 24,
-      "size": 19,
+      "size": 18,
       "space": 2,
-      "color": 16777215
+      "color": 14079702
     },
     "coords": {
       "x": 152,
-      "y": 216,
+      "y": 201,
       "w": 176,
-      "h": 18,
-      "size": 12,
-      "color": 9211020,
+      "h": 16,
+      "size": 11,
+      "color": 8026746,
       "text": "34.677°N  135.474°E"
     },
     "bat_bars": {
-      "x": 392,
-      "y": 180,
+      "x": 388,
+      "y": 164,
       "src": [
         "images/p2/bat/0.png",
         "images/p2/bat/1.png",
@@ -932,10 +932,10 @@ export const L = {
       ]
     },
     "bat": {
-      "x": 340,
-      "y": 202,
+      "x": 338,
+      "y": 182,
       "w": 90,
-      "h": 18,
+      "h": 17,
       "kind": "BATTERY",
       "font": [
         "images/p2_mid/0.png",
@@ -956,8 +956,8 @@ export const L = {
       "negative": null
     },
     "week": {
-      "x": 58,
-      "y": 254,
+      "x": 62,
+      "y": 236,
       "src": [
         "images/p2/week/1.png",
         "images/p2/week/2.png",
@@ -969,8 +969,8 @@ export const L = {
       ]
     },
     "date": {
-      "day_x": 58,
-      "day_y": 286,
+      "day_x": 62,
+      "day_y": 264,
       "day": [
         "images/p2_day/0.png",
         "images/p2_day/1.png",
@@ -983,8 +983,8 @@ export const L = {
         "images/p2_day/8.png",
         "images/p2_day/9.png"
       ],
-      "month_x": 98,
-      "month_y": 286,
+      "month_x": 99,
+      "month_y": 264,
       "month": [
         "images/p2/month/1.png",
         "images/p2/month/2.png",
@@ -1001,9 +1001,9 @@ export const L = {
       ]
     },
     "time": {
-      "hour_x": 144,
-      "minute_x": 281,
-      "y": 248,
+      "hour_x": 150,
+      "minute_x": 277,
+      "y": 229,
       "digits": [
         "images/p2_time/0.png",
         "images/p2_time/1.png",
@@ -1016,8 +1016,8 @@ export const L = {
         "images/p2_time/8.png",
         "images/p2_time/9.png"
       ],
-      "sec_x": 391,
-      "sec_y": 294,
+      "sec_x": 380,
+      "sec_y": 270,
       "sec": [
         "images/p2_sec/0.png",
         "images/p2_sec/1.png",
@@ -1032,10 +1032,10 @@ export const L = {
       ]
     },
     "steps": {
-      "x": 82,
-      "y": 392,
-      "w": 80,
-      "h": 13,
+      "x": 108,
+      "y": 302,
+      "w": 50,
+      "h": 12,
       "kind": "STEP",
       "font": [
         "images/p2_xs/0.png",
@@ -1050,16 +1050,16 @@ export const L = {
         "images/p2_xs/9.png"
       ],
       "invalid": "images/p2_xs/45.png",
-      "align": "c",
+      "align": "l",
       "unit": null,
       "dot": null,
       "negative": null
     },
     "trail": {
-      "x": 318,
-      "y": 392,
-      "w": 80,
-      "h": 13,
+      "x": 364,
+      "y": 302,
+      "w": 50,
+      "h": 12,
       "kind": "DISTANCE",
       "font": [
         "images/p2_xs/0.png",
@@ -1074,16 +1074,16 @@ export const L = {
         "images/p2_xs/9.png"
       ],
       "invalid": "images/p2_xs/45.png",
-      "align": "c",
+      "align": "l",
       "unit": "images/p2/unit_trail.png",
       "dot": "images/p2_xs/46.png",
       "negative": null
     },
     "map": {
       "x": 0,
-      "y": 324,
+      "y": 320,
       "w": 480,
-      "h": 156,
+      "h": 160,
       "overlay": "images/p2/map_overlay.png"
     },
     "bg": "images/p2/bg.png",
@@ -1091,18 +1091,18 @@ export const L = {
       "src": "images/p2/ring.png",
       "now": {
         "src": "images/p2/ring_now.png",
-        "pos_x": 237,
-        "pos_y": 4
+        "pos_x": 236,
+        "pos_y": 18
       },
       "sun": {
         "src": "images/p2/ring_sun.png",
         "pos_x": 235,
-        "pos_y": 18
+        "pos_y": 30
       },
       "day_arc": {
-        "radius": 216,
-        "width": 3,
-        "color": 7033880
+        "radius": 206,
+        "width": 2,
+        "color": 8014356
       },
       "rain_arc": {
         "radius": 237,
