@@ -21,17 +21,31 @@ function redis() {
   return url && token ? new Redis({ url, token }) : null
 }
 
-const mem = { last: null, trail: [], view: null }
+const mem = { last: null, trail: [], view: null, cache: {} }
 
+// OwnTracks は送れなかった古い位置を後からまとめて送ってくるので、「最新」は時刻が新しいときだけ更新する
 export async function saveLocation(loc) {
   const r = redis()
+  const last = r ? await r.get('last') : mem.last
+  const newer = !last || loc.tst >= last.tst
   if (!r) {
-    mem.last = loc
-    mem.trail = [...mem.trail, loc].slice(-TRAIL_MAX)
+    if (newer) mem.last = loc
+    mem.trail = [...mem.trail, loc].sort((a, b) => a.tst - b.tst).slice(-TRAIL_MAX)
     return
   }
-  await Promise.all([r.set('last', loc), r.rpush('trail', loc)])
+  await Promise.all([newer ? r.set('last', loc) : null, r.rpush('trail', loc)])
   await r.ltrim('trail', -TRAIL_MAX, -1)
+}
+
+export async function cacheGet(key) {
+  const r = redis()
+  return r ? r.get('cache:' + key) : mem.cache[key] ?? null
+}
+
+export async function cacheSet(key, value, ttlSec) {
+  const r = redis()
+  if (r) await r.set('cache:' + key, value, { ex: ttlSec })
+  else mem.cache[key] = value
 }
 
 export async function lastLocation() {
@@ -43,7 +57,7 @@ export async function lastLocation() {
 export async function trailSince(tst) {
   const r = redis()
   const all = r ? await r.lrange('trail', 0, -1) : mem.trail
-  return all.filter((p) => p && p.tst >= tst)
+  return all.filter((p) => p && p.tst >= tst).sort((a, b) => a.tst - b.tst)
 }
 
 // 地図の中心（現在地が大きくずれたときだけ動かす）

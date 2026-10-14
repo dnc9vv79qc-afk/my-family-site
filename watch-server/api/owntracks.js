@@ -20,6 +20,8 @@ export default async function handler(req, res) {
       vel: m.vel ?? null,
       acc: m.acc ?? null,
       ssid: m.SSID ?? null,
+      conn: m.conn ?? null, // w: Wi-Fi / m: モバイル / o: オフライン
+      bs: m.bs ?? null, // 2: 充電中 / 3: 満充電
     })
   }
   // OwnTracks は JSON 配列の返事を期待する

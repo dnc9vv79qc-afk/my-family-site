@@ -1,4 +1,6 @@
 """2 ページ目（タップで切り替え）: 気圧・高度・天気・日の入り・現在地・時刻・自宅周辺の地図。"""
+import math
+
 from PIL import Image, ImageDraw
 
 from complications import paint_sun, paint_sunset
@@ -11,6 +13,70 @@ LINE = (55, 55, 55, 255)
 
 MAP_Y = 324
 MAP_H = 480 - MAP_Y
+
+
+RING_IN = 213  # リングの内側の半径
+RING_OUT = 240
+
+
+def build_ring(g):
+    font, save = g.font, g.save
+    W, H, SS = g.W, g.H, g.SS
+    big = Image.new('RGBA', (W * SS, H * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(big)
+    c = W * SS / 2
+    # 黒い帯と内側の細線
+    d.ellipse([0, 0, W * SS - 1, H * SS - 1], fill=(0, 0, 0, 255))
+    r = RING_IN * SS
+    d.ellipse([c - r, c - r, c + r, c + r], fill=(0, 0, 0, 0))
+    d.ellipse([c - r, c - r, c + r, c + r], outline=(60, 60, 60, 255), width=SS)
+
+    def pt(deg, rad):
+        a = math.radians(deg)
+        return c + rad * SS * math.sin(a), c - rad * SS * math.cos(a)
+
+    for q in range(96):  # 15 分ごと
+        deg = q * 3.75
+        h = q / 4
+        if q % 8 == 0:
+            continue  # 2 時間ごとは数字
+        if q % 4 == 0:
+            d.line([pt(deg, 222), pt(deg, 233)], fill=(200, 200, 200, 255), width=round(2.2 * SS))
+        else:
+            d.line([pt(deg, 226), pt(deg, 231)], fill=(90, 90, 90, 255), width=round(1.4 * SS))
+    for hh in (0, 6, 12, 18):  # オレンジの印
+        d.line([pt(hh * 15 - 2.2, 215), pt(hh * 15 - 2.2, 220)], fill=ORANGE, width=round(2.4 * SS))
+        d.line([pt(hh * 15 + 2.2, 215), pt(hh * 15 + 2.2, 220)], fill=ORANGE, width=round(2.4 * SS))
+    img = big.resize((W, H), Image.LANCZOS)
+
+    f = font(500, 15)
+    for hh in range(0, 24, 2):
+        deg = hh * 15
+        t = f'{hh:02d}'
+        tw = math.ceil(f.getlength(t)) + 4
+        lbl = Image.new('RGBA', (tw * 4, 20 * 4), (0, 0, 0, 0))
+        text_center = g.text_center
+        text_center(ImageDraw.Draw(lbl), tw * 2, 40, t, font(500, 60), (210, 210, 210, 255), spacing=2)
+        lbl = lbl.resize((tw, 20), Image.LANCZOS)
+        rot = -deg if not (90 < deg < 270) else 180 - deg  # 下半分は読める向きに
+        lbl = lbl.rotate(rot, resample=Image.BICUBIC, expand=True)
+        a = math.radians(deg)
+        cx, cy = 240 + 227 * math.sin(a), 240 - 227 * math.cos(a)
+        img.alpha_composite(lbl, (round(cx - lbl.width / 2), round(cy - lbl.height / 2)))
+
+    # 動く印の画像（上向きに置いて中心で回す）
+    now = Image.new('RGBA', (6 * SS, 20 * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(now).rounded_rectangle([0, 0, 6 * SS - 1, 20 * SS - 1], radius=2 * SS, fill=ORANGE)
+    now = now.resize((6, 20), Image.LANCZOS)
+    sun = Image.new('RGBA', (10 * SS, 10 * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(sun).polygon([(5 * SS, 0), (10 * SS, 5 * SS), (5 * SS, 10 * SS), (0, 5 * SS)], fill=(255, 196, 64, 255))
+    sun = sun.resize((10, 10), Image.LANCZOS)
+    layout = dict(src=save(img, 'p2/ring.png'),
+                  now=dict(src=save(now, 'p2/ring_now.png'), pos_x=240 - 3, pos_y=240 - 236),
+                  sun=dict(src=save(sun, 'p2/ring_sun.png'), pos_x=240 - 5, pos_y=240 - 222),
+                  day_arc=dict(radius=216, width=3, color=0x6B5418),
+                  rain_arc=dict(radius=237, width=5, color=0x3FA9F5))
+    return img, layout
 
 
 def build(g):
@@ -48,6 +114,9 @@ def build(g):
                        dot=ds.extra_paths.get({'dot': '.', 'colon': ':'}.get(sep)) if sep else None,
                        negative=ds.extra_paths.get('-') if negative else None)
 
+    # ---- 最上部: 状況で形・色が変わるアイコン列（HUD）。サーバーが描き HYROX Link が届ける
+    L['hud'] = dict(x=180, y=56, w=120, h=34)  # 雨（傘 + 15 分刻み 8 本）
+
     # ---- 1 段目: 気圧 / 高度 / 気温
     for x in (183, 297):
         d.line([(x, 96), (x, 158)], fill=LINE, width=1)
@@ -73,7 +142,9 @@ def build(g):
     value('sunset', mid, 95, 202, 'SUN_SET', w=100, sep='colon')
     label(240, 182, 'LOC')
     L['place'] = dict(x=152, y=191, w=176, h=24, size=19, space=2, color=0xFFFFFF)
-    label(240, 225, f'{HOME[0]:.3f}°N  {HOME[1]:.3f}°E', f=font(400, 12), spacing=0)
+    # 座標と LINK（最終同期）は時計側で書き換えるので TEXT ウィジェットにする
+    L['coords'] = dict(x=152, y=216, w=176, h=18, size=12, color=0x8C8C8C,
+                       text=f'{HOME[0]:.3f}°N  {HOME[1]:.3f}°E')
     label(372, 188, 'BAT')
     bars = []
     for lv in range(6):
@@ -112,7 +183,7 @@ def build(g):
                      month=mon_paths)
 
     colon = label_image(':', font(700, 92), WHITE, pad=0)
-    t_x = 150
+    t_x = 144
     t_y = 248
     L['time'] = dict(hour_x=t_x, minute_x=t_x + tm.w * 2 + colon.width + 4, y=t_y, digits=tm.paths,
                      sec_x=t_x + tm.w * 4 + colon.width + 8, sec_y=t_y + tm.h - sec.h, sec=sec.paths)
@@ -121,20 +192,10 @@ def build(g):
     d.line([(35, 320), (445, 320)], fill=LINE, width=1)
 
     # ---- 地図
+    # bg には自宅周辺の固定地図。連携アプリ（HYROX Link）から届いた地図はその上に IMG で重ね、
+    # さらに上に透過のオーバーレイ（グリッド・ラベル・縮尺）を重ねる
     mp = build_map(W, MAP_H).convert('RGBA')
     bg.alpha_composite(mp, (0, MAP_Y))
-    grid = Image.new('RGBA', (W, MAP_H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grid)
-    for x in range(0, W, 40):
-        gd.line([(x, 0), (x, MAP_H)], fill=(255, 255, 255, 14))
-    for y in range(0, MAP_H, 40):
-        gd.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
-    # 上端を黒へなじませる
-    for y in range(18):
-        gd.line([(0, y), (W, y)], fill=(0, 0, 0, round(255 * (1 - y / 18))))
-    bg.alpha_composite(grid, (0, MAP_Y))
-    d = ImageDraw.Draw(bg)
-
     hx, hy = 240, MAP_Y + MAP_H // 2
     halo = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     hd = ImageDraw.Draw(halo)
@@ -142,22 +203,35 @@ def build(g):
     hd.ellipse([hx - 8, hy - 8, hx + 8, hy + 8], fill=WHITE)
     hd.ellipse([hx - 5, hy - 5, hx + 5, hy + 5], fill=ORANGE)
     bg.alpha_composite(halo)
+    d = ImageDraw.Draw(bg)
     text_center(d, hx + 34, hy - 1, 'HOME', font(500, 12), WHITE, spacing=1)
 
-    # 左: 歩数、右: 今日の移動距離
-    label(100, 384, 'STEPS')
-    value('steps', xs, 100, 396, 'STEP', w=80)
-    label(380, 384, 'TRAIL')
-    value('trail', xs, 380, 396, 'DISTANCE', w=80, unit_img=unit('km', xs, 11), sep='dot')
+    ov = Image.new('RGBA', (W, MAP_H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    for x in range(0, W, 40):
+        od.line([(x, 0), (x, MAP_H)], fill=(255, 255, 255, 14))
+    for y in range(0, MAP_H, 40):
+        od.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
+    for y in range(18):  # 上端を黒へなじませる
+        od.line([(0, y), (W, y)], fill=(0, 0, 0, round(255 * (1 - y / 18))))
+    oy = lambda y: y - MAP_Y  # noqa: E731
 
-    # 縮尺 200m
+    # 左: 歩数、右: 今日の移動距離
+    text_center(od, 122, oy(380), 'STEPS', f_lab, GRAY, spacing=1)
+    value('steps', xs, 122, 392, 'STEP', w=80)
+    text_center(od, 358, oy(380), 'TRAIL', f_lab, GRAY, spacing=1)
+    value('trail', xs, 358, 392, 'DISTANCE', w=80, unit_img=unit('km', xs, 11), sep='dot')
+
+    # 縮尺 200m（サーバーの地図も同じズーム 16）
     px200 = round(200 / meters_per_px())
     sx0 = 240 - px200 // 2
-    d.line([(sx0, 444), (sx0 + px200, 444)], fill=(200, 200, 200, 255), width=2)
+    od.line([(sx0, oy(430)), (sx0 + px200, oy(430))], fill=(200, 200, 200, 255), width=2)
     for x in (sx0, sx0 + px200):
-        d.line([(x, 439), (x, 449)], fill=(200, 200, 200, 255), width=2)
-    text_center(d, 240, 434, '200m', font(500, 11), (200, 200, 200, 255))
-    text_center(d, 240, 461, '© OpenStreetMap', font(400, 9), (110, 110, 110, 255))
+        od.line([(x, oy(425)), (x, oy(435))], fill=(200, 200, 200, 255), width=2)
+    text_center(od, 240, oy(420), '200m', font(500, 11), (200, 200, 200, 255))
+    text_center(od, 240, oy(446), '© OpenStreetMap', font(400, 9), (110, 110, 110, 255))
+    L['map'] = dict(x=0, y=MAP_Y, w=W, h=MAP_H, overlay=save(ov, 'p2/map_overlay.png'))
+    bg.alpha_composite(ov, (0, MAP_Y))
 
     # 円形にマスク
     mask = Image.new('L', (W * g.SS, H * g.SS), 0)
@@ -191,10 +265,15 @@ def build(g):
     put('trail', xs, '3.42')
     text_center(ImageDraw.Draw(pv), L['place']['x'] + L['place']['w'] / 2, L['place']['y'] + 12,
                 'NISHIKU KUJO', font(500, 19), WHITE, spacing=2)
+    text_center(ImageDraw.Draw(pv), 240, 225, L['coords']['text'], font(400, 12), GRAY)
     pv.alpha_composite(week_imgs[3], (L['week']['x'], L['week']['y']))
     day.draw(pv, '17', L['date']['day_x'], L['date']['day_y'])
     pv.alpha_composite(mon_imgs[8], (L['date']['month_x'], L['date']['month_y']))
     tm.draw(pv, '03', L['time']['hour_x'], t_y)
     tm.draw(pv, '56', L['time']['minute_x'], t_y)
     sec.draw(pv, '13', L['time']['sec_x'], L['time']['sec_y'])
+    # ---- 縁: 24 時間の目盛りリング（固定部分）。動く部分（今の時刻・日の出入り・雨）は時計側で重ねる
+    ring, ring_layout = build_ring(g)
+    L['ring'] = ring_layout
+    pv.alpha_composite(ring)
     return L, pv

@@ -20,6 +20,7 @@ export const STYLE = {
   water: '#123e4c',
   waterway: '#1f6f86',
   park: '#10201a',
+  building: { fill: '#1d2227', stroke: '#2c3339' },
   rail: '#8a8f96',
   road: {
     motorway: { color: '#c9ced4', width: 3.2 },
@@ -95,7 +96,7 @@ export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail 
   const t0y = Math.floor(top / 256 / scale)
   const t1y = Math.floor((top + h) / 256 / scale)
 
-  const layers = { water: [], park: [], waterway: [], rail: [], road: {} }
+  const layers = { water: [], park: [], building: [], waterway: [], rail: [], road: {} }
   const roadClasses = ROAD_CLASSES[detail] || ROAD_CLASSES[2]
 
   const jobs = []
@@ -120,6 +121,7 @@ export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail 
     }
     each('water', (f, rings) => layers.water.push(pathD(rings, true)))
     each('park', (f, rings) => layers.park.push(pathD(rings, true)))
+    if (detail >= 2) each('building', (f, rings) => layers.building.push(pathD(rings, true)))
     each('waterway', (f, rings) => layers.waterway.push(pathD(rings, false)))
     each('transportation', (f, rings) => {
       const c = f.properties.class
@@ -139,6 +141,10 @@ export async function renderMap({ lat, lon, w = 480, h = 156, zoom = 16, detail 
   for (let y = 0; y < h; y += 40) parts.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="${S.grid}"/>`)
   if (layers.park.length) parts.push(`<path d="${layers.park.join('')}" fill="${S.park}"/>`)
   if (layers.water.length) parts.push(`<path d="${layers.water.join('')}" fill="${S.water}"/>`)
+  if (layers.building.length)
+    parts.push(
+      `<path d="${layers.building.join('')}" fill="${S.building.fill}" stroke="${S.building.stroke}" stroke-width="0.6" fill-rule="nonzero"/>`,
+    )
   if (layers.waterway.length)
     parts.push(`<path d="${layers.waterway.join('')}" fill="none" stroke="${S.waterway}" stroke-width="2"/>`)
   for (const c of ['service', 'minor', 'tertiary', 'secondary', 'primary', 'trunk', 'motorway']) {
