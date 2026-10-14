@@ -215,6 +215,30 @@ def build_complications(val_w, val_y):
     ))
 
 
+# ---------------------------------------------------------------- 現在地
+
+PLACE_BOX = (124, 386, 232, 36)  # x, y, w, h（amazfit ロゴの位置）
+PLACE_SIZE = 24
+PLACE_SPACE = 3
+PLACE_COLOR = 0xB4B4B4
+
+
+def build_place_font():
+    """現在地表示用に Rubik を英大文字・数字だけの TTF にして同梱する。"""
+    from fontTools import subset
+    from fontTools.ttLib import TTFont
+
+    f = TTFont(os.path.join(FONT_DIR, 'rubik-latin-500-normal.woff'))
+    f.flavor = None
+    sub = subset.Subsetter()
+    sub.populate(text='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -.')
+    sub.subset(f)
+    out = os.path.join(os.path.dirname(IMG_DIR), 'fonts', 'place.ttf')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    f.save(out)
+    return 'fonts/place.ttf'
+
+
 # ---------------------------------------------------------------- 外周の弧
 
 ARC_R = 228
@@ -390,7 +414,12 @@ def main():
     bg.alpha_composite(colon, (colon_x, colon_y))
 
     text_center(d, 240, 368, 'HYROX', font(500, 27), WHITE, spacing=7)
-    text_center(d, 240, 404, 'amazfit', font(600, 34), (120, 120, 120, 255), spacing=-1)
+    # 現在地が取れないときだけ amazfit ロゴを出す（index.js で切り替え）
+    brand = label_image('amazfit', font(600, 34), (120, 120, 120, 255), pad=0, spacing=-1)
+    layout['brand'] = dict(x=round(240 - brand.width / 2), y=round(404 - brand.height / 2),
+                           src=save(brand, 'brand.png'))
+    layout['place'] = dict(x=PLACE_BOX[0], y=PLACE_BOX[1], w=PLACE_BOX[2], h=PLACE_BOX[3],
+                           size=PLACE_SIZE, space=PLACE_SPACE, color=PLACE_COLOR, font=build_place_font())
 
     # 円形にマスク
     mask = Image.new('L', (W * SS, H * SS), 0)
@@ -414,12 +443,15 @@ def main():
     pv.alpha_composite(mon_imgs[9], (layout['date']['month_x'], mon_y))
     day.draw(pv, '14', layout['date']['day_x'], day_y)
     base = pv.copy()
+    text_center(ImageDraw.Draw(pv), 240, 404, 'NISHIKU KUJO', font(500, PLACE_SIZE),
+                (PLACE_COLOR >> 16, (PLACE_COLOR >> 8) & 255, PLACE_COLOR & 255, 255), spacing=PLACE_SPACE)
     for slot in SLOTS:
         pv.alpha_composite(comp['render'](slot, slot['default']), (slot_x(slot), slot['y']))
     pv.save(os.path.join(ROOT, 'preview.png'))
 
     # 表示枠を入れ替えた例
     alt = base.copy()
+    alt.alpha_composite(brand, (layout['brand']['x'], layout['brand']['y']))
     alt_keys = ['READINESS', 'SPO2', 'RECOVERY_TIME', 'DISTANCE', 'PAI_DAILY', 'SUN_SET', 'WEATHER_CURRENT']
     for slot, key in zip(SLOTS, alt_keys):
         alt.alpha_composite(comp['render'](slot, key), (slot_x(slot), slot['y']))

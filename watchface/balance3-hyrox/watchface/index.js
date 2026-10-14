@@ -1,6 +1,8 @@
-import { createWidget, widget, align, prop, show_level, data_type, edit_type } from '@zos/ui'
+import { createWidget, widget, align, prop, show_level, text_style, data_type, edit_type } from '@zos/ui'
+import { Weather } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { L } from './layout'
+import { placeLabel } from './romaji'
 
 const logger = log.getLogger('hyrox-face')
 
@@ -116,6 +118,49 @@ function complication(slot) {
   })
 }
 
+// Zepp アプリの天気の地名（現在地）
+function readCityName() {
+  try {
+    const f = new Weather().getForecastWeather()
+    if (f && f.cityName) return f.cityName
+  } catch (e) {
+    logger.log('weather unavailable')
+  }
+  return ''
+}
+
+// 現在地: ローマ字にできれば Rubik、できなければ元の表記をシステムフォントで。取れなければ amazfit ロゴ
+function placeWidgets() {
+  const P = L.place
+  const base = {
+    x: P.x,
+    y: P.y,
+    w: P.w,
+    h: P.h,
+    color: P.color,
+    text_size: P.size,
+    char_space: P.space,
+    align_h: align.CENTER_H,
+    align_v: align.CENTER_V,
+    text_style: text_style.ELLIPSIS,
+    text: '',
+    show_level: NORMAL,
+  }
+  const brand = createWidget(widget.IMG, { x: L.brand.x, y: L.brand.y, src: L.brand.src, show_level: NORMAL })
+  const roman = createWidget(widget.TEXT, Object.assign({}, base, { font: P.font }))
+  const raw = createWidget(widget.TEXT, Object.assign({}, base, { char_space: 0, text_size: P.size - 2 }))
+
+  return function update() {
+    const city = readCityName()
+    const label = placeLabel(city)
+    roman.setProperty(prop.TEXT, label || '')
+    raw.setProperty(prop.TEXT, label ? '' : city)
+    roman.setProperty(prop.VISIBLE, !!label)
+    raw.setProperty(prop.VISIBLE, !label && !!city)
+    brand.setProperty(prop.VISIBLE, !city)
+  }
+}
+
 WatchFace({
   build() {
     createWidget(widget.IMG, { x: 0, y: 0, src: L.bg, show_level: NORMAL })
@@ -142,6 +187,10 @@ WatchFace({
     })
 
     L.slots.forEach(complication)
+
+    const updatePlace = placeWidgets()
+    updatePlace()
+    createWidget(widget.WIDGET_DELEGATE, { resume_call: updatePlace })
 
     // 時刻（通常表示）
     createWidget(widget.IMG_TIME, {

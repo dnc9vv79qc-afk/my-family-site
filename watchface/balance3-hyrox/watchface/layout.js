@@ -734,6 +734,21 @@ export const L = {
       ]
     }
   },
+  "brand": {
+    "x": 179,
+    "y": 391,
+    "src": "images/brand.png"
+  },
+  "place": {
+    "x": 124,
+    "y": 386,
+    "w": 232,
+    "h": 36,
+    "size": 24,
+    "space": 3,
+    "color": 11842740,
+    "font": "fonts/place.ttf"
+  },
   "bg": "images/bg.png",
   "icon": "images/icon.png"
 }
