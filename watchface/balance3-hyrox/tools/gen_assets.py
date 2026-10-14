@@ -178,8 +178,7 @@ def build_complications(val_w, val_y):
                                    for c in CATALOG})
 
     tips = Image.new('RGBA', (TIPS_W, 36), (0, 0, 0, 0))
-    ImageDraw.Draw(tips).rounded_rectangle([0, 0, TIPS_W - 1, 35], radius=18, fill=(30, 30, 30, 255),
-                                           outline=YELLOW, width=2)
+    ImageDraw.Draw(tips).rounded_rectangle([0, 0, TIPS_W - 1, 35], radius=18, fill=YELLOW)
     tips_path = save(tips, 'comp/edit/tips.png')
 
     slots = []

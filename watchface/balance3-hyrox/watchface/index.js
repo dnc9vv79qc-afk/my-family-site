@@ -32,6 +32,9 @@ function arc(cfg) {
   })
 }
 
+// 編集画面で枠の中に見せるプレビュー（マスクより上に描くため最後にまとめて作る）
+const editPreviews = []
+
 // 表示枠: 編集グループを作り、ユーザーが選んだデータを描く
 function complication(slot) {
   const keys = L.order.filter(supported)
@@ -67,6 +70,7 @@ function complication(slot) {
   if (!key) key = defaultKey
   const t = L.types[key]
   const f = L.fonts[slot.font]
+  editPreviews.push({ x: slot.x, y: slot.y, src: style.preview[key] })
 
   if (slot.style === 'mid') {
     createWidget(widget.IMG, {
@@ -199,6 +203,7 @@ WatchFace({
     // 編集モードの背景マスク
     createWidget(widget.WATCHFACE_EDIT_MASK, { x: 0, y: 0, w: 480, h: 480, src: L.mask100, show_level: EDIT })
     createWidget(widget.WATCHFACE_EDIT_FG_MASK, { x: 0, y: 0, w: 480, h: 480, src: L.mask70, show_level: EDIT })
+    editPreviews.forEach((p) => createWidget(widget.IMG, { x: p.x, y: p.y, src: p.src, show_level: EDIT }))
   },
 
   onInit() {
