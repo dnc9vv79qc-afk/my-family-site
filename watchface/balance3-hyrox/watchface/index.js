@@ -1,5 +1,5 @@
 import { createWidget, widget, align, prop, event, show_level, text_style, data_type, edit_type } from '@zos/ui'
-import { Weather } from '@zos/sensor'
+import { Weather, Time } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { LocalStorage, FileSystem } from '@zos/share-storage'
 import { writeFileSync } from '@zos/fs'
@@ -16,6 +16,7 @@ const EDIT = show_level.ONLY_EDIT
 const pages = [[], []]
 let page = 0
 const pageListeners = []
+const hiddenWidgets = new Set() // ページ内でも状況に応じて隠すもの（雨の弧など）
 
 function mk(p, type, opts) {
   const w = createWidget(type, opts)
@@ -25,8 +26,48 @@ function mk(p, type, opts) {
 
 function setPage(n) {
   page = n
-  pages.forEach((ws, i) => ws.forEach((w) => w.setProperty(prop.VISIBLE, i === n)))
+  pages.forEach((ws, i) => ws.forEach((w) => w.setProperty(prop.VISIBLE, i === n && !hiddenWidgets.has(w))))
   pageListeners.forEach((fn) => fn())
+}
+
+function showOnPage(w, p, on) {
+  if (on) hiddenWidgets.delete(w)
+  else hiddenWidgets.add(w)
+  w.setProperty(prop.VISIBLE, on && page === p)
+}
+
+// ---- 24 時間リング用: 時刻 → 角度（真上が 0 時、時計回りに 1 分 0.25°）
+const HOME_LATLON = [34.677, 135.474]
+
+function minutesOfDay(date) {
+  return date.getHours() * 60 + date.getMinutes()
+}
+
+function ringDeg(min) {
+  return (((min % 1440) + 1440) % 1440) * 0.25
+}
+
+// ARC は 3 時方向が 0°
+function arcRange(m1, m2) {
+  const a = ringDeg(m1) - 90
+  let b = ringDeg(m2) - 90
+  if (b <= a) b += 360
+  return { start_angle: a, end_angle: b }
+}
+
+// 日の出・日の入り（その土地の時刻で、0 時からの分）。NOAA の簡易式
+function sunTimes(lat, lon, date) {
+  const rad = Math.PI / 180
+  const start = new Date(date.getFullYear(), 0, 0)
+  const day = Math.floor((date - start) / 86400000)
+  const g = ((2 * Math.PI) / 365) * (day - 1)
+  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g))
+  const decl =
+    0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g)
+  const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad
+  const tz = -date.getTimezoneOffset()
+  const noon = 720 - 4 * lon - eq + tz
+  return { rise: noon - 4 * ha, set: noon + 4 * ha }
 }
 
 // 時刻のあたりをタップでページを切り替える
@@ -289,6 +330,55 @@ function buildPage2() {
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
   const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
   mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
+
+  // 縁の 24 時間リング: 固定の目盛り + 日の出〜日の入りの弧 + 雨の弧 + 日の出入りと今の時刻の印
+  const R = P.ring
+  mk(1, widget.IMG, { x: 0, y: 0, src: R.src, show_level: NORMAL })
+  const arcOpts = (a) => ({ x: 0, y: 0, w: 480, h: 480, radius: a.radius, line_width: a.width, color: a.color, start_angle: -90, end_angle: -89, show_level: NORMAL })
+  const dayArc = mk(1, widget.ARC, arcOpts(R.day_arc))
+  const rainArcs = [0, 1, 2, 3, 4, 5, 6, 7].map(() => {
+    const w = mk(1, widget.ARC, arcOpts(R.rain_arc))
+    hiddenWidgets.add(w)
+    return w
+  })
+  const marker = (m) => ({ x: 0, y: 0, w: 480, h: 480, pos_x: m.pos_x, pos_y: m.pos_y, center_x: 240, center_y: 240, angle: 0, src: m.src, show_level: NORMAL })
+  const sunRise = mk(1, widget.IMG, marker(R.sun))
+  const sunSet = mk(1, widget.IMG, marker(R.sun))
+  const nowMark = mk(1, widget.IMG, marker(R.now))
+
+  const updateNow = () => nowMark.setProperty(prop.ANGLE, ringDeg(minutesOfDay(new Date())))
+  try {
+    new Time().onPerMinute(updateNow)
+  } catch (e) {
+    logger.log('time sensor unavailable')
+  }
+  pageListeners.push(function updateRing() {
+    updateNow()
+    const link = readLink()
+    const st = link && link.state
+    const lat = st && st.lat != null ? st.lat : HOME_LATLON[0]
+    const lon = st && st.lon != null ? st.lon : HOME_LATLON[1]
+    const t = sunTimes(lat, lon, new Date())
+    if (isFinite(t.rise) && isFinite(t.set)) {
+      dayArc.setProperty(prop.MORE, arcRange(t.rise, t.set))
+      sunRise.setProperty(prop.ANGLE, ringDeg(t.rise))
+      sunSet.setProperty(prop.ANGLE, ringDeg(t.set))
+    }
+    // 雨: 2 時間先までの 15 分枠のうち降る枠を縁に青く
+    const rain = st && st.rain
+    const nowSec = Math.floor(Date.now() / 1000)
+    rainArcs.forEach((w, i) => {
+      const v = rain && rain.slots ? rain.slots[i] || 0 : 0
+      const s0 = rain && rain.start ? rain.start + i * 900 : 0
+      const s1 = s0 + 900
+      const on = v >= 0.1 && s1 > nowSec && s0 < nowSec + 3 * 3600
+      if (on) {
+        const from = minutesOfDay(new Date(Math.max(s0, nowSec) * 1000))
+        w.setProperty(prop.MORE, arcRange(from, minutesOfDay(new Date(s1 * 1000))))
+      }
+      showOnPage(w, 1, on)
+    })
+  })
   const hud = mk(1, widget.IMG, { x: P.hud.x, y: P.hud.y, w: P.hud.w, h: P.hud.h, src: L.blank, show_level: NORMAL })
   const coords = mk(1, widget.TEXT, {
     x: P.coords.x,

@@ -752,10 +752,10 @@ export const L = {
   "bg": "images/bg.png",
   "p2": {
     "hud": {
-      "x": 120,
-      "y": 34,
-      "w": 240,
-      "h": 56
+      "x": 180,
+      "y": 56,
+      "w": 120,
+      "h": 34
     },
     "pres": {
       "x": 70,
@@ -1001,8 +1001,8 @@ export const L = {
       ]
     },
     "time": {
-      "hour_x": 150,
-      "minute_x": 287,
+      "hour_x": 144,
+      "minute_x": 281,
       "y": 248,
       "digits": [
         "images/p2_time/0.png",
@@ -1016,7 +1016,7 @@ export const L = {
         "images/p2_time/8.png",
         "images/p2_time/9.png"
       ],
-      "sec_x": 397,
+      "sec_x": 391,
       "sec_y": 294,
       "sec": [
         "images/p2_sec/0.png",
@@ -1032,8 +1032,8 @@ export const L = {
       ]
     },
     "steps": {
-      "x": 60,
-      "y": 396,
+      "x": 82,
+      "y": 392,
       "w": 80,
       "h": 13,
       "kind": "STEP",
@@ -1056,8 +1056,8 @@ export const L = {
       "negative": null
     },
     "trail": {
-      "x": 340,
-      "y": 396,
+      "x": 318,
+      "y": 392,
       "w": 80,
       "h": 13,
       "kind": "DISTANCE",
@@ -1086,7 +1086,30 @@ export const L = {
       "h": 156,
       "overlay": "images/p2/map_overlay.png"
     },
-    "bg": "images/p2/bg.png"
+    "bg": "images/p2/bg.png",
+    "ring": {
+      "src": "images/p2/ring.png",
+      "now": {
+        "src": "images/p2/ring_now.png",
+        "pos_x": 237,
+        "pos_y": 4
+      },
+      "sun": {
+        "src": "images/p2/ring_sun.png",
+        "pos_x": 235,
+        "pos_y": 18
+      },
+      "day_arc": {
+        "radius": 216,
+        "width": 3,
+        "color": 7033880
+      },
+      "rain_arc": {
+        "radius": 237,
+        "width": 5,
+        "color": 4172277
+      }
+    }
   },
   "icon": "images/icon.png"
 }

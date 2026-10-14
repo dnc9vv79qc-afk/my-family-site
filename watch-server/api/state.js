@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     hpa_trend_3h: trend,
     ticker: buildTicker({ last, rain, trend, todayKm, now }),
     place,
+    rain: rain ? { start: rain.start, slots: rain.slots } : null,
     batt: last?.batt ?? null,
     vel: last?.vel ?? null,
     ssid: last?.ssid ?? null,

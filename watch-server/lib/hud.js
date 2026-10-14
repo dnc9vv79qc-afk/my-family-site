@@ -152,3 +152,27 @@ export function renderHud({ last, rain, trend }) {
     .render()
     .asPng()
 }
+
+// 雨だけの小さな表示（傘 + 15 分刻み 8 本）。2 ページ目上部用
+export const RAIN_W = 120
+export const RAIN_H = 34
+
+export function renderRain(rain) {
+  const mm = (rain && rain.slots) || []
+  const wet = mm.some((v) => v >= 0.1)
+  const col = wet ? C.rain : C.mid
+  const cx = 14
+  const parts = [
+    `<path d="M${cx - 11},16 A11,11 0 0 1 ${cx + 11},16 Z" fill="${col}"/>`,
+    `<path d="M${cx},16 L${cx},26 A3,3 0 0 1 ${cx - 6},26" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round"/>`,
+  ]
+  const x0 = 32
+  const bw = 8
+  for (let i = 0; i < 8; i++) {
+    const v = mm[i] || 0
+    const h = v >= 0.1 ? Math.min(26, 6 + v * 8) : 3
+    parts.push(`<rect x="${x0 + i * (bw + 3)}" y="${30 - h}" width="${bw}" height="${h}" rx="1.5" fill="${v >= 0.1 ? C.rain : C.dim}"/>`)
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${RAIN_W}" height="${RAIN_H}">${parts.join('')}</svg>`
+  return new Resvg(svg, { background: 'rgba(0,0,0,0)' }).render().asPng()
+}

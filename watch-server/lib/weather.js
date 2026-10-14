@@ -24,6 +24,7 @@ export async function rainSoon(lat, lon) {
       sum_2h: Math.round(mm.reduce((a, b) => a + b, 0) * 10) / 10,
       prob: Math.max(0, ...(j.hourly?.precipitation_probability || [0])),
       slots: mm.slice(0, 8), // 15 分ごとの降水量（mm）
+      start: j.minutely_15?.time?.[0] ? Math.floor(Date.parse(j.minutely_15.time[0] + ':00+09:00') / 1000) : null, // 最初の枠の開始（UNIX 秒）
     }
     await cacheSet(key, out, 600)
     return out
