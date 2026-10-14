@@ -25,18 +25,45 @@ export function formatPlace(address) {
   return words.length ? [...new Set(words)].join(' ') : null
 }
 
+// zoom によっては県名しか返らないことがあるので、細かい順に試して町名まで取れた結果を使う
+async function fromNominatim(lat, lon) {
+  let best = null
+  for (const zoom of [18, 16]) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=${zoom}&addressdetails=1&accept-language=en&lat=${lat}&lon=${lon}`
+    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) })
+    if (!res.ok) throw new Error(`nominatim ${res.status}`)
+    const name = formatPlace((await res.json()).address)
+    if (name && name.includes(' ')) return name // 区 + 町名
+    best = best || name
+  }
+  return best
+}
+
+// 予備: 区・市までしか分からないが、キー不要で落ちにくい
+async function fromBigDataCloud(lat, lon) {
+  const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+  if (!res.ok) throw new Error(`bigdatacloud ${res.status}`)
+  const j = await res.json()
+  return clean(j.locality) || clean(j.city)
+}
+
 export async function placeName(lat, lon) {
   const key = `place:${lat.toFixed(3)},${lon.toFixed(3)}`
   const hit = await cacheGet(key)
-  if (hit) return hit.name
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&accept-language=en&lat=${lat}&lon=${lon}`
-    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(4000) })
-    if (!res.ok) return null
-    const name = formatPlace((await res.json()).address)
-    await cacheSet(key, { name }, 30 * 86400)
-    return name
-  } catch {
-    return null
+  if (hit && hit.name) return hit.name
+  if (hit && hit.miss) return null
+  for (const lookup of [fromNominatim, fromBigDataCloud]) {
+    try {
+      const name = await lookup(lat, lon)
+      if (name) {
+        await cacheSet(key, { name }, 30 * 86400)
+        return name
+      }
+    } catch (e) {
+      console.error('place lookup failed', String(e))
+    }
   }
+  await cacheSet(key, { miss: true }, 600) // 取れなかったときは 10 分後に再挑戦
+  return null
 }
