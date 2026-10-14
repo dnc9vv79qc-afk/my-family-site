@@ -1,0 +1,14 @@
+{
+  "name": "watch-server",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mapbox/vector-tile": "^2.0.3",
+    "@resvg/resvg-js": "^2.6.2",
+    "@upstash/redis": "^1.39.0",
+    "pbf": "^4.0.1"
+  }
+}
