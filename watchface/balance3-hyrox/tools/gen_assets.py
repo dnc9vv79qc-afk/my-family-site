@@ -4,7 +4,7 @@
   python3 tools/gen_assets.py
 
 出力:
-  assets/balance3.r/images/...   ウォッチフェイス用 PNG
+  assets/balance3/images/...     ウォッチフェイス用 PNG
   watchface/layout.js            index.js が読み込む座標定数
   preview.png                    サンプル値を入れた完成イメージ
 """
