@@ -7,7 +7,18 @@ HYROX 風デジタルウォッチフェイスのクローン。元デザイン�
 - 対象: Zepp OS / 丸型 480×480（Amazfit Balance 3 / Balance 3 Ti）
 - API: Zepp OS 3.0 以上
 
-## 表示内容
+## 2 ページ構成
+
+時刻のあたりをタップすると、HYROX ページ ⇔ データ + 地図ページが切り替わる。
+
+![page2](preview_page2.png)
+
+2 ページ目: 気圧 / 高度 / 気温（最高・最低）/ 日の入り / 現在地（ローマ字）/ バッテリー / 曜日・日付 / 時刻 / 自宅周辺の地図（九条あたり、地図データ © OpenStreetMap contributors）/ 歩数 / 今日の移動距離
+
+- 地図は事前に作った画像なので動かない（ウォッチフェイスからは GPS が使えない）。中心と範囲は `tools/gen_map.py` の `HOME` で変更
+- ページはウォッチフェイスを入れ直す・再起動すると HYROX ページに戻る
+
+## 表示内容（HYROX ページ）
 
 ![入れ替え例](preview_alt.png)
 
@@ -39,6 +50,8 @@ watchface/layout.js      座標・画像パス（自動生成）
 assets/balance3.r/       画像素材（自動生成）
 tools/gen_assets.py      画像素材・layout.js・preview.png の生成スクリプト
 tools/complications.py   表示枠の位置と、選べるデータ・アイコンの定義
+tools/page2.py           2 ページ目のレイアウト
+tools/gen_map.py         OpenStreetMap から自宅周辺の地図を作る
 watchface/romaji.js      地名→ローマ字の辞書（地名を足すときはここ）
 tools/fonts/             Rubik フォント（SIL OFL 1.1）
 ```

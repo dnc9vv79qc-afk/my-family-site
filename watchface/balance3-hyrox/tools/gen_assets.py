@@ -15,6 +15,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 from complications import CATALOG, SLOTS
+import page2
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, 'tools', 'fonts')
@@ -456,6 +457,11 @@ def main():
     for slot, key in zip(SLOTS, alt_keys):
         alt.alpha_composite(comp['render'](slot, key), (slot_x(slot), slot['y']))
     alt.save(os.path.join(ROOT, 'preview_alt.png'))
+
+    # 2 ページ目
+    import sys
+    layout['p2'], pv2 = page2.build(sys.modules[__name__])
+    pv2.save(os.path.join(ROOT, 'preview_page2.png'))
 
     # ウォッチフェイス一覧用アイコン
     icon_img = pv.resize((240, 240), Image.LANCZOS)

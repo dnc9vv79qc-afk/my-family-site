@@ -750,5 +750,321 @@ export const L = {
     "font": "fonts/place.ttf"
   },
   "bg": "images/bg.png",
+  "p2": {
+    "pres": {
+      "x": 70,
+      "y": 116,
+      "w": 110,
+      "h": 24,
+      "kind": "ALTIMETER",
+      "font": [
+        "images/p2_val/0.png",
+        "images/p2_val/1.png",
+        "images/p2_val/2.png",
+        "images/p2_val/3.png",
+        "images/p2_val/4.png",
+        "images/p2_val/5.png",
+        "images/p2_val/6.png",
+        "images/p2_val/7.png",
+        "images/p2_val/8.png",
+        "images/p2_val/9.png"
+      ],
+      "invalid": "images/p2_val/45.png",
+      "align": "c",
+      "unit": "images/p2/unit_pres.png",
+      "dot": null,
+      "negative": null
+    },
+    "alt": {
+      "x": 185,
+      "y": 116,
+      "w": 110,
+      "h": 24,
+      "kind": "ALTITUDE",
+      "font": [
+        "images/p2_val/0.png",
+        "images/p2_val/1.png",
+        "images/p2_val/2.png",
+        "images/p2_val/3.png",
+        "images/p2_val/4.png",
+        "images/p2_val/5.png",
+        "images/p2_val/6.png",
+        "images/p2_val/7.png",
+        "images/p2_val/8.png",
+        "images/p2_val/9.png"
+      ],
+      "invalid": "images/p2_val/45.png",
+      "align": "c",
+      "unit": "images/p2/unit_alt.png",
+      "dot": null,
+      "negative": "images/p2_val/45.png"
+    },
+    "temp": {
+      "x": 300,
+      "y": 116,
+      "w": 110,
+      "h": 24,
+      "kind": "WEATHER_CURRENT",
+      "font": [
+        "images/p2_val/0.png",
+        "images/p2_val/1.png",
+        "images/p2_val/2.png",
+        "images/p2_val/3.png",
+        "images/p2_val/4.png",
+        "images/p2_val/5.png",
+        "images/p2_val/6.png",
+        "images/p2_val/7.png",
+        "images/p2_val/8.png",
+        "images/p2_val/9.png"
+      ],
+      "invalid": "images/p2_val/45.png",
+      "align": "c",
+      "unit": "images/p2/unit_temp.png",
+      "dot": null,
+      "negative": "images/p2_val/45.png"
+    },
+    "high": {
+      "x": 334,
+      "y": 146,
+      "w": 28,
+      "h": 13,
+      "kind": "WEATHER_HIGH",
+      "font": [
+        "images/p2_xs/0.png",
+        "images/p2_xs/1.png",
+        "images/p2_xs/2.png",
+        "images/p2_xs/3.png",
+        "images/p2_xs/4.png",
+        "images/p2_xs/5.png",
+        "images/p2_xs/6.png",
+        "images/p2_xs/7.png",
+        "images/p2_xs/8.png",
+        "images/p2_xs/9.png"
+      ],
+      "invalid": "images/p2_xs/45.png",
+      "align": "l",
+      "unit": null,
+      "dot": null,
+      "negative": "images/p2_xs/45.png"
+    },
+    "low": {
+      "x": 374,
+      "y": 146,
+      "w": 28,
+      "h": 13,
+      "kind": "WEATHER_LOW",
+      "font": [
+        "images/p2_xs/0.png",
+        "images/p2_xs/1.png",
+        "images/p2_xs/2.png",
+        "images/p2_xs/3.png",
+        "images/p2_xs/4.png",
+        "images/p2_xs/5.png",
+        "images/p2_xs/6.png",
+        "images/p2_xs/7.png",
+        "images/p2_xs/8.png",
+        "images/p2_xs/9.png"
+      ],
+      "invalid": "images/p2_xs/45.png",
+      "align": "l",
+      "unit": null,
+      "dot": null,
+      "negative": "images/p2_xs/45.png"
+    },
+    "sunset": {
+      "x": 45,
+      "y": 202,
+      "w": 100,
+      "h": 18,
+      "kind": "SUN_SET",
+      "font": [
+        "images/p2_mid/0.png",
+        "images/p2_mid/1.png",
+        "images/p2_mid/2.png",
+        "images/p2_mid/3.png",
+        "images/p2_mid/4.png",
+        "images/p2_mid/5.png",
+        "images/p2_mid/6.png",
+        "images/p2_mid/7.png",
+        "images/p2_mid/8.png",
+        "images/p2_mid/9.png"
+      ],
+      "invalid": "images/p2_mid/45.png",
+      "align": "c",
+      "unit": null,
+      "dot": "images/p2_mid/58.png",
+      "negative": null
+    },
+    "place": {
+      "x": 152,
+      "y": 191,
+      "w": 176,
+      "h": 24,
+      "size": 19,
+      "space": 2,
+      "color": 16777215
+    },
+    "bat_bars": {
+      "x": 392,
+      "y": 180,
+      "src": [
+        "images/p2/bat/0.png",
+        "images/p2/bat/1.png",
+        "images/p2/bat/2.png",
+        "images/p2/bat/3.png",
+        "images/p2/bat/4.png",
+        "images/p2/bat/5.png"
+      ]
+    },
+    "bat": {
+      "x": 340,
+      "y": 202,
+      "w": 90,
+      "h": 18,
+      "kind": "BATTERY",
+      "font": [
+        "images/p2_mid/0.png",
+        "images/p2_mid/1.png",
+        "images/p2_mid/2.png",
+        "images/p2_mid/3.png",
+        "images/p2_mid/4.png",
+        "images/p2_mid/5.png",
+        "images/p2_mid/6.png",
+        "images/p2_mid/7.png",
+        "images/p2_mid/8.png",
+        "images/p2_mid/9.png"
+      ],
+      "invalid": "images/p2_mid/45.png",
+      "align": "c",
+      "unit": "images/p2/unit_bat.png",
+      "dot": null,
+      "negative": null
+    },
+    "week": {
+      "x": 58,
+      "y": 254,
+      "src": [
+        "images/p2/week/1.png",
+        "images/p2/week/2.png",
+        "images/p2/week/3.png",
+        "images/p2/week/4.png",
+        "images/p2/week/5.png",
+        "images/p2/week/6.png",
+        "images/p2/week/7.png"
+      ]
+    },
+    "date": {
+      "day_x": 58,
+      "day_y": 286,
+      "day": [
+        "images/p2_day/0.png",
+        "images/p2_day/1.png",
+        "images/p2_day/2.png",
+        "images/p2_day/3.png",
+        "images/p2_day/4.png",
+        "images/p2_day/5.png",
+        "images/p2_day/6.png",
+        "images/p2_day/7.png",
+        "images/p2_day/8.png",
+        "images/p2_day/9.png"
+      ],
+      "month_x": 98,
+      "month_y": 286,
+      "month": [
+        "images/p2/month/1.png",
+        "images/p2/month/2.png",
+        "images/p2/month/3.png",
+        "images/p2/month/4.png",
+        "images/p2/month/5.png",
+        "images/p2/month/6.png",
+        "images/p2/month/7.png",
+        "images/p2/month/8.png",
+        "images/p2/month/9.png",
+        "images/p2/month/10.png",
+        "images/p2/month/11.png",
+        "images/p2/month/12.png"
+      ]
+    },
+    "time": {
+      "hour_x": 150,
+      "minute_x": 287,
+      "y": 248,
+      "digits": [
+        "images/p2_time/0.png",
+        "images/p2_time/1.png",
+        "images/p2_time/2.png",
+        "images/p2_time/3.png",
+        "images/p2_time/4.png",
+        "images/p2_time/5.png",
+        "images/p2_time/6.png",
+        "images/p2_time/7.png",
+        "images/p2_time/8.png",
+        "images/p2_time/9.png"
+      ],
+      "sec_x": 397,
+      "sec_y": 294,
+      "sec": [
+        "images/p2_sec/0.png",
+        "images/p2_sec/1.png",
+        "images/p2_sec/2.png",
+        "images/p2_sec/3.png",
+        "images/p2_sec/4.png",
+        "images/p2_sec/5.png",
+        "images/p2_sec/6.png",
+        "images/p2_sec/7.png",
+        "images/p2_sec/8.png",
+        "images/p2_sec/9.png"
+      ]
+    },
+    "steps": {
+      "x": 60,
+      "y": 396,
+      "w": 80,
+      "h": 13,
+      "kind": "STEP",
+      "font": [
+        "images/p2_xs/0.png",
+        "images/p2_xs/1.png",
+        "images/p2_xs/2.png",
+        "images/p2_xs/3.png",
+        "images/p2_xs/4.png",
+        "images/p2_xs/5.png",
+        "images/p2_xs/6.png",
+        "images/p2_xs/7.png",
+        "images/p2_xs/8.png",
+        "images/p2_xs/9.png"
+      ],
+      "invalid": "images/p2_xs/45.png",
+      "align": "c",
+      "unit": null,
+      "dot": null,
+      "negative": null
+    },
+    "trail": {
+      "x": 340,
+      "y": 396,
+      "w": 80,
+      "h": 13,
+      "kind": "DISTANCE",
+      "font": [
+        "images/p2_xs/0.png",
+        "images/p2_xs/1.png",
+        "images/p2_xs/2.png",
+        "images/p2_xs/3.png",
+        "images/p2_xs/4.png",
+        "images/p2_xs/5.png",
+        "images/p2_xs/6.png",
+        "images/p2_xs/7.png",
+        "images/p2_xs/8.png",
+        "images/p2_xs/9.png"
+      ],
+      "invalid": "images/p2_xs/45.png",
+      "align": "c",
+      "unit": "images/p2/unit_trail.png",
+      "dot": "images/p2_xs/46.png",
+      "negative": null
+    },
+    "bg": "images/p2/bg.png"
+  },
   "icon": "images/icon.png"
 }
