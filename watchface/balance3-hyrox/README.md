@@ -4,7 +4,7 @@
 
 HYROX 風デジタルウォッチフェイスのクローン。元デザインの「月」の位置には日付（月 + 日）を表示する。
 
-- 対象: Zepp OS / 丸型 480×480（Amazfit Balance 3 / Balance 3 Ti）
+- 対象: **Amazfit Balance 3 Ti 専用**（`app.json` の platforms で deviceSource 11145472 / 11145473 / 11145475 を指定）
 - API: Zepp OS 3.0 以上
 
 ## 2 ページ構成
@@ -47,7 +47,7 @@ HYROX 風デジタルウォッチフェイスのクローン。元デザイン�
 app.json / app.js        Zepp OS アプリ設定
 watchface/index.js       ウォッチフェイス本体
 watchface/layout.js      座標・画像パス（自動生成）
-assets/balance3.r/       画像素材（自動生成）
+assets/balance3/         画像素材（自動生成）
 tools/gen_assets.py      画像素材・layout.js・preview.png の生成スクリプト
 tools/complications.py   表示枠の位置と、選べるデータ・アイコンの定義
 tools/page2.py           2 ページ目のレイアウト
@@ -67,12 +67,12 @@ python3 tools/gen_assets.py
 1. Node.js を入れて Zeus CLI をインストール: `npm i -g @zeppos/zeus-cli`
 2. このフォルダで `zeus login`（Zepp 開発者アカウント）
 3. `zeus preview` → 表示された QR コードをスマホの Zepp アプリ（プロフィール → 開発者モード → スキャン）で読み取る
-   - `zeus build` で `dist/*.zab` だけ作ることもできる
+   - `zeus build` で `dist/*.zab` だけ作ることもできる。作ったあと `zeus prune --ip` で中間ファイルを除くと 0.6MB 程度になる
    - シミュレーターで確認する場合は `zeus dev`
 
 `app.json` の `appId`（1131180）は Zepp 開発者コンソールで発行したもの。
 
 ## ビルド済みファイル（release/）
 
-- `release/HYROX_Face-1.0.0.zab` … ビルド済みのインストールパッケージ（480×480 丸型の全対応機種入り）
-- `release/balance3ti-qr.png` … Balance 3 Ti への転送用 QR コード（**2026-10-21 まで有効**、表示枠カスタマイズ版）。Zepp アプリ → プロフィール → 開発者モード → スキャン で読み取る。期限が切れたら `zeus preview` で作り直す
+- `release/HYROX_Face-1.0.0.zab` … ビルド済みのインストールパッケージ（Balance 3 Ti 用）
+- `release/balance3ti-qr.png` … Balance 3 Ti への転送用 QR コード（**2026-10-21 まで有効**）。Zepp アプリ → プロフィール → 開発者モード → スキャン で読み取る。期限が切れたら `zeus preview` で作り直す

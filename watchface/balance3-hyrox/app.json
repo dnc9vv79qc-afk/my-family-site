@@ -9,7 +9,7 @@
       "name": "1.0.0"
     },
     "vender": "family",
-    "description": "HYROX style digital watchface for Amazfit Balance 3",
+    "description": "HYROX style digital watchface for Amazfit Balance 3 Ti",
     "icon": "images/icon.png"
   },
   "permissions": [],
@@ -32,8 +32,16 @@
       },
       "platforms": [
         {
-          "st": "r",
-          "dw": 480
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145472
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145473
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145475
         }
       ],
       "designWidth": 480

@@ -19,7 +19,7 @@ import page2
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, 'tools', 'fonts')
-IMG_DIR = os.path.join(ROOT, 'assets', 'balance3.r', 'images')
+IMG_DIR = os.path.join(ROOT, 'assets', 'balance3', 'images')
 
 W = H = 480
 CX = CY = 240
