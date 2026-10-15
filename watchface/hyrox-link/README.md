@@ -12,6 +12,10 @@ HYROX Link（時計）─── 共有ストレージ（link.json）と地図フ
 
 - App ID: 1131196（Balance 3 Ti 専用）
 - 時計でアプリを開くと同期する（画面の SYNC ボタンでも）
+- **AUTO** ボタンで自動同期を ON にすると、アプリを閉じても 15 分ごとに同期する（`app-service/sync.js`、Zepp OS のアプリサービス）
+  - 初回は時計でバックグラウンド実行の許可を求められる。裏で動き続けられるアプリは時計全体で 1 つだけ
+  - ボタンの下に前回の自動同期の結果（`last 3m OK` など）が出る
+  - 間隔は `shared.js` の `AUTO_MIN`
 - 受け取ったデータは `ShareLocalStorage('link.json')` に `state` / `map` として保存
 - ウォッチフェイスは `@zos/share-storage` の `LocalStorage(1131196, 'link.json')` と `FileSystem(1131196)` で読む
 

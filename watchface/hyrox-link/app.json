@@ -12,7 +12,11 @@
     "vender": "family",
     "description": "Sync location, pressure and a live map from watch-server to the HYROX Face watchface"
   },
-  "permissions": ["data:os.device.info", "device:os.local_storage"],
+  "permissions": [
+    "data:os.device.info",
+    "device:os.local_storage",
+    "device:os.bg_service"
+  ],
   "runtime": {
     "apiVersion": {
       "compatible": "3.6",
@@ -24,19 +28,35 @@
     "balance3": {
       "module": {
         "page": {
-          "pages": ["page/index"]
+          "pages": [
+            "page/index"
+          ]
         },
         "app-side": {
           "path": "app-side/index"
         },
         "setting": {
           "path": "setting/index"
+        },
+        "app-service": {
+          "services": [
+            "app-service/sync"
+          ]
         }
       },
       "platforms": [
-        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145472 },
-        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145473 },
-        { "name": "Amazfit Balance 3 Ti", "deviceSource": 11145475 }
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145472
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145473
+        },
+        {
+          "name": "Amazfit Balance 3 Ti",
+          "deviceSource": 11145475
+        }
       ],
       "designWidth": 480
     }

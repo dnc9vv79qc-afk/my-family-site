@@ -7,3 +7,6 @@ export const MAP_W = 480
 export const MAP_H = 160
 export const HUD_W = 240
 export const HUD_H = 56
+// 自動同期（時計のバックグラウンドサービス）
+export const AUTO_SERVICE = 'app-service/sync'
+export const AUTO_MIN = 15
