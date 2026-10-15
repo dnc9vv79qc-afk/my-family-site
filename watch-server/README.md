@@ -17,7 +17,8 @@
 | パス | 認証 | 内容 |
 | --- | --- | --- |
 | `POST /api/owntracks` | Basic（`OWNTRACKS_USER` / `OWNTRACKS_PASS`） | OwnTracks の HTTP モードの送信先 |
-| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, hpa_trend_3h, ticker, place, batt, vel, today_km, view }`。`rain` は `{ start, slots }`（2 時間先までの 15 分ごとの降水量。時計の縁に青く表示）。`ticker` は時計の 2 ページ目上部にそのまま出す短い情報 3 行（つながり方・iPhone の電池 / 家からの距離・速さ・今日の移動 / 雨予報・気圧の変化・気温）。中身は `lib/ticker.js` で決める。雨予報は Open-Meteo（無料・キー不要、10 分キャッシュ）。`place` は座標から OpenStreetMap（Nominatim）で引いた地名をローマ字大文字にしたもの（例: `NISHIKU KUJO`、約 100m 単位で 30 日キャッシュ） |
+| `GET /api/state?key=…` | `WATCH_KEY` | 最新データ `{ age, lat, lon, alt, hpa, hpa_trend_3h, ticker, place, batt, vel, today_km, view }`。`rain` は `{ start, slots }`（2 時間先までの 15 分ごとの降水量。時計の縁に青く表示）。`ticker` は時計の 2 ページ目上部にそのまま出す短い情報 3 行（つながり方・iPhone の電池 / 家からの距離・速さ・今日の移動 / 雨予報・気圧の変化・気温）。中身は `lib/ticker.js` で決める。雨予報は Open-Meteo（無料・キー不要、10 分キャッシュ）。`place` は座標から引いた地名をローマ字大文字にしたもの（例: `NISHIKU KUJO`）。Nominatim・Photon・BigDataCloud に同時に問い合わせ、区 + 町名まで取れたものを使う（約 100m 単位で 30 日キャッシュ、区だけなら 1 日） |
+| `GET /api/health` | なし | 動作確認。固定の座標（大阪駅）で各地名サービスの結果かエラーを返す（個人データなし） |
 | `GET /api/map?key=…&detail=2` | `WATCH_KEY` | 地図 PNG（既定 480×156、zoom 16 ≒ 1px 2m）。`w` `h` `zoom` `detail` で変更。detail 2 以上で建物も描く |
 | `GET /api/hud?key=…` | `WATCH_KEY` | 2 ページ目上部の雨表示 PNG（120×34、傘と 15 分刻み 8 本）。`&full=1` で 5 アイコン版（240×56）:雨（2 時間先まで 15 分刻み）/ 家の方向と距離 / 移動手段（速さから推定）/ iPhone の電池・Wi-Fi・充電 / 気圧の 3 時間変化。描き方は `lib/hud.js` |
 | `GET /api/chart?key=…` | `WATCH_KEY` | iPhone の気圧（OwnTracks の `p`）の直近 24 時間の折れ線 PNG（既定 220×44） |
