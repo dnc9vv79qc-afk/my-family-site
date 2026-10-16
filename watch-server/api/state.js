@@ -6,6 +6,8 @@ import { pressureTrend } from '../lib/chart.js'
 import { rainSoon } from '../lib/weather.js'
 import { buildTicker } from '../lib/ticker.js'
 
+const MAP_VERSION = 1
+
 export default async function handler(req, res) {
   if (!checkWatchKey(req)) return res.status(401).end()
   const last = await lastLocation()
@@ -27,6 +29,8 @@ export default async function handler(req, res) {
     hpa_trend_3h: trend,
     ticker: buildTicker({ last, rain, trend, todayKm, now }),
     place,
+    // 地図の中身が変わったか（同じなら HYROX Link は地図を取り直さず送らない）。描き方を変えたら MAP_VERSION を上げる
+    map_sig: last ? `${MAP_VERSION}:${last.lat.toFixed(4)},${last.lon.toFixed(4)}:${today.length}` : null,
     rain: rain ? { start: rain.start, slots: rain.slots } : null,
     batt: last?.batt ?? null,
     vel: last?.vel ?? null,
