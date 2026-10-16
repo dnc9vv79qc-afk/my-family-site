@@ -3,8 +3,9 @@
 // ?detail=1|2|3（道路の描画量）&zoom=16&w=480&h=160
 // &center=here: 現在地を真ん中に描く（時計の全画面地図用。普段の地図の中心は動かさない）
 // &lat=..&lon=..: その地点を真ん中に描く（HYROX Link の地図画面でスクロールしたとき）
+// &tile=240&tx=..&ty=..: ズーム zoom の世界を tile px 四方に区切った (tx, ty) 番目（HYROX Link の地図画面用）
 // &palette=0: フルカラー PNG（既定は 256 色。時計の変換で扱えなかったときの予備）
-import { renderMap } from '../lib/map.js'
+import { renderMap, unproject } from '../lib/map.js'
 import { lastLocation, trailSince, getView, setView } from '../lib/store.js'
 import { checkWatchKey, nextCenter, startOfTodayJst } from '../lib/util.js'
 
@@ -16,8 +17,8 @@ const clamp = (raw, lo, hi, d) => {
 export default async function handler(req, res) {
   if (!checkWatchKey(req)) return res.status(401).end()
   const q = new URL(req.url, 'http://x').searchParams
-  const w = clamp(q.get('w'), 64, 960, 480) // 960 は時計の地図画面で指で動かす用（画面の 2 倍）
-  const h = clamp(q.get('h'), 64, 960, 160)
+  const w = clamp(q.get('w'), 64, 480, 480)
+  const h = clamp(q.get('h'), 64, 480, 160)
   const zoom = clamp(q.get('zoom'), 12, 18, 16)
   const detail = clamp(q.get('detail'), 1, 3, 2)
 
@@ -26,7 +27,15 @@ export default async function handler(req, res) {
   const lat = clamp(q.get('lat'), -85, 85, NaN)
   const lon = clamp(q.get('lon'), -180, 180, NaN)
   let view = { lat: last.lat, lon: last.lon }
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+  const tile = clamp(q.get('tile'), 64, 480, NaN)
+  const tx = Number(q.get('tx'))
+  const ty = Number(q.get('ty'))
+  let size = { w, h }
+  if (Number.isFinite(tile) && Number.isInteger(tx) && Number.isInteger(ty)) {
+    const [la, lo] = unproject((tx + 0.5) * tile, (ty + 0.5) * tile, zoom)
+    view = { lat: la, lon: lo }
+    size = { w: tile, h: tile }
+  } else if (Number.isFinite(lat) && Number.isFinite(lon)) {
     view = { lat, lon }
   } else if (q.get('center') !== 'here') {
     view = nextCenter(await getView(), last, { w, h, zoom })
@@ -34,7 +43,7 @@ export default async function handler(req, res) {
   }
 
   const trail = (await trailSince(startOfTodayJst())).map((p) => [p.lat, p.lon])
-  const png = await renderMap({ lat: view.lat, lon: view.lon, w, h, zoom, detail, trail, here: [last.lat, last.lon], palette: q.get('palette') !== '0' })
+  const png = await renderMap({ lat: view.lat, lon: view.lon, w: size.w, h: size.h, zoom, detail, trail, here: [last.lat, last.lon], palette: q.get('palette') !== '0' })
   res.setHeader('Content-Type', 'image/png')
   res.setHeader('Cache-Control', 'no-store')
   res.setHeader('X-Map-Center', `${view.lat},${view.lon}`)

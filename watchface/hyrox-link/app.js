@@ -11,13 +11,15 @@ App(
       file.on('change', (ev) => {
         if (ev.data.readyState !== 'transferred') return
         const type = (file.params && file.params.type) || 'map'
-        try {
-          store().setItem(type, { path: file.filePath, ts: nowSec() })
-        } catch (e) {
-          // 保存できなくても次の同期で届く
+        if (type !== 'tile') {
+          try {
+            store().setItem(type, { path: file.filePath, ts: nowSec() })
+          } catch (e) {
+            // 保存できなくても次の同期で届く
+          }
         }
         const cb = getApp()._options.globalData.onFile
-        if (cb) cb(type, file.filePath)
+        if (cb) cb(type, file.filePath, file.params || {})
       })
     },
   }),
