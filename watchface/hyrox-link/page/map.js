@@ -13,7 +13,7 @@ const Z_MIN = 13
 const Z_MAX = 17
 const POOL = 16 // 画面に並べる IMG の数（3×3 で足り、余りは動かし中の予備）
 const SLOTS = 64 // 時計に置いておくタイル画像の数（古いものから上書き。次に開いたときも使う）
-const IN_FLIGHT = 3 // 同時に頼むタイル数
+const BATCH = 6 // 1 回に頼むタイル数
 const HOME = { lat: 34.677, lon: 135.474 }
 
 function toPx(lat, lon, z) {
@@ -51,7 +51,7 @@ Page(
       slotKey: [], // slot -> key
       nextSlot: 0,
       asked: {}, // key -> 頼んだ時刻（30 秒届かなければ頼み直す）
-      inFlight: 0,
+      busy: false,
       pool: [], // { img, key }
       drag: null,
       crown: 0,
@@ -204,10 +204,7 @@ Page(
         }
       }
       need.sort((a, b) => a.d - b.d)
-      while (s.inFlight < IN_FLIGHT && need.length) {
-        const t = need.shift()
-        this.ask(t.k, t.tx, t.ty)
-      }
+      if (!s.busy && need.length) this.ask(need.slice(0, BATCH))
       this.showStatus()
     },
 
@@ -224,29 +221,32 @@ Page(
           if (s.tiles[keyOf(s.zoom, cx + dx, cy + dy)]) have++
         }
       }
-      // 頼んだ数 / スマホが送り始めた数 / 届いた数（どこで止まっているかの目安）と最後のエラー
       s.w.status.setProperty(prop.TEXT, have < all ? `${have}/${all}${s.lastErr ? ' ' + s.lastErr : ''}` : '')
     },
 
-    ask(k, tx, ty) {
+    // まとめて頼む。スマホは 1 枚ずつ順に描いて送る（同時に送ると届かなかった）
+    ask(list) {
       const s = this.state
-      // 時計に置く画像は SLOTS 枚まで。古いものを上書きする
-      const slot = s.nextSlot
-      s.nextSlot = (s.nextSlot + 1) % SLOTS
-      const old = s.slotKey[slot]
-      if (old) delete s.tiles[old]
-      s.slotKey[slot] = k
-      s.asked[k] = Date.now()
-      s.inFlight++
-      // スマホが描いて転送を始めたら次を頼む（届くのは onFile）
-      this.request({ method: 'link.tile', params: { z: s.zoom, tx, ty, slot } })
+      const tiles = list.map((t) => {
+        // 時計に置く画像は SLOTS 枚まで。古いものを上書きする
+        const slot = s.nextSlot
+        s.nextSlot = (s.nextSlot + 1) % SLOTS
+        const old = s.slotKey[slot]
+        if (old) delete s.tiles[old]
+        s.slotKey[slot] = t.k
+        s.asked[t.k] = Date.now()
+        return { tx: t.tx, ty: t.ty, slot }
+      })
+      s.busy = true
+      this.request({ method: 'link.tiles', params: { z: s.zoom, tiles } }, { timeout: 90000 })
         .then(() => {
-          s.inFlight = Math.max(0, s.inFlight - 1)
+          s.busy = false
+          s.lastErr = ''
           this.fetch()
         })
         .catch((e) => {
-          delete s.asked[k]
-          s.inFlight = Math.max(0, s.inFlight - 1)
+          s.busy = false
+          list.forEach((t) => delete s.asked[t.k])
           s.lastErr = String((e && e.message) || e).slice(0, 18)
           this.showStatus()
         })

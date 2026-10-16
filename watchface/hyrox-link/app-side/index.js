@@ -98,9 +98,23 @@ AppSideService(
       return this.sendImage('tile', url, Math.floor(Date.now() / 1000), `tile${slot}`)
     },
 
+    // 地図画面: 頼まれたタイルを 1 枚ずつ順に描いて送る（並べて送ると時計に届かなかった）
+    async mapTiles({ z, tiles }) {
+      let sent = 0
+      for (const t of tiles || []) {
+        try {
+          await this.mapTile({ z, tx: t.tx, ty: t.ty, slot: t.slot })
+          sent++
+        } catch (e) {
+          // 1 枚失敗しても残りは送る（時計は 30 秒後に頼み直す）
+        }
+      }
+      return { sent }
+    },
+
     onRequest(req, res) {
-      if (req.method === 'link.tile') {
-        this.mapTile(req.params || {}).then(
+      if (req.method === 'link.tiles') {
+        this.mapTiles(req.params || {}).then(
           (data) => res(null, data),
           (e) => res(String((e && e.message) || e)),
         )
