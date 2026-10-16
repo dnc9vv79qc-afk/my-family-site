@@ -1,755 +1,653 @@
 // tools/gen_assets.py が生成。直接編集しないこと。
 export const L = {
-  "time": {
-    "hour_x": 88,
-    "minute_x": 264,
-    "y": 210,
-    "hour": [
-      "images/time/0.png",
-      "images/time/1.png",
-      "images/time/2.png",
-      "images/time/3.png",
-      "images/time/4.png",
-      "images/time/5.png",
-      "images/time/6.png",
-      "images/time/7.png",
-      "images/time/8.png",
-      "images/time/9.png"
-    ],
-    "aod": [
-      "images/time_aod/0.png",
-      "images/time_aod/1.png",
-      "images/time_aod/2.png",
-      "images/time_aod/3.png",
-      "images/time_aod/4.png",
-      "images/time_aod/5.png",
-      "images/time_aod/6.png",
-      "images/time_aod/7.png",
-      "images/time_aod/8.png",
-      "images/time_aod/9.png"
-    ]
-  },
-  "colon_aod": {
-    "x": 226,
-    "y": 222,
-    "src": "images/time_aod/colon.png"
-  },
-  "sec": {
-    "x": 399,
-    "y": 258,
-    "digits": [
-      "images/sec/0.png",
-      "images/sec/1.png",
-      "images/sec/2.png",
-      "images/sec/3.png",
-      "images/sec/4.png",
-      "images/sec/5.png",
-      "images/sec/6.png",
-      "images/sec/7.png",
-      "images/sec/8.png",
-      "images/sec/9.png"
-    ]
-  },
-  "ampm": {
-    "am_x": 36,
-    "am_y": 230,
-    "pm_x": 36,
-    "pm_y": 268,
-    "am": "images/ampm/am.png",
-    "pm": "images/ampm/pm.png"
-  },
-  "week": {
-    "x": 36,
-    "y": 309,
-    "src": [
-      "images/week/1.png",
-      "images/week/2.png",
-      "images/week/3.png",
-      "images/week/4.png",
-      "images/week/5.png",
-      "images/week/6.png",
-      "images/week/7.png"
-    ]
-  },
-  "date": {
-    "month_x": 219,
-    "month_y": 47,
-    "month": [
-      "images/month/1.png",
-      "images/month/2.png",
-      "images/month/3.png",
-      "images/month/4.png",
-      "images/month/5.png",
-      "images/month/6.png",
-      "images/month/7.png",
-      "images/month/8.png",
-      "images/month/9.png",
-      "images/month/10.png",
-      "images/month/11.png",
-      "images/month/12.png"
-    ],
-    "day_x": 218,
-    "day_y": 67,
-    "day": [
-      "images/day/0.png",
-      "images/day/1.png",
-      "images/day/2.png",
-      "images/day/3.png",
-      "images/day/4.png",
-      "images/day/5.png",
-      "images/day/6.png",
-      "images/day/7.png",
-      "images/day/8.png",
-      "images/day/9.png"
-    ]
-  },
-  "types": {
-    "HEART": {
-      "icon": "images/comp/icon/HEART.png",
-      "label": "images/comp/label/HEART.png",
-      "label_h": 17,
-      "title": "Heart rate",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "STEP": {
-      "icon": "images/comp/icon/STEP.png",
-      "label": "images/comp/label/STEP.png",
-      "label_h": 21,
-      "title": "Steps",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "CAL": {
-      "icon": "images/comp/icon/CAL.png",
-      "label": "images/comp/label/CAL.png",
-      "label_h": 17,
-      "title": "Calories",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "BATTERY": {
-      "icon": "images/comp/icon/BATTERY.png",
-      "label": "images/comp/label/BATTERY.png",
-      "label_h": 21,
-      "title": "Battery",
-      "unit": "%",
-      "sep": null,
-      "negative": false
-    },
-    "STRESS": {
-      "icon": "images/comp/icon/STRESS.png",
-      "label": "images/comp/label/STRESS.png",
-      "label_h": 17,
-      "title": "Stress",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "TRAINING_LOAD": {
-      "icon": "images/comp/icon/TRAINING_LOAD.png",
-      "label": "images/comp/label/TRAINING_LOAD.png",
-      "label_h": 17,
-      "title": "Training load",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "VO2MAX": {
-      "icon": "images/comp/icon/VO2MAX.png",
-      "label": "images/comp/label/VO2MAX.png",
-      "label_h": 17,
-      "title": "VO2max",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "RECOVERY_TIME": {
-      "icon": "images/comp/icon/RECOVERY_TIME.png",
-      "label": "images/comp/label/RECOVERY_TIME.png",
-      "label_h": 21,
-      "title": "Recovery time",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "READINESS": {
-      "icon": "images/comp/icon/READINESS.png",
-      "label": "images/comp/label/READINESS.png",
-      "label_h": 17,
-      "title": "Readiness",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "SPO2": {
-      "icon": "images/comp/icon/SPO2.png",
-      "label": "images/comp/label/SPO2.png",
-      "label_h": 21,
-      "title": "SpO2",
-      "unit": "%",
-      "sep": null,
-      "negative": false
-    },
-    "PAI_DAILY": {
-      "icon": "images/comp/icon/PAI_DAILY.png",
-      "label": "images/comp/label/PAI_DAILY.png",
-      "label_h": 17,
-      "title": "PAI",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "FAT_BURNING": {
-      "icon": "images/comp/icon/FAT_BURNING.png",
-      "label": "images/comp/label/FAT_BURNING.png",
-      "label_h": 17,
-      "title": "Fat burning",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "STAND": {
-      "icon": "images/comp/icon/STAND.png",
-      "label": "images/comp/label/STAND.png",
-      "label_h": 17,
-      "title": "Stand",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "DISTANCE": {
-      "icon": "images/comp/icon/DISTANCE.png",
-      "label": "images/comp/label/DISTANCE.png",
-      "label_h": 17,
-      "title": "Distance",
-      "unit": null,
-      "sep": "dot",
-      "negative": false
-    },
-    "FLOOR": {
-      "icon": "images/comp/icon/FLOOR.png",
-      "label": "images/comp/label/FLOOR.png",
-      "label_h": 17,
-      "title": "Floors",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "WEATHER_CURRENT": {
-      "icon": "images/comp/icon/WEATHER_CURRENT.png",
-      "label": "images/comp/label/WEATHER_CURRENT.png",
-      "label_h": 21,
-      "title": "Temperature",
-      "unit": "°",
-      "sep": null,
-      "negative": true
-    },
-    "HUMIDITY": {
-      "icon": "images/comp/icon/HUMIDITY.png",
-      "label": "images/comp/label/HUMIDITY.png",
-      "label_h": 21,
-      "title": "Humidity",
-      "unit": "%",
-      "sep": null,
-      "negative": false
-    },
-    "UVI": {
-      "icon": "images/comp/icon/UVI.png",
-      "label": "images/comp/label/UVI.png",
-      "label_h": 17,
-      "title": "UV index",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "ALTIMETER": {
-      "icon": "images/comp/icon/ALTIMETER.png",
-      "label": "images/comp/label/ALTIMETER.png",
-      "label_h": 17,
-      "title": "Air pressure",
-      "unit": null,
-      "sep": null,
-      "negative": false
-    },
-    "ALTITUDE": {
-      "icon": "images/comp/icon/ALTITUDE.png",
-      "label": "images/comp/label/ALTITUDE.png",
-      "label_h": 17,
-      "title": "Altitude",
-      "unit": null,
-      "sep": null,
-      "negative": true
-    },
-    "SUN_RISE": {
-      "icon": "images/comp/icon/SUN_RISE.png",
-      "label": "images/comp/label/SUN_RISE.png",
-      "label_h": 17,
-      "title": "Sunrise",
-      "unit": null,
-      "sep": "colon",
-      "negative": false
-    },
-    "SUN_SET": {
-      "icon": "images/comp/icon/SUN_SET.png",
-      "label": "images/comp/label/SUN_SET.png",
-      "label_h": 17,
-      "title": "Sunset",
-      "unit": null,
-      "sep": "colon",
-      "negative": false
-    },
-    "SLEEP": {
-      "icon": "images/comp/icon/SLEEP.png",
-      "label": "images/comp/label/SLEEP.png",
-      "label_h": 21,
-      "title": "Sleep",
-      "unit": null,
-      "sep": "colon",
-      "negative": false
-    }
-  },
-  "order": [
-    "HEART",
-    "STEP",
-    "CAL",
-    "BATTERY",
-    "STRESS",
-    "TRAINING_LOAD",
-    "VO2MAX",
-    "RECOVERY_TIME",
-    "READINESS",
-    "SPO2",
-    "PAI_DAILY",
-    "FAT_BURNING",
-    "STAND",
-    "DISTANCE",
-    "FLOOR",
-    "WEATHER_CURRENT",
-    "HUMIDITY",
-    "UVI",
-    "ALTIMETER",
-    "ALTITUDE",
-    "SUN_RISE",
-    "SUN_SET",
-    "SLEEP"
-  ],
-  "slots": [
-    {
-      "edit_id": 101,
-      "style": "top",
-      "x": 80,
-      "y": 58,
-      "w": 104,
-      "h": 72,
-      "default": "STRESS",
-      "value": {
-        "x": 80,
-        "y": 98,
-        "w": 104,
-        "h": 24
-      },
+  "place_font": "fonts/place.ttf",
+  "p1": {
+    "weather": {
       "icon": {
-        "x": 118,
-        "y": 63
+        "x": 138,
+        "y": 58,
+        "src": [
+          "images/p1/wx/sun_cloud.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/sun.png",
+          "images/p1/wx/cloud.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/dust.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/fog.png",
+          "images/p1/wx/fog.png",
+          "images/p1/wx/storm.png",
+          "images/p1/wx/snow.png",
+          "images/p1/wx/dust.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/storm.png",
+          "images/p1/wx/storm.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/dust.png",
+          "images/p1/wx/dust.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/cloud.png",
+          "images/p1/wx/moon_cloud.png",
+          "images/p1/wx/rain.png",
+          "images/p1/wx/moon.png"
+        ]
       },
-      "label": {
-        "x": 77,
-        "cy": 77
-      },
-      "font": "w",
-      "tips_x": -14,
-      "tips_y": 76
+      "text": {
+        "x": 115,
+        "y": 94,
+        "src": [
+          "images/p1/wx/text_0.png",
+          "images/p1/wx/text_1.png",
+          "images/p1/wx/text_2.png",
+          "images/p1/wx/text_3.png",
+          "images/p1/wx/text_4.png",
+          "images/p1/wx/text_5.png",
+          "images/p1/wx/text_6.png",
+          "images/p1/wx/text_7.png",
+          "images/p1/wx/text_8.png",
+          "images/p1/wx/text_9.png",
+          "images/p1/wx/text_10.png",
+          "images/p1/wx/text_11.png",
+          "images/p1/wx/text_12.png",
+          "images/p1/wx/text_13.png",
+          "images/p1/wx/text_14.png",
+          "images/p1/wx/text_15.png",
+          "images/p1/wx/text_16.png",
+          "images/p1/wx/text_17.png",
+          "images/p1/wx/text_18.png",
+          "images/p1/wx/text_19.png",
+          "images/p1/wx/text_20.png",
+          "images/p1/wx/text_21.png",
+          "images/p1/wx/text_22.png",
+          "images/p1/wx/text_23.png",
+          "images/p1/wx/text_24.png",
+          "images/p1/wx/text_25.png",
+          "images/p1/wx/text_26.png",
+          "images/p1/wx/text_27.png",
+          "images/p1/wx/text_28.png"
+        ]
+      }
     },
-    {
-      "edit_id": 102,
-      "style": "top",
-      "x": 294,
-      "y": 58,
-      "w": 104,
-      "h": 72,
-      "default": "BATTERY",
-      "value": {
-        "x": 294,
-        "y": 98,
-        "w": 104,
-        "h": 24
-      },
-      "icon": {
-        "x": 332,
-        "y": 63
-      },
-      "label": {
-        "x": 291,
-        "cy": 77
-      },
-      "font": "w",
-      "tips_x": -14,
-      "tips_y": 76
+    "temp": {
+      "x": 172,
+      "y": 60,
+      "w": 70,
+      "h": 21,
+      "font": [
+        "images/p1_temp/0.png",
+        "images/p1_temp/1.png",
+        "images/p1_temp/2.png",
+        "images/p1_temp/3.png",
+        "images/p1_temp/4.png",
+        "images/p1_temp/5.png",
+        "images/p1_temp/6.png",
+        "images/p1_temp/7.png",
+        "images/p1_temp/8.png",
+        "images/p1_temp/9.png"
+      ],
+      "negative": "images/p1_temp/45.png",
+      "invalid": "images/p1_temp/45.png",
+      "unit": "images/p1/unit_deg.png"
     },
-    {
-      "edit_id": 103,
-      "style": "mid",
-      "x": 61,
-      "y": 142,
-      "w": 110,
-      "h": 62,
-      "default": "TRAINING_LOAD",
-      "value": {
-        "x": 61,
-        "y": 148,
-        "w": 110,
-        "h": 22
-      },
-      "icon": {
-        "x": 102,
-        "y": 175
-      },
-      "label": {
-        "x": 61,
-        "cy": 189
-      },
-      "font": "y",
-      "tips_x": -11,
-      "tips_y": 66
+    "date": {
+      "x": 259,
+      "y": 62,
+      "digits": [
+        "images/p1_date/0.png",
+        "images/p1_date/1.png",
+        "images/p1_date/2.png",
+        "images/p1_date/3.png",
+        "images/p1_date/4.png",
+        "images/p1_date/5.png",
+        "images/p1_date/6.png",
+        "images/p1_date/7.png",
+        "images/p1_date/8.png",
+        "images/p1_date/9.png"
+      ],
+      "dot": "images/p1_date/46.png",
+      "aod": [
+        "images/p1_date_aod/0.png",
+        "images/p1_date_aod/1.png",
+        "images/p1_date_aod/2.png",
+        "images/p1_date_aod/3.png",
+        "images/p1_date_aod/4.png",
+        "images/p1_date_aod/5.png",
+        "images/p1_date_aod/6.png",
+        "images/p1_date_aod/7.png",
+        "images/p1_date_aod/8.png",
+        "images/p1_date_aod/9.png"
+      ],
+      "dot_aod": "images/p1_date_aod/46.png"
     },
-    {
-      "edit_id": 104,
-      "style": "mid",
-      "x": 185,
-      "y": 142,
-      "w": 110,
-      "h": 62,
-      "default": "STEP",
-      "value": {
-        "x": 185,
-        "y": 148,
-        "w": 110,
-        "h": 22
-      },
-      "icon": {
-        "x": 226,
-        "y": 175
-      },
-      "label": {
-        "x": 185,
-        "cy": 189
-      },
-      "font": "y",
-      "tips_x": -11,
-      "tips_y": 66
+    "week": {
+      "x": 270,
+      "y": 94,
+      "src": [
+        "images/p1/week/1.png",
+        "images/p1/week/2.png",
+        "images/p1/week/3.png",
+        "images/p1/week/4.png",
+        "images/p1/week/5.png",
+        "images/p1/week/6.png",
+        "images/p1/week/7.png"
+      ]
     },
-    {
-      "edit_id": 105,
-      "style": "mid",
-      "x": 309,
-      "y": 142,
-      "w": 110,
-      "h": 62,
-      "default": "VO2MAX",
-      "value": {
-        "x": 309,
-        "y": 148,
-        "w": 110,
-        "h": 22
-      },
-      "icon": {
-        "x": 350,
-        "y": 175
-      },
-      "label": {
-        "x": 309,
-        "cy": 189
-      },
-      "font": "y",
-      "tips_x": -11,
-      "tips_y": 66
+    "place": {
+      "x": 64,
+      "y": 178,
+      "w": 118,
+      "line_h": 16,
+      "size": 12,
+      "space": 2,
+      "color": 16747546
     },
-    {
-      "edit_id": 106,
-      "style": "bot",
+    "bat": {
       "x": 66,
-      "y": 352,
-      "w": 104,
-      "h": 68,
-      "default": "HEART",
-      "value": {
-        "x": 66,
-        "y": 358,
-        "w": 104,
-        "h": 24
-      },
-      "icon": {
-        "x": 104,
-        "y": 388
-      },
-      "label": {
-        "x": 63,
-        "cy": 402
-      },
-      "font": "w",
-      "tips_x": -14,
-      "tips_y": -40
-    },
-    {
-      "edit_id": 107,
-      "style": "bot",
-      "x": 310,
-      "y": 352,
-      "w": 104,
-      "h": 68,
-      "default": "CAL",
-      "value": {
-        "x": 310,
-        "y": 358,
-        "w": 104,
-        "h": 24
-      },
-      "icon": {
-        "x": 348,
-        "y": 388
-      },
-      "label": {
-        "x": 307,
-        "cy": 402
-      },
-      "font": "w",
-      "tips_x": -14,
-      "tips_y": -40
-    }
-  ],
-  "edit_styles": {
-    "top": {
-      "select": "images/comp/edit/top_select.png",
-      "unselect": "images/comp/edit/top_unselect.png",
-      "preview": {
-        "HEART": "images/comp/preview/top/HEART.png",
-        "STEP": "images/comp/preview/top/STEP.png",
-        "CAL": "images/comp/preview/top/CAL.png",
-        "BATTERY": "images/comp/preview/top/BATTERY.png",
-        "STRESS": "images/comp/preview/top/STRESS.png",
-        "TRAINING_LOAD": "images/comp/preview/top/TRAINING_LOAD.png",
-        "VO2MAX": "images/comp/preview/top/VO2MAX.png",
-        "RECOVERY_TIME": "images/comp/preview/top/RECOVERY_TIME.png",
-        "READINESS": "images/comp/preview/top/READINESS.png",
-        "SPO2": "images/comp/preview/top/SPO2.png",
-        "PAI_DAILY": "images/comp/preview/top/PAI_DAILY.png",
-        "FAT_BURNING": "images/comp/preview/top/FAT_BURNING.png",
-        "STAND": "images/comp/preview/top/STAND.png",
-        "DISTANCE": "images/comp/preview/top/DISTANCE.png",
-        "FLOOR": "images/comp/preview/top/FLOOR.png",
-        "WEATHER_CURRENT": "images/comp/preview/top/WEATHER_CURRENT.png",
-        "HUMIDITY": "images/comp/preview/top/HUMIDITY.png",
-        "UVI": "images/comp/preview/top/UVI.png",
-        "ALTIMETER": "images/comp/preview/top/ALTIMETER.png",
-        "ALTITUDE": "images/comp/preview/top/ALTITUDE.png",
-        "SUN_RISE": "images/comp/preview/top/SUN_RISE.png",
-        "SUN_SET": "images/comp/preview/top/SUN_SET.png",
-        "SLEEP": "images/comp/preview/top/SLEEP.png"
-      }
-    },
-    "mid": {
-      "select": "images/comp/edit/mid_select.png",
-      "unselect": "images/comp/edit/mid_unselect.png",
-      "preview": {
-        "HEART": "images/comp/preview/mid/HEART.png",
-        "STEP": "images/comp/preview/mid/STEP.png",
-        "CAL": "images/comp/preview/mid/CAL.png",
-        "BATTERY": "images/comp/preview/mid/BATTERY.png",
-        "STRESS": "images/comp/preview/mid/STRESS.png",
-        "TRAINING_LOAD": "images/comp/preview/mid/TRAINING_LOAD.png",
-        "VO2MAX": "images/comp/preview/mid/VO2MAX.png",
-        "RECOVERY_TIME": "images/comp/preview/mid/RECOVERY_TIME.png",
-        "READINESS": "images/comp/preview/mid/READINESS.png",
-        "SPO2": "images/comp/preview/mid/SPO2.png",
-        "PAI_DAILY": "images/comp/preview/mid/PAI_DAILY.png",
-        "FAT_BURNING": "images/comp/preview/mid/FAT_BURNING.png",
-        "STAND": "images/comp/preview/mid/STAND.png",
-        "DISTANCE": "images/comp/preview/mid/DISTANCE.png",
-        "FLOOR": "images/comp/preview/mid/FLOOR.png",
-        "WEATHER_CURRENT": "images/comp/preview/mid/WEATHER_CURRENT.png",
-        "HUMIDITY": "images/comp/preview/mid/HUMIDITY.png",
-        "UVI": "images/comp/preview/mid/UVI.png",
-        "ALTIMETER": "images/comp/preview/mid/ALTIMETER.png",
-        "ALTITUDE": "images/comp/preview/mid/ALTITUDE.png",
-        "SUN_RISE": "images/comp/preview/mid/SUN_RISE.png",
-        "SUN_SET": "images/comp/preview/mid/SUN_SET.png",
-        "SLEEP": "images/comp/preview/mid/SLEEP.png"
-      }
-    },
-    "bot": {
-      "select": "images/comp/edit/bot_select.png",
-      "unselect": "images/comp/edit/bot_unselect.png",
-      "preview": {
-        "HEART": "images/comp/preview/bot/HEART.png",
-        "STEP": "images/comp/preview/bot/STEP.png",
-        "CAL": "images/comp/preview/bot/CAL.png",
-        "BATTERY": "images/comp/preview/bot/BATTERY.png",
-        "STRESS": "images/comp/preview/bot/STRESS.png",
-        "TRAINING_LOAD": "images/comp/preview/bot/TRAINING_LOAD.png",
-        "VO2MAX": "images/comp/preview/bot/VO2MAX.png",
-        "RECOVERY_TIME": "images/comp/preview/bot/RECOVERY_TIME.png",
-        "READINESS": "images/comp/preview/bot/READINESS.png",
-        "SPO2": "images/comp/preview/bot/SPO2.png",
-        "PAI_DAILY": "images/comp/preview/bot/PAI_DAILY.png",
-        "FAT_BURNING": "images/comp/preview/bot/FAT_BURNING.png",
-        "STAND": "images/comp/preview/bot/STAND.png",
-        "DISTANCE": "images/comp/preview/bot/DISTANCE.png",
-        "FLOOR": "images/comp/preview/bot/FLOOR.png",
-        "WEATHER_CURRENT": "images/comp/preview/bot/WEATHER_CURRENT.png",
-        "HUMIDITY": "images/comp/preview/bot/HUMIDITY.png",
-        "UVI": "images/comp/preview/bot/UVI.png",
-        "ALTIMETER": "images/comp/preview/bot/ALTIMETER.png",
-        "ALTITUDE": "images/comp/preview/bot/ALTITUDE.png",
-        "SUN_RISE": "images/comp/preview/bot/SUN_RISE.png",
-        "SUN_SET": "images/comp/preview/bot/SUN_SET.png",
-        "SLEEP": "images/comp/preview/bot/SLEEP.png"
-      }
-    }
-  },
-  "tips": "images/comp/edit/tips.png",
-  "fonts": {
-    "w": {
-      "digits": [
-        "images/val_w/0.png",
-        "images/val_w/1.png",
-        "images/val_w/2.png",
-        "images/val_w/3.png",
-        "images/val_w/4.png",
-        "images/val_w/5.png",
-        "images/val_w/6.png",
-        "images/val_w/7.png",
-        "images/val_w/8.png",
-        "images/val_w/9.png"
+      "y": 242,
+      "w": 80,
+      "h": 17,
+      "font": [
+        "images/p1_stat/0.png",
+        "images/p1_stat/1.png",
+        "images/p1_stat/2.png",
+        "images/p1_stat/3.png",
+        "images/p1_stat/4.png",
+        "images/p1_stat/5.png",
+        "images/p1_stat/6.png",
+        "images/p1_stat/7.png",
+        "images/p1_stat/8.png",
+        "images/p1_stat/9.png"
       ],
-      "invalid": "images/val_w/45.png",
-      "negative": "images/val_w/45.png",
-      "dot": "images/val_w/46.png",
-      "colon": "images/val_w/58.png",
-      "units": {
-        "%": "images/val_w/37.png",
-        "°": "images/val_w/176.png"
+      "invalid": "images/p1_stat/45.png",
+      "unit": "images/p1/unit_pct.png"
+    },
+    "rain": {
+      "x": 66,
+      "y": 288,
+      "w": 80,
+      "h": 17,
+      "font": [
+        "images/p1_stat/0.png",
+        "images/p1_stat/1.png",
+        "images/p1_stat/2.png",
+        "images/p1_stat/3.png",
+        "images/p1_stat/4.png",
+        "images/p1_stat/5.png",
+        "images/p1_stat/6.png",
+        "images/p1_stat/7.png",
+        "images/p1_stat/8.png",
+        "images/p1_stat/9.png"
+      ],
+      "unit": "images/p1/unit_min.png",
+      "words": {
+        "NOW": "images/p1/rain_NOW.png",
+        "DRY": "images/p1/rain_DRY.png",
+        "--": "images/p1/rain_none.png"
       }
     },
-    "y": {
+    "time": {
+      "x": 178,
+      "hour_y": 128,
+      "minute_y": 226,
       "digits": [
-        "images/val_y/0.png",
-        "images/val_y/1.png",
-        "images/val_y/2.png",
-        "images/val_y/3.png",
-        "images/val_y/4.png",
-        "images/val_y/5.png",
-        "images/val_y/6.png",
-        "images/val_y/7.png",
-        "images/val_y/8.png",
-        "images/val_y/9.png"
+        "images/p1_time/0.png",
+        "images/p1_time/1.png",
+        "images/p1_time/2.png",
+        "images/p1_time/3.png",
+        "images/p1_time/4.png",
+        "images/p1_time/5.png",
+        "images/p1_time/6.png",
+        "images/p1_time/7.png",
+        "images/p1_time/8.png",
+        "images/p1_time/9.png"
       ],
-      "invalid": "images/val_y/45.png",
-      "negative": "images/val_y/45.png",
-      "dot": "images/val_y/46.png",
-      "colon": "images/val_y/58.png",
-      "units": {
-        "%": "images/val_y/37.png",
-        "°": "images/val_y/176.png"
+      "aod": [
+        "images/p1_time_aod/0.png",
+        "images/p1_time_aod/1.png",
+        "images/p1_time_aod/2.png",
+        "images/p1_time_aod/3.png",
+        "images/p1_time_aod/4.png",
+        "images/p1_time_aod/5.png",
+        "images/p1_time_aod/6.png",
+        "images/p1_time_aod/7.png",
+        "images/p1_time_aod/8.png",
+        "images/p1_time_aod/9.png"
+      ],
+      "sec_x": 281,
+      "sec_y": 180,
+      "sec": [
+        "images/p1_sec/0.png",
+        "images/p1_sec/1.png",
+        "images/p1_sec/2.png",
+        "images/p1_sec/3.png",
+        "images/p1_sec/4.png",
+        "images/p1_sec/5.png",
+        "images/p1_sec/6.png",
+        "images/p1_sec/7.png",
+        "images/p1_sec/8.png",
+        "images/p1_sec/9.png"
+      ]
+    },
+    "month": {
+      "x": 332,
+      "y": 136,
+      "src": [
+        "images/p1/month/1.png",
+        "images/p1/month/2.png",
+        "images/p1/month/3.png",
+        "images/p1/month/4.png",
+        "images/p1/month/5.png",
+        "images/p1/month/6.png",
+        "images/p1/month/7.png",
+        "images/p1/month/8.png",
+        "images/p1/month/9.png",
+        "images/p1/month/10.png",
+        "images/p1/month/11.png",
+        "images/p1/month/12.png"
+      ]
+    },
+    "cal": {
+      "x0": 326,
+      "dx": 15.5,
+      "y0": 186,
+      "dy": 21,
+      "cell_w": 18,
+      "cell_h": 16,
+      "size": 11,
+      "color": 14079702,
+      "today_color": 16777215,
+      "ring": "images/p1/cal_ring.png"
+    },
+    "gauge": {
+      "slots": [
+        {
+          "edit_id": 111,
+          "default": "STEP",
+          "x": 108,
+          "y": 328,
+          "w": 84,
+          "h": 84,
+          "icon": {
+            "x": 142,
+            "y": 336
+          },
+          "value": {
+            "x": 110,
+            "y": 366,
+            "w": 80,
+            "h": 13
+          },
+          "label": {
+            "x": 112,
+            "cy": 391
+          },
+          "tips_x": -24,
+          "tips_y": -40
+        },
+        {
+          "edit_id": 112,
+          "default": "HEART",
+          "x": 198,
+          "y": 328,
+          "w": 84,
+          "h": 84,
+          "icon": {
+            "x": 232,
+            "y": 336
+          },
+          "value": {
+            "x": 200,
+            "y": 366,
+            "w": 80,
+            "h": 13
+          },
+          "label": {
+            "x": 202,
+            "cy": 391
+          },
+          "tips_x": -24,
+          "tips_y": -40
+        },
+        {
+          "edit_id": 113,
+          "default": "CAL",
+          "x": 288,
+          "y": 328,
+          "w": 84,
+          "h": 84,
+          "icon": {
+            "x": 322,
+            "y": 336
+          },
+          "value": {
+            "x": 290,
+            "y": 366,
+            "w": 80,
+            "h": 13
+          },
+          "label": {
+            "x": 292,
+            "cy": 391
+          },
+          "tips_x": -24,
+          "tips_y": -40
+        }
+      ],
+      "levels": [
+        "images/p1/gauge/0.png",
+        "images/p1/gauge/1.png",
+        "images/p1/gauge/2.png",
+        "images/p1/gauge/3.png",
+        "images/p1/gauge/4.png",
+        "images/p1/gauge/5.png",
+        "images/p1/gauge/6.png",
+        "images/p1/gauge/7.png",
+        "images/p1/gauge/8.png",
+        "images/p1/gauge/9.png",
+        "images/p1/gauge/10.png"
+      ],
+      "types": {
+        "HEART": {
+          "icon": "images/p1/gicon/HEART.png",
+          "label": "images/p1/glabel/HEART.png",
+          "label_h": 7,
+          "title": "Heart rate",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "STEP": {
+          "icon": "images/p1/gicon/STEP.png",
+          "label": "images/p1/glabel/STEP.png",
+          "label_h": 7,
+          "title": "Steps",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "CAL": {
+          "icon": "images/p1/gicon/CAL.png",
+          "label": "images/p1/glabel/CAL.png",
+          "label_h": 7,
+          "title": "Calories",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "BATTERY": {
+          "icon": "images/p1/gicon/BATTERY.png",
+          "label": "images/p1/glabel/BATTERY.png",
+          "label_h": 7,
+          "title": "Battery",
+          "unit": "%",
+          "sep": null,
+          "negative": false
+        },
+        "STRESS": {
+          "icon": "images/p1/gicon/STRESS.png",
+          "label": "images/p1/glabel/STRESS.png",
+          "label_h": 7,
+          "title": "Stress",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "TRAINING_LOAD": {
+          "icon": "images/p1/gicon/TRAINING_LOAD.png",
+          "label": "images/p1/glabel/TRAINING_LOAD.png",
+          "label_h": 7,
+          "title": "Training load",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "VO2MAX": {
+          "icon": "images/p1/gicon/VO2MAX.png",
+          "label": "images/p1/glabel/VO2MAX.png",
+          "label_h": 7,
+          "title": "VO2max",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "RECOVERY_TIME": {
+          "icon": "images/p1/gicon/RECOVERY_TIME.png",
+          "label": "images/p1/glabel/RECOVERY_TIME.png",
+          "label_h": 7,
+          "title": "Recovery time",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "READINESS": {
+          "icon": "images/p1/gicon/READINESS.png",
+          "label": "images/p1/glabel/READINESS.png",
+          "label_h": 7,
+          "title": "Readiness",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "SPO2": {
+          "icon": "images/p1/gicon/SPO2.png",
+          "label": "images/p1/glabel/SPO2.png",
+          "label_h": 7,
+          "title": "SpO2",
+          "unit": "%",
+          "sep": null,
+          "negative": false
+        },
+        "PAI_DAILY": {
+          "icon": "images/p1/gicon/PAI_DAILY.png",
+          "label": "images/p1/glabel/PAI_DAILY.png",
+          "label_h": 7,
+          "title": "PAI",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "FAT_BURNING": {
+          "icon": "images/p1/gicon/FAT_BURNING.png",
+          "label": "images/p1/glabel/FAT_BURNING.png",
+          "label_h": 7,
+          "title": "Fat burning",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "STAND": {
+          "icon": "images/p1/gicon/STAND.png",
+          "label": "images/p1/glabel/STAND.png",
+          "label_h": 7,
+          "title": "Stand",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "DISTANCE": {
+          "icon": "images/p1/gicon/DISTANCE.png",
+          "label": "images/p1/glabel/DISTANCE.png",
+          "label_h": 7,
+          "title": "Distance",
+          "unit": null,
+          "sep": "dot",
+          "negative": false
+        },
+        "FLOOR": {
+          "icon": "images/p1/gicon/FLOOR.png",
+          "label": "images/p1/glabel/FLOOR.png",
+          "label_h": 7,
+          "title": "Floors",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "WEATHER_CURRENT": {
+          "icon": "images/p1/gicon/WEATHER_CURRENT.png",
+          "label": "images/p1/glabel/WEATHER_CURRENT.png",
+          "label_h": 7,
+          "title": "Temperature",
+          "unit": "°",
+          "sep": null,
+          "negative": true
+        },
+        "HUMIDITY": {
+          "icon": "images/p1/gicon/HUMIDITY.png",
+          "label": "images/p1/glabel/HUMIDITY.png",
+          "label_h": 7,
+          "title": "Humidity",
+          "unit": "%",
+          "sep": null,
+          "negative": false
+        },
+        "UVI": {
+          "icon": "images/p1/gicon/UVI.png",
+          "label": "images/p1/glabel/UVI.png",
+          "label_h": 7,
+          "title": "UV index",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "ALTIMETER": {
+          "icon": "images/p1/gicon/ALTIMETER.png",
+          "label": "images/p1/glabel/ALTIMETER.png",
+          "label_h": 7,
+          "title": "Air pressure",
+          "unit": null,
+          "sep": null,
+          "negative": false
+        },
+        "ALTITUDE": {
+          "icon": "images/p1/gicon/ALTITUDE.png",
+          "label": "images/p1/glabel/ALTITUDE.png",
+          "label_h": 7,
+          "title": "Altitude",
+          "unit": null,
+          "sep": null,
+          "negative": true
+        },
+        "SUN_RISE": {
+          "icon": "images/p1/gicon/SUN_RISE.png",
+          "label": "images/p1/glabel/SUN_RISE.png",
+          "label_h": 7,
+          "title": "Sunrise",
+          "unit": null,
+          "sep": "colon",
+          "negative": false
+        },
+        "SUN_SET": {
+          "icon": "images/p1/gicon/SUN_SET.png",
+          "label": "images/p1/glabel/SUN_SET.png",
+          "label_h": 7,
+          "title": "Sunset",
+          "unit": null,
+          "sep": "colon",
+          "negative": false
+        },
+        "SLEEP": {
+          "icon": "images/p1/gicon/SLEEP.png",
+          "label": "images/p1/glabel/SLEEP.png",
+          "label_h": 7,
+          "title": "Sleep",
+          "unit": null,
+          "sep": "colon",
+          "negative": false
+        }
+      },
+      "order": [
+        "HEART",
+        "STEP",
+        "CAL",
+        "BATTERY",
+        "STRESS",
+        "TRAINING_LOAD",
+        "VO2MAX",
+        "RECOVERY_TIME",
+        "READINESS",
+        "SPO2",
+        "PAI_DAILY",
+        "FAT_BURNING",
+        "STAND",
+        "DISTANCE",
+        "FLOOR",
+        "WEATHER_CURRENT",
+        "HUMIDITY",
+        "UVI",
+        "ALTIMETER",
+        "ALTITUDE",
+        "SUN_RISE",
+        "SUN_SET",
+        "SLEEP"
+      ],
+      "previews": {
+        "HEART": "images/p1/gpreview/HEART.png",
+        "STEP": "images/p1/gpreview/STEP.png",
+        "CAL": "images/p1/gpreview/CAL.png",
+        "BATTERY": "images/p1/gpreview/BATTERY.png",
+        "STRESS": "images/p1/gpreview/STRESS.png",
+        "TRAINING_LOAD": "images/p1/gpreview/TRAINING_LOAD.png",
+        "VO2MAX": "images/p1/gpreview/VO2MAX.png",
+        "RECOVERY_TIME": "images/p1/gpreview/RECOVERY_TIME.png",
+        "READINESS": "images/p1/gpreview/READINESS.png",
+        "SPO2": "images/p1/gpreview/SPO2.png",
+        "PAI_DAILY": "images/p1/gpreview/PAI_DAILY.png",
+        "FAT_BURNING": "images/p1/gpreview/FAT_BURNING.png",
+        "STAND": "images/p1/gpreview/STAND.png",
+        "DISTANCE": "images/p1/gpreview/DISTANCE.png",
+        "FLOOR": "images/p1/gpreview/FLOOR.png",
+        "WEATHER_CURRENT": "images/p1/gpreview/WEATHER_CURRENT.png",
+        "HUMIDITY": "images/p1/gpreview/HUMIDITY.png",
+        "UVI": "images/p1/gpreview/UVI.png",
+        "ALTIMETER": "images/p1/gpreview/ALTIMETER.png",
+        "ALTITUDE": "images/p1/gpreview/ALTITUDE.png",
+        "SUN_RISE": "images/p1/gpreview/SUN_RISE.png",
+        "SUN_SET": "images/p1/gpreview/SUN_SET.png",
+        "SLEEP": "images/p1/gpreview/SLEEP.png"
+      },
+      "select": "images/p1/gauge_select.png",
+      "unselect": "images/p1/gauge_unselect.png",
+      "tips": "images/p1/tips.png",
+      "font": {
+        "digits": [
+          "images/p1_gauge/0.png",
+          "images/p1_gauge/1.png",
+          "images/p1_gauge/2.png",
+          "images/p1_gauge/3.png",
+          "images/p1_gauge/4.png",
+          "images/p1_gauge/5.png",
+          "images/p1_gauge/6.png",
+          "images/p1_gauge/7.png",
+          "images/p1_gauge/8.png",
+          "images/p1_gauge/9.png"
+        ],
+        "invalid": "images/p1_gauge/45.png",
+        "negative": "images/p1_gauge/45.png",
+        "dot": "images/p1_gauge/46.png",
+        "colon": "images/p1_gauge/58.png",
+        "units": {
+          "%": "images/p1_gauge/37.png",
+          "°": "images/p1_gauge/176.png"
+        }
       }
+    },
+    "bg": "images/p1/bg.png",
+    "toggle": {
+      "x": 170,
+      "y": 124,
+      "w": 136,
+      "h": 180
     }
   },
   "mask100": "images/comp/edit/mask100.png",
   "mask70": "images/comp/edit/mask70.png",
   "blank": "images/comp/blank.png",
-  "arcs": {
-    "tl": {
-      "x": 10,
-      "y": 6,
-      "kind": "STEP",
-      "src": [
-        "images/arc_tl/0.png",
-        "images/arc_tl/1.png",
-        "images/arc_tl/2.png",
-        "images/arc_tl/3.png",
-        "images/arc_tl/4.png",
-        "images/arc_tl/5.png",
-        "images/arc_tl/6.png",
-        "images/arc_tl/7.png",
-        "images/arc_tl/8.png",
-        "images/arc_tl/9.png",
-        "images/arc_tl/10.png"
-      ]
-    },
-    "tr": {
-      "x": 249,
-      "y": 6,
-      "kind": "BATTERY",
-      "src": [
-        "images/arc_tr/0.png",
-        "images/arc_tr/1.png",
-        "images/arc_tr/2.png",
-        "images/arc_tr/3.png",
-        "images/arc_tr/4.png",
-        "images/arc_tr/5.png",
-        "images/arc_tr/6.png",
-        "images/arc_tr/7.png",
-        "images/arc_tr/8.png",
-        "images/arc_tr/9.png",
-        "images/arc_tr/10.png"
-      ]
-    },
-    "bl": {
-      "x": 10,
-      "y": 281,
-      "kind": "CAL",
-      "src": [
-        "images/arc_bl/0.png",
-        "images/arc_bl/1.png",
-        "images/arc_bl/2.png",
-        "images/arc_bl/3.png",
-        "images/arc_bl/4.png",
-        "images/arc_bl/5.png",
-        "images/arc_bl/6.png",
-        "images/arc_bl/7.png",
-        "images/arc_bl/8.png",
-        "images/arc_bl/9.png",
-        "images/arc_bl/10.png"
-      ]
-    },
-    "br": {
-      "x": 249,
-      "y": 281,
-      "kind": "HEART",
-      "src": [
-        "images/arc_br/0.png",
-        "images/arc_br/1.png",
-        "images/arc_br/2.png",
-        "images/arc_br/3.png",
-        "images/arc_br/4.png",
-        "images/arc_br/5.png",
-        "images/arc_br/6.png",
-        "images/arc_br/7.png",
-        "images/arc_br/8.png",
-        "images/arc_br/9.png",
-        "images/arc_br/10.png"
-      ]
-    }
-  },
-  "brand": {
-    "x": 179,
-    "y": 391,
-    "src": "images/brand.png"
-  },
-  "place": {
-    "x": 124,
-    "y": 386,
-    "w": 232,
-    "h": 36,
-    "size": 24,
-    "space": 3,
-    "color": 11842740,
-    "font": "fonts/place.ttf"
-  },
-  "bg": "images/bg.png",
   "p2": {
     "hud": {
       "x": 180,

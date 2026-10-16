@@ -12,7 +12,7 @@ const NORMAL = show_level.ONLY_NORMAL
 const AOD = show_level.ONAL_AOD
 const EDIT = show_level.ONLY_EDIT
 
-// ページ切り替え: pages[n] に入れたウィジェットだけを表示する（0 = HYROX, 1 = データ + 地図）
+// ページ切り替え: pages[n] に入れたウィジェットだけを表示する（0 = CROSSFIT, 1 = データ + 地図）
 const pages = [[], []]
 let page = 0
 const pageListeners = []
@@ -84,29 +84,16 @@ function supported(key) {
   return data_type[key] !== undefined && ET[key] !== undefined
 }
 
-function arc(cfg) {
-  const type = data_type[cfg.kind]
-  if (type === undefined) {
-    mk(0, widget.IMG, { x: cfg.x, y: cfg.y, src: cfg.src[0], show_level: NORMAL })
-    return
-  }
-  mk(0, widget.IMG_LEVEL, {
-    x: cfg.x,
-    y: cfg.y,
-    image_array: cfg.src,
-    image_length: cfg.src.length,
-    type,
-    show_level: NORMAL,
-  })
-}
+// 円弧メーターで進み具合を出せるデータ（それ以外は溝だけ）
+const GAUGE_PROGRESS = ['STEP', 'CAL', 'HEART', 'BATTERY', 'STRESS', 'PAI_DAILY', 'FAT_BURNING', 'STAND', 'SPO2', 'HUMIDITY', 'READINESS']
 
 // 編集画面で枠の中に見せるプレビュー（マスクより上に描くため最後にまとめて作る）
 const editPreviews = []
 
-// 表示枠: 編集グループを作り、ユーザーが選んだデータを描く
-function complication(slot) {
-  const keys = L.order.filter(supported)
-  const style = L.edit_styles[slot.style]
+// 円弧メーター: 編集グループを作り、ユーザーが選んだデータを描く
+function gaugeSlot(slot) {
+  const G = L.p1.gauge
+  const keys = G.order.filter(supported)
   const defaultKey = supported(slot.default) ? slot.default : keys[0]
 
   const group = createWidget(widget.WATCHFACE_EDIT_GROUP, {
@@ -115,18 +102,18 @@ function complication(slot) {
     y: slot.y,
     w: slot.w,
     h: slot.h,
-    select_image: style.select,
-    un_select_image: style.unselect,
+    select_image: G.select,
+    un_select_image: G.unselect,
     default_type: ET[defaultKey],
     optional_types: keys.map((k) => ({
       type: ET[k],
-      preview: style.preview[k],
-      title_en: L.types[k].title,
-      title_sc: L.types[k].title,
-      title_tc: L.types[k].title,
+      preview: G.previews[k],
+      title_en: G.types[k].title,
+      title_sc: G.types[k].title,
+      title_tc: G.types[k].title,
     })),
     count: keys.length,
-    tips_BG: L.tips,
+    tips_BG: G.tips,
     tips_x: slot.tips_x,
     tips_y: slot.tips_y,
     tips_width: 132,
@@ -136,25 +123,29 @@ function complication(slot) {
   const current = group.getProperty(prop.CURRENT_TYPE)
   let key = keys.find((k) => ET[k] === current || data_type[k] === current)
   if (!key) key = defaultKey
-  const t = L.types[key]
-  const f = L.fonts[slot.font]
-  editPreviews.push({ x: slot.x, y: slot.y, src: style.preview[key] })
+  const t = G.types[key]
+  const f = G.font
+  editPreviews.push({ x: slot.x, y: slot.y, src: G.previews[key] })
 
-  if (slot.style === 'mid') {
-    mk(0, widget.IMG, {
-      x: slot.label.x,
-      y: Math.round(slot.label.cy - t.label_h / 2),
-      src: t.label,
+  if (GAUGE_PROGRESS.indexOf(key) >= 0) {
+    mk(0, widget.IMG_LEVEL, {
+      x: slot.x,
+      y: slot.y,
+      image_array: G.levels,
+      image_length: G.levels.length,
+      type: data_type[key],
       show_level: NORMAL,
     })
   } else {
-    mk(0, widget.IMG, { x: slot.icon.x, y: slot.icon.y, src: t.icon, show_level: NORMAL })
+    mk(0, widget.IMG, { x: slot.x, y: slot.y, src: G.levels[0], show_level: NORMAL })
   }
+  mk(0, widget.IMG, { x: slot.icon.x, y: slot.icon.y, src: t.icon, show_level: NORMAL })
+  mk(0, widget.IMG, { x: slot.label.x, y: Math.round(slot.label.cy - t.label_h / 2), src: t.label, show_level: NORMAL })
 
   const opts = {
-    x: slot.value.x - 10,
+    x: slot.value.x,
     y: slot.value.y,
-    w: slot.value.w + 20,
+    w: slot.value.w,
     h: slot.value.h,
     type: data_type[key],
     font_array: f.digits,
@@ -174,14 +165,25 @@ function complication(slot) {
   mk(0, widget.TEXT_IMG, opts)
 
   // タップで対応する純正アプリを開く
-  mk(0, widget.IMG_CLICK, {
-    x: slot.x,
-    y: slot.y,
-    w: slot.w,
-    h: slot.h,
-    src: L.blank,
-    type: data_type[key],
-  })
+  mk(0, widget.IMG_CLICK, { x: slot.x, y: slot.y, w: slot.w, h: slot.h, src: L.blank, type: data_type[key] })
+}
+
+// 今日の天気の index（0-28、Zepp の天気予報）
+function readWeatherIndex() {
+  const readers = [
+    () => (typeof hmSensor !== 'undefined' ? hmSensor.createSensor(hmSensor.id.WEATHER).getForecastWeather() : null),
+    () => new Weather().getForecastWeather(),
+  ]
+  for (const read of readers) {
+    try {
+      const f = read()
+      const d = f && f.forecastData && f.forecastData.data && f.forecastData.data[0]
+      if (d && d.index != null) return d.index
+    } catch (e) {
+      logger.log('weather unavailable')
+    }
+  }
+  return 25 // Unknown
 }
 
 // Zepp アプリの天気の地名（現在地）
@@ -221,7 +223,7 @@ function placeWidgets(p, P, brandCfg) {
   const brand = brandCfg
     ? createWidget(widget.IMG, { x: brandCfg.x, y: brandCfg.y, src: brandCfg.src, show_level: NORMAL })
     : null
-  const roman = createWidget(widget.TEXT, Object.assign({}, base, { font: L.place.font }))
+  const roman = createWidget(widget.TEXT, Object.assign({}, base, { font: L.place_font }))
   const raw = createWidget(widget.TEXT, Object.assign({}, base, { char_space: 0, text_size: P.size - 2 }))
 
   return function update() {
@@ -323,6 +325,254 @@ function ago(sec) {
   if (sec < 3600) return `${Math.floor(sec / 60)}m`
   if (sec < 86400) return `${Math.floor(sec / 3600)}h`
   return `${Math.floor(sec / 86400)}d`
+}
+
+// 雨: 同期した 2 時間先までの 15 分枠から「今降っている / 何分後 / 降らない」
+function rainStatus() {
+  const link = readLink()
+  const st = link && link.state
+  const now = Math.floor(Date.now() / 1000)
+  if (!st || !st.synced || now - st.synced > 3 * 3600 || !st.rain || !st.rain.slots) return { word: '--' }
+  const { start, slots } = st.rain
+  for (let i = 0; i < slots.length; i++) {
+    const s0 = start + i * 900
+    if ((slots[i] || 0) < 0.1 || s0 + 900 <= now) continue
+    if (s0 <= now) return { word: 'NOW' }
+    return { min: Math.round((s0 - now) / 60) }
+  }
+  return { word: 'DRY' }
+}
+
+function buildPage1() {
+  const P = L.p1
+  mk(0, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
+
+  // 天気: アイコンと名前は予報の index から、気温はデータ種別で
+  const wxIcon = mk(0, widget.IMG, { x: P.weather.icon.x, y: P.weather.icon.y, src: P.weather.icon.src[25], show_level: NORMAL })
+  const wxText = mk(0, widget.IMG, { x: P.weather.text.x, y: P.weather.text.y, src: P.weather.text.src[25], show_level: NORMAL })
+  if (data_type.WEATHER_CURRENT !== undefined) {
+    mk(0, widget.TEXT_IMG, {
+      x: P.temp.x,
+      y: P.temp.y,
+      w: P.temp.w,
+      h: P.temp.h,
+      type: data_type.WEATHER_CURRENT,
+      font_array: P.temp.font,
+      h_space: 0,
+      align_h: align.LEFT,
+      unit_en: P.temp.unit,
+      unit_sc: P.temp.unit,
+      unit_tc: P.temp.unit,
+      negative_image: P.temp.negative,
+      invalid_image: P.temp.invalid,
+      show_level: NORMAL,
+    })
+  }
+
+  // 日付 10.17 と曜日（常時表示でも出す）
+  const dateOpts = {
+    month_startX: P.date.x,
+    month_startY: P.date.y,
+    month_zero: 1,
+    month_space: 0,
+    month_unit_en: P.date.dot,
+    month_unit_sc: P.date.dot,
+    month_unit_tc: P.date.dot,
+    day_zero: 1,
+    day_space: 0,
+    day_follow: 1,
+  }
+  const digits = (arr) => ({ month_en_array: arr, month_sc_array: arr, month_tc_array: arr, day_en_array: arr, day_sc_array: arr, day_tc_array: arr })
+  mk(0, widget.IMG_DATE, Object.assign({ show_level: NORMAL }, dateOpts, digits(P.date.digits)))
+  createWidget(
+    widget.IMG_DATE,
+    Object.assign({ show_level: AOD }, dateOpts, digits(P.date.aod), { month_unit_en: P.date.dot_aod, month_unit_sc: P.date.dot_aod, month_unit_tc: P.date.dot_aod }),
+  )
+  const weekOpts = { x: P.week.x, y: P.week.y, week_en: P.week.src, week_tc: P.week.src, week_sc: P.week.src }
+  mk(0, widget.IMG_WEEK, Object.assign({ show_level: NORMAL }, weekOpts))
+  createWidget(widget.IMG_WEEK, Object.assign({ show_level: AOD }, weekOpts))
+
+  // 現在地（2 行。ローマ字にできなければ元の表記を 1 行で）
+  const pl = P.place
+  const line = (i, font) =>
+    createWidget(
+      widget.TEXT,
+      Object.assign(
+        { x: pl.x, y: pl.y + i * pl.line_h, w: pl.w, h: pl.line_h, color: pl.color, text_size: pl.size, char_space: pl.space, align_h: align.LEFT, align_v: align.CENTER_V, text_style: text_style.ELLIPSIS, text: '', show_level: NORMAL },
+        font ? { font } : { char_space: 0 },
+      ),
+    )
+  const place1 = line(0, L.place_font)
+  const place2 = line(1, L.place_font)
+  const placeRaw = line(0, null)
+
+  // 電池
+  if (data_type.BATTERY !== undefined) {
+    mk(0, widget.TEXT_IMG, {
+      x: P.bat.x,
+      y: P.bat.y,
+      w: P.bat.w,
+      h: P.bat.h,
+      type: data_type.BATTERY,
+      font_array: P.bat.font,
+      h_space: 0,
+      align_h: align.LEFT,
+      unit_en: P.bat.unit,
+      unit_sc: P.bat.unit,
+      unit_tc: P.bat.unit,
+      invalid_image: P.bat.invalid,
+      show_level: NORMAL,
+    })
+  }
+
+  // 雨（HYROX Link の同期データ）: 何分後なら数字 + MIN、それ以外は NOW / DRY / --
+  const R = P.rain
+  const rainMin = mk(0, widget.TEXT_IMG, {
+    x: R.x,
+    y: R.y,
+    w: R.w,
+    h: R.h,
+    font_array: R.font,
+    h_space: 0,
+    align_h: align.LEFT,
+    unit_en: R.unit,
+    unit_sc: R.unit,
+    unit_tc: R.unit,
+    text: '',
+    show_level: NORMAL,
+  })
+  const rainWord = mk(0, widget.IMG, { x: R.x, y: R.y, src: R.words['--'], show_level: NORMAL })
+
+  // 時刻: 時の下に分、秒はオレンジ
+  const T = P.time
+  mk(0, widget.IMG_TIME, {
+    hour_zero: 1,
+    hour_startX: T.x,
+    hour_startY: T.hour_y,
+    hour_array: T.digits,
+    hour_space: 0,
+    minute_zero: 1,
+    minute_startX: T.x,
+    minute_startY: T.minute_y,
+    minute_array: T.digits,
+    minute_space: 0,
+    minute_follow: 0,
+    second_zero: 1,
+    second_startX: T.sec_x,
+    second_startY: T.sec_y,
+    second_array: T.sec,
+    second_space: 0,
+    second_follow: 0,
+    show_level: NORMAL,
+  })
+  createWidget(widget.IMG_TIME, {
+    hour_zero: 1,
+    hour_startX: T.x,
+    hour_startY: T.hour_y,
+    hour_array: T.aod,
+    hour_space: 0,
+    minute_zero: 1,
+    minute_startX: T.x,
+    minute_startY: T.minute_y,
+    minute_array: T.aod,
+    minute_space: 0,
+    minute_follow: 0,
+    show_level: AOD,
+  })
+
+  // 月の名前 + カレンダー（月曜始まり、今日に丸）
+  mk(0, widget.IMG_DATE, {
+    month_startX: P.month.x,
+    month_startY: P.month.y,
+    month_is_character: true,
+    month_en_array: P.month.src,
+    month_sc_array: P.month.src,
+    month_tc_array: P.month.src,
+    show_level: NORMAL,
+  })
+  const C = P.cal
+  const ring = mk(0, widget.IMG, { x: 0, y: 0, src: C.ring, show_level: NORMAL })
+  const cells = []
+  for (let i = 0; i < 42; i++) {
+    const cx = C.x0 + (i % 7) * C.dx
+    const cy = C.y0 + Math.floor(i / 7) * C.dy
+    cells.push(
+      mk(0, widget.TEXT, {
+        x: Math.round(cx - C.cell_w / 2),
+        y: Math.round(cy - C.cell_h / 2),
+        w: C.cell_w,
+        h: C.cell_h,
+        color: C.color,
+        text_size: C.size,
+        font: L.place_font,
+        align_h: align.CENTER_H,
+        align_v: align.CENTER_V,
+        text: '',
+        show_level: NORMAL,
+      }),
+    )
+  }
+  let calKey = ''
+  const updateCalendar = () => {
+    const now = new Date()
+    const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
+    if (key === calKey) return
+    calKey = key
+    const first = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() + 6) % 7
+    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    cells.forEach((w, i) => {
+      const day = i - first + 1
+      const on = day >= 1 && day <= days
+      w.setProperty(prop.TEXT, on ? String(day) : '')
+      w.setProperty(prop.COLOR, day === now.getDate() ? C.today_color : C.color)
+      if (day === now.getDate()) {
+        ring.setProperty(prop.X, Math.round(C.x0 + (i % 7) * C.dx - 9))
+        ring.setProperty(prop.Y, Math.round(C.y0 + Math.floor(i / 7) * C.dy - 9))
+      }
+    })
+  }
+
+  P.gauge.slots.forEach(gaugeSlot)
+  pageToggle(0, P.toggle)
+
+  let wxAt = 0
+  const update = () => {
+    const on = page === 0
+    updateCalendar()
+    const nowMs = Date.now()
+    if (nowMs - wxAt > 10 * 60 * 1000) {
+      wxAt = nowMs
+      const idx = readWeatherIndex()
+      const k = idx >= 0 && idx < P.weather.icon.src.length ? idx : 25
+      wxIcon.setProperty(prop.SRC, P.weather.icon.src[k])
+      wxText.setProperty(prop.SRC, P.weather.text.src[k])
+    }
+    // 現在地
+    const fromLink = linkPlace()
+    const city = fromLink || readCityName()
+    const label = fromLink || placeLabel(city)
+    const words = label ? label.split(' ') : []
+    place1.setProperty(prop.TEXT, words[0] || '')
+    place2.setProperty(prop.TEXT, words.slice(1).join(' '))
+    placeRaw.setProperty(prop.TEXT, label ? '' : city || '')
+    place1.setProperty(prop.VISIBLE, on && !!label)
+    place2.setProperty(prop.VISIBLE, on && !!label)
+    placeRaw.setProperty(prop.VISIBLE, on && !label)
+    // 雨
+    const r = rainStatus()
+    if (r.min != null) rainMin.setProperty(prop.TEXT, `${r.min}u`)
+    else rainWord.setProperty(prop.SRC, R.words[r.word])
+    showOnPage(rainMin, 0, r.min != null)
+    showOnPage(rainWord, 0, r.min == null)
+  }
+  try {
+    new Time().onPerMinute(() => {
+      if (page === 0) update()
+    })
+  } catch (e) {
+    logger.log('time sensor unavailable')
+  }
+  return update
 }
 
 function buildPage2() {
@@ -471,87 +721,8 @@ function buildPage2() {
 
 WatchFace({
   build() {
-    mk(0, widget.IMG, { x: 0, y: 0, src: L.bg, show_level: NORMAL })
-
-    Object.keys(L.arcs).forEach((k) => arc(L.arcs[k]))
-
-    // 日付（月 + 日）
-    const dateOpts = {
-      month_startX: L.date.month_x,
-      month_startY: L.date.month_y,
-      month_is_character: true,
-      month_en_array: L.date.month,
-      month_sc_array: L.date.month,
-      month_tc_array: L.date.month,
-      day_startX: L.date.day_x,
-      day_startY: L.date.day_y,
-      day_zero: 1,
-      day_follow: 0,
-      day_space: 0,
-      day_en_array: L.date.day,
-      day_sc_array: L.date.day,
-      day_tc_array: L.date.day,
-    }
-    mk(0, widget.IMG_DATE, Object.assign({ show_level: NORMAL }, dateOpts))
-    createWidget(widget.IMG_DATE, Object.assign({ show_level: AOD }, dateOpts))
-
-    L.slots.forEach(complication)
-
-    pageListeners.push(placeWidgets(0, L.place, L.brand))
-
-    // 時刻（通常表示）
-    mk(0, widget.IMG_TIME, {
-      hour_zero: 1,
-      hour_startX: L.time.hour_x,
-      hour_startY: L.time.y,
-      hour_array: L.time.hour,
-      hour_space: 0,
-      minute_zero: 1,
-      minute_startX: L.time.minute_x,
-      minute_startY: L.time.y,
-      minute_array: L.time.hour,
-      minute_space: 0,
-      minute_follow: 0,
-      second_zero: 1,
-      second_startX: L.sec.x,
-      second_startY: L.sec.y,
-      second_array: L.sec.digits,
-      second_space: 0,
-      second_follow: 0,
-      am_x: L.ampm.am_x,
-      am_y: L.ampm.am_y,
-      am_sc_path: L.ampm.am,
-      am_en_path: L.ampm.am,
-      pm_x: L.ampm.pm_x,
-      pm_y: L.ampm.pm_y,
-      pm_sc_path: L.ampm.pm,
-      pm_en_path: L.ampm.pm,
-      show_level: NORMAL,
-    })
-
-    // 時刻（常時表示 AOD: 秒なし・グレー）
-    createWidget(widget.IMG_TIME, {
-      hour_zero: 1,
-      hour_startX: L.time.hour_x,
-      hour_startY: L.time.y,
-      hour_array: L.time.aod,
-      hour_space: 0,
-      minute_zero: 1,
-      minute_startX: L.time.minute_x,
-      minute_startY: L.time.y,
-      minute_array: L.time.aod,
-      minute_space: 0,
-      minute_follow: 0,
-      show_level: AOD,
-    })
-    createWidget(widget.IMG, { x: L.colon_aod.x, y: L.colon_aod.y, src: L.colon_aod.src, show_level: AOD })
-
-    // 曜日（その日がハイライトされた行画像を切り替える）
-    const weekOpts = { x: L.week.x, y: L.week.y, week_en: L.week.src, week_tc: L.week.src, week_sc: L.week.src }
-    mk(0, widget.IMG_WEEK, Object.assign({ show_level: NORMAL }, weekOpts))
-    createWidget(widget.IMG_WEEK, Object.assign({ show_level: AOD }, weekOpts))
-
-    pageToggle(0, { x: 88, y: 204, w: 300, h: 100 })
+    // 1 ページ目（CROSSFIT）
+    pageListeners.push(buildPage1())
 
     // 2 ページ目（タップで切り替え）
     pageListeners.push(buildPage2())

@@ -1,4 +1,4 @@
-"""表示枠（コンプリケーション）で選べるデータの一覧とアイコン。
+"""メーター（入れ替え可能な表示）で選べるデータの一覧とアイコン。
 
 アイコンは s×s（スーパーサンプリング済み）のキャンバスに黄色で描く。
 """
@@ -251,15 +251,4 @@ CATALOG = [
     dict(key='SUN_RISE', label='Sunrise', title='Sunrise', icon=paint_sunrise, sample='05:48', sep='colon'),
     dict(key='SUN_SET', label='Sunset', title='Sunset', icon=paint_sunset, sample='17:12', sep='colon'),
     dict(key='SLEEP', label='Sleep', title='Sleep', icon=paint_moon, sample='07:24', sep='colon'),
-]
-
-# 表示枠。style: top=アイコン上+白数字, mid=黄数字+ラベル下, bot=白数字+アイコン下
-SLOTS = [
-    dict(id='a', edit_id=101, style='top', cx=132, y=58, w=104, h=72, default='STRESS'),
-    dict(id='b', edit_id=102, style='top', cx=346, y=58, w=104, h=72, default='BATTERY'),
-    dict(id='c', edit_id=103, style='mid', cx=116, y=142, w=110, h=62, default='TRAINING_LOAD'),
-    dict(id='d', edit_id=104, style='mid', cx=240, y=142, w=110, h=62, default='STEP'),
-    dict(id='e', edit_id=105, style='mid', cx=364, y=142, w=110, h=62, default='VO2MAX'),
-    dict(id='f', edit_id=106, style='bot', cx=118, y=352, w=104, h=68, default='HEART'),
-    dict(id='g', edit_id=107, style='bot', cx=362, y=352, w=104, h=68, default='CAL'),
 ]
