@@ -3,6 +3,7 @@
 // ?detail=1|2|3（道路の描画量）&zoom=16&w=480&h=160
 // &center=here: 現在地を真ん中に描く（時計の全画面地図用。普段の地図の中心は動かさない）
 // &lat=..&lon=..: その地点を真ん中に描く（HYROX Link の地図画面でスクロールしたとき）
+// &palette=0: フルカラー PNG（既定は 256 色。時計の変換で扱えなかったときの予備）
 import { renderMap } from '../lib/map.js'
 import { lastLocation, trailSince, getView, setView } from '../lib/store.js'
 import { checkWatchKey, nextCenter, startOfTodayJst } from '../lib/util.js'
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
   }
 
   const trail = (await trailSince(startOfTodayJst())).map((p) => [p.lat, p.lon])
-  const png = await renderMap({ lat: view.lat, lon: view.lon, w, h, zoom, detail, trail, here: [last.lat, last.lon] })
+  const png = await renderMap({ lat: view.lat, lon: view.lon, w, h, zoom, detail, trail, here: [last.lat, last.lon], palette: q.get('palette') !== '0' })
   res.setHeader('Content-Type', 'image/png')
   res.setHeader('Cache-Control', 'no-store')
   res.setHeader('X-Map-Center', `${view.lat},${view.lon}`)
