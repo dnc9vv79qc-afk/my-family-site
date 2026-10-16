@@ -17,15 +17,15 @@ YELLOW = (255, 196, 64, 255)  # 天気アイコンだけ
 RAIN = (63, 169, 245, 255)
 
 # 円弧メーター（編集で中身を入れ替えられる）
-GAUGE_R = 38
+GAUGE_R = 42
 GAUGE_W = 6
-GAUGE_BOX = 84
-GAUGE_Y = 370
+GAUGE_BOX = 92
+GAUGE_Y = 374
 GAUGE_LEVELS = 11
 GAUGES = [
-    dict(edit_id=111, cx=150, default='STEP'),
+    dict(edit_id=111, cx=140, default='STEP'),
     dict(edit_id=112, cx=240, default='HEART'),
-    dict(edit_id=113, cx=330, default='CAL'),
+    dict(edit_id=113, cx=340, default='CAL'),
 ]
 GAUGE_LABEL = {
     'HEART': 'BPM', 'STEP': 'STEPS', 'CAL': 'CAL', 'BATTERY': 'BATT', 'STRESS': 'STRESS',
@@ -46,8 +46,11 @@ WEATHER = [
     ('cloud', '--'), ('moon_cloud', 'PARTLY CLOUDY'), ('rain', 'SHOWERS'), ('moon', 'CLEAR'),
 ]
 
+# 上段・左列の基準位置
+WX_X, WX_CX, DATE_CX, LX = 120, 182, 310, 44
+
 # カレンダー（月曜始まり、最大 6 週）
-CAL_X0, CAL_DX, CAL_HEAD_Y, CAL_Y0, CAL_DY = 326, 15.5, 164, 186, 21
+CAL_X0, CAL_DX, CAL_HEAD_Y, CAL_Y0, CAL_DY = 324, 18.3, 150, 174, 23
 
 
 # ---------------------------------------------------------------- 絵
@@ -158,14 +161,14 @@ def build(g):
     font, save, label_image, text_center = g.font, g.save, g.label_image, g.text_center
     W, H, SS = g.W, g.H, g.SS
 
-    tm = g.DigitSet('p1_time', 700, 96, WHITE, sx=0.74)
-    tm_aod = g.DigitSet('p1_time_aod', 500, 96, AOD_GRAY, sx=0.74)
-    sec = g.DigitSet('p1_sec', 700, 24, ORANGE, sx=0.84)
-    dt = g.DigitSet('p1_date', 700, 27, WHITE, sx=0.84, extra='.')
-    dt_aod = g.DigitSet('p1_date_aod', 500, 27, AOD_GRAY, sx=0.84, extra='.')
-    temp = g.DigitSet('p1_temp', 700, 30, WHITE, sx=0.86, extra='-°')
-    stat = g.DigitSet('p1_stat', 700, 24, WHITE, sx=0.86, extra='-')
-    gv = g.DigitSet('p1_gauge', 700, 19, WHITE, sx=0.88, extra='%-.:°')
+    tm = g.DigitSet('p1_time', 700, 110, WHITE, sx=0.72)
+    tm_aod = g.DigitSet('p1_time_aod', 500, 110, AOD_GRAY, sx=0.72)
+    sec = g.DigitSet('p1_sec', 700, 24, ORANGE, sx=0.80)
+    dt = g.DigitSet('p1_date', 700, 31, WHITE, sx=0.84, extra='.')
+    dt_aod = g.DigitSet('p1_date_aod', 500, 31, AOD_GRAY, sx=0.84, extra='.')
+    temp = g.DigitSet('p1_temp', 700, 34, WHITE, sx=0.86, extra='-°')
+    stat = g.DigitSet('p1_stat', 700, 27, WHITE, sx=0.86, extra='-')
+    gv = g.DigitSet('p1_gauge', 700, 21, WHITE, sx=0.88, extra='%-.:°')
 
     L = {}
     bg = Image.new('RGBA', (W, H), (0, 0, 0, 255))
@@ -188,7 +191,7 @@ def build(g):
     bg.alpha_composite(big.resize((W, H), Image.LANCZOS))
 
     # 左: 薄いケトルベル（文字の下）
-    bg.alpha_composite(ghost_kettlebell(140, SS), (40, 160))
+    bg.alpha_composite(ghost_kettlebell(156, SS), (22, 150))
 
     d = ImageDraw.Draw(bg)
 
@@ -204,86 +207,88 @@ def build(g):
     icons = {}
     for kind, _ in WEATHER:
         if kind not in icons:
-            icons[kind] = save(weather_icon(kind, 30, SS), f'p1/wx/{kind}.png')
-    TXT_W, TXT_H = 150, 16  # 全部同じ大きさ（画像を差し替えても欠けないように）
-    f_wx = font(500, 12)
+            icons[kind] = save(weather_icon(kind, 34, SS), f'p1/wx/{kind}.png')
+    TXT_W, TXT_H = 170, 18  # 全部同じ大きさ（画像を差し替えても欠けないように）
+    f_wx = font(500, 13)
     wx_text = []
     for i, (_, name) in enumerate(WEATHER):
         cnv = Image.new('RGBA', (TXT_W, TXT_H), (0, 0, 0, 0))
         text_center(ImageDraw.Draw(cnv), TXT_W / 2, TXT_H / 2, name, f_wx, VAL, spacing=1.5)
         wx_text.append((save(cnv, f'p1/wx/text_{i}.png'), cnv))
-    L['weather'] = dict(icon=dict(x=138, y=58, w=30, h=30, src=[icons[k] for k, _ in WEATHER]),
-                        text=dict(x=190 - TXT_W // 2, y=92, w=TXT_W, h=TXT_H, src=[p for p, _ in wx_text]))
-    deg = unit_img('°', temp, 22, WHITE)
-    L['temp'] = dict(x=172, y=60, w=70, h=temp.h, font=temp.paths, negative=temp.extra_paths['-'],
+    L['weather'] = dict(icon=dict(x=WX_X, y=44, w=34, h=34, src=[icons[k] for k, _ in WEATHER]),
+                        text=dict(x=WX_CX - TXT_W // 2, y=86, w=TXT_W, h=TXT_H, src=[p for p, _ in wx_text]))
+    deg = unit_img('°', temp, 24, WHITE)
+    L['temp'] = dict(x=WX_X + 38, y=46, w=80, h=temp.h, font=temp.paths, negative=temp.extra_paths['-'],
                      invalid=temp.extra_paths['-'], unit=save(deg, 'p1/unit_deg.png'))
-    d.line([(250, 56), (250, 108)], fill=ORANGE, width=2)
+    d.line([(252, 42), (252, 102)], fill=ORANGE, width=2)
 
     date_w = dt.w * 4 + dt.glyphs['.'].width
-    date_x = round(300 - date_w / 2)
-    L['date'] = dict(x=date_x, y=62, digits=dt.paths, dot=dt.extra_paths['.'], aod=dt_aod.paths,
+    date_x = round(DATE_CX - date_w / 2)
+    L['date'] = dict(x=date_x, y=46, digits=dt.paths, dot=dt.extra_paths['.'], aod=dt_aod.paths,
                      dot_aod=dt_aod.extra_paths['.'])
     weeks = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     WK_W = 60
     wk = []
     for i, s in enumerate(weeks):
-        li = label_image(s, font(700, 15), ORANGE, pad=0, spacing=1.5)
+        li = label_image(s, font(700, 17), ORANGE, pad=0, spacing=1.5)
         cnv = Image.new('RGBA', (WK_W, li.height), (0, 0, 0, 0))
         cnv.paste(li, ((WK_W - li.width) // 2, 0), li)
         wk.append((save(cnv, f'p1/week/{i + 1}.png'), cnv))
-    L['week'] = dict(x=300 - WK_W // 2, y=94, src=[p for p, _ in wk])
-    d.line([(118, 118), (362, 118)], fill=ORANGE, width=2)
+    L['week'] = dict(x=DATE_CX - WK_W // 2, y=84, src=[p for p, _ in wk])
+    d.line([(96, 110), (384, 110)], fill=ORANGE, width=2)
 
     # ---- 左: ロゴ・現在地・電池・雨
     for i in range(2):
-        x = 66 + i * 12
-        d.polygon([(x + 6, 128), (x + 12, 128), (x + 6, 140), (x, 140)], fill=ORANGE)
-    logo = label_image('CROSSFIT', font(700, 27), WHITE, pad=0)
-    logo = logo.resize((round(logo.width * 0.74), logo.height), Image.LANCZOS)
-    bg.alpha_composite(logo, (63, 148))
-    L['place'] = dict(x=64, y=178, w=118, line_h=16, size=12, space=2, color=0xFF8C1A)
+        x = LX + 2 + i * 13
+        d.polygon([(x + 7, 120), (x + 13, 120), (x + 6, 133), (x, 133)], fill=ORANGE)
+    logo = label_image('CROSSFIT', font(700, 31), WHITE, pad=0)
+    logo = logo.resize((round(logo.width * 0.72), logo.height), Image.LANCZOS)
+    bg.alpha_composite(logo, (LX - 1, 140))
+    L['place'] = dict(x=LX, y=172, w=124, line_h=18, size=14, space=2, color=0xFF8C1A)
 
-    label(66, 228, 'BATTERY', font(500, 10), GRAY, spacing=1.5)
-    pct = unit_img('%', stat, 12)
-    L['bat'] = dict(x=66, y=242, w=80, h=stat.h, font=stat.paths, invalid=stat.extra_paths['-'],
+    label(LX + 2, 222, 'BATTERY', font(500, 11), GRAY, spacing=1.5)
+    pct = unit_img('%', stat, 13)
+    L['bat'] = dict(x=LX + 2, y=237, w=80, h=stat.h, font=stat.paths, invalid=stat.extra_paths['-'],
                     unit=save(pct, 'p1/unit_pct.png'))
-    label(66, 274, 'RAIN', font(500, 10), GRAY, spacing=1.5)
+    label(LX + 2, 272, 'RAIN', font(500, 11), GRAY, spacing=1.5)
     words = {}
     for w_ in ('NOW', 'DRY', '--'):
-        li = label_image(w_, font(700, 22), WHITE, pad=0)
+        li = label_image(w_, font(700, 25), WHITE, pad=0)
         cnv = Image.new('RGBA', (80, stat.h + 4), (0, 0, 0, 0))
         cnv.paste(li, (0, stat.h - li.height), li)
         words[w_] = save(cnv, f'p1/rain_{w_.strip("-") or "none"}.png')
-    mins = unit_img('MIN', stat, 11)
-    L['rain'] = dict(x=66, y=288, w=80, h=stat.h, font=stat.paths, unit=save(mins, 'p1/unit_min.png'),
+    mins = unit_img('MIN', stat, 12)
+    L['rain'] = dict(x=LX + 2, y=287, w=80, h=stat.h, font=stat.paths, unit=save(mins, 'p1/unit_min.png'),
                      words=words, word_w=80, word_h=stat.h + 4)
 
     # ---- 中央: 時・分を縦に、秒はオレンジ
-    TIME_CX = 228  # 秒とカレンダーの間を空けるため少し左
+    TIME_CX = 222  # 秒とカレンダーの間を空けるため少し左
     hour_x = TIME_CX - tm.w
-    L['time'] = dict(x=hour_x, hour_y=128, minute_y=226, digits=tm.paths, aod=tm_aod.paths,
-                     sec_x=TIME_CX + tm.w + 3, sec_y=128 + tm.h - sec.h, sec=sec.paths)
+    HOUR_Y = 120
+    MIN_Y = HOUR_Y + tm.h + 14
+    L['time'] = dict(x=hour_x, hour_y=HOUR_Y, minute_y=MIN_Y, digits=tm.paths, aod=tm_aod.paths,
+                     sec_x=TIME_CX + tm.w + 3, sec_y=HOUR_Y + tm.h - sec.h, sec=sec.paths)
 
     # ---- 右: 月 + カレンダー
-    d.line([(318, 150), (326, 136)], fill=ORANGE, width=3)
+    d.line([(318, 138), (326, 122)], fill=ORANGE, width=3)
     MON_W = 60
     months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     mon = []
     for i, s in enumerate(months):
-        li = label_image(s, font(700, 17), WHITE, pad=0, spacing=1)
+        li = label_image(s, font(700, 19), WHITE, pad=0, spacing=1)
         cnv = Image.new('RGBA', (MON_W, li.height), (0, 0, 0, 0))
         cnv.paste(li, (0, 0), li)
         mon.append((save(cnv, f'p1/month/{i + 1}.png'), cnv))
-    L['month'] = dict(x=332, y=136, src=[p for p, _ in mon])
-    d.line([(314, 160), (314, 304)], fill=ORANGE, width=1)
+    L['month'] = dict(x=332, y=122, src=[p for p, _ in mon])
+    d.line([(312, 146), (312, 300)], fill=ORANGE, width=1)
     for i, s in enumerate('MTWTFSS'):
-        text_center(d, CAL_X0 + i * CAL_DX, CAL_HEAD_Y + 4, s, font(500, 9), GRAY)
-    ring = Image.new('RGBA', (18 * SS, 18 * SS), (0, 0, 0, 0))
-    ImageDraw.Draw(ring).ellipse([SS, SS, 17 * SS - 1, 17 * SS - 1], outline=ORANGE, width=2 * SS)
-    ring = ring.resize((18, 18), Image.LANCZOS)
-    L['cal'] = dict(x0=CAL_X0, dx=CAL_DX, y0=CAL_Y0, dy=CAL_DY, cell_w=18, cell_h=16, size=11,
+        text_center(d, CAL_X0 + i * CAL_DX, CAL_HEAD_Y + 4, s, font(500, 10), GRAY)
+    ring = Image.new('RGBA', (20 * SS, 20 * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse([SS, SS, 19 * SS - 1, 19 * SS - 1], outline=ORANGE, width=2 * SS)
+    ring = ring.resize((20, 20), Image.LANCZOS)
+    L['cal'] = dict(x0=CAL_X0, dx=CAL_DX, y0=CAL_Y0, dy=CAL_DY, cell_w=19, cell_h=18, size=12,
                     color=0xD6D6D6, today_color=0xFFFFFF, ring=save(ring, 'p1/cal_ring.png'))
-    d.line([(132, 320), (348, 320)], fill=ORANGE, width=2)
+    d.line([(112, 318), (368, 318)], fill=ORANGE, width=2)
 
     # ---- 下: 円弧メーター 3 つ（溝は IMG_LEVEL の画像に含める）
     def gauge_arc(ratio):
@@ -299,15 +304,15 @@ def build(g):
 
     levels = [gauge_arc(i / (GAUGE_LEVELS - 1)) for i in range(GAUGE_LEVELS)]
     level_paths = [save(im, f'p1/gauge/{i}.png') for i, im in enumerate(levels)]
-    for x in (195, 285):
-        d.line([(x, 345), (x, 400)], fill=LINE, width=1)
+    for x in (190, 290):
+        d.line([(x, 346), (x, 404)], fill=LINE, width=1)
 
-    f_gl = font(500, 9)
+    f_gl = font(500, 10)
     types = {}
     deco = {}
     for t in CATALOG:
         k = t['key']
-        ic = tint(g.icon(16, t['icon']), WHITE)
+        ic = tint(g.icon(18, t['icon']), WHITE)
         li = label_image(GAUGE_LABEL.get(k, t['label'].upper()), f_gl, VAL, pad=0, spacing=1.2)
         lab = Image.new('RGBA', (76, li.height), (0, 0, 0, 0))
         lab.paste(li, ((76 - li.width) // 2, 0), li)
@@ -316,13 +321,13 @@ def build(g):
                         label_h=lab.height, title=t['title'], unit=t.get('unit'), sep=t.get('sep'),
                         negative=bool(t.get('negative')))
     # 枠内の相対位置
-    ICON_Y, VALUE_CY, LABEL_CY = 16, 44, 63
+    ICON_Y, VALUE_CY, LABEL_CY = 18, 48, 69
 
     def render_gauge(key, level=7):
         t = next(c_ for c_ in CATALOG if c_['key'] == key)
         img = levels[level].copy()
         ic, lab = deco[key]
-        img.alpha_composite(ic, ((GAUGE_BOX - 16) // 2, ICON_Y - 8))
+        img.alpha_composite(ic, ((GAUGE_BOX - 18) // 2, ICON_Y - 9))
         s = t['sample'] + (t.get('unit') or '')
         gv.draw(img, s, (GAUGE_BOX - gv.text_width(s)) / 2, VALUE_CY - gv.h / 2)
         img.alpha_composite(lab, ((GAUGE_BOX - 76) // 2, round(LABEL_CY - lab.height / 2)))
@@ -340,7 +345,7 @@ def build(g):
     for gg in GAUGES:
         x, y = gg['cx'] - GAUGE_BOX // 2, GAUGE_Y - GAUGE_BOX // 2
         gauges.append(dict(edit_id=gg['edit_id'], default=gg['default'], x=x, y=y, w=GAUGE_BOX, h=GAUGE_BOX,
-                           icon=dict(x=gg['cx'] - 8, y=y + ICON_Y - 8),
+                           icon=dict(x=gg['cx'] - 9, y=y + ICON_Y - 9),
                            value=dict(x=x + 2, y=round(y + VALUE_CY - gv.h / 2), w=GAUGE_BOX - 4, h=gv.h),
                            label=dict(x=gg['cx'] - 38, cy=y + LABEL_CY),
                            tips_x=(GAUGE_BOX - 132) // 2, tips_y=-40))
@@ -354,12 +359,12 @@ def build(g):
     )
 
     # ---- 最下段
-    text_center(d, 240, 424, 'EAT  //  TRAIN  //  REPEAT', font(500, 11), VAL, spacing=1.5)
-    d.line([(196, 444), (222, 444)], fill=ORANGE, width=2)
-    d.line([(258, 444), (284, 444)], fill=ORANGE, width=2)
-    d.rectangle([226, 438, 230, 450], fill=ORANGE)
-    d.rectangle([250, 438, 254, 450], fill=ORANGE)
-    d.line([(230, 444), (250, 444)], fill=ORANGE, width=3)
+    text_center(d, 240, 432, 'EAT  //  TRAIN  //  REPEAT', font(500, 12), VAL, spacing=1.5)
+    d.line([(196, 452), (222, 452)], fill=ORANGE, width=2)
+    d.line([(258, 452), (284, 452)], fill=ORANGE, width=2)
+    d.rectangle([226, 446, 230, 458], fill=ORANGE)
+    d.rectangle([250, 446, 254, 458], fill=ORANGE)
+    d.line([(230, 452), (250, 452)], fill=ORANGE, width=3)
 
     # 円形にマスク
     mask = Image.new('L', (W * SS, H * SS), 0)
@@ -368,26 +373,26 @@ def build(g):
     out = Image.new('RGBA', (W, H), (0, 0, 0, 255))
     out.paste(bg, (0, 0), mask)
     L['bg'] = save(out, 'p1/bg.png')
-    L['toggle'] = dict(x=170, y=124, w=136, h=180)
+    L['toggle'] = dict(x=164, y=116, w=142, h=196)
 
     # ---- プレビュー（サンプル値）
     pv = out.copy()
     pd = ImageDraw.Draw(pv)
-    pv.alpha_composite(Image.open(g.IMG_DIR + '/' + L['weather']['icon']['src'][0][7:]), (138, 58))
-    pv.alpha_composite(wx_text[0][1], (L['weather']['text']['x'], 92))
-    temp.draw(pv, '18', 172, 60)
-    pv.alpha_composite(deg, (172 + temp.text_width('18'), 60))
-    dt.draw(pv, '10.17', date_x, 62)
-    pv.alpha_composite(wk[5][1], (L['week']['x'], 94))
-    pv.alpha_composite(mon[9][1], (332, 136))
+    pv.alpha_composite(Image.open(g.IMG_DIR + '/' + L['weather']['icon']['src'][0][7:]), (WX_X, 44))
+    pv.alpha_composite(wx_text[0][1], (L['weather']['text']['x'], 86))
+    temp.draw(pv, '18', WX_X + 38, 46)
+    pv.alpha_composite(deg, (WX_X + 38 + temp.text_width('18'), 46))
+    dt.draw(pv, '10.17', date_x, 46)
+    pv.alpha_composite(wk[5][1], (L['week']['x'], 84))
+    pv.alpha_composite(mon[9][1], (332, 122))
     for i, s in enumerate(['NISHIKU', 'KUJO']):
-        pv.alpha_composite(label_image(s, font(500, 12), ORANGE, pad=0, spacing=2), (66, 180 + i * 16))
-    stat.draw(pv, '66', 66, 242)
-    pv.alpha_composite(pct, (66 + stat.text_width('66'), 242))
-    stat.draw(pv, '45', 66, 288)
-    pv.alpha_composite(mins, (66 + stat.text_width('45'), 288))
-    tm.draw(pv, '10', hour_x, 128)
-    tm.draw(pv, '24', hour_x, 226)
+        pv.alpha_composite(label_image(s, font(500, 14), ORANGE, pad=0, spacing=2), (LX + 2, 175 + i * 18))
+    stat.draw(pv, '66', LX + 2, 237)
+    pv.alpha_composite(pct, (LX + 2 + stat.text_width('66'), 237))
+    stat.draw(pv, '45', LX + 2, 287)
+    pv.alpha_composite(mins, (LX + 2 + stat.text_width('45'), 287))
+    tm.draw(pv, '10', hour_x, HOUR_Y)
+    tm.draw(pv, '24', hour_x, MIN_Y)
     sec.draw(pv, '36', L['time']['sec_x'], L['time']['sec_y'])
     for wi, week in enumerate(calendar.monthcalendar(2026, 10)):
         for di, day in enumerate(week):
@@ -395,8 +400,8 @@ def build(g):
                 continue
             cx, cy = CAL_X0 + di * CAL_DX, CAL_Y0 + wi * CAL_DY
             if day == 17:
-                pv.alpha_composite(ring, (round(cx - 9), round(cy - 9)))
-            text_center(pd, cx, cy, str(day), font(500, 11), WHITE if day == 17 else VAL)
+                pv.alpha_composite(ring, (round(cx - 10), round(cy - 10)))
+            text_center(pd, cx, cy, str(day), font(500, 12), WHITE if day == 17 else VAL)
     for gg, key, lv in zip(gauges, ('STEP', 'HEART', 'CAL'), (8, 5, 7)):
         pv.alpha_composite(render_gauge(key, lv), (gg['x'], gg['y']))
     return L, pv

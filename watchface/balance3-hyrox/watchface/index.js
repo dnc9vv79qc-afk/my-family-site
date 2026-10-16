@@ -535,8 +535,8 @@ function buildPage1() {
       w.setProperty(prop.TEXT, on ? String(day) : '')
       w.setProperty(prop.COLOR, day === now.getDate() ? C.today_color : C.color)
       if (day === now.getDate()) {
-        ring.setProperty(prop.X, Math.round(C.x0 + (i % 7) * C.dx - 9))
-        ring.setProperty(prop.Y, Math.round(C.y0 + Math.floor(i / 7) * C.dy - 9))
+        ring.setProperty(prop.X, Math.round(C.x0 + (i % 7) * C.dx - 10))
+        ring.setProperty(prop.Y, Math.round(C.y0 + Math.floor(i / 7) * C.dy - 10))
       }
     })
   }

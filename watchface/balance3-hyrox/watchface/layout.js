@@ -4,10 +4,10 @@ export const L = {
   "p1": {
     "weather": {
       "icon": {
-        "x": 138,
-        "y": 58,
-        "w": 30,
-        "h": 30,
+        "x": 120,
+        "y": 44,
+        "w": 34,
+        "h": 34,
         "src": [
           "images/p1/wx/sun_cloud.png",
           "images/p1/wx/rain.png",
@@ -41,10 +41,10 @@ export const L = {
         ]
       },
       "text": {
-        "x": 115,
-        "y": 92,
-        "w": 150,
-        "h": 16,
+        "x": 97,
+        "y": 86,
+        "w": 170,
+        "h": 18,
         "src": [
           "images/p1/wx/text_0.png",
           "images/p1/wx/text_1.png",
@@ -79,10 +79,10 @@ export const L = {
       }
     },
     "temp": {
-      "x": 172,
-      "y": 60,
-      "w": 70,
-      "h": 21,
+      "x": 158,
+      "y": 46,
+      "w": 80,
+      "h": 24,
       "font": [
         "images/p1_temp/0.png",
         "images/p1_temp/1.png",
@@ -100,8 +100,8 @@ export const L = {
       "unit": "images/p1/unit_deg.png"
     },
     "date": {
-      "x": 259,
-      "y": 62,
+      "x": 264,
+      "y": 46,
       "digits": [
         "images/p1_date/0.png",
         "images/p1_date/1.png",
@@ -130,8 +130,8 @@ export const L = {
       "dot_aod": "images/p1_date_aod/46.png"
     },
     "week": {
-      "x": 270,
-      "y": 94,
+      "x": 280,
+      "y": 84,
       "src": [
         "images/p1/week/1.png",
         "images/p1/week/2.png",
@@ -143,19 +143,19 @@ export const L = {
       ]
     },
     "place": {
-      "x": 64,
-      "y": 178,
-      "w": 118,
-      "line_h": 16,
-      "size": 12,
+      "x": 44,
+      "y": 172,
+      "w": 124,
+      "line_h": 18,
+      "size": 14,
       "space": 2,
       "color": 16747546
     },
     "bat": {
-      "x": 66,
-      "y": 242,
+      "x": 46,
+      "y": 237,
       "w": 80,
-      "h": 17,
+      "h": 18,
       "font": [
         "images/p1_stat/0.png",
         "images/p1_stat/1.png",
@@ -172,10 +172,10 @@ export const L = {
       "unit": "images/p1/unit_pct.png"
     },
     "rain": {
-      "x": 66,
-      "y": 288,
+      "x": 46,
+      "y": 287,
       "w": 80,
-      "h": 17,
+      "h": 18,
       "font": [
         "images/p1_stat/0.png",
         "images/p1_stat/1.png",
@@ -195,12 +195,12 @@ export const L = {
         "--": "images/p1/rain_none.png"
       },
       "word_w": 80,
-      "word_h": 21
+      "word_h": 22
     },
     "time": {
-      "x": 178,
-      "hour_y": 128,
-      "minute_y": 226,
+      "x": 166,
+      "hour_y": 120,
+      "minute_y": 213,
       "digits": [
         "images/p1_time/0.png",
         "images/p1_time/1.png",
@@ -226,7 +226,7 @@ export const L = {
         "images/p1_time_aod/9.png"
       ],
       "sec_x": 281,
-      "sec_y": 180,
+      "sec_y": 182,
       "sec": [
         "images/p1_sec/0.png",
         "images/p1_sec/1.png",
@@ -242,7 +242,7 @@ export const L = {
     },
     "month": {
       "x": 332,
-      "y": 136,
+      "y": 122,
       "src": [
         "images/p1/month/1.png",
         "images/p1/month/2.png",
@@ -259,13 +259,13 @@ export const L = {
       ]
     },
     "cal": {
-      "x0": 326,
-      "dx": 15.5,
-      "y0": 186,
-      "dy": 21,
-      "cell_w": 18,
-      "cell_h": 16,
-      "size": 11,
+      "x0": 324,
+      "dx": 18.3,
+      "y0": 174,
+      "dy": 23,
+      "cell_w": 19,
+      "cell_h": 18,
+      "size": 12,
       "color": 14079702,
       "today_color": 16777215,
       "ring": "images/p1/cal_ring.png"
@@ -275,73 +275,73 @@ export const L = {
         {
           "edit_id": 111,
           "default": "STEP",
-          "x": 108,
+          "x": 94,
           "y": 328,
-          "w": 84,
-          "h": 84,
+          "w": 92,
+          "h": 92,
           "icon": {
-            "x": 142,
-            "y": 336
+            "x": 131,
+            "y": 337
           },
           "value": {
-            "x": 110,
-            "y": 366,
-            "w": 80,
-            "h": 13
+            "x": 96,
+            "y": 368,
+            "w": 88,
+            "h": 15
           },
           "label": {
-            "x": 112,
-            "cy": 391
+            "x": 102,
+            "cy": 397
           },
-          "tips_x": -24,
+          "tips_x": -20,
           "tips_y": -40
         },
         {
           "edit_id": 112,
           "default": "HEART",
-          "x": 198,
+          "x": 194,
           "y": 328,
-          "w": 84,
-          "h": 84,
+          "w": 92,
+          "h": 92,
           "icon": {
-            "x": 232,
-            "y": 336
+            "x": 231,
+            "y": 337
           },
           "value": {
-            "x": 200,
-            "y": 366,
-            "w": 80,
-            "h": 13
+            "x": 196,
+            "y": 368,
+            "w": 88,
+            "h": 15
           },
           "label": {
             "x": 202,
-            "cy": 391
+            "cy": 397
           },
-          "tips_x": -24,
+          "tips_x": -20,
           "tips_y": -40
         },
         {
           "edit_id": 113,
           "default": "CAL",
-          "x": 288,
+          "x": 294,
           "y": 328,
-          "w": 84,
-          "h": 84,
+          "w": 92,
+          "h": 92,
           "icon": {
-            "x": 322,
-            "y": 336
+            "x": 331,
+            "y": 337
           },
           "value": {
-            "x": 290,
-            "y": 366,
-            "w": 80,
-            "h": 13
+            "x": 296,
+            "y": 368,
+            "w": 88,
+            "h": 15
           },
           "label": {
-            "x": 292,
-            "cy": 391
+            "x": 302,
+            "cy": 397
           },
-          "tips_x": -24,
+          "tips_x": -20,
           "tips_y": -40
         }
       ],
@@ -645,10 +645,10 @@ export const L = {
     },
     "bg": "images/p1/bg.png",
     "toggle": {
-      "x": 170,
-      "y": 124,
-      "w": 136,
-      "h": 180
+      "x": 164,
+      "y": 116,
+      "w": 142,
+      "h": 196
     }
   },
   "mask100": "images/comp/edit/mask100.png",
