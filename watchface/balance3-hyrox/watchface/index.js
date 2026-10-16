@@ -12,8 +12,8 @@ const NORMAL = show_level.ONLY_NORMAL
 const AOD = show_level.ONAL_AOD
 const EDIT = show_level.ONLY_EDIT
 
-// ページ切り替え: pages[n] に入れたウィジェットだけを表示する（0 = CROSSFIT, 1 = データ + 地図）
-const pages = [[], []]
+// ページ切り替え: pages[n] に入れたウィジェットだけを表示する（0 = CROSSFIT, 1 = データ + 地図, 2 = 全画面地図）
+const pages = [[], [], []]
 let page = 0
 const pageListeners = []
 const hiddenWidgets = new Set() // ページ内でも状況に応じて隠すもの（雨の弧など）
@@ -246,6 +246,9 @@ function placeWidgets(p, P, brandCfg) {
     const city = fromLink || readCityName()
     const label = fromLink || placeLabel(city)
     const on = page === p
+    // 長い地名は小さく・字間を詰めて枠に収める
+    const n = (label || '').length
+    roman.setProperty(prop.MORE, n > 14 ? { text_size: P.size - 5, char_space: 1 } : n > 11 ? { text_size: P.size - 2, char_space: P.space } : { text_size: P.size, char_space: P.space })
     roman.setProperty(prop.TEXT, label || '')
     raw.setProperty(prop.TEXT, label ? '' : city || (brand ? '' : '--'))
     roman.setProperty(prop.VISIBLE, on && !!label)
@@ -292,7 +295,7 @@ function readLink() {
   try {
     const s = new LocalStorage(LINK_APP_ID, 'link.json')
     if (!s.isExisted()) return null
-    return { state: s.getItem('state', null), map: s.getItem('map', null), hud: s.getItem('hud', null) }
+    return { state: s.getItem('state', null), map: s.getItem('map', null), hud: s.getItem('hud', null), mapfull: s.getItem('mapfull', null) }
   } catch (e) {
     logger.log('link read failed')
     return null
@@ -604,6 +607,32 @@ function buildPage1() {
   return update
 }
 
+// 全画面地図（2 ページ目の地図をタップ）。どこかをタップで 2 ページ目に戻る
+function buildPage3() {
+  const F = L.p2.full
+  const map = mk(2, widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: L.blank, show_level: NORMAL })
+  mk(2, widget.IMG, { x: 0, y: 0, src: F.overlay, show_level: NORMAL })
+  const text = (c) =>
+    mk(2, widget.TEXT, { x: c.x, y: c.y, w: c.w, h: c.h, color: c.color, text_size: c.size, align_h: align.CENTER_H, align_v: align.CENTER_V, text: c.text || '', show_level: NORMAL })
+  const empty = text(F.empty)
+  const link = text(F.link)
+  const close = mk(2, widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: L.blank, show_level: NORMAL })
+  close.addEventListener(event.CLICK_UP, () => setPage(1))
+
+  return function update() {
+    if (page !== 2) return
+    const l = readLink()
+    const src = l && copyLinkFile('mapfull', l.mapfull)
+    if (src) map.setProperty(prop.SRC, src)
+    showOnPage(empty, 2, !src)
+    const st = l && l.state
+    if (st && st.ok) {
+      const sec = Math.max(0, Math.floor(Date.now() / 1000) - (st.now - (st.age || 0)))
+      link.setProperty(prop.TEXT, `LINK ${ago(sec)}`)
+    }
+  }
+}
+
 function buildPage2() {
   const P = L.p2
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
@@ -745,6 +774,9 @@ function buildPage2() {
     show_level: NORMAL,
   })
   pageToggle(1, { x: 140, y: 224, w: 320, h: 70 })
+  // 地図をタップで全画面地図へ
+  const toFull = mk(1, widget.IMG, { x: 40, y: P.map.y + 8, w: 400, h: 120, src: L.blank, show_level: NORMAL })
+  toFull.addEventListener(event.CLICK_UP, () => setPage(2))
   return placeWidgets(1, P.place, null)
 }
 
@@ -753,8 +785,9 @@ WatchFace({
     // 1 ページ目（CROSSFIT）
     pageListeners.push(buildPage1())
 
-    // 2 ページ目（タップで切り替え）
+    // 2 ページ目（タップで切り替え）と全画面地図
     pageListeners.push(buildPage2())
+    pageListeners.push(buildPage3())
 
     setPage(0)
     createWidget(widget.WIDGET_DELEGATE, { resume_call: () => pageListeners.forEach((fn) => fn()) })

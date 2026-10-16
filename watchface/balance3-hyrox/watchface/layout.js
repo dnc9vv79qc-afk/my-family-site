@@ -1013,6 +1013,26 @@ export const L = {
         "width": 5,
         "color": 4172277
       }
+    },
+    "full": {
+      "overlay": "images/p3/overlay.png",
+      "link": {
+        "x": 140,
+        "y": 380,
+        "w": 200,
+        "h": 20,
+        "size": 13,
+        "color": 14079702
+      },
+      "empty": {
+        "x": 90,
+        "y": 220,
+        "w": 300,
+        "h": 40,
+        "size": 20,
+        "color": 9211020,
+        "text": "SYNC HYROX LINK"
+      }
     }
   },
   "icon": "images/icon.png"

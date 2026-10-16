@@ -99,6 +99,44 @@ def build_ring(g):
     return img, layout
 
 
+FULL_ZOOM = 15  # 全画面地図（HYROX Link の FULL_ZOOM と同じ）
+
+
+def build_fullmap(g):
+    """全画面地図に重ねる透過画像（縁のぼかし・方位・縮尺）と配置。"""
+    font, save, text_center = g.font, g.save, g.text_center
+    W, H, SS = g.W, g.H, g.SS
+    ov = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    # 縁を黒へなじませる
+    big = Image.new('RGBA', (W * SS, H * SS), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(big)
+    c = W * SS / 2
+    for i in range(28):
+        r = (240 - i) * SS
+        bd.ellipse([c - r, c - r, c + r, c + r], outline=(0, 0, 0, round(255 * (1 - i / 28) ** 1.6)), width=SS + 1)
+    ov.alpha_composite(big.resize((W, H), Image.LANCZOS))
+    d = ImageDraw.Draw(ov)
+    # 方位（北）
+    arrow = Image.new('RGBA', (28 * SS, 34 * SS), (0, 0, 0, 0))
+    ad = ImageDraw.Draw(arrow)
+    ad.ellipse([1 * SS, 7 * SS, 27 * SS - 1, 33 * SS - 1], fill=(0, 0, 0, 170), outline=(110, 110, 110, 255), width=SS)
+    ad.polygon([(14 * SS, 10 * SS), (19 * SS, 24 * SS), (14 * SS, 21 * SS), (9 * SS, 24 * SS)], fill=(225, 225, 225, 255))
+    ov.alpha_composite(arrow.resize((28, 34), Image.LANCZOS), (240 - 14, 40))
+    text_center(d, 240, 40, 'N', font(700, 10), VAL)
+    # 縮尺 500m
+    px = round(500 / meters_per_px(zoom=FULL_ZOOM))
+    x0, y = 240 - px // 2, 420
+    d.rectangle([x0 - 6, y - 15, x0 + px + 6, y + 5], fill=(0, 0, 0, 150))
+    d.line([(x0, y), (x0 + px, y)], fill=VAL, width=2)
+    for x in (x0, x0 + px):
+        d.line([(x, y - 4), (x, y)], fill=VAL, width=2)
+    text_center(d, 240, y - 9, '500m', font(500, 10), VAL)
+    text_center(d, 240, 440, '© OpenStreetMap', font(400, 8), (100, 100, 100, 255))
+    return dict(overlay=save(ov, 'p3/overlay.png'),
+                link=dict(x=140, y=380, w=200, h=20, size=13, color=0xD6D6D6),
+                empty=dict(x=90, y=220, w=300, h=40, size=20, color=0x8C8C8C, text='SYNC HYROX LINK'))
+
+
 def build(g):
     """g は gen_assets モジュール（共通の描画ヘルパーを使う）。"""
     font, save, label_image, text_center = g.font, g.save, g.label_image, g.text_center
@@ -330,6 +368,7 @@ def build(g):
     # ---- 縁: 24 時間の目盛りリング（固定部分）。動く部分（今の時刻・日の出入り・雨）は時計側で重ねる
     ring, ring_layout = build_ring(g)
     L['ring'] = ring_layout
+    L['full'] = build_fullmap(g)
     pv.alpha_composite(ring)
 
     # プレビューだけ: 日の出〜日の入りの弧と、動く印（日の出 6:02 / 日の入り 17:25 / 今 15:56）
