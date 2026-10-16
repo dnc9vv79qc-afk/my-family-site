@@ -18,6 +18,7 @@ function messaging() {
 
 function sync() {
   if (busy) return
+  saveAuto({ ok: false, err: 'RUNNING' }) // 試した時刻を残す（結果で上書き）
   const m = messaging()
   if (!m) {
     saveAuto({ ok: false, err: 'NO LINK' })
@@ -26,12 +27,19 @@ function sync() {
   busy = true
   m.request({ method: 'link.sync', params: {} })
     .then((data) => {
-      saveState(data.state)
-      saveAuto({ ok: true })
+      // サービスからの返事は包まれ方が違うことがあるので、state を探して取り出す
+      const r = data && data.result !== undefined ? data.result : data
+      const state = r && (r.state || (r.data && r.data.state))
+      if (!state) {
+        saveAuto({ ok: false, err: `EMPTY REPLY ${typeof data}` })
+      } else {
+        saveState(state)
+        saveAuto({ ok: true })
+      }
       busy = false
     })
     .catch((e) => {
-      saveAuto({ ok: false, err: String((e && e.message) || e).slice(0, 40) })
+      saveAuto({ ok: false, err: String((e && e.message) || e).slice(0, 24) })
       busy = false
     })
 }

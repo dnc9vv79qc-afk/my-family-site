@@ -49,15 +49,35 @@ AppSideService(
     },
 
     // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）
-    async sendImage(type, url, ts) {
-      await downloadOnce(this, url, `${type}.png`)
-      const dst = `data://download/${type}_watch.png`
-      await convertLib.convert({ filePath: `data://download/${type}.png`, targetFilePath: dst })
+    async sendImage(type, url, ts, name = type) {
+      await downloadOnce(this, url, `${name}.png`)
+      const dst = `data://download/${name}_watch.png`
+      await convertLib.convert({ filePath: `data://download/${name}.png`, targetFilePath: dst })
       if (this.state.sending[type]) this.state.sending[type].cancel()
       this.state.sending[type] = this.sendFile(dst, { type, ts: String(ts) })
     },
 
+    // 地図画面: 指定した場所・ズームの地図を 1 枚送る（type 'view'）
+    async mapView({ lat, lon, zoom }) {
+      const c = config()
+      if (!c.key) throw new Error('NO KEY')
+      const q = `key=${encodeURIComponent(c.key)}`
+      const z = Math.max(12, Math.min(18, Math.round(Number(zoom) || FULL_ZOOM)))
+      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${FULL_MAP}&h=${FULL_MAP}&lat=${Number(lat).toFixed(5)}&lon=${Number(lon).toFixed(5)}`
+      // 同じ名前だと時計の画像が更新されないので 2 つの名前を交互に使う
+      this.state.viewSlot = 1 - (this.state.viewSlot || 0)
+      await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
+      return { ok: true }
+    },
+
     onRequest(req, res) {
+      if (req.method === 'link.map') {
+        this.mapView(req.params || {}).then(
+          (data) => res(null, data),
+          (e) => res(String((e && e.message) || e)),
+        )
+        return
+      }
       if (req.method !== 'link.sync') return res('unknown method')
       this.sync().then(
         (data) => res(null, data),
