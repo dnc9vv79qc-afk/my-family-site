@@ -13,6 +13,22 @@ function parse(body) {
   return typeof body === 'string' ? JSON.parse(body) : body
 }
 
+function withTimeout(p, ms, msg) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(msg)), ms)
+    p.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(t)
+        reject(e)
+      },
+    )
+  })
+}
+
 function downloadOnce(svc, url, filePath) {
   return new Promise((resolve, reject) => {
     const task = svc.download(url, { timeout: 20000, filePath })
@@ -48,14 +64,26 @@ AppSideService(
       return { state, map }
     },
 
-    // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）
+    // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）。
+    // 256 色の PNG を変換できなかったとき・終わらないときはフルカラーで取り直す
     async sendImage(type, url, ts, name = type) {
-      await downloadOnce(this, url, `${name}.png`)
       const dst = `data://download/${name}_watch.png`
-      const conv = await convertLib.convert({ filePath: `data://download/${name}.png`, targetFilePath: dst })
+      const prepare = async (u) => {
+        await downloadOnce(this, u, `${name}.png`)
+        return withTimeout(convertLib.convert({ filePath: `data://download/${name}.png`, targetFilePath: dst }), 15000, 'CONVERT TIMEOUT')
+      }
+      let conv = null
+      let palette = !url.includes('/api/hud')
+      try {
+        conv = await prepare(url)
+      } catch (e) {
+        if (!palette) throw e
+        palette = false
+        conv = await prepare(`${url}&palette=0`)
+      }
       if (this.state.sending[type]) this.state.sending[type].cancel()
       this.state.sending[type] = this.sendFile(dst, { type, ts: String(ts) })
-      return (conv && conv.size) || 0
+      return { size: (conv && conv.size) || 0, palette }
     },
 
     // 地図画面: 指定した場所・ズームの地図を 1 枚送る（type 'view'）
@@ -67,8 +95,8 @@ AppSideService(
       const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${FULL_MAP}&h=${FULL_MAP}&lat=${Number(lat).toFixed(5)}&lon=${Number(lon).toFixed(5)}`
       // 同じ名前だと時計の画像が更新されないので 2 つの名前を交互に使う
       this.state.viewSlot = 1 - (this.state.viewSlot || 0)
-      const size = await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
-      return { ok: true, size }
+      const r = await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
+      return Object.assign({ ok: true }, r)
     },
 
     onRequest(req, res) {

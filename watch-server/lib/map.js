@@ -86,8 +86,9 @@ function pathD(rings, close) {
  * @param {1|2|3} [o.detail=2] 道路の描画量
  * @param {Array<[number,number]>} [o.trail] 軌跡 [lat, lon][]
  * @param {[number,number]} [o.here] 現在地 [lat, lon]（中心とずれていてもよい）
+ * @param {boolean} [o.palette=true] 256 色のパレット PNG にする（false でフルカラー）
  */
-export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail = 2, trail = [], here = null }) {
+export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail = 2, trail = [], here = null, palette = true }) {
   const [cx, cy] = project(lat, lon, zoom)
   const left = cx - w / 2
   const top = cy - h / 2
@@ -180,6 +181,7 @@ export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${parts.join('')}</svg>`
   // 256 色のパレット PNG にする（時計用に変換したときに 1 画素 1 バイトになり、転送が約 1/4 になる）
   const img = new Resvg(svg, { background: S.bg }).render()
+  if (!palette) return img.asPng()
   const px = img.pixels
   const rgba = px.buffer.slice(px.byteOffset, px.byteOffset + px.byteLength)
   return Buffer.from(UPNG.encode([rgba], img.width, img.height, 256))
