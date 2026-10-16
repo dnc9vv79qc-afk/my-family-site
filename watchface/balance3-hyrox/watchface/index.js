@@ -624,6 +624,8 @@ function buildPage3() {
     const l = readLink()
     const src = l && copyLinkFile('mapfull', l.mapfull)
     if (src) map.setProperty(prop.SRC, src)
+    // 届いていない / 届いたが読めない を分けて出す
+    empty.setProperty(prop.TEXT, l && l.mapfull && l.mapfull.path ? 'FULL MAP LOAD ERROR' : F.empty.text)
     showOnPage(empty, 2, !src)
     const st = l && l.state
     if (st && st.ok) {

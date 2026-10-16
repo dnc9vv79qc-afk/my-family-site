@@ -65,13 +65,16 @@ Page(
         click_func: () => this.toggleAuto(),
       })
       w.auto = text({ y: 250, color: GRAY, text_size: 18, h: 26 })
+      w.files = text({ y: 274, color: GRAY, text_size: 16, h: 22 })
       w.map = createWidget(widget.IMG, { x: 0, y: 480 - MAP_H, w: 480, h: MAP_H, src: '' })
 
       const saved = store().getItem('map')
       if (saved && saved.path) w.map.setProperty(prop.SRC, saved.path)
       getApp()._options.globalData.onFile = (type, path) => {
         if (type === 'map') w.map.setProperty(prop.SRC, path)
+        this.showFiles()
       }
+      this.showFiles()
       this.showAuto()
       this.sync()
     },
@@ -94,6 +97,20 @@ Page(
           w.status.setProperty(prop.TEXT, 'ERROR')
           w.line1.setProperty(prop.TEXT, String(e).slice(0, 40))
         })
+    },
+
+    // 届いた画像（地図・雨・全画面地図）が何分前のものか
+    showFiles() {
+      const st = (k) => {
+        let e = null
+        try {
+          e = store().getItem(k)
+        } catch (err) {
+          e = null
+        }
+        return e && e.ts ? ago(nowSec() - e.ts) : '--'
+      }
+      this.state.w.files.setProperty(prop.TEXT, `MAP ${st('map')}  RAIN ${st('hud')}  FULL ${st('mapfull')}`)
     },
 
     // 自動同期の状態: ON/OFF と前回の結果
