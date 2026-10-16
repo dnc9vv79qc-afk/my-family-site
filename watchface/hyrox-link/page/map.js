@@ -124,9 +124,12 @@ Page(
       const s = this.state
       s.w.zoom.setProperty(prop.TEXT, `Z${s.zoom}`)
       s.w.status.setProperty(prop.TEXT, 'LOADING…')
-      this.request({ method: 'link.map', params: { lat: s.lat, lon: s.lon, zoom: s.zoom } }).catch((e) =>
-        s.w.status.setProperty(prop.TEXT, String(e).slice(0, 24)),
-      )
+      this.request({ method: 'link.map', params: { lat: s.lat, lon: s.lon, zoom: s.zoom } })
+        .then((r) => {
+          // スマホで描き終わって転送中（大きさを出しておく）
+          if (r && r.size) s.w.status.setProperty(prop.TEXT, `SENDING ${Math.round(r.size / 1024)}KB…`)
+        })
+        .catch((e) => s.w.status.setProperty(prop.TEXT, String(e).slice(0, 24)))
     },
   }),
 )
