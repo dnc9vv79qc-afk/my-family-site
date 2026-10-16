@@ -49,7 +49,7 @@ WEATHER = [
 # 上段・左列の基準位置
 WX_X, WX_CX, DATE_CX, LX = 120, 182, 310, 44
 
-# カレンダー（月曜始まり、最大 6 週）
+# カレンダー（日曜始まり、最大 6 週）
 CAL_X0, CAL_DX, CAL_HEAD_Y, CAL_Y0, CAL_DY = 324, 18.3, 150, 174, 23
 
 
@@ -281,7 +281,7 @@ def build(g):
         mon.append((save(cnv, f'p1/month/{i + 1}.png'), cnv))
     L['month'] = dict(x=332, y=122, src=[p for p, _ in mon])
     d.line([(312, 146), (312, 300)], fill=ORANGE, width=1)
-    for i, s in enumerate('MTWTFSS'):
+    for i, s in enumerate('SMTWTFS'):
         text_center(d, CAL_X0 + i * CAL_DX, CAL_HEAD_Y + 4, s, font(500, 10), GRAY)
     ring = Image.new('RGBA', (20 * SS, 20 * SS), (0, 0, 0, 0))
     ImageDraw.Draw(ring).ellipse([SS, SS, 19 * SS - 1, 19 * SS - 1], outline=ORANGE, width=2 * SS)
@@ -394,7 +394,7 @@ def build(g):
     tm.draw(pv, '10', hour_x, HOUR_Y)
     tm.draw(pv, '24', hour_x, MIN_Y)
     sec.draw(pv, '36', L['time']['sec_x'], L['time']['sec_y'])
-    for wi, week in enumerate(calendar.monthcalendar(2026, 10)):
+    for wi, week in enumerate(calendar.Calendar(firstweekday=6).monthdayscalendar(2026, 10)):
         for di, day in enumerate(week):
             if not day:
                 continue

@@ -489,7 +489,7 @@ function buildPage1() {
     show_level: AOD,
   })
 
-  // 月の名前 + カレンダー（月曜始まり、今日に丸）
+  // 月の名前 + カレンダー（日曜始まり、今日に丸）
   mk(0, widget.IMG_DATE, {
     month_startX: P.month.x,
     month_startY: P.month.y,
@@ -527,7 +527,7 @@ function buildPage1() {
     const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
     if (key === calKey) return
     calKey = key
-    const first = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() + 6) % 7
+    const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay() // 日曜始まり
     const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     cells.forEach((w, i) => {
       const day = i - first + 1
