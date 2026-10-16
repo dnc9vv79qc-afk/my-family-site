@@ -66,6 +66,14 @@ export function project(lat, lon, z) {
   return [((lon + 180) / 360) * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n]
 }
 
+// 世界ピクセル座標 → 緯度経度（project の逆）
+export function unproject(x, y, z) {
+  const n = 256 * 2 ** z
+  const lon = (x / n) * 360 - 180
+  const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI
+  return [lat, lon]
+}
+
 export function metersPerPixel(lat, z) {
   return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** z
 }

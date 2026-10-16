@@ -1,6 +1,6 @@
 // スマホ（Zepp アプリ）側: watch-server から最新データと地図を取り、地図は時計用に変換して転送する
 import { BaseSideService, settingsLib, convertLib } from '@zeppos/zml/base-side'
-import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM, BIG_MAP } from '../shared'
+import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM, TILE } from '../shared'
 
 function config() {
   const server = String(settingsLib.getItem('server') || DEFAULT_SERVER).trim().replace(/\/+$/, '')
@@ -66,7 +66,7 @@ AppSideService(
 
     // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）。
     // 256 色の PNG を変換できなかったとき・終わらないときはフルカラーで取り直す
-    async sendImage(type, url, ts, name = type) {
+    async sendImage(type, url, ts, name = type, extra = {}) {
       const dst = `data://download/${name}_watch.png`
       const prepare = async (u) => {
         await downloadOnce(this, u, `${name}.png`)
@@ -81,28 +81,25 @@ AppSideService(
         palette = false
         conv = await prepare(`${url}&palette=0`)
       }
-      if (this.state.sending[type]) this.state.sending[type].cancel()
-      this.state.sending[type] = this.sendFile(dst, { type, ts: String(ts) })
+      // タイルは何枚も続けて送るので取り消さない（同じ名前の前回分だけ取り消す）
+      const key = type === 'tile' ? name : type
+      if (this.state.sending[key]) this.state.sending[key].cancel()
+      this.state.sending[key] = this.sendFile(dst, Object.assign({ type, ts: String(ts) }, extra))
       return { size: (conv && conv.size) || 0, palette }
     },
 
-    // 地図画面: 指定した場所・ズームの地図を 1 枚送る（type 'view'）
-    async mapView({ lat, lon, zoom, size }) {
+    // 地図画面: タイル 1 枚を送る（type 'tile'。どのタイルかは params の z/tx/ty）
+    async mapTile({ z, tx, ty, slot }) {
       const c = config()
       if (!c.key) throw new Error('NO KEY')
       const q = `key=${encodeURIComponent(c.key)}`
-      const z = Math.max(12, Math.min(18, Math.round(Number(zoom) || FULL_ZOOM)))
-      const px = Math.max(FULL_MAP, Math.min(BIG_MAP, Number(size) || BIG_MAP))
-      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${px}&h=${px}&lat=${Number(lat).toFixed(6)}&lon=${Number(lon).toFixed(6)}`
-      // 同じ名前だと時計の画像が更新されないので 2 つの名前を交互に使う
-      this.state.viewSlot = 1 - (this.state.viewSlot || 0)
-      const r = await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
-      return Object.assign({ ok: true }, r)
+      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&tile=${TILE}&tx=${tx}&ty=${ty}`
+      return this.sendImage('tile', url, Math.floor(Date.now() / 1000), `tile${slot}`, { z, tx, ty })
     },
 
     onRequest(req, res) {
-      if (req.method === 'link.map') {
-        this.mapView(req.params || {}).then(
+      if (req.method === 'link.tile') {
+        this.mapTile(req.params || {}).then(
           (data) => res(null, data),
           (e) => res(String((e && e.message) || e)),
         )
