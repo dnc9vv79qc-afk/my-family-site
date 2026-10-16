@@ -205,15 +205,15 @@ def build(g):
     for kind, _ in WEATHER:
         if kind not in icons:
             icons[kind] = save(weather_icon(kind, 30, SS), f'p1/wx/{kind}.png')
-    TXT_W = 150
+    TXT_W, TXT_H = 150, 16  # 全部同じ大きさ（画像を差し替えても欠けないように）
+    f_wx = font(500, 12)
     wx_text = []
     for i, (_, name) in enumerate(WEATHER):
-        li = label_image(name, font(500, 12), VAL, pad=0, spacing=1.5)
-        cnv = Image.new('RGBA', (TXT_W, li.height), (0, 0, 0, 0))
-        cnv.paste(li, ((TXT_W - li.width) // 2, 0), li)
+        cnv = Image.new('RGBA', (TXT_W, TXT_H), (0, 0, 0, 0))
+        text_center(ImageDraw.Draw(cnv), TXT_W / 2, TXT_H / 2, name, f_wx, VAL, spacing=1.5)
         wx_text.append((save(cnv, f'p1/wx/text_{i}.png'), cnv))
-    L['weather'] = dict(icon=dict(x=138, y=58, src=[icons[k] for k, _ in WEATHER]),
-                        text=dict(x=190 - TXT_W // 2, y=94, src=[p for p, _ in wx_text]))
+    L['weather'] = dict(icon=dict(x=138, y=58, w=30, h=30, src=[icons[k] for k, _ in WEATHER]),
+                        text=dict(x=190 - TXT_W // 2, y=92, w=TXT_W, h=TXT_H, src=[p for p, _ in wx_text]))
     deg = unit_img('°', temp, 22, WHITE)
     L['temp'] = dict(x=172, y=60, w=70, h=temp.h, font=temp.paths, negative=temp.extra_paths['-'],
                      invalid=temp.extra_paths['-'], unit=save(deg, 'p1/unit_deg.png'))
@@ -251,10 +251,12 @@ def build(g):
     words = {}
     for w_ in ('NOW', 'DRY', '--'):
         li = label_image(w_, font(700, 22), WHITE, pad=0)
-        words[w_] = save(li, f'p1/rain_{w_.strip("-") or "none"}.png')
+        cnv = Image.new('RGBA', (80, stat.h + 4), (0, 0, 0, 0))
+        cnv.paste(li, (0, stat.h - li.height), li)
+        words[w_] = save(cnv, f'p1/rain_{w_.strip("-") or "none"}.png')
     mins = unit_img('MIN', stat, 11)
     L['rain'] = dict(x=66, y=288, w=80, h=stat.h, font=stat.paths, unit=save(mins, 'p1/unit_min.png'),
-                     words=words)
+                     words=words, word_w=80, word_h=stat.h + 4)
 
     # ---- 中央: 時・分を縦に、秒はオレンジ
     TIME_CX = 228  # 秒とカレンダーの間を空けるため少し左
@@ -372,7 +374,7 @@ def build(g):
     pv = out.copy()
     pd = ImageDraw.Draw(pv)
     pv.alpha_composite(Image.open(g.IMG_DIR + '/' + L['weather']['icon']['src'][0][7:]), (138, 58))
-    pv.alpha_composite(wx_text[0][1], (L['weather']['text']['x'], 94))
+    pv.alpha_composite(wx_text[0][1], (L['weather']['text']['x'], 92))
     temp.draw(pv, '18', 172, 60)
     pv.alpha_composite(deg, (172 + temp.text_width('18'), 60))
     dt.draw(pv, '10.17', date_x, 62)

@@ -6,6 +6,8 @@ export const L = {
       "icon": {
         "x": 138,
         "y": 58,
+        "w": 30,
+        "h": 30,
         "src": [
           "images/p1/wx/sun_cloud.png",
           "images/p1/wx/rain.png",
@@ -40,7 +42,9 @@ export const L = {
       },
       "text": {
         "x": 115,
-        "y": 94,
+        "y": 92,
+        "w": 150,
+        "h": 16,
         "src": [
           "images/p1/wx/text_0.png",
           "images/p1/wx/text_1.png",
@@ -189,7 +193,9 @@ export const L = {
         "NOW": "images/p1/rain_NOW.png",
         "DRY": "images/p1/rain_DRY.png",
         "--": "images/p1/rain_none.png"
-      }
+      },
+      "word_w": 80,
+      "word_h": 21
     },
     "time": {
       "x": 178,

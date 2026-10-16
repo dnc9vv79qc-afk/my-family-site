@@ -347,9 +347,18 @@ function buildPage1() {
   const P = L.p1
   mk(0, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
 
-  // 天気: アイコンと名前は予報の index から、気温はデータ種別で
-  const wxIcon = mk(0, widget.IMG, { x: P.weather.icon.x, y: P.weather.icon.y, src: P.weather.icon.src[25], show_level: NORMAL })
-  const wxText = mk(0, widget.IMG, { x: P.weather.text.x, y: P.weather.text.y, src: P.weather.text.src[25], show_level: NORMAL })
+  // 天気: アイコンと名前は天気のデータ種別（0-28）で時計が選ぶ。無い機種では予報の index を読む
+  const WX = P.weather
+  let wxIcon = null
+  let wxText = null
+  if (data_type.WEATHER !== undefined) {
+    ;[WX.icon, WX.text].forEach((c) =>
+      mk(0, widget.IMG_LEVEL, { x: c.x, y: c.y, w: c.w, h: c.h, image_array: c.src, image_length: c.src.length, type: data_type.WEATHER, show_level: NORMAL }),
+    )
+  } else {
+    wxIcon = mk(0, widget.IMG, { x: WX.icon.x, y: WX.icon.y, w: WX.icon.w, h: WX.icon.h, src: WX.icon.src[25], show_level: NORMAL })
+    wxText = mk(0, widget.IMG, { x: WX.text.x, y: WX.text.y, w: WX.text.w, h: WX.text.h, src: WX.text.src[25], show_level: NORMAL })
+  }
   if (data_type.WEATHER_CURRENT !== undefined) {
     mk(0, widget.TEXT_IMG, {
       x: P.temp.x,
@@ -441,7 +450,7 @@ function buildPage1() {
     text: '',
     show_level: NORMAL,
   })
-  const rainWord = mk(0, widget.IMG, { x: R.x, y: R.y, src: R.words['--'], show_level: NORMAL })
+  const rainWord = mk(0, widget.IMG, { x: R.x, y: R.y, w: R.word_w, h: R.word_h, src: R.words['--'], show_level: NORMAL })
 
   // 時刻: 時の下に分、秒はオレンジ
   const T = P.time
@@ -540,12 +549,12 @@ function buildPage1() {
     const on = page === 0
     updateCalendar()
     const nowMs = Date.now()
-    if (nowMs - wxAt > 10 * 60 * 1000) {
+    if (wxIcon && nowMs - wxAt > 10 * 60 * 1000) {
       wxAt = nowMs
       const idx = readWeatherIndex()
-      const k = idx >= 0 && idx < P.weather.icon.src.length ? idx : 25
-      wxIcon.setProperty(prop.SRC, P.weather.icon.src[k])
-      wxText.setProperty(prop.SRC, P.weather.text.src[k])
+      const k = idx >= 0 && idx < WX.icon.src.length ? idx : 25
+      wxIcon.setProperty(prop.SRC, WX.icon.src[k])
+      wxText.setProperty(prop.SRC, WX.text.src[k])
     }
     // 現在地
     const fromLink = linkPlace()
