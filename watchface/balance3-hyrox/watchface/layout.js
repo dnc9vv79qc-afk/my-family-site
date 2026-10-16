@@ -114,20 +114,7 @@ export const L = {
         "images/p1_date/8.png",
         "images/p1_date/9.png"
       ],
-      "dot": "images/p1_date/46.png",
-      "aod": [
-        "images/p1_date_aod/0.png",
-        "images/p1_date_aod/1.png",
-        "images/p1_date_aod/2.png",
-        "images/p1_date_aod/3.png",
-        "images/p1_date_aod/4.png",
-        "images/p1_date_aod/5.png",
-        "images/p1_date_aod/6.png",
-        "images/p1_date_aod/7.png",
-        "images/p1_date_aod/8.png",
-        "images/p1_date_aod/9.png"
-      ],
-      "dot_aod": "images/p1_date_aod/46.png"
+      "dot": "images/p1_date/46.png"
     },
     "week": {
       "x": 280,
@@ -141,6 +128,63 @@ export const L = {
         "images/p1/week/6.png",
         "images/p1/week/7.png"
       ]
+    },
+    "aod": {
+      "week": {
+        "x": 52,
+        "y": 161,
+        "src": [
+          "images/p1/aod_week/1.png",
+          "images/p1/aod_week/2.png",
+          "images/p1/aod_week/3.png",
+          "images/p1/aod_week/4.png",
+          "images/p1/aod_week/5.png",
+          "images/p1/aod_week/6.png",
+          "images/p1/aod_week/7.png"
+        ]
+      },
+      "date": {
+        "x": 52,
+        "y": 188,
+        "digits": [
+          "images/p1_date_aod/0.png",
+          "images/p1_date_aod/1.png",
+          "images/p1_date_aod/2.png",
+          "images/p1_date_aod/3.png",
+          "images/p1_date_aod/4.png",
+          "images/p1_date_aod/5.png",
+          "images/p1_date_aod/6.png",
+          "images/p1_date_aod/7.png",
+          "images/p1_date_aod/8.png",
+          "images/p1_date_aod/9.png"
+        ],
+        "dot": "images/p1_date_aod/46.png"
+      },
+      "label": {
+        "x": 52,
+        "y": 245,
+        "src": "images/p1/aod_label_bat.png"
+      },
+      "bat": {
+        "x": 52,
+        "y": 263,
+        "w": 90,
+        "h": 17,
+        "font": [
+          "images/p1_bat_aod/0.png",
+          "images/p1_bat_aod/1.png",
+          "images/p1_bat_aod/2.png",
+          "images/p1_bat_aod/3.png",
+          "images/p1_bat_aod/4.png",
+          "images/p1_bat_aod/5.png",
+          "images/p1_bat_aod/6.png",
+          "images/p1_bat_aod/7.png",
+          "images/p1_bat_aod/8.png",
+          "images/p1_bat_aod/9.png"
+        ],
+        "invalid": "images/p1_bat_aod/45.png",
+        "unit": "images/p1/aod_unit_pct.png"
+      }
     },
     "place": {
       "x": 44,

@@ -453,13 +453,41 @@ function buildPage1() {
   }
   const digits = (arr) => ({ month_en_array: arr, month_sc_array: arr, month_tc_array: arr, day_en_array: arr, day_sc_array: arr, day_tc_array: arr })
   mk(0, widget.IMG_DATE, Object.assign({ show_level: NORMAL }, dateOpts, digits(P.date.digits)))
-  createWidget(
-    widget.IMG_DATE,
-    Object.assign({ show_level: AOD }, dateOpts, digits(P.date.aod), { month_unit_en: P.date.dot_aod, month_unit_sc: P.date.dot_aod, month_unit_tc: P.date.dot_aod }),
-  )
   const weekOpts = { x: P.week.x, y: P.week.y, week_en: P.week.src, week_tc: P.week.src, week_sc: P.week.src }
   mk(0, widget.IMG_WEEK, Object.assign({ show_level: NORMAL }, weekOpts))
-  createWidget(widget.IMG_WEEK, Object.assign({ show_level: AOD }, weekOpts))
+
+  // 常時表示（AOD）: 左の列に曜日（オレンジ）・日付・電池。時刻は普段と同じ位置
+  const A = P.aod
+  createWidget(widget.IMG_WEEK, { x: A.week.x, y: A.week.y, week_en: A.week.src, week_tc: A.week.src, week_sc: A.week.src, show_level: AOD })
+  createWidget(
+    widget.IMG_DATE,
+    Object.assign({}, dateOpts, digits(A.date.digits), {
+      month_startX: A.date.x,
+      month_startY: A.date.y,
+      month_unit_en: A.date.dot,
+      month_unit_sc: A.date.dot,
+      month_unit_tc: A.date.dot,
+      show_level: AOD,
+    }),
+  )
+  createWidget(widget.IMG, { x: A.label.x, y: A.label.y, src: A.label.src, show_level: AOD })
+  if (data_type.BATTERY !== undefined) {
+    createWidget(widget.TEXT_IMG, {
+      x: A.bat.x,
+      y: A.bat.y,
+      w: A.bat.w,
+      h: A.bat.h,
+      type: data_type.BATTERY,
+      font_array: A.bat.font,
+      h_space: 0,
+      align_h: align.LEFT,
+      unit_en: A.bat.unit,
+      unit_sc: A.bat.unit,
+      unit_tc: A.bat.unit,
+      invalid_image: A.bat.invalid,
+      show_level: AOD,
+    })
+  }
 
   // 現在地（2 行。ローマ字にできなければ元の表記を 1 行で）
   const pl = P.place

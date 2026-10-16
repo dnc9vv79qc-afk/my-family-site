@@ -167,7 +167,8 @@ def build(g):
     tm_aod = g.DigitSet('p1_time_aod', 500, 110, AOD_GRAY, sx=0.72)
     sec = g.DigitSet('p1_sec', 700, 24, ORANGE, sx=0.80)
     dt = g.DigitSet('p1_date', 700, 31, WHITE, sx=0.84, extra='.')
-    dt_aod = g.DigitSet('p1_date_aod', 500, 31, AOD_GRAY, sx=0.84, extra='.')
+    dt_aod = g.DigitSet('p1_date_aod', 500, 28, AOD_GRAY, sx=0.84, extra='.')
+    bat_aod = g.DigitSet('p1_bat_aod', 500, 24, (110, 110, 110, 255), sx=0.88, extra='-')
     temp = g.DigitSet('p1_temp', 700, 34, WHITE, sx=0.86, extra='-°')
     stat = g.DigitSet('p1_stat', 700, 27, WHITE, sx=0.86, extra='-')
     gv = g.DigitSet('p1_gauge', 700, 23, WHITE, sx=0.88, extra='%-.:°')
@@ -226,8 +227,7 @@ def build(g):
 
     date_w = dt.w * 4 + dt.glyphs['.'].width
     date_x = round(DATE_CX - date_w / 2)
-    L['date'] = dict(x=date_x, y=46, digits=dt.paths, dot=dt.extra_paths['.'], aod=dt_aod.paths,
-                     dot_aod=dt_aod.extra_paths['.'])
+    L['date'] = dict(x=date_x, y=46, digits=dt.paths, dot=dt.extra_paths['.'])
     weeks = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     WK_W = 60
     wk = []
@@ -237,6 +237,24 @@ def build(g):
         cnv.paste(li, ((WK_W - li.width) // 2, 0), li)
         wk.append((save(cnv, f'p1/week/{i + 1}.png'), cnv))
     L['week'] = dict(x=DATE_CX - WK_W // 2, y=84, src=[p for p, _ in wk])
+
+    # ---- 常時表示（AOD）: 時刻は普段と同じ位置、左の列に曜日・日付・電池（1 ページ目の左の列と同じ場所）
+    AX = LX + 8
+    aw = []
+    for i, s_ in enumerate(weeks):
+        li = label_image(s_, font(700, 20), ORANGE, pad=0, spacing=1)
+        cnv = Image.new('RGBA', (70, li.height), (0, 0, 0, 0))
+        cnv.paste(li, (0, 0), li)
+        aw.append(save(cnv, f'p1/aod_week/{i + 1}.png'))
+    a_lab = label_image('BATTERY', font(500, 11), (55, 55, 55, 255), pad=0, spacing=1)
+    a_pct = unit_img('%', bat_aod, 14, (110, 110, 110, 255))
+    L['aod'] = dict(
+        week=dict(x=AX, y=161, src=aw),
+        date=dict(x=AX, y=188, digits=dt_aod.paths, dot=dt_aod.extra_paths['.']),
+        label=dict(x=AX, y=245, src=save(a_lab, 'p1/aod_label_bat.png')),
+        bat=dict(x=AX, y=263, w=90, h=bat_aod.h, font=bat_aod.paths, invalid=bat_aod.extra_paths['-'],
+                 unit=save(a_pct, 'p1/aod_unit_pct.png')),
+    )
     d.line([(96, 110), (384, 110)], fill=ORANGE, width=2)
 
     # ---- 左: ロゴ・現在地・電池・雨
