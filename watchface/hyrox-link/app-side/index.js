@@ -55,11 +55,23 @@ AppSideService(
 
       let map = false
       if (state.ok) {
-        await this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now)
-        map = true
-        // HUD（雨）と全画面地図は失敗しても同期全体は成功扱い
+        // 地図の中身（現在地・軌跡・描き方）が前回送ったときと同じなら、地図は取り直さず送らない。
+        // 届かなかった場合に備えて 2 時間たったら送り直す
+        const sig = `${state.map_sig}|${c.detail}`
+        const last = settingsLib.getItem('sent_sig')
+        const lastAt = Number(settingsLib.getItem('sent_at') || 0)
+        const same = state.map_sig && sig === last && Date.now() - lastAt < 2 * 3600 * 1000
+        if (!same) {
+          await this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now)
+          map = true
+          // 全画面地図と、地図画面ですぐ切り替えられるよう両隣のズームも。失敗しても同期全体は成功扱い
+          await this.sendImage('mapfull', `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${FULL_ZOOM}&w=${FULL_MAP}&h=${FULL_MAP}&center=here`, state.now).catch(() => {})
+          await this.mapZooms({ zooms: [FULL_ZOOM - 1, FULL_ZOOM + 1] }).catch(() => {})
+          settingsLib.setItem('sent_sig', sig)
+          settingsLib.setItem('sent_at', String(Date.now()))
+        }
+        // 雨は時間で変わるので毎回（小さい画像）
         await this.sendImage('hud', `${c.server}/api/hud?${q}`, state.now).catch(() => {})
-        await this.sendImage('mapfull', `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${FULL_ZOOM}&w=${FULL_MAP}&h=${FULL_MAP}&center=here`, state.now).catch(() => {})
       }
       return { state, map }
     },
@@ -89,7 +101,7 @@ AppSideService(
     },
 
     // 地図画面: 現在地が真ん中の全画面地図を、頼まれたズームの順に 1 枚ずつ送る（並べて送ると時計に届かなかった）
-    async mapZooms({ zooms, round }) {
+    async mapZooms({ zooms }) {
       const c = config()
       if (!c.key) throw new Error('NO KEY')
       const q = `key=${encodeURIComponent(c.key)}`
@@ -98,8 +110,10 @@ AppSideService(
         const zoom = Math.max(12, Math.min(18, Math.round(Number(z))))
         const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${zoom}&w=${FULL_MAP}&h=${FULL_MAP}&center=here`
         try {
-          // ファイル名（zoom<z>_<round>）で時計側がどのズームか分かる
-          await this.sendImage('zoom', url, Math.floor(Date.now() / 1000), `zoom${zoom}_${round ? 1 : 0}`)
+          // ファイル名（zoom<z>_<n>）で時計側がどのズームか分かる。同じ名前だと画像が更新されないので n を交互に
+          const n = (this.state.zoomName = this.state.zoomName || {})
+          n[zoom] = n[zoom] ? 0 : 1
+          await this.sendImage('zoom', url, Math.floor(Date.now() / 1000), `zoom${zoom}_${n[zoom]}`)
           sent++
         } catch (e) {
           // 1 枚失敗しても残りは送る
