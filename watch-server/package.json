@@ -9,6 +9,7 @@
     "@mapbox/vector-tile": "^2.0.3",
     "@resvg/resvg-js": "^2.6.2",
     "@upstash/redis": "^1.39.0",
-    "pbf": "^4.0.1"
+    "pbf": "^4.0.1",
+    "upng-js": "^2.1.0"
   }
 }

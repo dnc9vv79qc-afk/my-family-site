@@ -3,6 +3,7 @@
 import { VectorTile } from '@mapbox/vector-tile'
 import Pbf from 'pbf'
 import { Resvg } from '@resvg/resvg-js'
+import UPNG from 'upng-js'
 
 const TILEJSON = 'https://tiles.openfreemap.org/planet'
 const TILE_ZOOM = 14 // OpenFreeMap の最大ズーム。これより細かい表示は拡大して描く
@@ -177,5 +178,9 @@ export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail 
   }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${parts.join('')}</svg>`
-  return new Resvg(svg, { background: S.bg }).render().asPng()
+  // 256 色のパレット PNG にする（時計用に変換したときに 1 画素 1 バイトになり、転送が約 1/4 になる）
+  const img = new Resvg(svg, { background: S.bg }).render()
+  const px = img.pixels
+  const rgba = px.buffer.slice(px.byteOffset, px.byteOffset + px.byteLength)
+  return Buffer.from(UPNG.encode([rgba], img.width, img.height, 256))
 }

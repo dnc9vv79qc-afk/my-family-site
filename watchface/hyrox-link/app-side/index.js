@@ -52,9 +52,10 @@ AppSideService(
     async sendImage(type, url, ts, name = type) {
       await downloadOnce(this, url, `${name}.png`)
       const dst = `data://download/${name}_watch.png`
-      await convertLib.convert({ filePath: `data://download/${name}.png`, targetFilePath: dst })
+      const conv = await convertLib.convert({ filePath: `data://download/${name}.png`, targetFilePath: dst })
       if (this.state.sending[type]) this.state.sending[type].cancel()
       this.state.sending[type] = this.sendFile(dst, { type, ts: String(ts) })
+      return (conv && conv.size) || 0
     },
 
     // 地図画面: 指定した場所・ズームの地図を 1 枚送る（type 'view'）
@@ -66,8 +67,8 @@ AppSideService(
       const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${FULL_MAP}&h=${FULL_MAP}&lat=${Number(lat).toFixed(5)}&lon=${Number(lon).toFixed(5)}`
       // 同じ名前だと時計の画像が更新されないので 2 つの名前を交互に使う
       this.state.viewSlot = 1 - (this.state.viewSlot || 0)
-      await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
-      return { ok: true }
+      const size = await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)
+      return { ok: true, size }
     },
 
     onRequest(req, res) {
