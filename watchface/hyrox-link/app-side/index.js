@@ -1,6 +1,6 @@
 // スマホ（Zepp アプリ）側: watch-server から最新データと地図を取り、地図は時計用に変換して転送する
 import { BaseSideService, settingsLib, convertLib } from '@zeppos/zml/base-side'
-import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM } from '../shared'
+import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM, BIG_MAP } from '../shared'
 
 function config() {
   const server = String(settingsLib.getItem('server') || DEFAULT_SERVER).trim().replace(/\/+$/, '')
@@ -87,12 +87,13 @@ AppSideService(
     },
 
     // 地図画面: 指定した場所・ズームの地図を 1 枚送る（type 'view'）
-    async mapView({ lat, lon, zoom }) {
+    async mapView({ lat, lon, zoom, size }) {
       const c = config()
       if (!c.key) throw new Error('NO KEY')
       const q = `key=${encodeURIComponent(c.key)}`
       const z = Math.max(12, Math.min(18, Math.round(Number(zoom) || FULL_ZOOM)))
-      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${FULL_MAP}&h=${FULL_MAP}&lat=${Number(lat).toFixed(5)}&lon=${Number(lon).toFixed(5)}`
+      const px = Math.max(FULL_MAP, Math.min(BIG_MAP, Number(size) || BIG_MAP))
+      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&w=${px}&h=${px}&lat=${Number(lat).toFixed(6)}&lon=${Number(lon).toFixed(6)}`
       // 同じ名前だと時計の画像が更新されないので 2 つの名前を交互に使う
       this.state.viewSlot = 1 - (this.state.viewSlot || 0)
       const r = await this.sendImage('view', url, Math.floor(Date.now() / 1000), `view${this.state.viewSlot}`)

@@ -16,8 +16,8 @@ const clamp = (raw, lo, hi, d) => {
 export default async function handler(req, res) {
   if (!checkWatchKey(req)) return res.status(401).end()
   const q = new URL(req.url, 'http://x').searchParams
-  const w = clamp(q.get('w'), 64, 480, 480)
-  const h = clamp(q.get('h'), 64, 480, 160)
+  const w = clamp(q.get('w'), 64, 960, 480) // 960 は時計の地図画面で指で動かす用（画面の 2 倍）
+  const h = clamp(q.get('h'), 64, 960, 160)
   const zoom = clamp(q.get('zoom'), 12, 18, 16)
   const detail = clamp(q.get('detail'), 1, 3, 2)
 
