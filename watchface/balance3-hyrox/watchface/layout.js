@@ -268,7 +268,22 @@ export const L = {
       "size": 12,
       "color": 14079702,
       "today_color": 16777215,
-      "ring": "images/p1/cal_ring.png"
+      "sun_color": 14063244,
+      "sat_color": 9874632,
+      "other_color": 9211020,
+      "ring": "images/p1/cal_ring.png",
+      "band": {
+        "src": "images/p1/cal_band.png",
+        "w": 132,
+        "h": 20
+      },
+      "dot": "images/p1/cal_dot.png",
+      "area": {
+        "x": 314,
+        "y": 118,
+        "w": 130,
+        "h": 184
+      }
     },
     "gauge": {
       "slots": [

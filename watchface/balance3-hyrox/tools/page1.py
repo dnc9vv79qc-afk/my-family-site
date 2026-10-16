@@ -15,6 +15,8 @@ TRACK = (55, 55, 55, 255)
 AOD_GRAY = (170, 170, 170, 255)
 YELLOW = (255, 196, 64, 255)  # 天気アイコンだけ
 RAIN = (63, 169, 245, 255)
+SUN_C = (214, 150, 140, 255)  # 日曜・祝日（赤みのグレー）
+SAT_C = (150, 172, 200, 255)  # 土曜（青みのグレー）
 
 # 円弧メーター（編集で中身を入れ替えられる）
 GAUGE_R = 45
@@ -282,12 +284,27 @@ def build(g):
     L['month'] = dict(x=332, y=122, src=[p for p, _ in mon])
     d.line([(312, 146), (312, 300)], fill=ORANGE, width=1)
     for i, s in enumerate('SMTWTFS'):
-        text_center(d, CAL_X0 + i * CAL_DX, CAL_HEAD_Y + 4, s, font(500, 10), GRAY)
+        hc = SUN_C if i == 0 else SAT_C if i == 6 else GRAY
+        text_center(d, CAL_X0 + i * CAL_DX, CAL_HEAD_Y + 4, s, font(500, 10), hc[:3] + (200,) if i in (0, 6) else hc)
     ring = Image.new('RGBA', (20 * SS, 20 * SS), (0, 0, 0, 0))
     ImageDraw.Draw(ring).ellipse([SS, SS, 19 * SS - 1, 19 * SS - 1], outline=ORANGE, width=2 * SS)
     ring = ring.resize((20, 20), Image.LANCZOS)
+    # 今週の行の薄い帯と、祝日の点
+    band_w = round(CAL_DX * 7 + 4)
+    band = Image.new('RGBA', (band_w * SS, 20 * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(band).rounded_rectangle([0, 0, band_w * SS - 1, 20 * SS - 1], radius=6 * SS, fill=(255, 255, 255, 30))
+    band = band.resize((band_w, 20), Image.LANCZOS)
+    dot = Image.new('RGBA', (4 * SS, 4 * SS), (0, 0, 0, 0))
+    ImageDraw.Draw(dot).ellipse([0, 0, 4 * SS - 1, 4 * SS - 1], fill=SUN_C)
+    dot = dot.resize((4, 4), Image.LANCZOS)
+    hex_ = lambda c: (c[0] << 16) | (c[1] << 8) | c[2]  # noqa: E731
     L['cal'] = dict(x0=CAL_X0, dx=CAL_DX, y0=CAL_Y0, dy=CAL_DY, cell_w=19, cell_h=18, size=12,
-                    color=0xD6D6D6, today_color=0xFFFFFF, ring=save(ring, 'p1/cal_ring.png'))
+                    color=0xD6D6D6, today_color=0xFFFFFF, sun_color=hex_(SUN_C), sat_color=hex_(SAT_C),
+                    other_color=0x8C8C8C, ring=save(ring, 'p1/cal_ring.png'),
+                    band=dict(src=save(band, 'p1/cal_band.png'), w=band_w, h=20),
+                    dot=save(dot, 'p1/cal_dot.png'),
+                    # タップで来月 ⇔ 今月（月の名前を含むカレンダー全体）
+                    area=dict(x=314, y=118, w=130, h=184))
     d.line([(112, 318), (368, 318)], fill=ORANGE, width=2)
 
     # ---- 下: 円弧メーター 3 つ（溝は IMG_LEVEL の画像に含める）
@@ -386,14 +403,22 @@ def build(g):
     tm.draw(pv, '10', hour_x, HOUR_Y)
     tm.draw(pv, '24', hour_x, MIN_Y)
     sec.draw(pv, '36', L['time']['sec_x'], L['time']['sec_y'])
-    for wi, week in enumerate(calendar.Calendar(firstweekday=6).monthdayscalendar(2026, 10)):
+    weeks = calendar.Calendar(firstweekday=6).monthdayscalendar(2026, 10)
+    for wi, week in enumerate(weeks):
+        if 17 in week:
+            pv.alpha_composite(band, (round(CAL_X0 - CAL_DX / 2 - 2), round(CAL_Y0 + wi * CAL_DY - 10)))
+    holidays = {12}  # 2026/10 スポーツの日
+    for wi, week in enumerate(weeks):
         for di, day in enumerate(week):
             if not day:
                 continue
             cx, cy = CAL_X0 + di * CAL_DX, CAL_Y0 + wi * CAL_DY
             if day == 17:
                 pv.alpha_composite(ring, (round(cx - 10), round(cy - 10)))
-            text_center(pd, cx, cy, str(day), font(500, 12), WHITE if day == 17 else VAL)
+            col = WHITE if day == 17 else SUN_C if (di == 0 or day in holidays) else SAT_C if di == 6 else VAL
+            text_center(pd, cx, cy, str(day), font(500, 12), col)
+            if day in holidays:
+                pv.alpha_composite(dot, (round(cx - 2), round(cy + 7)))
     for gg, key, lv in zip(gauges, ('STEP', 'HEART', 'CAL'), (8, 5, 7)):
         pv.alpha_composite(render_gauge(key, lv), (gg['x'], gg['y']))
     return L, pv
