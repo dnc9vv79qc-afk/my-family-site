@@ -17,15 +17,15 @@ YELLOW = (255, 196, 64, 255)  # 天気アイコンだけ
 RAIN = (63, 169, 245, 255)
 
 # 円弧メーター（編集で中身を入れ替えられる）
-GAUGE_R = 42
+GAUGE_R = 45
 GAUGE_W = 6
-GAUGE_BOX = 92
-GAUGE_Y = 374
+GAUGE_BOX = 98
+GAUGE_Y = 384
 GAUGE_LEVELS = 11
 GAUGES = [
-    dict(edit_id=111, cx=140, default='STEP'),
+    dict(edit_id=111, cx=134, default='STEP'),
     dict(edit_id=112, cx=240, default='HEART'),
-    dict(edit_id=113, cx=340, default='CAL'),
+    dict(edit_id=113, cx=346, default='CAL'),
 ]
 GAUGE_LABEL = {
     'HEART': 'BPM', 'STEP': 'STEPS', 'CAL': 'CAL', 'BATTERY': 'BATT', 'STRESS': 'STRESS',
@@ -168,7 +168,7 @@ def build(g):
     dt_aod = g.DigitSet('p1_date_aod', 500, 31, AOD_GRAY, sx=0.84, extra='.')
     temp = g.DigitSet('p1_temp', 700, 34, WHITE, sx=0.86, extra='-°')
     stat = g.DigitSet('p1_stat', 700, 27, WHITE, sx=0.86, extra='-')
-    gv = g.DigitSet('p1_gauge', 700, 21, WHITE, sx=0.88, extra='%-.:°')
+    gv = g.DigitSet('p1_gauge', 700, 23, WHITE, sx=0.88, extra='%-.:°')
 
     L = {}
     bg = Image.new('RGBA', (W, H), (0, 0, 0, 255))
@@ -304,8 +304,8 @@ def build(g):
 
     levels = [gauge_arc(i / (GAUGE_LEVELS - 1)) for i in range(GAUGE_LEVELS)]
     level_paths = [save(im, f'p1/gauge/{i}.png') for i, im in enumerate(levels)]
-    for x in (190, 290):
-        d.line([(x, 346), (x, 404)], fill=LINE, width=1)
+    for x in (187, 293):
+        d.line([(x, 352), (x, 416)], fill=LINE, width=1)
 
     f_gl = font(600, 11)  # 小さく細いと時計の画像変換で下半分が消えるので太めに
     types = {}
@@ -321,7 +321,7 @@ def build(g):
                         label_h=lab.height, title=t['title'], unit=t.get('unit'), sep=t.get('sep'),
                         negative=bool(t.get('negative')))
     # 枠内の相対位置
-    ICON_Y, VALUE_CY, LABEL_CY = 18, 47, 69
+    ICON_Y, VALUE_CY, LABEL_CY = 20, 50, 73
 
     def render_gauge(key, level=7):
         t = next(c_ for c_ in CATALOG if c_['key'] == key)
@@ -357,14 +357,6 @@ def build(g):
                   dot=gv.extra_paths['.'], colon=gv.extra_paths[':'],
                   units={'%': gv.extra_paths['%'], '°': gv.extra_paths['°']}),
     )
-
-    # ---- 最下段
-    text_center(d, 240, 432, 'EAT  //  TRAIN  //  REPEAT', font(500, 12), VAL, spacing=1.5)
-    d.line([(196, 452), (222, 452)], fill=ORANGE, width=2)
-    d.line([(258, 452), (284, 452)], fill=ORANGE, width=2)
-    d.rectangle([226, 446, 230, 458], fill=ORANGE)
-    d.rectangle([250, 446, 254, 458], fill=ORANGE)
-    d.line([(230, 452), (250, 452)], fill=ORANGE, width=3)
 
     # 円形にマスク
     mask = Image.new('L', (W * SS, H * SS), 0)
