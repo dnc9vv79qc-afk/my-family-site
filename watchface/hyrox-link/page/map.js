@@ -1,28 +1,15 @@
-// 地図画面（ウォッチフェイスの全画面地図から開く）。
-// ズームごとに世界を TILE px 四方のタイルに区切り、画面のまわりのタイルだけをスマホ経由でもらう（真ん中に近い順）。
-// 指でなぞるとタイルを並べ直すだけなので、その場でなめらかに動く。リューズか ＋/－ で拡大縮小、◎ で現在地へ
+// 地図画面（ウォッチフェイスの全画面地図から開く）。現在地が真ん中の地図をズーム 13〜17 で持っておき、
+// リューズか ＋/－ ですぐ切り替える。Z15 は同期で届いている全画面地図、ほかは開いたときに裏で 1 枚ずつもらう
+// （近いズームから順に）。30 分以内で現在地が変わっていなければ、次に開いたときもそのまま使う
 import { BasePage } from '@zeppos/zml/base-page'
-import { createWidget, widget, prop, align, event } from '@zos/ui'
-import { onGesture, offGesture, onDigitalCrown, offDigitalCrown } from '@zos/interaction'
-import { FULL_MAP, FULL_ZOOM, TILE } from '../shared'
+import { createWidget, widget, prop, align } from '@zos/ui'
+import { onDigitalCrown, offDigitalCrown } from '@zos/interaction'
+import { FULL_MAP, FULL_ZOOM } from '../shared'
 import { store } from '../lib/store'
 
 const ORANGE = 0xff8c1a
-const S = FULL_MAP // 画面
-const Z_MIN = 13
-const Z_MAX = 17
-const POOL = 16 // 画面に並べる IMG の数（3×3 で足り、余りは動かし中の予備）
-const SLOTS = 64 // 時計に置いておくタイル画像の数（古いものから上書き。次に開いたときも使う）
-const BATCH = 6 // 1 回に頼むタイル数
-const HOME = { lat: 34.677, lon: 135.474 }
-
-function toPx(lat, lon, z) {
-  const n = 256 * Math.pow(2, z)
-  const s = Math.sin((lat * Math.PI) / 180)
-  return [((lon + 180) / 360) * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n]
-}
-
-const keyOf = (z, tx, ty) => `${z}/${tx}/${ty}`
+const ZOOMS = [13, 14, 15, 16, 17]
+const KEEP_MS = 30 * 60 * 1000
 
 function button(x, y, text, onClick) {
   return createWidget(widget.BUTTON, {
@@ -40,80 +27,43 @@ function button(x, y, text, onClick) {
   })
 }
 
+// 現在地がほぼ同じか（約 50m 以内）
+function samePlace(a, b) {
+  return a && b && Math.abs(a.lat - b.lat) < 0.0005 && Math.abs(a.lon - b.lon) < 0.0006
+}
+
 Page(
   BasePage({
-    state: {
-      w: {},
-      zoom: FULL_ZOOM,
-      vx: 0, // 画面の中心（世界ピクセル）
-      vy: 0,
-      tiles: {}, // key -> { path, slot }
-      slotKey: [], // slot -> key
-      nextSlot: 0,
-      asked: {}, // key -> 頼んだ時刻（30 秒届かなければ頼み直す）
-      busy: false,
-      pool: [], // { img, key }
-      drag: null,
-      crown: 0,
-      base: null,
-      lastErr: '',
-    },
+    state: { w: {}, zoom: FULL_ZOOM, maps: {}, here: null, crown: 0, busy: false, round: 0 },
 
     build() {
       const s = this.state
       const w = s.w
       const st = store().getItem('state')
-      const here = st && st.lat != null ? st : HOME
-      ;[s.vx, s.vy] = toPx(here.lat, here.lon, s.zoom)
-      const cache = store().getItem('tilecache')
-      if (cache && cache.tiles && cache.slotKey) {
-        // タイルには現在地と軌跡も描いてあるので、30 分より古いものは使わない
-        Object.keys(cache.tiles).forEach((k) => {
-          if (Date.now() - (cache.tiles[k].ts || 0) < 30 * 60 * 1000) s.tiles[k] = cache.tiles[k]
-        })
-        s.slotKey = cache.slotKey
-        s.nextSlot = cache.nextSlot || 0
-      }
-      // 全画面地図はこのズームで現在地が真ん中。タイルの下に敷き、指の動きに合わせて一緒に動かす
-      s.base = { x: s.vx, y: s.vy, zoom: s.zoom }
+      s.here = st && st.lat != null ? { lat: st.lat, lon: st.lon } : null
 
-      // タイルが届くまでの下敷き
-      w.placeholder = createWidget(widget.IMG, { x: 0, y: 0, w: S, h: S, src: '' })
+      const cache = store().getItem('zoommaps')
+      if (cache && cache.maps && Date.now() - (cache.ts || 0) < KEEP_MS && samePlace(cache.here, s.here)) {
+        s.maps = cache.maps
+        s.round = cache.round || 0
+      }
       const full = store().getItem('mapfull')
-      if (full && full.path) w.placeholder.setProperty(prop.SRC, full.path)
-      for (let i = 0; i < POOL; i++) {
-        const img = createWidget(widget.IMG, { x: -TILE, y: -TILE, w: TILE, h: TILE, src: '' })
-        img.setProperty(prop.VISIBLE, false)
-        s.pool.push({ img, key: null })
-      }
+      if (full && full.path) s.maps[FULL_ZOOM] = full.path
 
-      // 指でなぞる面（ボタンより下）
-      const touch = createWidget(widget.IMG, { x: 0, y: 0, w: S, h: S, src: 'blank.png' })
-      touch.addEventListener(event.CLICK_DOWN, (e) => {
-        s.drag = { x: e.x, y: e.y }
-      })
-      touch.addEventListener(event.MOVE, (e) => {
-        if (!s.drag) return
-        s.vx -= e.x - s.drag.x
-        s.vy -= e.y - s.drag.y
-        s.drag = { x: e.x, y: e.y }
-        this.place()
-      })
-      touch.addEventListener(event.CLICK_UP, () => {
-        s.drag = null
-        this.fetch()
-      })
-
-      w.zoom = createWidget(widget.TEXT, { x: 190, y: 28, w: 100, h: 28, color: ORANGE, text_size: 20, align_h: align.CENTER_H, align_v: align.CENTER_V, text: `Z${s.zoom}` })
-      w.status = createWidget(widget.TEXT, { x: 60, y: 416, w: 360, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
+      w.map = createWidget(widget.IMG, { x: 0, y: 0, w: FULL_MAP, h: FULL_MAP, src: s.maps[s.zoom] || '' })
+      w.zoom = createWidget(widget.TEXT, { x: 190, y: 28, w: 100, h: 28, color: ORANGE, text_size: 20, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
+      w.status = createWidget(widget.TEXT, { x: 90, y: 420, w: 300, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
       button(400, 180, '+', () => this.setZoom(s.zoom + 1))
       button(400, 244, '-', () => this.setZoom(s.zoom - 1))
-      button(24, 212, '◎', () => this.recenter())
 
-      getApp()._options.globalData.onFile = (type, path, params) => {
-        if (type === 'tile') this.arrived(path, params)
+      getApp()._options.globalData.onFile = (type, path) => {
+        if (type !== 'zoom') return
+        const m = /zoom(\d+)_/.exec(String(path))
+        if (!m) return
+        s.maps[Number(m[1])] = path
+        this.save()
+        this.show()
       }
-      onGesture({ callback: () => true }) // スワイプで画面が戻らないように
       onDigitalCrown({
         callback: (key, degree) => {
           s.crown += degree
@@ -123,175 +73,56 @@ Page(
           }
         },
       })
-      this.place()
+      this.show()
       this.fetch()
     },
 
-    // 届いたタイルの一覧を残しておき、次に開いたときに使う（画像ファイルは時計に残っている）
-    saveCache() {
+    onDestroy() {
+      offDigitalCrown()
+      getApp()._options.globalData.onFile = null
+    },
+
+    save() {
       const s = this.state
       try {
-        store().setItem('tilecache', { tiles: s.tiles, slotKey: s.slotKey, nextSlot: s.nextSlot })
+        store().setItem('zoommaps', { maps: s.maps, here: s.here, ts: Date.now(), round: s.round })
       } catch (e) {
         // 残せなくても次に開いたとき取り直すだけ
       }
     },
 
-    onDestroy() {
-      offGesture()
-      offDigitalCrown()
-      getApp()._options.globalData.onFile = null
-    },
-
-    // 画面にかかるタイルを並べる（届いているものだけ）
-    place() {
+    show() {
       const s = this.state
-      const left = s.vx - S / 2
-      const top = s.vy - S / 2
-      // 下敷き（全画面地図）は同じズームのときだけ、ずらして出す
-      const b = s.base
-      const ph = s.w.placeholder
-      if (b.zoom === s.zoom && Math.abs(s.vx - b.x) < S && Math.abs(s.vy - b.y) < S) {
-        ph.setProperty(prop.X, Math.round(b.x - s.vx))
-        ph.setProperty(prop.Y, Math.round(b.y - s.vy))
-        ph.setProperty(prop.VISIBLE, true)
-      } else {
-        ph.setProperty(prop.VISIBLE, false)
-      }
-      const want = {}
-      for (let tx = Math.floor(left / TILE); tx <= Math.floor((left + S - 1) / TILE); tx++) {
-        for (let ty = Math.floor(top / TILE); ty <= Math.floor((top + S - 1) / TILE); ty++) {
-          const k = keyOf(s.zoom, tx, ty)
-          if (s.tiles[k]) want[k] = [tx, ty]
-        }
-      }
-      // 使い続ける IMG はそのまま、空いた IMG に新しいタイルを
-      const free = []
-      s.pool.forEach((p) => {
-        if (p.key && want[p.key]) return
-        p.key = null
-        free.push(p)
-      })
-      Object.keys(want).forEach((k) => {
-        if (s.pool.some((p) => p.key === k)) return
-        const p = free.pop()
-        if (!p) return
-        p.key = k
-        p.img.setProperty(prop.SRC, s.tiles[k].path)
-      })
-      s.pool.forEach((p) => {
-        if (!p.key) {
-          p.img.setProperty(prop.VISIBLE, false)
-          return
-        }
-        const [tx, ty] = want[p.key]
-        p.img.setProperty(prop.X, Math.round(tx * TILE - left))
-        p.img.setProperty(prop.Y, Math.round(ty * TILE - top))
-        p.img.setProperty(prop.VISIBLE, true)
-      })
-    },
-
-    // 画面とそのまわり 1 枚ぶんで、まだ無いタイルを真ん中に近い順に頼む
-    fetch() {
-      const s = this.state
-      const cx = Math.floor(s.vx / TILE)
-      const cy = Math.floor(s.vy / TILE)
-      const need = []
-      for (let dx = -2; dx <= 2; dx++) {
-        for (let dy = -2; dy <= 2; dy++) {
-          const k = keyOf(s.zoom, cx + dx, cy + dy)
-          if (!s.tiles[k] && !(s.asked[k] && Date.now() - s.asked[k] < 30000)) need.push({ k, tx: cx + dx, ty: cy + dy, d: dx * dx + dy * dy })
-        }
-      }
-      need.sort((a, b) => a.d - b.d)
-      if (!s.busy && need.length) this.ask(need.slice(0, BATCH))
-      this.showStatus()
-    },
-
-    // 画面とまわりのタイルが何枚届いているか（届いていないときだけ出す）
-    showStatus() {
-      const s = this.state
-      const cx = Math.floor(s.vx / TILE)
-      const cy = Math.floor(s.vy / TILE)
-      let have = 0
-      let all = 0
-      for (let dx = -2; dx <= 2; dx++) {
-        for (let dy = -2; dy <= 2; dy++) {
-          all++
-          if (s.tiles[keyOf(s.zoom, cx + dx, cy + dy)]) have++
-        }
-      }
-      s.w.status.setProperty(prop.TEXT, have < all ? `${have}/${all}${s.lastErr ? ' ' + s.lastErr : ''}` : '')
-    },
-
-    // まとめて頼む。スマホは 1 枚ずつ順に描いて送る（同時に送ると届かなかった）
-    ask(list) {
-      const s = this.state
-      const tiles = list.map((t) => {
-        // 時計に置く画像は SLOTS 枚まで。古いものを上書きする
-        const slot = s.nextSlot
-        s.nextSlot = (s.nextSlot + 1) % SLOTS
-        const old = s.slotKey[slot]
-        if (old) delete s.tiles[old]
-        s.slotKey[slot] = t.k
-        s.asked[t.k] = Date.now()
-        return { tx: t.tx, ty: t.ty, slot }
-      })
-      s.busy = true
-      this.request({ method: 'link.tiles', params: { z: s.zoom, tiles } }, { timeout: 90000 })
-        .then(() => {
-          s.busy = false
-          s.lastErr = ''
-          this.fetch()
-        })
-        .catch((e) => {
-          s.busy = false
-          list.forEach((t) => delete s.asked[t.k])
-          s.lastErr = String((e && e.message) || e).slice(0, 18)
-          this.showStatus()
-        })
-    },
-
-    arrived(path, params) {
-      const s = this.state
-      // どのタイルか: params（z/tx/ty）か、無ければファイル名の tile<slot> から
-      let k = params && params.z != null && params.tx != null ? keyOf(params.z, params.tx, params.ty) : null
-      if (!k) {
-        const m = /tile(\d+)/.exec(String(path))
-        k = m ? s.slotKey[Number(m[1])] : null
-      }
-      if (!k) return
-      const z = Number(k.split('/')[0])
-      if (!s.asked[k] || s.slotKey.indexOf(k) < 0) return
-      delete s.asked[k]
-      s.tiles[k] = { path, ts: Date.now() }
-      this.saveCache()
-      if (z === s.zoom) {
-        this.place()
-      }
-      this.fetch()
+      s.w.zoom.setProperty(prop.TEXT, `Z${s.zoom}`)
+      if (s.maps[s.zoom]) s.w.map.setProperty(prop.SRC, s.maps[s.zoom])
+      const have = ZOOMS.filter((z) => s.maps[z]).length
+      s.w.status.setProperty(prop.TEXT, s.maps[s.zoom] ? (have < ZOOMS.length ? `${have}/${ZOOMS.length}` : '') : 'LOADING…')
     },
 
     setZoom(z) {
       const s = this.state
-      const zoom = Math.max(Z_MIN, Math.min(Z_MAX, z))
+      const zoom = Math.max(ZOOMS[0], Math.min(ZOOMS[ZOOMS.length - 1], z))
       if (zoom === s.zoom) return
-      const k = Math.pow(2, zoom - s.zoom)
-      s.vx *= k
-      s.vy *= k
       s.zoom = zoom
-      s.w.zoom.setProperty(prop.TEXT, `Z${zoom}`)
-      this.place()
-      this.fetch()
+      this.show()
     },
 
-    recenter() {
+    // まだ無いズームを、今のズームに近い順にまとめて頼む（スマホが 1 枚ずつ順に送る）
+    fetch() {
       const s = this.state
-      const st = store().getItem('state')
-      if (!st || st.lat == null) return
-      ;[s.vx, s.vy] = toPx(st.lat, st.lon, s.zoom)
-      this.place()
-      this.fetch()
+      if (s.busy) return
+      const need = ZOOMS.filter((z) => !s.maps[z]).sort((a, b) => Math.abs(a - s.zoom) - Math.abs(b - s.zoom))
+      if (!need.length) return
+      s.busy = true
+      s.round = 1 - s.round // 同じ名前だと画像が更新されないので 2 組の名前を交互に使う
+      this.request({ method: 'link.zooms', params: { zooms: need, round: s.round } }, { timeout: 120000 })
+        .then(() => {
+          s.busy = false
+        })
+        .catch((e) => {
+          s.busy = false
+          s.w.status.setProperty(prop.TEXT, String((e && e.message) || e).slice(0, 24))
+        })
     },
   }),
 )

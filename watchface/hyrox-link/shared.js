@@ -8,8 +8,6 @@ export const MAP_H = 160
 // 全画面地図（2 ページ目の地図をタップで表示）。広めのズームで現在地を真ん中に
 export const FULL_MAP = 480
 export const FULL_ZOOM = 15
-// 地図画面のタイル（ズームごとに世界をこの大きさで区切る）
-export const TILE = 240
 export const HUD_W = 240
 export const HUD_H = 56
 // 自動同期（時計のバックグラウンドサービス）

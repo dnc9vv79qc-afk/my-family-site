@@ -11,7 +11,7 @@ App(
       file.on('change', (ev) => {
         if (ev.data.readyState !== 'transferred') return
         const type = (file.params && file.params.type) || 'map'
-        if (type !== 'tile') {
+        if (type !== 'zoom') {
           try {
             store().setItem(type, { path: file.filePath, ts: nowSec() })
           } catch (e) {
