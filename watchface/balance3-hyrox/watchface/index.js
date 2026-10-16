@@ -1,5 +1,5 @@
 import { createWidget, widget, align, prop, event, show_level, text_style, data_type, edit_type } from '@zos/ui'
-import { Weather, Time } from '@zos/sensor'
+import { Weather, Time, Distance } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { LocalStorage, FileSystem } from '@zos/share-storage'
 import { writeFileSync } from '@zos/fs'
@@ -127,7 +127,22 @@ function gaugeSlot(slot) {
   const f = G.font
   editPreviews.push({ x: slot.x, y: slot.y, src: G.previews[key] })
 
-  if (GAUGE_PROGRESS.indexOf(key) >= 0) {
+  if (key === 'DISTANCE') {
+    // 距離は時計に目標が無いので、10 km で満タンとして自分で円弧を伸ばす
+    const arcImg = mk(0, widget.IMG, { x: slot.x, y: slot.y, w: slot.w, h: slot.h, src: G.levels[0], show_level: NORMAL })
+    try {
+      const dist = new Distance()
+      const show = () => {
+        const n = G.levels.length - 1
+        arcImg.setProperty(prop.SRC, G.levels[Math.max(0, Math.min(n, Math.round((dist.getCurrent() / 10000) * n)))])
+      }
+      show()
+      dist.onChange(show)
+      pageListeners.push(show)
+    } catch (e) {
+      logger.log('distance sensor unavailable')
+    }
+  } else if (GAUGE_PROGRESS.indexOf(key) >= 0) {
     mk(0, widget.IMG_LEVEL, {
       x: slot.x,
       y: slot.y,
@@ -561,8 +576,13 @@ function buildPage1() {
     const city = fromLink || readCityName()
     const label = fromLink || placeLabel(city)
     const words = label ? label.split(' ') : []
+    const line2 = words.slice(1).join(' ')
+    // 長い地名は文字を小さくして時刻にかからないように
+    const fit = (t) => (t.length <= 9 ? pl.size : t.length <= 11 ? pl.size - 2 : pl.size - 3)
+    place1.setProperty(prop.MORE, { text_size: fit(words[0] || '') })
+    place2.setProperty(prop.MORE, { text_size: fit(line2) })
     place1.setProperty(prop.TEXT, words[0] || '')
-    place2.setProperty(prop.TEXT, words.slice(1).join(' '))
+    place2.setProperty(prop.TEXT, line2)
     placeRaw.setProperty(prop.TEXT, label ? '' : city || '')
     place1.setProperty(prop.VISIBLE, on && !!label)
     place2.setProperty(prop.VISIBLE, on && !!label)

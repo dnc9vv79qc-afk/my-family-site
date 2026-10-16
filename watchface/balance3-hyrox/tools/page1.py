@@ -307,13 +307,13 @@ def build(g):
     for x in (190, 290):
         d.line([(x, 346), (x, 404)], fill=LINE, width=1)
 
-    f_gl = font(500, 10)
+    f_gl = font(600, 11)  # 小さく細いと時計の画像変換で下半分が消えるので太めに
     types = {}
     deco = {}
     for t in CATALOG:
         k = t['key']
         ic = tint(g.icon(18, t['icon']), WHITE)
-        li = label_image(GAUGE_LABEL.get(k, t['label'].upper()), f_gl, VAL, pad=0, spacing=1.2)
+        li = label_image(GAUGE_LABEL.get(k, t['label'].upper()), f_gl, (232, 232, 232, 255), pad=1, spacing=1.2)
         lab = Image.new('RGBA', (76, li.height), (0, 0, 0, 0))
         lab.paste(li, ((76 - li.width) // 2, 0), li)
         deco[k] = (ic, lab)
@@ -321,7 +321,7 @@ def build(g):
                         label_h=lab.height, title=t['title'], unit=t.get('unit'), sep=t.get('sep'),
                         negative=bool(t.get('negative')))
     # 枠内の相対位置
-    ICON_Y, VALUE_CY, LABEL_CY = 18, 48, 69
+    ICON_Y, VALUE_CY, LABEL_CY = 18, 47, 69
 
     def render_gauge(key, level=7):
         t = next(c_ for c_ in CATALOG if c_['key'] == key)

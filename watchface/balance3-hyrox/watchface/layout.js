@@ -362,7 +362,7 @@ export const L = {
         "HEART": {
           "icon": "images/p1/gicon/HEART.png",
           "label": "images/p1/glabel/HEART.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Heart rate",
           "unit": null,
           "sep": null,
@@ -371,7 +371,7 @@ export const L = {
         "STEP": {
           "icon": "images/p1/gicon/STEP.png",
           "label": "images/p1/glabel/STEP.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Steps",
           "unit": null,
           "sep": null,
@@ -380,7 +380,7 @@ export const L = {
         "CAL": {
           "icon": "images/p1/gicon/CAL.png",
           "label": "images/p1/glabel/CAL.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Calories",
           "unit": null,
           "sep": null,
@@ -389,7 +389,7 @@ export const L = {
         "BATTERY": {
           "icon": "images/p1/gicon/BATTERY.png",
           "label": "images/p1/glabel/BATTERY.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Battery",
           "unit": "%",
           "sep": null,
@@ -398,7 +398,7 @@ export const L = {
         "STRESS": {
           "icon": "images/p1/gicon/STRESS.png",
           "label": "images/p1/glabel/STRESS.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Stress",
           "unit": null,
           "sep": null,
@@ -407,7 +407,7 @@ export const L = {
         "TRAINING_LOAD": {
           "icon": "images/p1/gicon/TRAINING_LOAD.png",
           "label": "images/p1/glabel/TRAINING_LOAD.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Training load",
           "unit": null,
           "sep": null,
@@ -416,7 +416,7 @@ export const L = {
         "VO2MAX": {
           "icon": "images/p1/gicon/VO2MAX.png",
           "label": "images/p1/glabel/VO2MAX.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "VO2max",
           "unit": null,
           "sep": null,
@@ -425,7 +425,7 @@ export const L = {
         "RECOVERY_TIME": {
           "icon": "images/p1/gicon/RECOVERY_TIME.png",
           "label": "images/p1/glabel/RECOVERY_TIME.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Recovery time",
           "unit": null,
           "sep": null,
@@ -434,7 +434,7 @@ export const L = {
         "READINESS": {
           "icon": "images/p1/gicon/READINESS.png",
           "label": "images/p1/glabel/READINESS.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Readiness",
           "unit": null,
           "sep": null,
@@ -443,7 +443,7 @@ export const L = {
         "SPO2": {
           "icon": "images/p1/gicon/SPO2.png",
           "label": "images/p1/glabel/SPO2.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "SpO2",
           "unit": "%",
           "sep": null,
@@ -452,7 +452,7 @@ export const L = {
         "PAI_DAILY": {
           "icon": "images/p1/gicon/PAI_DAILY.png",
           "label": "images/p1/glabel/PAI_DAILY.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "PAI",
           "unit": null,
           "sep": null,
@@ -461,7 +461,7 @@ export const L = {
         "FAT_BURNING": {
           "icon": "images/p1/gicon/FAT_BURNING.png",
           "label": "images/p1/glabel/FAT_BURNING.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Fat burning",
           "unit": null,
           "sep": null,
@@ -470,7 +470,7 @@ export const L = {
         "STAND": {
           "icon": "images/p1/gicon/STAND.png",
           "label": "images/p1/glabel/STAND.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Stand",
           "unit": null,
           "sep": null,
@@ -479,7 +479,7 @@ export const L = {
         "DISTANCE": {
           "icon": "images/p1/gicon/DISTANCE.png",
           "label": "images/p1/glabel/DISTANCE.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Distance",
           "unit": null,
           "sep": "dot",
@@ -488,7 +488,7 @@ export const L = {
         "FLOOR": {
           "icon": "images/p1/gicon/FLOOR.png",
           "label": "images/p1/glabel/FLOOR.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Floors",
           "unit": null,
           "sep": null,
@@ -497,7 +497,7 @@ export const L = {
         "WEATHER_CURRENT": {
           "icon": "images/p1/gicon/WEATHER_CURRENT.png",
           "label": "images/p1/glabel/WEATHER_CURRENT.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Temperature",
           "unit": "°",
           "sep": null,
@@ -506,7 +506,7 @@ export const L = {
         "HUMIDITY": {
           "icon": "images/p1/gicon/HUMIDITY.png",
           "label": "images/p1/glabel/HUMIDITY.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Humidity",
           "unit": "%",
           "sep": null,
@@ -515,7 +515,7 @@ export const L = {
         "UVI": {
           "icon": "images/p1/gicon/UVI.png",
           "label": "images/p1/glabel/UVI.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "UV index",
           "unit": null,
           "sep": null,
@@ -524,7 +524,7 @@ export const L = {
         "ALTIMETER": {
           "icon": "images/p1/gicon/ALTIMETER.png",
           "label": "images/p1/glabel/ALTIMETER.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Air pressure",
           "unit": null,
           "sep": null,
@@ -533,7 +533,7 @@ export const L = {
         "ALTITUDE": {
           "icon": "images/p1/gicon/ALTITUDE.png",
           "label": "images/p1/glabel/ALTITUDE.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Altitude",
           "unit": null,
           "sep": null,
@@ -542,7 +542,7 @@ export const L = {
         "SUN_RISE": {
           "icon": "images/p1/gicon/SUN_RISE.png",
           "label": "images/p1/glabel/SUN_RISE.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Sunrise",
           "unit": null,
           "sep": "colon",
@@ -551,7 +551,7 @@ export const L = {
         "SUN_SET": {
           "icon": "images/p1/gicon/SUN_SET.png",
           "label": "images/p1/glabel/SUN_SET.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Sunset",
           "unit": null,
           "sep": "colon",
@@ -560,7 +560,7 @@ export const L = {
         "SLEEP": {
           "icon": "images/p1/gicon/SLEEP.png",
           "label": "images/p1/glabel/SLEEP.png",
-          "label_h": 7,
+          "label_h": 10,
           "title": "Sleep",
           "unit": null,
           "sep": "colon",
