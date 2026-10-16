@@ -38,7 +38,8 @@ export default async function handler(req, res) {
   } else if (Number.isFinite(lat) && Number.isFinite(lon)) {
     view = { lat, lon }
   } else if (q.get('center') !== 'here') {
-    view = nextCenter(await getView(), last, { w, h, zoom })
+    // 地図は丸く切り取られて見えるので、現在地が真ん中から少しずれたら（横 40px・縦 15px ほど）中心を移す
+    view = nextCenter(await getView(), last, { w, h, zoom, margin: 0.41 })
     if (view.moved) await setView({ lat: view.lat, lon: view.lon })
   }
 

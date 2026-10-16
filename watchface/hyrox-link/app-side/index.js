@@ -1,6 +1,6 @@
 // スマホ（Zepp アプリ）側: watch-server から最新データと地図を取り、地図は時計用に変換して転送する
 import { BaseSideService, settingsLib, convertLib } from '@zeppos/zml/base-side'
-import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM, TILE } from '../shared'
+import { DEFAULT_SERVER, MAP_W, MAP_H, FULL_MAP, FULL_ZOOM } from '../shared'
 
 function config() {
   const server = String(settingsLib.getItem('server') || DEFAULT_SERVER).trim().replace(/\/+$/, '')
@@ -66,7 +66,7 @@ AppSideService(
 
     // PNG を取得 → 時計用に変換 → 転送（同じ種類の前回の転送が残っていれば取り消す）。
     // 256 色の PNG を変換できなかったとき・終わらないときはフルカラーで取り直す
-    async sendImage(type, url, ts, name = type, extra = {}) {
+    async sendImage(type, url, ts, name = type) {
       const dst = `data://download/${name}_watch.png`
       const prepare = async (u) => {
         await downloadOnce(this, u, `${name}.png`)
@@ -81,25 +81,36 @@ AppSideService(
         palette = false
         conv = await prepare(`${url}&palette=0`)
       }
-      // タイルは何枚も続けて送るので取り消さない（同じ名前の前回分だけ取り消す）
-      const key = type === 'tile' ? name : type
+      // 地図画面のズーム違いは続けて送るので取り消さない（同じ名前の前回分だけ取り消す）
+      const key = type === 'zoom' ? name : type
       if (this.state.sending[key]) this.state.sending[key].cancel()
-      this.state.sending[key] = this.sendFile(dst, Object.assign({ type, ts: String(ts) }, extra))
+      this.state.sending[key] = this.sendFile(dst, { type, ts: String(ts) })
       return { size: (conv && conv.size) || 0, palette }
     },
 
-    // 地図画面: タイル 1 枚を送る（type 'tile'。どのタイルかは params の z/tx/ty）
-    async mapTile({ z, tx, ty, slot }) {
+    // 地図画面: 現在地が真ん中の全画面地図を、頼まれたズームの順に 1 枚ずつ送る（並べて送ると時計に届かなかった）
+    async mapZooms({ zooms, round }) {
       const c = config()
       if (!c.key) throw new Error('NO KEY')
       const q = `key=${encodeURIComponent(c.key)}`
-      const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&tile=${TILE}&tx=${tx}&ty=${ty}`
-      return this.sendImage('tile', url, Math.floor(Date.now() / 1000), `tile${slot}`, { z, tx, ty })
+      let sent = 0
+      for (const z of zooms || []) {
+        const zoom = Math.max(12, Math.min(18, Math.round(Number(z))))
+        const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${zoom}&w=${FULL_MAP}&h=${FULL_MAP}&center=here`
+        try {
+          // ファイル名（zoom<z>_<round>）で時計側がどのズームか分かる
+          await this.sendImage('zoom', url, Math.floor(Date.now() / 1000), `zoom${zoom}_${round ? 1 : 0}`)
+          sent++
+        } catch (e) {
+          // 1 枚失敗しても残りは送る
+        }
+      }
+      return { sent }
     },
 
     onRequest(req, res) {
-      if (req.method === 'link.tile') {
-        this.mapTile(req.params || {}).then(
+      if (req.method === 'link.zooms') {
+        this.mapZooms(req.params || {}).then(
           (data) => res(null, data),
           (e) => res(String((e && e.message) || e)),
         )
