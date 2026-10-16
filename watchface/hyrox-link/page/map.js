@@ -97,7 +97,7 @@ Page(
       })
 
       w.zoom = createWidget(widget.TEXT, { x: 190, y: 28, w: 100, h: 28, color: ORANGE, text_size: 20, align_h: align.CENTER_H, align_v: align.CENTER_V, text: `Z${s.zoom}` })
-      w.status = createWidget(widget.TEXT, { x: 90, y: 420, w: 300, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
+      w.status = createWidget(widget.TEXT, { x: 60, y: 416, w: 360, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
       button(400, 180, '+', () => this.setZoom(s.zoom + 1))
       button(400, 244, '-', () => this.setZoom(s.zoom - 1))
       button(24, 212, '◎', () => this.recenter())
@@ -208,7 +208,11 @@ Page(
       }
       // 頼んだ数 / スマホが送り始めた数 / 届いた数（どこで止まっているかの目安）と最後のエラー
       const c = s.count
-      s.w.status.setProperty(prop.TEXT, have < all ? `${have}/${all} A${c.ask} S${c.sent} R${c.rx}${s.lastErr ? ' ' + s.lastErr : ''}` : '')
+      const g = getApp()._options.globalData.rx || { files: 0, done: 0, state: '' }
+      s.w.status.setProperty(
+        prop.TEXT,
+        have < all ? `${have}/${all} A${c.ask} S${c.sent} R${c.rx} F${g.files}/${g.done} ${g.state}${s.lastErr ? ' ' + s.lastErr : ''}` : '',
+      )
     },
 
     ask(k, tx, ty) {
