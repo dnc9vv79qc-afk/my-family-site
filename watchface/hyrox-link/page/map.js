@@ -13,7 +13,7 @@ const Z_MIN = 13
 const Z_MAX = 17
 const POOL = 16 // 画面に並べる IMG の数（3×3 で足り、余りは動かし中の予備）
 const SLOTS = 48 // 時計に置いておくタイル画像の数（古いものから上書き）
-const IN_FLIGHT = 2 // 同時に頼むタイル数
+const IN_FLIGHT = 3 // 同時に頼むタイル数
 const HOME = { lat: 34.677, lon: 135.474 }
 
 function toPx(lat, lon, z) {
@@ -55,7 +55,7 @@ Page(
       pool: [], // { img, key }
       drag: null,
       crown: 0,
-      shown: false,
+      base: null,
     },
 
     build() {
@@ -64,8 +64,10 @@ Page(
       const st = store().getItem('state')
       const here = st && st.lat != null ? st : HOME
       ;[s.vx, s.vy] = toPx(here.lat, here.lon, s.zoom)
+      // 全画面地図はこのズームで現在地が真ん中。タイルの下に敷き、指の動きに合わせて一緒に動かす
+      s.base = { x: s.vx, y: s.vy, zoom: s.zoom }
 
-      // タイルが届くまでは全画面地図（同じズーム・現在地が中心）を出しておく
+      // タイルが届くまでの下敷き
       w.placeholder = createWidget(widget.IMG, { x: 0, y: 0, w: S, h: S, src: '' })
       const full = store().getItem('mapfull')
       if (full && full.path) w.placeholder.setProperty(prop.SRC, full.path)
@@ -85,7 +87,6 @@ Page(
         s.vx -= e.x - s.drag.x
         s.vy -= e.y - s.drag.y
         s.drag = { x: e.x, y: e.y }
-        this.hidePlaceholder()
         this.place()
       })
       touch.addEventListener(event.CLICK_UP, () => {
@@ -122,17 +123,21 @@ Page(
       getApp()._options.globalData.onFile = null
     },
 
-    hidePlaceholder() {
-      if (this.state.shown) return
-      this.state.shown = true
-      this.state.w.placeholder.setProperty(prop.VISIBLE, false)
-    },
-
     // 画面にかかるタイルを並べる（届いているものだけ）
     place() {
       const s = this.state
       const left = s.vx - S / 2
       const top = s.vy - S / 2
+      // 下敷き（全画面地図）は同じズームのときだけ、ずらして出す
+      const b = s.base
+      const ph = s.w.placeholder
+      if (b.zoom === s.zoom && Math.abs(s.vx - b.x) < S && Math.abs(s.vy - b.y) < S) {
+        ph.setProperty(prop.X, Math.round(b.x - s.vx))
+        ph.setProperty(prop.Y, Math.round(b.y - s.vy))
+        ph.setProperty(prop.VISIBLE, true)
+      } else {
+        ph.setProperty(prop.VISIBLE, false)
+      }
       const want = {}
       for (let tx = Math.floor(left / TILE); tx <= Math.floor((left + S - 1) / TILE); tx++) {
         for (let ty = Math.floor(top / TILE); ty <= Math.floor((top + S - 1) / TILE); ty++) {
@@ -183,8 +188,23 @@ Page(
         const t = need.shift()
         this.ask(t.k, t.tx, t.ty)
       }
-      const loading = Object.keys(s.asked).length > 0
-      s.w.status.setProperty(prop.TEXT, loading ? 'LOADING…' : '')
+      this.showStatus()
+    },
+
+    // 画面とまわりのタイルが何枚届いているか（届いていないときだけ出す）
+    showStatus() {
+      const s = this.state
+      const cx = Math.floor(s.vx / TILE)
+      const cy = Math.floor(s.vy / TILE)
+      let have = 0
+      let all = 0
+      for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -2; dy <= 2; dy++) {
+          all++
+          if (s.tiles[keyOf(s.zoom, cx + dx, cy + dy)]) have++
+        }
+      }
+      s.w.status.setProperty(prop.TEXT, have < all ? `TILES ${have}/${all}` : '')
     },
 
     ask(k, tx, ty) {
@@ -217,8 +237,6 @@ Page(
       delete s.asked[k]
       s.tiles[k] = { path }
       if (Number(params.z) === s.zoom) {
-        // 画面の真ん中のタイルがそろったら全画面地図を外す
-        if (Object.keys(s.tiles).filter((t) => t.indexOf(`${s.zoom}/`) === 0).length >= 4) this.hidePlaceholder()
         this.place()
       }
       this.fetch()
