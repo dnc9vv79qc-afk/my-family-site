@@ -1,6 +1,7 @@
 // 現在地まわりの簡易地図 PNG（道路・鉄道・川 + 今日の軌跡 + 現在地）。
 // 現在地が地図の端に寄ったときだけ中心を移すので、普段は地図が揺れない。
 // ?detail=1|2|3（道路の描画量）&zoom=16&w=480&h=160
+// &center=here: 現在地を真ん中に描く（時計の全画面地図用。普段の地図の中心は動かさない）
 import { renderMap } from '../lib/map.js'
 import { lastLocation, trailSince, getView, setView } from '../lib/store.js'
 import { checkWatchKey, nextCenter, startOfTodayJst } from '../lib/util.js'
@@ -20,8 +21,11 @@ export default async function handler(req, res) {
 
   const last = await lastLocation()
   if (!last) return res.status(404).end()
-  const view = nextCenter(await getView(), last, { w, h, zoom })
-  if (view.moved) await setView({ lat: view.lat, lon: view.lon })
+  let view = { lat: last.lat, lon: last.lon }
+  if (q.get('center') !== 'here') {
+    view = nextCenter(await getView(), last, { w, h, zoom })
+    if (view.moved) await setView({ lat: view.lat, lon: view.lon })
+  }
 
   const trail = (await trailSince(startOfTodayJst())).map((p) => [p.lat, p.lon])
   const png = await renderMap({ lat: view.lat, lon: view.lon, w, h, zoom, detail, trail, here: [last.lat, last.lon] })

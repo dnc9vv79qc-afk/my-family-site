@@ -10,7 +10,7 @@ function clean(s) {
     .replace(/\s+\d+-chome$/i, '') // 九条 1 丁目 → 九条
     .replace(/-chome$/i, '')
     .replace(/\s+Ward$/i, 'ku') // Nishi Ward → Nishiku
-    .replace(/-ku$/i, 'ku')
+    .replace(/[-\s]ku$/i, 'ku') // Nishi-ku / Nishi ku → Nishiku
     .replace(/\s+(City|Town|Village)$/i, '')
     .replace(/[^A-Za-z0-9 ]/g, '')
     .trim()
@@ -39,6 +39,17 @@ async function fromNominatim(lat, lon) {
   return best
 }
 
+// Photon（komoot、OpenStreetMap ベース）。district = 区、locality = 町名（Kujo 2-chome）
+async function fromPhoton(lat, lon) {
+  const url = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&lang=en&limit=1`
+  const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) })
+  if (!res.ok) throw new Error(`photon ${res.status}`)
+  const p = (await res.json()).features?.[0]?.properties
+  if (!p) return null
+  const words = [clean(p.district) || clean(p.city), clean(p.locality)].filter(Boolean)
+  return words.length ? [...new Set(words)].join(' ') : null
+}
+
 // 予備: 区・市までしか分からないが、キー不要で落ちにくい
 async function fromBigDataCloud(lat, lon) {
   const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
@@ -48,21 +59,26 @@ async function fromBigDataCloud(lat, lon) {
   return clean(j.locality) || clean(j.city)
 }
 
+export const PROVIDERS = { nominatim: fromNominatim, photon: fromPhoton, bigdatacloud: fromBigDataCloud }
+
 export async function placeName(lat, lon) {
   const key = `place:${lat.toFixed(3)},${lon.toFixed(3)}`
   const hit = await cacheGet(key)
   if (hit && hit.name) return hit.name
   if (hit && hit.miss) return null
-  for (const lookup of [fromNominatim, fromBigDataCloud]) {
-    try {
-      const name = await lookup(lat, lon)
-      if (name) {
-        await cacheSet(key, { name }, 30 * 86400)
-        return name
-      }
-    } catch (e) {
-      console.error('place lookup failed', String(e))
-    }
+  // 同時に問い合わせ、区 + 町名まで取れたものを優先（どれかが止められていても待ちすぎない）
+  const names = await Promise.all(
+    [fromNominatim, fromPhoton, fromBigDataCloud].map((lookup) =>
+      lookup(lat, lon).catch((e) => {
+        console.error('place lookup failed', String(e))
+        return null
+      }),
+    ),
+  )
+  const name = names.find((n) => n && n.includes(' ')) || names.find(Boolean)
+  if (name) {
+    await cacheSet(key, { name }, name.includes(' ') ? 30 * 86400 : 86400) // 区だけなら翌日に町名を再挑戦
+    return name
   }
   await cacheSet(key, { miss: true }, 600) // 取れなかったときは 10 分後に再挑戦
   return null
