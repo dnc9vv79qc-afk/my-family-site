@@ -362,6 +362,47 @@ function rainStatus() {
   return { word: 'DRY' }
 }
 
+// 日本の祝日（y 年 m 月、m は 0 始まり）→ { 日: true }。振替休日・国民の休日・春分/秋分を含む
+function japaneseHolidays(y, m) {
+  const nthMonday = (month, n) => {
+    const first = new Date(y, month, 1).getDay()
+    return 1 + ((8 - first) % 7) + (n - 1) * 7
+  }
+  const base = Math.floor((y - 1980) / 4)
+  const spring = Math.floor(20.8431 + 0.242194 * (y - 1980) - base)
+  const autumn = Math.floor(23.2488 + 0.242194 * (y - 1980) - base)
+  const list = [
+    [0, 1], [0, nthMonday(0, 2)], [1, 11], [1, 23], [2, spring], [3, 29], [4, 3], [4, 4], [4, 5],
+    [6, nthMonday(6, 3)], [7, 11], [8, nthMonday(8, 3)], [8, autumn], [9, nthMonday(9, 2)], [10, 3], [10, 23],
+  ]
+  const isHol = {}
+  list.forEach(([mm, dd]) => {
+    isHol[`${mm}-${dd}`] = true
+  })
+  const key = (d) => `${d.getMonth()}-${d.getDate()}`
+  // 国民の休日（祝日に挟まれた平日。9 月の敬老の日と秋分の日の間など）
+  list.forEach(([mm, dd]) => {
+    const next = new Date(y, mm, dd + 2)
+    const mid = new Date(y, mm, dd + 1)
+    if (isHol[key(next)] && !isHol[key(mid)] && mid.getDay() !== 0) isHol[key(mid)] = true
+  })
+  // 振替休日（祝日が日曜なら、その後の最初の祝日でない日）
+  Object.keys(isHol).forEach((k) => {
+    const [mm, dd] = k.split('-').map(Number)
+    const d = new Date(y, mm, dd)
+    if (d.getDay() !== 0) return
+    const sub = new Date(y, mm, dd + 1)
+    while (isHol[key(sub)]) sub.setDate(sub.getDate() + 1)
+    isHol[key(sub)] = true
+  })
+  const out = {}
+  Object.keys(isHol).forEach((k) => {
+    const [mm, dd] = k.split('-').map(Number)
+    if (mm === m) out[dd] = true
+  })
+  return out
+}
+
 function buildPage1() {
   const P = L.p1
   mk(0, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
@@ -412,13 +453,41 @@ function buildPage1() {
   }
   const digits = (arr) => ({ month_en_array: arr, month_sc_array: arr, month_tc_array: arr, day_en_array: arr, day_sc_array: arr, day_tc_array: arr })
   mk(0, widget.IMG_DATE, Object.assign({ show_level: NORMAL }, dateOpts, digits(P.date.digits)))
-  createWidget(
-    widget.IMG_DATE,
-    Object.assign({ show_level: AOD }, dateOpts, digits(P.date.aod), { month_unit_en: P.date.dot_aod, month_unit_sc: P.date.dot_aod, month_unit_tc: P.date.dot_aod }),
-  )
   const weekOpts = { x: P.week.x, y: P.week.y, week_en: P.week.src, week_tc: P.week.src, week_sc: P.week.src }
   mk(0, widget.IMG_WEEK, Object.assign({ show_level: NORMAL }, weekOpts))
-  createWidget(widget.IMG_WEEK, Object.assign({ show_level: AOD }, weekOpts))
+
+  // 常時表示（AOD）: 左の列に曜日（オレンジ）・日付・電池。時刻は普段と同じ位置
+  const A = P.aod
+  createWidget(widget.IMG_WEEK, { x: A.week.x, y: A.week.y, week_en: A.week.src, week_tc: A.week.src, week_sc: A.week.src, show_level: AOD })
+  createWidget(
+    widget.IMG_DATE,
+    Object.assign({}, dateOpts, digits(A.date.digits), {
+      month_startX: A.date.x,
+      month_startY: A.date.y,
+      month_unit_en: A.date.dot,
+      month_unit_sc: A.date.dot,
+      month_unit_tc: A.date.dot,
+      show_level: AOD,
+    }),
+  )
+  createWidget(widget.IMG, { x: A.label.x, y: A.label.y, src: A.label.src, show_level: AOD })
+  if (data_type.BATTERY !== undefined) {
+    createWidget(widget.TEXT_IMG, {
+      x: A.bat.x,
+      y: A.bat.y,
+      w: A.bat.w,
+      h: A.bat.h,
+      type: data_type.BATTERY,
+      font_array: A.bat.font,
+      h_space: 0,
+      align_h: align.LEFT,
+      unit_en: A.bat.unit,
+      unit_sc: A.bat.unit,
+      unit_tc: A.bat.unit,
+      invalid_image: A.bat.invalid,
+      show_level: AOD,
+    })
+  }
 
   // 現在地（2 行。ローマ字にできなければ元の表記を 1 行で）
   const pl = P.place
@@ -508,19 +577,13 @@ function buildPage1() {
     show_level: AOD,
   })
 
-  // 月の名前 + カレンダー（日曜始まり、今日に丸）
-  mk(0, widget.IMG_DATE, {
-    month_startX: P.month.x,
-    month_startY: P.month.y,
-    month_is_character: true,
-    month_en_array: P.month.src,
-    month_sc_array: P.month.src,
-    month_tc_array: P.month.src,
-    show_level: NORMAL,
-  })
+  // 月の名前 + カレンダー（日曜始まり、今日に丸、今週の行に薄い帯、土日・祝日の色、祝日に点）。タップで来月 ⇔ 今月
+  const monthImg = mk(0, widget.IMG, { x: P.month.x, y: P.month.y, src: P.month.src[new Date().getMonth()], show_level: NORMAL })
   const C = P.cal
+  const band = mk(0, widget.IMG, { x: 0, y: 0, w: C.band.w, h: C.band.h, src: C.band.src, show_level: NORMAL })
   const ring = mk(0, widget.IMG, { x: 0, y: 0, src: C.ring, show_level: NORMAL })
   const cells = []
+  const dots = []
   for (let i = 0; i < 42; i++) {
     const cx = C.x0 + (i % 7) * C.dx
     const cy = C.y0 + Math.floor(i / 7) * C.dy
@@ -540,32 +603,70 @@ function buildPage1() {
       }),
     )
   }
+  for (let i = 0; i < 5; i++) {
+    const d = mk(0, widget.IMG, { x: 0, y: 0, src: C.dot, show_level: NORMAL })
+    hiddenWidgets.add(d)
+    dots.push(d)
+  }
+  let calMonth = 0 // 0 = 今月, 1 = 来月
   let calKey = ''
-  const updateCalendar = () => {
+  const updateCalendar = (force) => {
     const now = new Date()
-    const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
-    if (key === calKey) return
+    const view = new Date(now.getFullYear(), now.getMonth() + calMonth, 1)
+    const y = view.getFullYear()
+    const m = view.getMonth()
+    const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${calMonth}`
+    if (key === calKey && !force) return
     calKey = key
-    const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay() // 日曜始まり
-    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const first = view.getDay() // 日曜始まり
+    const days = new Date(y, m + 1, 0).getDate()
+    const hol = japaneseHolidays(y, m)
+    const today = calMonth === 0 ? now.getDate() : -1
+    monthImg.setProperty(prop.SRC, P.month.src[m])
+    let dotN = 0
     cells.forEach((w, i) => {
       const day = i - first + 1
       const on = day >= 1 && day <= days
+      const col = i % 7
       w.setProperty(prop.TEXT, on ? String(day) : '')
-      w.setProperty(prop.COLOR, day === now.getDate() ? C.today_color : C.color)
-      if (day === now.getDate()) {
-        ring.setProperty(prop.X, Math.round(C.x0 + (i % 7) * C.dx - 10))
-        ring.setProperty(prop.Y, Math.round(C.y0 + Math.floor(i / 7) * C.dy - 10))
+      let color = C.color
+      if (col === 0 || hol[day]) color = C.sun_color
+      else if (col === 6) color = C.sat_color
+      if (calMonth === 1) color = color === C.color ? C.other_color : color
+      if (day === today) color = C.today_color
+      w.setProperty(prop.COLOR, color)
+      const cx = C.x0 + col * C.dx
+      const cy = C.y0 + Math.floor(i / 7) * C.dy
+      if (on && hol[day] && dotN < dots.length) {
+        dots[dotN].setProperty(prop.X, Math.round(cx - 2))
+        dots[dotN].setProperty(prop.Y, Math.round(cy + 7))
+        showOnPage(dots[dotN], 0, true)
+        dotN++
+      }
+      if (day === today) {
+        ring.setProperty(prop.X, Math.round(cx - 10))
+        ring.setProperty(prop.Y, Math.round(cy - 10))
+        band.setProperty(prop.X, Math.round(C.x0 - C.dx / 2 - 2))
+        band.setProperty(prop.Y, Math.round(cy - C.band.h / 2))
       }
     })
+    for (let i = dotN; i < dots.length; i++) showOnPage(dots[i], 0, false)
+    showOnPage(ring, 0, today > 0)
+    showOnPage(band, 0, today > 0)
   }
+  const calTap = mk(0, widget.IMG, { x: C.area.x, y: C.area.y, w: C.area.w, h: C.area.h, src: L.blank, show_level: NORMAL })
+  calTap.addEventListener(event.CLICK_UP, () => {
+    calMonth = calMonth ? 0 : 1
+    updateCalendar(true)
+  })
 
   P.gauge.slots.forEach(gaugeSlot)
   pageToggle(0, P.toggle)
 
   let wxAt = 0
-  const update = () => {
+  const update = (fromTimer) => {
     const on = page === 0
+    if (fromTimer !== true && calMonth) calMonth = 0 // 画面を付け直したら今月に戻す
     updateCalendar()
     const nowMs = Date.now()
     if (wxIcon && nowMs - wxAt > 10 * 60 * 1000) {
@@ -600,7 +701,7 @@ function buildPage1() {
   }
   try {
     new Time().onPerMinute(() => {
-      if (page === 0) update()
+      if (page === 0) update(true)
     })
   } catch (e) {
     logger.log('time sensor unavailable')
