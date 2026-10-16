@@ -2,6 +2,7 @@
 // 現在地が地図の端に寄ったときだけ中心を移すので、普段は地図が揺れない。
 // ?detail=1|2|3（道路の描画量）&zoom=16&w=480&h=160
 // &center=here: 現在地を真ん中に描く（時計の全画面地図用。普段の地図の中心は動かさない）
+// &lat=..&lon=..: その地点を真ん中に描く（HYROX Link の地図画面でスクロールしたとき）
 import { renderMap } from '../lib/map.js'
 import { lastLocation, trailSince, getView, setView } from '../lib/store.js'
 import { checkWatchKey, nextCenter, startOfTodayJst } from '../lib/util.js'
@@ -21,8 +22,12 @@ export default async function handler(req, res) {
 
   const last = await lastLocation()
   if (!last) return res.status(404).end()
+  const lat = clamp(q.get('lat'), -85, 85, NaN)
+  const lon = clamp(q.get('lon'), -180, 180, NaN)
   let view = { lat: last.lat, lon: last.lon }
-  if (q.get('center') !== 'here') {
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    view = { lat, lon }
+  } else if (q.get('center') !== 'here') {
     view = nextCenter(await getView(), last, { w, h, zoom })
     if (view.moved) await setView({ lat: view.lat, lon: view.lon })
   }

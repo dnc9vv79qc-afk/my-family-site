@@ -3,6 +3,7 @@ import { Weather, Time, Distance } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { LocalStorage, FileSystem } from '@zos/share-storage'
 import { writeFileSync } from '@zos/fs'
+import { launchApp } from '@zos/router'
 import { L } from './layout'
 import { placeLabel } from './romaji'
 
@@ -616,8 +617,18 @@ function buildPage3() {
     mk(2, widget.TEXT, { x: c.x, y: c.y, w: c.w, h: c.h, color: c.color, text_size: c.size, align_h: align.CENTER_H, align_v: align.CENTER_V, text: c.text || '', show_level: NORMAL })
   const empty = text(F.empty)
   const link = text(F.link)
+  // 真ん中をタップ → HYROX Link の地図画面（スクロール・拡大）、まわりをタップ → 2 ページ目へ
   const close = mk(2, widget.IMG, { x: 0, y: 0, w: 480, h: 480, src: L.blank, show_level: NORMAL })
   close.addEventListener(event.CLICK_UP, () => setPage(1))
+  const open = mk(2, widget.IMG, { x: 110, y: 110, w: 260, h: 260, src: L.blank, show_level: NORMAL })
+  open.addEventListener(event.CLICK_UP, () => {
+    try {
+      launchApp({ appId: LINK_APP_ID, url: 'page/map' })
+    } catch (e) {
+      logger.log('launchApp failed')
+      setPage(1)
+    }
+  })
 
   return function update() {
     if (page !== 2) return
@@ -792,7 +803,12 @@ WatchFace({
     pageListeners.push(buildPage3())
 
     setPage(0)
-    createWidget(widget.WIDGET_DELEGATE, { resume_call: () => pageListeners.forEach((fn) => fn()) })
+    createWidget(widget.WIDGET_DELEGATE, {
+      resume_call: () => {
+        if (page === 2) setPage(1) // 地図アプリから戻ったら 2 ページ目
+        else pageListeners.forEach((fn) => fn())
+      },
+    })
 
     // 編集モードの背景マスク
     createWidget(widget.WATCHFACE_EDIT_MASK, { x: 0, y: 0, w: 480, h: 480, src: L.mask100, show_level: EDIT })
