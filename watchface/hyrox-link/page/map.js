@@ -13,7 +13,7 @@ const Z_MIN = 13
 const Z_MAX = 17
 const POOL = 16 // 画面に並べる IMG の数（3×3 で足り、余りは動かし中の予備）
 const SLOTS = 48 // 時計に置いておくタイル画像の数（古いものから上書き）
-const IN_FLIGHT = 3 // 同時に頼むタイル数
+const IN_FLIGHT = 1 // 同時に頼むタイル数（変換・転送が重ならないよう 1 枚ずつ）
 const HOME = { lat: 34.677, lon: 135.474 }
 
 function toPx(lat, lon, z) {
@@ -56,6 +56,8 @@ Page(
       drag: null,
       crown: 0,
       base: null,
+      count: { ask: 0, sent: 0, rx: 0 },
+      lastErr: '',
     },
 
     build() {
@@ -95,7 +97,7 @@ Page(
       })
 
       w.zoom = createWidget(widget.TEXT, { x: 190, y: 28, w: 100, h: 28, color: ORANGE, text_size: 20, align_h: align.CENTER_H, align_v: align.CENTER_V, text: `Z${s.zoom}` })
-      w.status = createWidget(widget.TEXT, { x: 140, y: 420, w: 200, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
+      w.status = createWidget(widget.TEXT, { x: 90, y: 420, w: 300, h: 26, color: 0xd6d6d6, text_size: 18, align_h: align.CENTER_H, align_v: align.CENTER_V, text: '' })
       button(400, 180, '+', () => this.setZoom(s.zoom + 1))
       button(400, 244, '-', () => this.setZoom(s.zoom - 1))
       button(24, 212, '◎', () => this.recenter())
@@ -204,8 +206,9 @@ Page(
           if (s.tiles[keyOf(s.zoom, cx + dx, cy + dy)]) have++
         }
       }
-      const asking = Object.keys(s.asked).length
-      s.w.status.setProperty(prop.TEXT, have < all ? `TILES ${have}/${all}${asking ? ` · ${asking}…` : ''}` : '')
+      // 頼んだ数 / スマホが送り始めた数 / 届いた数（どこで止まっているかの目安）と最後のエラー
+      const c = s.count
+      s.w.status.setProperty(prop.TEXT, have < all ? `${have}/${all} A${c.ask} S${c.sent} R${c.rx}${s.lastErr ? ' ' + s.lastErr : ''}` : '')
     },
 
     ask(k, tx, ty) {
@@ -218,22 +221,25 @@ Page(
       s.slotKey[slot] = k
       s.asked[k] = Date.now()
       s.inFlight++
+      s.count.ask++
       // スマホが描いて転送を始めたら次を頼む（届くのは onFile）
       this.request({ method: 'link.tile', params: { z: s.zoom, tx, ty, slot } })
         .then(() => {
           s.inFlight = Math.max(0, s.inFlight - 1)
-          s.sent = (s.sent || 0) + 1
+          s.count.sent++
           this.fetch()
         })
-        .catch(() => {
+        .catch((e) => {
           delete s.asked[k]
           s.inFlight = Math.max(0, s.inFlight - 1)
-          s.w.status.setProperty(prop.TEXT, 'ERROR')
+          s.lastErr = String((e && e.message) || e).slice(0, 18)
+          this.showStatus()
         })
     },
 
     arrived(path, params) {
       const s = this.state
+      s.count.rx++
       // どのタイルか: params（z/tx/ty）か、無ければファイル名の tile<slot> から
       let k = params && params.z != null && params.tx != null ? keyOf(params.z, params.tx, params.ty) : null
       if (!k) {
