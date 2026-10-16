@@ -12,8 +12,8 @@ const S = FULL_MAP // 画面
 const Z_MIN = 13
 const Z_MAX = 17
 const POOL = 16 // 画面に並べる IMG の数（3×3 で足り、余りは動かし中の予備）
-const SLOTS = 48 // 時計に置いておくタイル画像の数（古いものから上書き）
-const IN_FLIGHT = 1 // 同時に頼むタイル数（変換・転送が重ならないよう 1 枚ずつ）
+const SLOTS = 64 // 時計に置いておくタイル画像の数（古いものから上書き。次に開いたときも使う）
+const IN_FLIGHT = 3 // 同時に頼むタイル数
 const HOME = { lat: 34.677, lon: 135.474 }
 
 function toPx(lat, lon, z) {
@@ -56,7 +56,6 @@ Page(
       drag: null,
       crown: 0,
       base: null,
-      count: { ask: 0, sent: 0, rx: 0 },
       lastErr: '',
     },
 
@@ -66,6 +65,15 @@ Page(
       const st = store().getItem('state')
       const here = st && st.lat != null ? st : HOME
       ;[s.vx, s.vy] = toPx(here.lat, here.lon, s.zoom)
+      const cache = store().getItem('tilecache')
+      if (cache && cache.tiles && cache.slotKey) {
+        // タイルには現在地と軌跡も描いてあるので、30 分より古いものは使わない
+        Object.keys(cache.tiles).forEach((k) => {
+          if (Date.now() - (cache.tiles[k].ts || 0) < 30 * 60 * 1000) s.tiles[k] = cache.tiles[k]
+        })
+        s.slotKey = cache.slotKey
+        s.nextSlot = cache.nextSlot || 0
+      }
       // 全画面地図はこのズームで現在地が真ん中。タイルの下に敷き、指の動きに合わせて一緒に動かす
       s.base = { x: s.vx, y: s.vy, zoom: s.zoom }
 
@@ -117,6 +125,16 @@ Page(
       })
       this.place()
       this.fetch()
+    },
+
+    // 届いたタイルの一覧を残しておき、次に開いたときに使う（画像ファイルは時計に残っている）
+    saveCache() {
+      const s = this.state
+      try {
+        store().setItem('tilecache', { tiles: s.tiles, slotKey: s.slotKey, nextSlot: s.nextSlot })
+      } catch (e) {
+        // 残せなくても次に開いたとき取り直すだけ
+      }
     },
 
     onDestroy() {
@@ -207,12 +225,7 @@ Page(
         }
       }
       // 頼んだ数 / スマホが送り始めた数 / 届いた数（どこで止まっているかの目安）と最後のエラー
-      const c = s.count
-      const g = getApp()._options.globalData.rx || { files: 0, done: 0, state: '' }
-      s.w.status.setProperty(
-        prop.TEXT,
-        have < all ? `${have}/${all} A${c.ask} S${c.sent} R${c.rx} F${g.files}/${g.done} ${g.state}${s.lastErr ? ' ' + s.lastErr : ''}` : '',
-      )
+      s.w.status.setProperty(prop.TEXT, have < all ? `${have}/${all}${s.lastErr ? ' ' + s.lastErr : ''}` : '')
     },
 
     ask(k, tx, ty) {
@@ -225,12 +238,10 @@ Page(
       s.slotKey[slot] = k
       s.asked[k] = Date.now()
       s.inFlight++
-      s.count.ask++
       // スマホが描いて転送を始めたら次を頼む（届くのは onFile）
       this.request({ method: 'link.tile', params: { z: s.zoom, tx, ty, slot } })
         .then(() => {
           s.inFlight = Math.max(0, s.inFlight - 1)
-          s.count.sent++
           this.fetch()
         })
         .catch((e) => {
@@ -243,7 +254,6 @@ Page(
 
     arrived(path, params) {
       const s = this.state
-      s.count.rx++
       // どのタイルか: params（z/tx/ty）か、無ければファイル名の tile<slot> から
       let k = params && params.z != null && params.tx != null ? keyOf(params.z, params.tx, params.ty) : null
       if (!k) {
@@ -254,7 +264,8 @@ Page(
       const z = Number(k.split('/')[0])
       if (!s.asked[k] || s.slotKey.indexOf(k) < 0) return
       delete s.asked[k]
-      s.tiles[k] = { path }
+      s.tiles[k] = { path, ts: Date.now() }
+      this.saveCache()
       if (z === s.zoom) {
         this.place()
       }

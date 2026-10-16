@@ -8,14 +8,8 @@ App(
     onCreate() {},
     onDestroy() {},
     onReceivedFile(file) {
-      // 受け取りの進み具合（地図画面の診断表示用）
-      const g = getApp()._options.globalData
-      g.rx = g.rx || { files: 0, done: 0, state: '' }
-      g.rx.files++
       file.on('change', (ev) => {
-        g.rx.state = String(ev.data.readyState)
         if (ev.data.readyState !== 'transferred') return
-        g.rx.done++
         const type = (file.params && file.params.type) || 'map'
         if (type !== 'tile') {
           try {
