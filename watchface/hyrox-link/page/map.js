@@ -64,7 +64,9 @@ Page(
       getApp()._options.globalData.onFile = (type, path) => {
         if (type !== 'view') return
         w.map.setProperty(prop.SRC, path)
-        w.status.setProperty(prop.TEXT, '')
+        this.state.arrived = true
+        // 届くまでにかかった秒数（速さの目安）
+        w.status.setProperty(prop.TEXT, `${Math.round((Date.now() - this.state.startedAt) / 1000)}s`)
       }
       onGesture({
         callback: (ev) => {
@@ -124,10 +126,12 @@ Page(
       const s = this.state
       s.w.zoom.setProperty(prop.TEXT, `Z${s.zoom}`)
       s.w.status.setProperty(prop.TEXT, 'LOADING…')
+      s.arrived = false
+      s.startedAt = Date.now()
       this.request({ method: 'link.map', params: { lat: s.lat, lon: s.lon, zoom: s.zoom } })
         .then((r) => {
-          // スマホで描き終わって転送中（大きさを出しておく）
-          if (r) s.w.status.setProperty(prop.TEXT, `SENDING ${Math.round((r.size || 0) / 1024)}KB ${r.palette ? '256' : 'RGB'}…`)
+          // スマホで描き終わって転送中（画像が先に届いていれば何もしない）
+          if (r && !s.arrived) s.w.status.setProperty(prop.TEXT, `SENDING${r.palette ? '' : ' RGB'}…`)
         })
         .catch((e) => s.w.status.setProperty(prop.TEXT, String(e).slice(0, 24)))
     },
