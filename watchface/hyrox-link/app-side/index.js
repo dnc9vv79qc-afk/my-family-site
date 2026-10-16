@@ -94,7 +94,8 @@ AppSideService(
       if (!c.key) throw new Error('NO KEY')
       const q = `key=${encodeURIComponent(c.key)}`
       const url = `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${z}&tile=${TILE}&tx=${tx}&ty=${ty}`
-      return this.sendImage('tile', url, Math.floor(Date.now() / 1000), `tile${slot}`, { z, tx, ty })
+      // 転送の params は文字列しか届かないので文字列にする
+      return this.sendImage('tile', url, Math.floor(Date.now() / 1000), `tile${slot}`, { z: String(z), tx: String(tx), ty: String(ty), slot: String(slot) })
     },
 
     onRequest(req, res) {

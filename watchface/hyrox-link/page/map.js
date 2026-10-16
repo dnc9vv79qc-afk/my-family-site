@@ -204,7 +204,8 @@ Page(
           if (s.tiles[keyOf(s.zoom, cx + dx, cy + dy)]) have++
         }
       }
-      s.w.status.setProperty(prop.TEXT, have < all ? `TILES ${have}/${all}` : '')
+      const asking = Object.keys(s.asked).length
+      s.w.status.setProperty(prop.TEXT, have < all ? `TILES ${have}/${all}${asking ? ` · ${asking}…` : ''}` : '')
     },
 
     ask(k, tx, ty) {
@@ -221,6 +222,7 @@ Page(
       this.request({ method: 'link.tile', params: { z: s.zoom, tx, ty, slot } })
         .then(() => {
           s.inFlight = Math.max(0, s.inFlight - 1)
+          s.sent = (s.sent || 0) + 1
           this.fetch()
         })
         .catch(() => {
@@ -232,11 +234,18 @@ Page(
 
     arrived(path, params) {
       const s = this.state
-      const k = keyOf(params.z, params.tx, params.ty)
+      // どのタイルか: params（z/tx/ty）か、無ければファイル名の tile<slot> から
+      let k = params && params.z != null && params.tx != null ? keyOf(params.z, params.tx, params.ty) : null
+      if (!k) {
+        const m = /tile(\d+)/.exec(String(path))
+        k = m ? s.slotKey[Number(m[1])] : null
+      }
+      if (!k) return
+      const z = Number(k.split('/')[0])
       if (!s.asked[k] || s.slotKey.indexOf(k) < 0) return
       delete s.asked[k]
       s.tiles[k] = { path }
-      if (Number(params.z) === s.zoom) {
+      if (z === s.zoom) {
         this.place()
       }
       this.fetch()
