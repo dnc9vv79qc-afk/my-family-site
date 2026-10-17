@@ -251,6 +251,8 @@ function placeWidgets(p, P, brandCfg) {
     const n = (label || '').length
     roman.setProperty(prop.MORE, n > 14 ? { text_size: P.size - 5, char_space: 1 } : n > 11 ? { text_size: P.size - 2, char_space: P.space } : { text_size: P.size, char_space: P.space })
     roman.setProperty(prop.TEXT, label || '')
+    const age = fromLink ? fixAge() : null
+    roman.setProperty(prop.COLOR, age != null && age > STALE_SEC ? 0x6b6b6b : P.color) // 古い地名は暗く
     raw.setProperty(prop.TEXT, label ? '' : city || (brand ? '' : '--'))
     roman.setProperty(prop.VISIBLE, on && !!label)
     raw.setProperty(prop.VISIBLE, on && !label)
@@ -337,6 +339,19 @@ function linkPlace() {
   const st = link && link.state
   if (!st || !st.place || !st.synced) return null
   return Math.floor(Date.now() / 1000) - st.synced < 6 * 3600 ? st.place : null
+}
+
+// 最後に位置が届いてから何秒か（同期データが無ければ null）。2 時間を超えたら古いデータとして目印を出す
+const STALE_SEC = 2 * 3600
+function fixAge() {
+  const link = readLink()
+  const st = link && link.state
+  if (!st || !st.ok || st.now == null) return null
+  return Math.max(0, Math.floor(Date.now() / 1000) - (st.now - (st.age || 0)))
+}
+
+function staleText(sec) {
+  return sec >= 86400 ? `OLD ${Math.floor(sec / 86400)}D` : `OLD ${Math.floor(sec / 3600)}H`
 }
 
 function ago(sec) {
@@ -502,6 +517,21 @@ function buildPage1() {
   const place1 = line(0, L.place_font)
   const place2 = line(1, L.place_font)
   const placeRaw = line(0, null)
+  // 位置が古いときの目印（地名の下に OLD 4H）
+  const placeOld = createWidget(widget.TEXT, {
+    x: pl.x,
+    y: pl.y + pl.line_h * 2 - 2,
+    w: pl.w,
+    h: 14,
+    color: 0xff8c1a,
+    text_size: 11,
+    char_space: 1,
+    font: L.place_font,
+    align_h: align.LEFT,
+    align_v: align.CENTER_V,
+    text: '',
+    show_level: NORMAL,
+  })
 
   // 電池
   if (data_type.BATTERY !== undefined) {
@@ -692,6 +722,13 @@ function buildPage1() {
     place1.setProperty(prop.VISIBLE, on && !!label)
     place2.setProperty(prop.VISIBLE, on && !!label)
     placeRaw.setProperty(prop.VISIBLE, on && !label)
+    // 古い位置なら地名を暗くして、何時間前かを出す
+    const age = fromLink ? fixAge() : null
+    const stale = age != null && age > STALE_SEC
+    place1.setProperty(prop.COLOR, stale ? 0x6b6b6b : pl.color)
+    place2.setProperty(prop.COLOR, stale ? 0x6b6b6b : pl.color)
+    placeOld.setProperty(prop.TEXT, stale ? staleText(age) : '')
+    placeOld.setProperty(prop.VISIBLE, on && stale)
     // 雨
     const r = rainStatus()
     if (r.min != null) rainMin.setProperty(prop.TEXT, `${r.min}u`)
@@ -752,6 +789,22 @@ function buildPage2() {
   mk(1, widget.IMG, { x: 0, y: 0, src: P.bg, show_level: NORMAL })
   const liveMap = mk(1, widget.IMG, { x: P.map.x, y: P.map.y, w: P.map.w, h: P.map.h, src: L.blank, show_level: NORMAL })
   mk(1, widget.IMG, { x: P.map.x, y: P.map.y, src: P.map.overlay, show_level: NORMAL })
+  // 地図が古い位置のときの目印
+  const mapOld = mk(1, widget.TEXT, {
+    x: 130,
+    y: P.map.y + 34,
+    w: 220,
+    h: 20,
+    color: 0xff8c1a,
+    text_size: 14,
+    char_space: 1,
+    font: L.place_font,
+    align_h: align.CENTER_H,
+    align_v: align.CENTER_V,
+    text: '',
+    show_level: NORMAL,
+  })
+  hiddenWidgets.add(mapOld)
 
   // 縁の 24 時間リング: 固定の目盛り + 日の出〜日の入りの弧 + 雨の弧 + 日の出入りと今の時刻の印
   const R = P.ring
@@ -828,6 +881,10 @@ function buildPage2() {
     }
     const src = link && copyLinkFile('map', link.map)
     if (src) liveMap.setProperty(prop.SRC, src)
+    const age = fixAge()
+    const stale = age != null && age > STALE_SEC
+    if (stale) mapOld.setProperty(prop.TEXT, `POSITION ${staleText(age)}`)
+    showOnPage(mapOld, 1, stale)
     const hsrc = link && copyLinkFile('hud', link.hud)
     if (hsrc) hud.setProperty(prop.SRC, hsrc)
   })
