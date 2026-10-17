@@ -66,6 +66,7 @@ Page(
       })
       w.auto = text({ y: 250, color: GRAY, text_size: 18, h: 26 })
       w.files = text({ y: 274, color: GRAY, text_size: 16, h: 22 })
+      w.err = text({ y: 296, color: ORANGE, text_size: 14, h: 20 })
       w.map = createWidget(widget.IMG, { x: 0, y: 480 - MAP_H, w: 480, h: MAP_H, src: '' })
 
       const saved = store().getItem('map')
@@ -87,15 +88,23 @@ Page(
       const w = this.state.w
       w.status.setProperty(prop.TEXT, 'SYNC…')
       this.request({ method: 'link.sync', params: {} })
-        .then(({ state }) => {
+        .then((data) => {
+          const r = data && data.result !== undefined ? data.result : data
+          const state = r && r.state
+          if (!state) throw new Error(`EMPTY REPLY ${typeof data}`)
           saveState(state)
           w.status.setProperty(prop.TEXT, state.ok ? `LINK ${ago(state.age)}` : 'NO DATA')
-          w.line1.setProperty(prop.TEXT, `${state.hpa != null ? state.hpa + ' hPa' : '-- hPa'}  ·  ${state.today_km} km`)
+          w.line1.setProperty(prop.TEXT, `${state.hpa != null ? state.hpa + ' hPa' : '-- hPa'}  ·  ${state.today_km != null ? state.today_km : '--'} km`)
           w.line2.setProperty(prop.TEXT, state.place || (state.lat != null ? `${state.lat.toFixed(4)}N ${state.lon.toFixed(4)}E` : ''))
+          // 画像はこのあと裏で届く。前回の画像の転送で失敗があればここに出す
+          w.err.setProperty(prop.TEXT, r.imgErr ? `IMG ${r.imgErr}` : '')
         })
         .catch((e) => {
+          // スマホ側の失敗は文字列で届く。時計側で起きたものは Error
+          const m = `${typeof e === 'string' ? 'PHONE' : 'WATCH'} ${String((e && e.message) || e)}`
           w.status.setProperty(prop.TEXT, 'ERROR')
-          w.line1.setProperty(prop.TEXT, String(e).slice(0, 40))
+          w.line1.setProperty(prop.TEXT, m.slice(0, 36))
+          w.line2.setProperty(prop.TEXT, m.slice(36, 72))
         })
     },
 
