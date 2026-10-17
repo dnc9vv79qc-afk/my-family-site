@@ -33,13 +33,18 @@ function sync() {
       if (!state) {
         saveAuto({ ok: false, err: `EMPTY REPLY ${typeof data}` })
       } else {
-        saveState(state)
-        saveAuto({ ok: true })
+        try {
+          saveState(state)
+          saveAuto({ ok: true })
+        } catch (e) {
+          saveAuto({ ok: false, err: `SAVE ${String((e && e.message) || e)}`.slice(0, 26) })
+        }
       }
       busy = false
     })
     .catch((e) => {
-      saveAuto({ ok: false, err: String((e && e.message) || e).slice(0, 24) })
+      // P: スマホ側で失敗 / W: 時計側で失敗
+      saveAuto({ ok: false, err: `${typeof e === 'string' ? 'P:' : 'W:'}${String((e && e.message) || e)}`.slice(0, 26) })
       busy = false
     })
 }
