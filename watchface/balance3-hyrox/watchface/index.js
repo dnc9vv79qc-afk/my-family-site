@@ -251,8 +251,7 @@ function placeWidgets(p, P, brandCfg) {
     const n = (label || '').length
     roman.setProperty(prop.MORE, n > 14 ? { text_size: P.size - 5, char_space: 1 } : n > 11 ? { text_size: P.size - 2, char_space: P.space } : { text_size: P.size, char_space: P.space })
     roman.setProperty(prop.TEXT, label || '')
-    const age = fromLink ? fixAge() : null
-    roman.setProperty(prop.COLOR, age != null && age > STALE_SEC ? 0x6b6b6b : P.color) // 古い地名は暗く
+    roman.setProperty(prop.COLOR, fromLink && staleness() ? 0x6b6b6b : P.color) // 古い地名は暗く
     raw.setProperty(prop.TEXT, label ? '' : city || (brand ? '' : '--'))
     roman.setProperty(prop.VISIBLE, on && !!label)
     raw.setProperty(prop.VISIBLE, on && !label)
@@ -341,17 +340,23 @@ function linkPlace() {
   return Math.floor(Date.now() / 1000) - st.synced < 6 * 3600 ? st.place : null
 }
 
-// 最後に位置が届いてから何秒か（同期データが無ければ null）。2 時間を超えたら古いデータとして目印を出す
+// データの古さ。同期が止まっている（sync）か、同期はできているが位置が古い（pos）かを分けて返す。2 時間を超えたら目印を出す
 const STALE_SEC = 2 * 3600
-function fixAge() {
+function staleness() {
   const link = readLink()
   const st = link && link.state
   if (!st || !st.ok || st.now == null) return null
-  return Math.max(0, Math.floor(Date.now() / 1000) - (st.now - (st.age || 0)))
+  const now = Math.floor(Date.now() / 1000)
+  const sync = st.synced ? Math.max(0, now - st.synced) : 0
+  const fix = Math.max(0, now - (st.now - (st.age || 0)))
+  if (sync > STALE_SEC) return { kind: 'SYNC', sec: sync }
+  if (fix > STALE_SEC) return { kind: 'POS', sec: fix }
+  return null
 }
 
-function staleText(sec) {
-  return sec >= 86400 ? `OLD ${Math.floor(sec / 86400)}D` : `OLD ${Math.floor(sec / 3600)}H`
+function staleText(s) {
+  const t = s.sec >= 86400 ? `${Math.floor(s.sec / 86400)}D` : `${Math.floor(s.sec / 3600)}H`
+  return s.kind === 'SYNC' ? `SYNC ${t}` : `POS OLD ${t}`
 }
 
 function ago(sec) {
@@ -723,12 +728,11 @@ function buildPage1() {
     place2.setProperty(prop.VISIBLE, on && !!label)
     placeRaw.setProperty(prop.VISIBLE, on && !label)
     // 古い位置なら地名を暗くして、何時間前かを出す
-    const age = fromLink ? fixAge() : null
-    const stale = age != null && age > STALE_SEC
+    const stale = fromLink ? staleness() : null
     place1.setProperty(prop.COLOR, stale ? 0x6b6b6b : pl.color)
     place2.setProperty(prop.COLOR, stale ? 0x6b6b6b : pl.color)
-    placeOld.setProperty(prop.TEXT, stale ? staleText(age) : '')
-    placeOld.setProperty(prop.VISIBLE, on && stale)
+    placeOld.setProperty(prop.TEXT, stale ? staleText(stale) : '')
+    placeOld.setProperty(prop.VISIBLE, on && !!stale)
     // 雨
     const r = rainStatus()
     if (r.min != null) rainMin.setProperty(prop.TEXT, `${r.min}u`)
@@ -881,10 +885,9 @@ function buildPage2() {
     }
     const src = link && copyLinkFile('map', link.map)
     if (src) liveMap.setProperty(prop.SRC, src)
-    const age = fixAge()
-    const stale = age != null && age > STALE_SEC
-    if (stale) mapOld.setProperty(prop.TEXT, `POSITION ${staleText(age)}`)
-    showOnPage(mapOld, 1, stale)
+    const stale = staleness()
+    if (stale) mapOld.setProperty(prop.TEXT, staleText(stale))
+    showOnPage(mapOld, 1, !!stale)
     const hsrc = link && copyLinkFile('hud', link.hud)
     if (hsrc) hud.setProperty(prop.SRC, hsrc)
   })
