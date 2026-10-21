@@ -132,8 +132,8 @@ export async function renderMap({ lat, lon, w = 480, h = 160, zoom = 16, detail 
     }
     each('water', (f, rings) => layers.water.push(pathD(rings, true)))
     each('park', (f, rings) => layers.park.push(pathD(rings, true)))
-    // ズーム 13 以下では建物は点にしかならず、描くのに時間がかかるだけなので省く
-    if (detail >= 2 && zoom >= 14) each('building', (f, rings) => layers.building.push(pathD(rings, true)))
+    // ズーム 14 以下では建物は小さな点にしかならず、描くのに時間がかかるだけなので省く
+    if (detail >= 2 && zoom >= 15) each('building', (f, rings) => layers.building.push(pathD(rings, true)))
     each('waterway', (f, rings) => layers.waterway.push(pathD(rings, false)))
     each('transportation', (f, rings) => {
       const c = f.properties.class
