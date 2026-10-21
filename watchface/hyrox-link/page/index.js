@@ -5,7 +5,7 @@ import { createWidget, widget, prop, align } from '@zos/ui'
 import { queryPermission, requestPermission } from '@zos/app'
 import * as appService from '@zos/app-service'
 import { MAP_H, AUTO_SERVICE, AUTO_MIN } from '../shared'
-import { store, saveState, nowSec } from '../lib/store'
+import { store, saveState, nowSec, haveMaps } from '../lib/store'
 
 const ORANGE = 0xff8c1a
 const GRAY = 0x8c8c8c
@@ -87,7 +87,7 @@ Page(
     sync() {
       const w = this.state.w
       w.status.setProperty(prop.TEXT, 'SYNC…')
-      this.request({ method: 'link.sync', params: {} })
+      this.request({ method: 'link.sync', params: { have: haveMaps() } })
         .then((data) => {
           const r = data && data.result !== undefined ? data.result : data
           const state = r && r.state

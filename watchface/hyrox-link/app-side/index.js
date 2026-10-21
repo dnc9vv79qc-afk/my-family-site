@@ -43,7 +43,7 @@ function downloadOnce(svc, url, filePath) {
 }
 
 // 転送中の画像・ズーム画像の名前の交互・画像を送っている最中か
-const run = { sending: {}, zoomName: {}, imaging: false }
+const run = { sending: {}, zoomName: {}, imaging: false, sendErr: [] }
 
 AppSideService(
   BaseSideService({
@@ -53,7 +53,7 @@ AppSideService(
 
     // 時計への返事は最新データ（state）だけにしてすぐ返す。地図などの画像はそのあと裏で送る
     // （画像を待ってから返すと、どこか 1 つ失敗しただけで位置まで同期されなくなっていた）
-    async sync() {
+    async sync({ have } = {}) {
       const c = config()
       if (!c.key) throw new Error('NO KEY: Zepp アプリの設定で合言葉を入れてください')
       const q = `key=${encodeURIComponent(c.key)}`
@@ -67,12 +67,12 @@ AppSideService(
       }
       if (!state || state.ok === undefined) throw new Error(`STATE ${res && res.status}`)
       const imgErr = String(settingsLib.getItem('img_err') || '')
-      if (state.ok) this.images(c, q, state).catch(() => {})
+      if (state.ok) this.images(c, q, state, have || {}).catch(() => {})
       return { state, imgErr }
     },
 
     // 地図・全画面地図・両隣のズーム・雨の画像を 1 枚ずつ送る。失敗したら どの画像で 何が起きたか を残し、次の同期の返事で時計に見せる
-    async images(c, q, state) {
+    async images(c, q, state, have) {
       if (run.imaging) return
       run.imaging = true
       const errs = []
@@ -86,27 +86,25 @@ AppSideService(
         }
       }
       try {
-        // 地図の中身（現在地・軌跡・描き方）が前回送ったときと同じなら、地図は取り直さず送らない。
-        // 届かなかった場合に備えて 2 時間たったら送り直す
+        // 時計が今の版（map_sig）の地図を 2 枚とも持っていて、描き方（detail）も前回送ったときと同じなら送らない。
+        // 送ったかどうかではなく時計が持っているかで決めるので、届かなかった・入れ直した ときも次の同期で送り直す
         const sig = `${state.map_sig}|${c.detail}`
         const last = settingsLib.getItem('sent_sig')
-        const lastAt = Number(settingsLib.getItem('sent_at') || 0)
-        const same = state.map_sig && sig === last && Date.now() - lastAt < 2 * 3600 * 1000
+        const same = state.map_sig && have.map === state.map_sig && have.full === state.map_sig && sig === last
         if (!same) {
           const ok = await step('MAP', () => this.sendImage('map', `${c.server}/api/map?${q}&detail=${c.detail}&w=${MAP_W}&h=${MAP_H}`, state.now))
           const full = await step('FULL', () => this.sendImage('mapfull', `${c.server}/api/map?${q}&detail=${c.detail}&zoom=${FULL_ZOOM}&w=${FULL_MAP}&h=${FULL_MAP}&center=here`, state.now))
           // 地図画面ですぐ切り替えられるよう両隣のズームも
           await step('ZOOM', () => this.mapZooms({ zooms: [FULL_ZOOM - 1, FULL_ZOOM + 1] }))
-          if (ok && full) {
-            settingsLib.setItem('sent_sig', sig)
-            settingsLib.setItem('sent_at', String(Date.now()))
-          }
+          if (ok && full) settingsLib.setItem('sent_sig', sig)
         }
         // 雨は時間で変わるので毎回（小さい画像）
         await step('RAIN', () => this.sendImage('hud', `${c.server}/api/hud?${q}`, state.now))
       } catch (e) {
         errs.push(`IMG ${msg(e)}`)
       }
+      // 前回までの転送で時計に届かなかったもの
+      if (run.sendErr.length) errs.push(`SEND ${run.sendErr.splice(0).join(',')}`)
       try {
         settingsLib.setItem('img_err', errs.join(' / ').slice(0, 80))
       } catch (e) {
@@ -150,7 +148,15 @@ AppSideService(
         // 終わった転送は取り消せないことがある
       }
       try {
-        run.sending[key] = this.sendFile(dst, { type, ts: String(ts) })
+        const file = this.sendFile(dst, { type, ts: String(ts) })
+        run.sending[key] = file
+        // 転送の結果は後から分かる。失敗したら次の同期の返事で時計に見せる
+        if (file && file.on) {
+          file.on('change', (ev) => {
+            const r = ev && ev.data && ev.data.readyState
+            if (r === 'error' && run.sendErr.indexOf(key) < 0) run.sendErr.push(key)
+          })
+        }
       } catch (e) {
         throw new Error(`SEND ${msg(e)}`)
       }
