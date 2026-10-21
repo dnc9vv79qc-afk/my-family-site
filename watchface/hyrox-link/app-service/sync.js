@@ -2,7 +2,7 @@
 // 届いた地図は app.js が保存する。結果は 'auto' に書き、HYROX Link の画面に出す
 import { Time } from '@zos/sensor'
 import { AUTO_MIN } from '../shared'
-import { saveState, saveAuto } from '../lib/store'
+import { saveState, saveAuto, haveMaps } from '../lib/store'
 
 const time = new Time()
 let busy = false
@@ -25,7 +25,7 @@ function sync() {
     return
   }
   busy = true
-  m.request({ method: 'link.sync', params: {} })
+  m.request({ method: 'link.sync', params: { have: haveMaps() } })
     .then((data) => {
       // サービスからの返事は包まれ方が違うことがあるので、state を探して取り出す
       const r = data && data.result !== undefined ? data.result : data
