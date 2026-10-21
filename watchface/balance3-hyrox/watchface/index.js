@@ -2,7 +2,7 @@ import { createWidget, widget, align, prop, event, show_level, text_style, data_
 import { Weather, Time, Distance } from '@zos/sensor'
 import { log } from '@zos/utils'
 import { LocalStorage, FileSystem } from '@zos/share-storage'
-import { writeFileSync } from '@zos/fs'
+import { writeFileSync, rmSync } from '@zos/fs'
 import { launchApp } from '@zos/router'
 import { L } from './layout'
 import { placeLabel } from './romaji'
@@ -291,7 +291,7 @@ function p2value(c) {
 
 // ---- 連携アプリ（HYROX Link）が共有するデータと地図
 const LINK_APP_ID = 1131196
-const linkFiles = {} // kind -> { ts, slot }
+const linkFiles = {} // kind -> { ts, path }
 
 function readLink() {
   try {
@@ -304,11 +304,12 @@ function readLink() {
   }
 }
 
-// 連携アプリのファイルを自分の data に写して IMG で使う。同じ名前だと表示が更新されないので 2 つを交互に使う
+// 連携アプリのファイルを自分の data に写して IMG で使う。画像は一度読んだ名前だと中身を替えても前の絵のまま
+// （2 つの名前を交互に使うと 3 回目から古い絵に戻った）ので、届いた時刻で毎回別の名前にし、前のファイルは消す
 function copyLinkFile(kind, entry) {
   if (!entry || !entry.path) return null
-  const cur = linkFiles[kind] || { ts: 0, slot: 0 }
-  if (entry.ts === cur.ts) return `data://live_${kind}_${cur.slot}.png`
+  const cur = linkFiles[kind]
+  if (cur && entry.ts === cur.ts) return cur.path
   try {
     const fs = new FileSystem(LINK_APP_ID)
     let buf = null
@@ -321,10 +322,16 @@ function copyLinkFile(kind, entry) {
       if (buf) break
     }
     if (!buf) return null
-    const slot = 1 - cur.slot
-    const dst = `data://live_${kind}_${slot}.png`
+    const dst = `data://live_${kind}_${entry.ts}.png`
     writeFileSync({ path: dst, data: buf })
-    linkFiles[kind] = { ts: entry.ts, slot }
+    if (cur && cur.path !== dst) {
+      try {
+        rmSync({ path: cur.path })
+      } catch (e) {
+        // 消せなくても表示には関係ない
+      }
+    }
+    linkFiles[kind] = { ts: entry.ts, path: dst }
     return dst
   } catch (e) {
     logger.log('link file copy failed')
