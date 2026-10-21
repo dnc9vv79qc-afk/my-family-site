@@ -57,13 +57,16 @@ Page(
         s.maps[Number(m[1])] = path
         this.show()
       }
+      // リューズ: 1 回の値は機種で大きさが違う（小さい値だと 30° ためるまで反応しなかった）ので、
+      // 回った向きだけ見て 1 段ずつ。回し続けたときに飛びすぎないよう 0.25 秒あける
       onDigitalCrown({
         callback: (key, degree) => {
-          s.crown += degree
-          if (Math.abs(s.crown) >= 30) {
-            this.setZoom(s.zoom + (s.crown > 0 ? 1 : -1))
-            s.crown = 0
-          }
+          const d = Number(degree) || 0
+          if (!d) return
+          const now = Date.now()
+          if (now - s.crown < 250) return
+          s.crown = now
+          this.setZoom(s.zoom + (d > 0 ? 1 : -1))
         },
       })
       this.show()
