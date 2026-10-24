@@ -1,25 +1,28 @@
-// TOUGH Ti: G-SHOCK 風のアナログ文字盤。絵と座標は tools/gen.py が作る layout.js（L）にある。
-// 時・分・秒の針は TIME_POINTER。サブダイヤルの針は角度ごとのコマを差し替える:
-//   曜日（左下）= IMG_WEEK / 電池（右下）= IMG_LEVEL（電池残量）/ 24 時間計（右上）= 毎分 JS で差し替え
-import { createWidget, widget, show_level, data_type, prop } from '@zos/ui'
-import { Time } from '@zos/sensor'
+// TOUGH Ti: G-SHOCK（GA-2100）風の真っ黒なアナデジ文字盤。絵と座標は tools/gen.py が作る layout.js（L）にある。
+// 時・分・秒の針は TIME_POINTER。9 時のサブダイヤルの曜日の針は IMG_WEEK（月曜始まりの 7 コマ）。
+// 4 時の液晶窓に デジタル時刻（IMG_TIME）・日付（IMG_DATE）・電池（TEXT_IMG）
+import { createWidget, widget, show_level, data_type, align } from '@zos/ui'
 import { L } from './layout'
 
 const NORMAL = show_level.ONLY_NORMAL
 const AOD = show_level.ONAL_AOD
+const D = L.lcd
 
-function dateOpts(src, level) {
-  return {
-    day_startX: L.date.x,
-    day_startY: L.date.y,
-    day_zero: 1,
-    day_follow: 0,
-    day_space: 0,
-    day_en_array: src,
-    day_sc_array: src,
-    day_tc_array: src,
+function lcdTime(digits, level) {
+  createWidget(widget.IMG_TIME, {
+    hour_zero: 1,
+    hour_startX: D.time_x,
+    hour_startY: D.time_y,
+    hour_array: digits,
+    hour_space: D.space,
+    minute_zero: 1,
+    minute_startX: D.min_x,
+    minute_startY: D.time_y,
+    minute_array: digits,
+    minute_space: D.space,
+    minute_follow: 0,
     show_level: level,
-  }
+  })
 }
 
 function hands(h, m, s, cap, level) {
@@ -48,32 +51,40 @@ function hands(h, m, s, cap, level) {
 WatchFace({
   build() {
     createWidget(widget.IMG, { x: 0, y: 0, src: L.bg, show_level: NORMAL })
-    createWidget(widget.IMG_DATE, dateOpts(L.date.src, NORMAL))
-
-    // 曜日: 月曜始まりの 7 コマ
     createWidget(widget.IMG_WEEK, { x: L.week.x, y: L.week.y, week_en: L.week.src, week_tc: L.week.src, week_sc: L.week.src, show_level: NORMAL })
 
-    // 電池: 0〜100% を 21 コマ
+    // 液晶窓: 上の段に日付と電池、下の段にデジタル時刻
+    lcdTime(D.big, NORMAL)
+    createWidget(widget.IMG_DATE, {
+      day_startX: D.day_x,
+      day_startY: D.day_y,
+      day_zero: 1,
+      day_follow: 0,
+      day_space: 1,
+      day_en_array: D.small,
+      day_sc_array: D.small,
+      day_tc_array: D.small,
+      show_level: NORMAL,
+    })
     if (data_type.BATTERY !== undefined) {
-      createWidget(widget.IMG_LEVEL, { x: L.bat.x, y: L.bat.y, image_array: L.bat.src, image_length: L.bat.src.length, type: data_type.BATTERY, show_level: NORMAL })
+      createWidget(widget.TEXT_IMG, {
+        x: D.bat_x,
+        y: D.bat_y,
+        w: D.bat_w,
+        h: 14,
+        type: data_type.BATTERY,
+        font_array: D.small,
+        h_space: 1,
+        align_h: align.RIGHT,
+        show_level: NORMAL,
+      })
     }
-
-    // 24 時間計: 30 分ごとのコマ
-    const time = new Time()
-    const h24 = createWidget(widget.IMG, { x: L.h24.x, y: L.h24.y, w: L.h24.w, h: L.h24.h, src: L.h24.src[0], show_level: NORMAL })
-    const update24 = () => {
-      const i = Math.floor((time.getHours() * 60 + time.getMinutes()) / 30) % L.h24.src.length
-      h24.setProperty(prop.SRC, L.h24.src[i])
-    }
-    update24()
-    time.onPerMinute(update24)
-    createWidget(widget.WIDGET_DELEGATE, { resume_call: update24 })
 
     hands(L.hour, L.minute, L.second, L.cap, NORMAL)
 
-    // 常時表示: 黒地に目盛りの輪郭・日付・中抜きの時分針
+    // 常時表示: 黒地にインデックスの輪郭・液晶の時刻・中抜きの時分針
     createWidget(widget.IMG, { x: 0, y: 0, src: L.aod_bg, show_level: AOD })
-    createWidget(widget.IMG_DATE, dateOpts(L.aod_date.src, AOD))
+    lcdTime(D.big_aod, AOD)
     hands(L.hour_aod, L.minute_aod, null, L.cap_aod, AOD)
   },
 })
