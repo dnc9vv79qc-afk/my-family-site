@@ -4,7 +4,7 @@ G-SHOCK（GA-2100）風の、真っ黒で無骨なアナデジ文字盤。HYROX 
 
 ![preview](preview.png) ![aod](preview_aod.png)
 
-- **ケース**: 円に近い控えめな八角形のベゼル。辺ごとに TOUGH Ti / LIGHT / START / PROTECTION / MODE / ADJUST の彫り込み
+- **ケース**: 円に近い控えめな八角形のベゼル。辺ごとに TOUGH Ti / LIGHT / START / PROTECTION / MODE / ADJUST の沈んだ彫り込み
 - **インデックス**: 見返しの上まで伸びる、上が平らな台形の黒いブロック。左上の縁が光り、右下に影。12 時は 2 本、3 時は液晶窓
 - **見返し**: 歯車のように並んだ細い溝
 - **針**: 黒い刃に夜光の帯の時針・分針、グレーの秒針

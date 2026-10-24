@@ -26,7 +26,7 @@ BLOCK = (22, 23, 25, 255)  # インデックスの本体
 BLOCK_HI = (104, 108, 112, 255)  # インデックスの光る面
 BLOCK_LO = (3, 3, 4, 255)
 PRINT = (88, 92, 96, 255)  # 文字盤の印刷
-ENGRAVE = (40, 41, 44, 255)  # ベゼルの彫り込み
+ENGRAVE = (11, 11, 12, 255)  # ベゼルの彫り込み（地より暗い）
 LCD_BG = (9, 10, 11, 255)
 LCD_ON = (182, 186, 182, 255)
 LCD_OFF = (22, 24, 25, 255)
@@ -145,15 +145,12 @@ def arc_text(dst, s, r, center_deg, size, fill, weight=500, spacing=0.0, bottom=
 
 
 def engraved(dst, draw_fn):
-    """彫り込み: 暗い影（右下）と明るいふち（左上）を重ねる"""
-    shadow = canvas(W)
-    draw_fn(shadow, (8, 8, 9, 255))
+    """沈んだ彫り込み: 文字は地より暗く、右下のふちだけがうっすら光る"""
     hi = canvas(W)
-    draw_fn(hi, (60, 62, 66, 255))
+    draw_fn(hi, (40, 41, 44, 255))
     body = canvas(W)
     draw_fn(body, ENGRAVE)
-    dst.alpha_composite(hi, (-S, -S))
-    dst.alpha_composite(shadow, (S, S))
+    dst.alpha_composite(hi, (int(0.8 * S), int(0.8 * S)))
     dst.alpha_composite(body)
 
 
@@ -377,10 +374,7 @@ def draw_dial_print(bg):
     text_at(layer, 'TOUGH Ti', 246, 174, 14, (112, 116, 120, 255), weight=700, spacing=1.2)
     text_at(layer, 'SHOCK RESIST', 246, 191, 8, PRINT, weight=600, spacing=1.4)
     x, y, w, h = LCD
-    text_at(layer, 'WR20BAR', x + w - 52, y - 9, 7.5, PRINT, weight=600, spacing=0.6)
-    text_at(layer, 'MUTE   ALM   SIG', x + w / 2 + 2, y + h + 10, 6, PRINT, weight=600, spacing=0.5)
-    text_at(layer, 'DST', x + w - 10, y - 17, 6, PRINT, weight=600)
-    text_at(layer, 'HND', x + w - 10, y - 9, 6, PRINT, weight=600)
+    text_at(layer, 'WR20BAR', x + w - 24, y - 9, 7.5, PRINT, weight=600, spacing=0.6)
     bg.alpha_composite(layer)
 
 
