@@ -40,7 +40,7 @@ AOD_DIM = (66, 68, 72, 255)
 AOD_LCD = (150, 154, 150, 255)
 CYAN, CYAN_HI, CYAN_LO = BLOCK, BLOCK_HI, BLOCK_LO  # applied() の既定色
 
-OCT_A = 222  # 八角形ベゼルの外側（中心から辺までの距離）
+OCT_A = 233  # 八角形ベゼルの外側（中心から辺までの距離）。円に近く、辺はうっすら見える程度
 R_OPEN = 190  # ベゼルの内側（ガラスの縁）
 R_DIAL = 160  # 文字盤（その外は歯車のような溝の見返し）
 IDX_R1, IDX_R2 = 122, 178  # インデックスの内側・外側（見返しの上まで伸びる）
@@ -211,9 +211,9 @@ def base_layer():
     light = np.cos(np.radians(ang - 315))
 
     # 八角形の外: ケースの側面（さらに暗い）
-    case = 9 + 4 * light
+    case = 17 + 3 * light
     # ベゼル: 樹脂のマット。辺ごとに光の当たり方が違う面
-    facet = 25 + 5 * np.cos(np.radians(side * 45 - 315))
+    facet = 23 + 1.5 * np.cos(np.radians(side * 45 - 315))
     t = np.clip((od - R_OPEN) / (OCT_A - R_OPEN), 0, 1)
     bez = facet + 4 * np.sin(np.clip(t, 0, 1) * math.pi)
     # 見返し: 内へ下がる斜面
@@ -227,8 +227,8 @@ def base_layer():
     v = np.where(od > OCT_A, case, np.where(r >= R_OPEN, bez, np.where(r >= R_DIAL, fl, dv))) + noise
     rgb = np.stack([v, v + 1, v + 2], -1)
     # 段差: ベゼル外周のふち（明るい線）、ガラスの縁（影）、文字盤の縁
-    rgb += (16 * np.exp(-((od - (OCT_A - 1.5)) / 1.1) ** 2) * (0.6 + 0.4 * light))[..., None]
-    rgb -= (12 * np.exp(-((od - (OCT_A + 1.5)) / 1.2) ** 2))[..., None]
+    rgb += (6 * np.exp(-((od - (OCT_A - 1.5)) / 1.1) ** 2) * (0.6 + 0.4 * light))[..., None]
+    rgb -= (5 * np.exp(-((od - (OCT_A + 1.5)) / 1.2) ** 2))[..., None]
     rgb -= (14 * np.exp(-((r - R_OPEN) / 1.0) ** 2))[..., None]
     rgb += (6 * np.exp(-((r - (R_OPEN + 2.2)) / 0.8) ** 2) * (0.5 - 0.5 * light))[..., None]
     rgb -= (8 * np.exp(-((r - R_DIAL) / 0.9) ** 2))[..., None]
@@ -236,7 +236,7 @@ def base_layer():
     return Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), alpha[..., None]], -1).astype(np.uint8), 'RGBA')
 
 
-def side_text(layer, s, side_deg, size, fill, weight=700, spacing=1.6, dist=206):
+def side_text(layer, s, side_deg, size, fill, weight=700, spacing=1.6, dist=211):
     """八角形の辺に沿ったまっすぐな文字（下半分は読める向きに）"""
     rot = side_deg + 180 if 90 < side_deg < 270 else side_deg
     text_at(layer, s, *polar(dist, side_deg), size, fill, weight=weight, spacing=spacing, rot=rot)
@@ -251,13 +251,6 @@ def draw_bezel(bg):
         side_text(layer, 'MODE', 225, 12, fill)
         side_text(layer, 'ADJUST', 270, 12, fill)
     engraved(bg, words)
-    # 12 時側の辺の小さな張り出し
-    layer = canvas(W)
-    d = ImageDraw.Draw(layer)
-    for dx in (-26, 26):
-        d.rounded_rectangle(sp([(C + dx - 9, 26), (C + dx + 9, 36)]), radius=2 * S, fill=(34, 35, 38, 255))
-    drop_shadow(bg, layer, off=1.5, blur=1.2)
-    bg.alpha_composite(layer)
 
 
 def draw_rehaut(bg):
