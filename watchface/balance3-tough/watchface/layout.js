@@ -1,17 +1,17 @@
 // tools/gen.py が作るファイル（手で編集しない）
 export const L = {
  "lcd": {
-  "time_x": 254,
-  "time_y": 289,
-  "min_x": 299,
-  "colon_x": 294,
+  "time_x": 261,
+  "time_y": 278,
+  "min_x": 315,
+  "colon_x": 310,
   "space": 3,
-  "day_x": 258,
-  "day_y": 267,
-  "bat_x": 306,
-  "bat_y": 267,
-  "bat_w": 30,
-  "small_w": 9,
+  "day_x": 278,
+  "day_y": 257,
+  "bat_x": 327,
+  "bat_y": 257,
+  "bat_w": 33,
+  "small_w": 10,
   "big": [
    "images/lcd/big/0.png",
    "images/lcd/big/1.png",
@@ -52,13 +52,13 @@ export const L = {
  "bg": "images/bg.png",
  "hour": {
   "path": "images/hands/hour.png",
-  "pos_x": 14,
-  "pos_y": 102
+  "pos_x": 16,
+  "pos_y": 100
  },
  "minute": {
   "path": "images/hands/minute.png",
-  "pos_x": 11,
-  "pos_y": 156
+  "pos_x": 12,
+  "pos_y": 154
  },
  "second": {
   "path": "images/hands/second.png",
@@ -72,13 +72,13 @@ export const L = {
  },
  "hour_aod": {
   "path": "images/hands/hour_aod.png",
-  "pos_x": 14,
-  "pos_y": 102
+  "pos_x": 16,
+  "pos_y": 100
  },
  "minute_aod": {
   "path": "images/hands/minute_aod.png",
-  "pos_x": 11,
-  "pos_y": 156
+  "pos_x": 12,
+  "pos_y": 154
  },
  "cap_aod": {
   "path": "images/hands/cap_aod.png",
