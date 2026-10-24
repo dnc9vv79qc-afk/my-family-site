@@ -1,23 +1,22 @@
 # TOUGH Ti（Amazfit Balance 3 Ti 用アナログ文字盤）
 
-G-SHOCK（スカイコックピット）風の、黒いケースにシアンを差した無骨なアナログ文字盤。HYROX Face とは別のウォッチフェイス。
+G-SHOCK（GA-2100）風の、真っ黒で無骨なアナデジ文字盤。HYROX Face とは別のウォッチフェイス。
 
 ![preview](preview.png) ![aod](preview_aod.png)
 
-- **針**: 剣形の時針・分針（シアンのふち＋明るい夜光色）、シアンの秒針
-- **24 時間計**（右上）: 30 分刻みで動く 24 時間表示の針
-- **曜日**（左下）: SU〜SA を指す針
-- **電池**（右下）: E〜F の針。0〜20% はシアンの帯
-- **日付窓**（3 時）
-- **ケース・見返し**: ベゼルに彫り込みの数字と文字、見返しに世界の都市コードとシアンの分目盛り
-- **常時表示（AOD）**: 黒地に目盛りと 12・6 の輪郭、日付、中抜きの時分針
+- **ケース**: 八角形のベゼル。辺ごとに TOUGH Ti / LIGHT / START / PROTECTION / MODE / ADJUST の彫り込み
+- **インデックス**: 三角屋根の立体の黒い棒。左上からの光で、光に向いた面がグレーに光る。12 時は 2 本
+- **針**: 黒い刃に夜光の帯の時針・分針、グレーの秒針
+- **曜日**（9 時のサブダイヤル）: SU〜SA を指す針
+- **液晶窓**（4 時）: デジタル時刻、上の段に日付と電池残量。消えているセグメントもうっすら見える
+- **常時表示（AOD）**: 黒地にインデックスの輪郭、液晶の時刻、中抜きの時分針
 - 心拍などの数値は出さない。編集（中身の入れ替え）もなし
 
 ## ファイル
 
 ```
 app.json               アプリ設定（appId 1000002 は仮）
-watchface/index.js     文字盤（TIME_POINTER・IMG_WEEK・IMG_LEVEL・IMG_DATE）
+watchface/index.js     文字盤（TIME_POINTER・IMG_WEEK・IMG_TIME・IMG_DATE・TEXT_IMG）
 watchface/layout.js    tools/gen.py が作る座標と画像の一覧
 tools/gen.py           文字盤の絵をすべて描く（Python 3 + Pillow + numpy）
 tools/fonts/           Rubik フォント（SIL OFL 1.1）
