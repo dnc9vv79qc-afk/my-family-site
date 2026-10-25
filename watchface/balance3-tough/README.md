@@ -1,25 +1,20 @@
-# TOUGH Ti（Amazfit Balance 3 Ti 用アナログ文字盤）
+# TOUGH Ti（Amazfit Balance 3 Ti 用デジタル文字盤）
 
-ミリタリー × G-SHOCK 風のいかつさ × 実用性。黒にオレンジを差した、無骨で見やすいアナログ文字盤。HYROX Face とは別のウォッチフェイス。
+G-SHOCK（GW-B5600 / GA-2100）風。真っ黒な樹脂ケースの真ん中に大きな反転液晶を置いたデジタル文字盤。HYROX Face とは別のウォッチフェイス。
 
 ![preview](preview.png) ![aod](preview_aod.png)
 
-- **文字盤は画面の端まで**: 時計本体に金属のベゼルがあるので、画面にはベゼルを描かない。外周は分目盛りのリング（12 時にオレンジの三角、3・6・9 にオレンジの目盛り）
-- **ガード**: リングの斜め 4 か所に六角ボルトで留めたガード
-- **文字盤**: 中央にうっすら浮き出たハニカム模様
-- **インデックス**: 立体の金属バー。12・3・6・9 は外側半分にオレンジ
-- **針**: スケルトン（中抜き）の時針・分針。外側に夜光、先端にオレンジ。秒針と中心もオレンジ
-- **曜日**（左）: 大きな曜日名と M T W T F S S の行。今日だけオレンジ＋下線
-- **時刻・日付**（右の窓）: 角を落とした太い金属枠に、極太のデジタル時刻と 月 / 日
-- **電池**（下）: 20 個のブロックに区切ったオレンジのリングと残量 %。小ダイヤルのふちは刻み入りの金属
-- **常時表示（AOD）**: 黒地にインデックスの輪郭（12・3・6・9 はオレンジ）、窓の時刻と日付、中抜きの時分針
-- 心拍などの数値は出さない。編集（中身の入れ替え）もなし
+- **液晶**: 7 セグメントの極太の 時:分 と小さめの秒。消えているセグメントもうっすら見える。上の段に曜日・電池・月-日
+- **枠**: 一段高い枠。上の帯に TOUGH Ti とオレンジの PROTECTION、下の帯に WATER 20BAR RESIST / SHOCK RESIST
+- **ケース**: 黒い樹脂に沈んだ刻印（ADJUST / START / LIGHT / MODE、MULTI BAND、SHOCK RESIST）
+- **常時表示（AOD）**: 黒地に液晶の枠と 時:分 だけ
+- 本物のロゴ（G-SHOCK / CASIO）の代わりに TOUGH Ti と書いている（公開リポジトリのため）
 
 ## ファイル
 
 ```
 app.json               アプリ設定（appId 1000002 は仮）
-watchface/index.js     文字盤（TIME_POINTER・IMG_WEEK・IMG_TIME・IMG_DATE・IMG_LEVEL・TEXT_IMG）
+watchface/index.js     文字盤（IMG_TIME・IMG_WEEK・IMG_DATE・TEXT_IMG）
 watchface/layout.js    tools/gen.py が作る座標と画像の一覧
 tools/gen.py           文字盤の絵をすべて描く（Python 3 + Pillow + numpy）
 tools/fonts/           Rubik フォント（SIL OFL 1.1）

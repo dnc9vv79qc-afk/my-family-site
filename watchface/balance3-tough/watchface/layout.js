@@ -1,72 +1,80 @@
 // tools/gen.py が作るファイル（手で編集しない）
 export const L = {
- "win": {
-  "time": [
-   "images/win/time/0.png",
-   "images/win/time/1.png",
-   "images/win/time/2.png",
-   "images/win/time/3.png",
-   "images/win/time/4.png",
-   "images/win/time/5.png",
-   "images/win/time/6.png",
-   "images/win/time/7.png",
-   "images/win/time/8.png",
-   "images/win/time/9.png"
+ "lcd": {
+  "time_x": 79,
+  "min_x": 211,
+  "time_y": 224,
+  "big_h": 86,
+  "big_space": 4,
+  "colon_x": 201.0,
+  "sec_x": 337,
+  "sec_y": 264,
+  "date_y": 170,
+  "small_h": 20,
+  "month_x": 306,
+  "day_x": 354,
+  "dash_x": 347,
+  "week_x": 92,
+  "week_y": 169,
+  "bat_icon": [
+   206.0,
+   175
   ],
-  "time_aod": [
-   "images/win/time_aod/0.png",
-   "images/win/time_aod/1.png",
-   "images/win/time_aod/2.png",
-   "images/win/time_aod/3.png",
-   "images/win/time_aod/4.png",
-   "images/win/time_aod/5.png",
-   "images/win/time_aod/6.png",
-   "images/win/time_aod/7.png",
-   "images/win/time_aod/8.png",
-   "images/win/time_aod/9.png"
+  "bat_x": 230,
+  "bat_y": 170,
+  "bat_w": 50,
+  "big_w": 56,
+  "sec_w": 31,
+  "small_w": 16,
+  "big": [
+   "images/lcd/big/0.png",
+   "images/lcd/big/1.png",
+   "images/lcd/big/2.png",
+   "images/lcd/big/3.png",
+   "images/lcd/big/4.png",
+   "images/lcd/big/5.png",
+   "images/lcd/big/6.png",
+   "images/lcd/big/7.png",
+   "images/lcd/big/8.png",
+   "images/lcd/big/9.png"
   ],
-  "date": [
-   "images/win/date/0.png",
-   "images/win/date/1.png",
-   "images/win/date/2.png",
-   "images/win/date/3.png",
-   "images/win/date/4.png",
-   "images/win/date/5.png",
-   "images/win/date/6.png",
-   "images/win/date/7.png",
-   "images/win/date/8.png",
-   "images/win/date/9.png"
+  "sec": [
+   "images/lcd/sec/0.png",
+   "images/lcd/sec/1.png",
+   "images/lcd/sec/2.png",
+   "images/lcd/sec/3.png",
+   "images/lcd/sec/4.png",
+   "images/lcd/sec/5.png",
+   "images/lcd/sec/6.png",
+   "images/lcd/sec/7.png",
+   "images/lcd/sec/8.png",
+   "images/lcd/sec/9.png"
   ],
-  "date_aod": [
-   "images/win/date_aod/0.png",
-   "images/win/date_aod/1.png",
-   "images/win/date_aod/2.png",
-   "images/win/date_aod/3.png",
-   "images/win/date_aod/4.png",
-   "images/win/date_aod/5.png",
-   "images/win/date_aod/6.png",
-   "images/win/date_aod/7.png",
-   "images/win/date_aod/8.png",
-   "images/win/date_aod/9.png"
+  "small": [
+   "images/lcd/small/0.png",
+   "images/lcd/small/1.png",
+   "images/lcd/small/2.png",
+   "images/lcd/small/3.png",
+   "images/lcd/small/4.png",
+   "images/lcd/small/5.png",
+   "images/lcd/small/6.png",
+   "images/lcd/small/7.png",
+   "images/lcd/small/8.png",
+   "images/lcd/small/9.png"
   ],
-  "time_x": 273,
-  "min_x": 338,
-  "time_y": 205,
-  "time_h": 32,
-  "colon_x": 333.5,
-  "digit_w": 28,
-  "date_x": 299,
-  "day_x": 341,
-  "date_y": 258,
-  "date_h": 17,
-  "slash_x": 334.0,
-  "date_w": 14
- },
- "bg": "images/bg.png",
- "week": {
-  "x": 88,
-  "y": 203,
-  "src": [
+  "big_aod": [
+   "images/lcd/big_aod/0.png",
+   "images/lcd/big_aod/1.png",
+   "images/lcd/big_aod/2.png",
+   "images/lcd/big_aod/3.png",
+   "images/lcd/big_aod/4.png",
+   "images/lcd/big_aod/5.png",
+   "images/lcd/big_aod/6.png",
+   "images/lcd/big_aod/7.png",
+   "images/lcd/big_aod/8.png",
+   "images/lcd/big_aod/9.png"
+  ],
+  "week": [
    "images/week/0.png",
    "images/week/1.png",
    "images/week/2.png",
@@ -76,85 +84,7 @@ export const L = {
    "images/week/6.png"
   ]
  },
- "bat": {
-  "x": 196,
-  "y": 300,
-  "src": [
-   "images/bat/0.png",
-   "images/bat/1.png",
-   "images/bat/2.png",
-   "images/bat/3.png",
-   "images/bat/4.png",
-   "images/bat/5.png",
-   "images/bat/6.png",
-   "images/bat/7.png",
-   "images/bat/8.png",
-   "images/bat/9.png",
-   "images/bat/10.png",
-   "images/bat/11.png",
-   "images/bat/12.png",
-   "images/bat/13.png",
-   "images/bat/14.png",
-   "images/bat/15.png",
-   "images/bat/16.png",
-   "images/bat/17.png",
-   "images/bat/18.png",
-   "images/bat/19.png",
-   "images/bat/20.png"
-  ],
-  "num": [
-   "images/bat/num/0.png",
-   "images/bat/num/1.png",
-   "images/bat/num/2.png",
-   "images/bat/num/3.png",
-   "images/bat/num/4.png",
-   "images/bat/num/5.png",
-   "images/bat/num/6.png",
-   "images/bat/num/7.png",
-   "images/bat/num/8.png",
-   "images/bat/num/9.png"
-  ],
-  "unit": "images/bat/pct.png",
-  "num_x": 206,
-  "num_y": 343,
-  "num_w": 68,
-  "num_h": 15
- },
- "hour": {
-  "path": "images/hands/hour.png",
-  "pos_x": 19,
-  "pos_y": 126
- },
- "minute": {
-  "path": "images/hands/minute.png",
-  "pos_x": 16,
-  "pos_y": 192
- },
- "second": {
-  "path": "images/hands/second.png",
-  "pos_x": 9,
-  "pos_y": 212
- },
- "cap": {
-  "path": "images/hands/cap.png",
-  "x": 228,
-  "y": 228
- },
- "hour_aod": {
-  "path": "images/hands/hour_aod.png",
-  "pos_x": 19,
-  "pos_y": 126
- },
- "minute_aod": {
-  "path": "images/hands/minute_aod.png",
-  "pos_x": 16,
-  "pos_y": 192
- },
- "cap_aod": {
-  "path": "images/hands/cap_aod.png",
-  "x": 228,
-  "y": 228
- },
+ "bg": "images/bg.png",
  "aod_bg": "images/aod_bg.png",
  "icon": "images/icon.png"
 }
