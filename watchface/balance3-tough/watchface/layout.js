@@ -49,18 +49,18 @@ export const L = {
    "images/win/date_aod/8.png",
    "images/win/date_aod/9.png"
   ],
-  "time_x": 277,
+  "time_x": 273,
   "min_x": 338,
   "time_y": 205,
   "time_h": 32,
   "colon_x": 333.5,
-  "digit_w": 26,
-  "date_x": 301,
+  "digit_w": 28,
+  "date_x": 299,
   "day_x": 341,
   "date_y": 258,
   "date_h": 17,
   "slash_x": 334.0,
-  "date_w": 13
+  "date_w": 14
  },
  "bg": "images/bg.png",
  "week": {
@@ -122,13 +122,13 @@ export const L = {
  },
  "hour": {
   "path": "images/hands/hour.png",
-  "pos_x": 16,
-  "pos_y": 128
+  "pos_x": 19,
+  "pos_y": 126
  },
  "minute": {
   "path": "images/hands/minute.png",
-  "pos_x": 14,
-  "pos_y": 198
+  "pos_x": 16,
+  "pos_y": 192
  },
  "second": {
   "path": "images/hands/second.png",
@@ -142,13 +142,13 @@ export const L = {
  },
  "hour_aod": {
   "path": "images/hands/hour_aod.png",
-  "pos_x": 16,
-  "pos_y": 128
+  "pos_x": 19,
+  "pos_y": 126
  },
  "minute_aod": {
   "path": "images/hands/minute_aod.png",
-  "pos_x": 14,
-  "pos_y": 198
+  "pos_x": 16,
+  "pos_y": 192
  },
  "cap_aod": {
   "path": "images/hands/cap_aod.png",
