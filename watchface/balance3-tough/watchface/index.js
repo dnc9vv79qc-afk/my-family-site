@@ -26,6 +26,28 @@ function winTime(digits, level) {
   })
 }
 
+function winDate(digits, level) {
+  createWidget(widget.IMG_DATE, {
+    month_startX: D.date_x,
+    month_startY: D.date_y,
+    month_zero: 1,
+    month_follow: 0,
+    month_space: 0,
+    month_en_array: digits,
+    month_sc_array: digits,
+    month_tc_array: digits,
+    day_startX: D.day_x,
+    day_startY: D.date_y,
+    day_zero: 1,
+    day_follow: 0,
+    day_space: 0,
+    day_en_array: digits,
+    day_sc_array: digits,
+    day_tc_array: digits,
+    show_level: level,
+  })
+}
+
 function hands(h, m, s, cap, level) {
   const opts = {
     hour_centerX: 240,
@@ -56,25 +78,7 @@ WatchFace({
 
     // 右の窓: デジタル時刻と 月 / 日
     winTime(D.time, NORMAL)
-    createWidget(widget.IMG_DATE, {
-      month_startX: D.date_x,
-      month_startY: D.date_y,
-      month_zero: 1,
-      month_follow: 0,
-      month_space: 0,
-      month_en_array: D.date,
-      month_sc_array: D.date,
-      month_tc_array: D.date,
-      day_startX: D.day_x,
-      day_startY: D.date_y,
-      day_zero: 1,
-      day_follow: 0,
-      day_space: 0,
-      day_en_array: D.date,
-      day_sc_array: D.date,
-      day_tc_array: D.date,
-      show_level: NORMAL,
-    })
+    winDate(D.date, NORMAL)
 
     // 下の電池: オレンジのリング（21 コマ）と残量
     if (data_type.BATTERY !== undefined) {
@@ -97,9 +101,10 @@ WatchFace({
 
     hands(L.hour, L.minute, L.second, L.cap, NORMAL)
 
-    // 常時表示: 黒地にインデックスの輪郭（12・3・6・9 はオレンジ）、窓の時刻、中抜きの時分針
+    // 常時表示: 黒地にインデックスの輪郭（12・3・6・9 はオレンジ）、窓の時刻と日付、中抜きの時分針
     createWidget(widget.IMG, { x: 0, y: 0, src: L.aod_bg, show_level: AOD })
     winTime(D.time_aod, AOD)
+    winDate(D.date_aod, AOD)
     hands(L.hour_aod, L.minute_aod, null, L.cap_aod, AOD)
   },
 })
