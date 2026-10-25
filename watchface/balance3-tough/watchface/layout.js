@@ -1,104 +1,147 @@
 // tools/gen.py が作るファイル（手で編集しない）
 export const L = {
- "lcd": {
-  "time_x": 261,
-  "time_y": 278,
-  "min_x": 315,
-  "colon_x": 310,
-  "space": 3,
-  "day_x": 278,
-  "day_y": 257,
-  "bat_x": 327,
-  "bat_y": 257,
-  "bat_w": 33,
-  "small_w": 10,
-  "big": [
-   "images/lcd/big/0.png",
-   "images/lcd/big/1.png",
-   "images/lcd/big/2.png",
-   "images/lcd/big/3.png",
-   "images/lcd/big/4.png",
-   "images/lcd/big/5.png",
-   "images/lcd/big/6.png",
-   "images/lcd/big/7.png",
-   "images/lcd/big/8.png",
-   "images/lcd/big/9.png"
+ "win": {
+  "time": [
+   "images/win/time/0.png",
+   "images/win/time/1.png",
+   "images/win/time/2.png",
+   "images/win/time/3.png",
+   "images/win/time/4.png",
+   "images/win/time/5.png",
+   "images/win/time/6.png",
+   "images/win/time/7.png",
+   "images/win/time/8.png",
+   "images/win/time/9.png"
   ],
-  "small": [
-   "images/lcd/small/0.png",
-   "images/lcd/small/1.png",
-   "images/lcd/small/2.png",
-   "images/lcd/small/3.png",
-   "images/lcd/small/4.png",
-   "images/lcd/small/5.png",
-   "images/lcd/small/6.png",
-   "images/lcd/small/7.png",
-   "images/lcd/small/8.png",
-   "images/lcd/small/9.png"
+  "time_aod": [
+   "images/win/time_aod/0.png",
+   "images/win/time_aod/1.png",
+   "images/win/time_aod/2.png",
+   "images/win/time_aod/3.png",
+   "images/win/time_aod/4.png",
+   "images/win/time_aod/5.png",
+   "images/win/time_aod/6.png",
+   "images/win/time_aod/7.png",
+   "images/win/time_aod/8.png",
+   "images/win/time_aod/9.png"
   ],
-  "big_aod": [
-   "images/lcd/big_aod/0.png",
-   "images/lcd/big_aod/1.png",
-   "images/lcd/big_aod/2.png",
-   "images/lcd/big_aod/3.png",
-   "images/lcd/big_aod/4.png",
-   "images/lcd/big_aod/5.png",
-   "images/lcd/big_aod/6.png",
-   "images/lcd/big_aod/7.png",
-   "images/lcd/big_aod/8.png",
-   "images/lcd/big_aod/9.png"
-  ]
+  "date": [
+   "images/win/date/0.png",
+   "images/win/date/1.png",
+   "images/win/date/2.png",
+   "images/win/date/3.png",
+   "images/win/date/4.png",
+   "images/win/date/5.png",
+   "images/win/date/6.png",
+   "images/win/date/7.png",
+   "images/win/date/8.png",
+   "images/win/date/9.png"
+  ],
+  "time_x": 271,
+  "min_x": 322,
+  "time_y": 219,
+  "time_h": 26,
+  "colon_x": 317.5,
+  "digit_w": 21,
+  "date_x": 289,
+  "day_x": 325,
+  "date_y": 263,
+  "date_h": 14,
+  "slash_x": 318.0,
+  "date_w": 11
  },
  "bg": "images/bg.png",
+ "week": {
+  "x": 116,
+  "y": 217,
+  "src": [
+   "images/week/0.png",
+   "images/week/1.png",
+   "images/week/2.png",
+   "images/week/3.png",
+   "images/week/4.png",
+   "images/week/5.png",
+   "images/week/6.png"
+  ]
+ },
+ "bat": {
+  "x": 203,
+  "y": 297,
+  "src": [
+   "images/bat/0.png",
+   "images/bat/1.png",
+   "images/bat/2.png",
+   "images/bat/3.png",
+   "images/bat/4.png",
+   "images/bat/5.png",
+   "images/bat/6.png",
+   "images/bat/7.png",
+   "images/bat/8.png",
+   "images/bat/9.png",
+   "images/bat/10.png",
+   "images/bat/11.png",
+   "images/bat/12.png",
+   "images/bat/13.png",
+   "images/bat/14.png",
+   "images/bat/15.png",
+   "images/bat/16.png",
+   "images/bat/17.png",
+   "images/bat/18.png",
+   "images/bat/19.png",
+   "images/bat/20.png"
+  ],
+  "num": [
+   "images/bat/num/0.png",
+   "images/bat/num/1.png",
+   "images/bat/num/2.png",
+   "images/bat/num/3.png",
+   "images/bat/num/4.png",
+   "images/bat/num/5.png",
+   "images/bat/num/6.png",
+   "images/bat/num/7.png",
+   "images/bat/num/8.png",
+   "images/bat/num/9.png"
+  ],
+  "unit": "images/bat/pct.png",
+  "num_x": 210,
+  "num_y": 335,
+  "num_w": 60,
+  "num_h": 12
+ },
  "hour": {
   "path": "images/hands/hour.png",
-  "pos_x": 16,
-  "pos_y": 100
+  "pos_x": 14,
+  "pos_y": 104
  },
  "minute": {
   "path": "images/hands/minute.png",
   "pos_x": 12,
-  "pos_y": 154
+  "pos_y": 162
  },
  "second": {
   "path": "images/hands/second.png",
-  "pos_x": 8,
-  "pos_y": 170
+  "pos_x": 9,
+  "pos_y": 176
  },
  "cap": {
   "path": "images/hands/cap.png",
-  "x": 231,
-  "y": 231
+  "x": 230,
+  "y": 230
  },
  "hour_aod": {
   "path": "images/hands/hour_aod.png",
-  "pos_x": 16,
-  "pos_y": 100
+  "pos_x": 14,
+  "pos_y": 104
  },
  "minute_aod": {
   "path": "images/hands/minute_aod.png",
   "pos_x": 12,
-  "pos_y": 154
+  "pos_y": 162
  },
  "cap_aod": {
   "path": "images/hands/cap_aod.png",
-  "x": 231,
-  "y": 231
- },
- "week": {
-  "x": 118,
-  "y": 206,
-  "w": 76,
-  "h": 76,
-  "src": [
-   "images/sub/week/0.png",
-   "images/sub/week/1.png",
-   "images/sub/week/2.png",
-   "images/sub/week/3.png",
-   "images/sub/week/4.png",
-   "images/sub/week/5.png",
-   "images/sub/week/6.png"
-  ]
+  "x": 230,
+  "y": 230
  },
  "aod_bg": "images/aod_bg.png",
  "icon": "images/icon.png"
