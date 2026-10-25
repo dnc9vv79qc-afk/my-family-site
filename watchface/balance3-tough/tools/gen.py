@@ -1,8 +1,9 @@
-"""TOUGH Ti: G-SHOCK（GA-2100）風の真っ黒なアナデジ文字盤の画像と watchface/layout.js を作る。
+"""TOUGH Ti: ミリタリー × シンプルのアナログ文字盤（黒 × オレンジ）の画像と watchface/layout.js を作る。
 
     python3 tools/gen.py
 
-八角形のベゼル、立体の黒いインデックス、9 時の曜日サブダイヤル、4 時の液晶窓（デジタル時刻・日付・電池）。
+ガンメタのベゼル、立体のバーインデックス（12・3・6・9 にオレンジ）、スケルトン針。
+左に曜日、右にデジタル時刻と日付、下に電池のリング。
 絵は 4 倍の大きさで描いてから縮める（輪郭をなめらかにするため）。角度は 12 時が 0°・時計回り。
 """
 import json
@@ -21,34 +22,33 @@ S = 4  # 下描きの倍率
 W = 480
 C = W / 2
 
-# 黒とグレーだけ
-BLOCK = (22, 23, 25, 255)  # インデックスの本体
-BLOCK_HI = (104, 108, 112, 255)  # インデックスの光る面
-BLOCK_LO = (3, 3, 4, 255)
-PRINT = (88, 92, 96, 255)  # 文字盤の印刷
-ENGRAVE = (11, 11, 12, 255)  # ベゼルの彫り込み（地より暗い）
-LCD_BG = (9, 10, 11, 255)
-LCD_ON = (182, 186, 182, 255)
-LCD_OFF = (22, 24, 25, 255)
-LUME = (212, 216, 210, 255)
-HAND = (26, 27, 29, 255)
-HAND_EDGE = (120, 124, 128, 255)
-WHITE = (224, 226, 226, 255)
-GREY = (118, 122, 126, 255)
+ORANGE = (255, 122, 26, 255)
+ORANGE_D = (150, 64, 10, 255)
+METAL = (138, 142, 146, 255)
+METAL_HI = (196, 200, 204, 255)
+METAL_LO = (54, 56, 60, 255)
+LUME = (214, 218, 206, 255)
+TEXT = (196, 200, 204, 255)
+TEXT_DIM = (112, 116, 120, 255)
+WIN_BG = (11, 12, 13, 255)
+TRACK = (40, 42, 45, 255)
 AOD_LINE = (112, 116, 120, 255)
-AOD_DIM = (66, 68, 72, 255)
-AOD_LCD = (150, 154, 150, 255)
-CYAN, CYAN_HI, CYAN_LO = BLOCK, BLOCK_HI, BLOCK_LO  # applied() の既定色
+AOD_DIM = (62, 64, 68, 255)
+AOD_ORANGE = (160, 74, 16, 255)
+CYAN, CYAN_HI, CYAN_LO = METAL, METAL_HI, METAL_LO  # applied() の既定色
+ENGRAVE = (11, 11, 12, 255)
 
-OCT_A = 233  # 八角形ベゼルの外側（中心から辺までの距離）。円に近く、辺はうっすら見える程度
-R_OPEN = 190  # ベゼルの内側（ガラスの縁）
-R_DIAL = 160  # 文字盤（その外は歯車のような溝の見返し）
-IDX_R1, IDX_R2 = 122, 178  # インデックスの内側・外側（見返しの上まで伸びる）
+R_BEZEL = 240  # ガンメタのベゼル
+R_RING = 216  # 分目盛りのリング
+R_DIAL = 192  # 文字盤
+IDX_R1, IDX_R2 = 140, 174  # インデックス
 
-SUB_R = 38
-SUB = {'week': (156, 244)}  # 曜日のサブダイヤル（9 時）
-LCD = (248, 252, 118, 64)  # 液晶窓 x, y, w, h（左上を斜めに落とす）
-LCD_K = 20
+WEEK_C = (164, 248)  # 左: 曜日
+WEEK_R = 52
+WIN = (262, 210, 112, 76)  # 右: デジタル時刻・日付の窓 x, y, w, h
+BAT_C = (240, 334)  # 下: 電池
+BAT_R = 44
+BAT_RING = 33
 
 L = {}
 
@@ -188,13 +188,8 @@ def mask_of(draw_fn, size=W):
 
 
 
+
 # ---------------------------------------------------------------- 背景
-
-def side_index(xx, yy):
-    """八角形の 8 辺のうち、その点がいちばん外側にある辺の番号と、その辺までの距離"""
-    proj = np.stack([xx * math.sin(math.radians(k * 45)) - yy * math.cos(math.radians(k * 45)) for k in range(8)])
-    return proj.argmax(0), proj.max(0)
-
 
 def base_layer():
     n = W * S
@@ -203,189 +198,171 @@ def base_layer():
     yy = (yy + 0.5) / S - C
     r = np.hypot(xx, yy)
     ang = (np.degrees(np.arctan2(xx, -yy)) + 360) % 360
-    side, od = side_index(xx, yy)
-    rng = np.random.default_rng(11)
+    rng = np.random.default_rng(5)
     light = np.cos(np.radians(ang - 315))
 
-    # 八角形の外: ケースの側面（さらに暗い）
-    case = 17 + 3 * light
-    # ベゼル: 樹脂のマット。辺ごとに光の当たり方が違う面
-    facet = 23 + 1.5 * np.cos(np.radians(side * 45 - 315))
-    t = np.clip((od - R_OPEN) / (OCT_A - R_OPEN), 0, 1)
-    bez = facet + 4 * np.sin(np.clip(t, 0, 1) * math.pi)
-    # 見返し: 内へ下がる斜面
-    tf = np.clip((r - R_DIAL) / (R_OPEN - R_DIAL), 0, 1)
-    fl = 11 + 9 * tf + 2 * light
-    # 文字盤: マットな黒
+    # ベゼル: ガンメタの同心円ヘアライン
+    rings = rng.normal(0, 1, 4096).astype(np.float32)
+    hair = rings[np.clip((r * 8).astype(np.int32), 0, 4095)]
+    tb = np.clip((r - R_RING) / (R_BEZEL - R_RING), 0, 1)
+    bez = 44 + 14 * np.sin(tb * math.pi) + 16 * light + 3 * hair
+    # 分目盛りのリング: 暗い、内側へ少し下がる
+    tr = np.clip((r - R_DIAL) / (R_RING - R_DIAL), 0, 1)
+    ring = 15 + 6 * tr + 2 * light
+    # 文字盤: マットな黒に、ぼかしたむら
+    blot = Image.fromarray((rng.random((n // 16, n // 16)) * 255).astype(np.uint8)).resize((n, n), Image.BICUBIC).filter(ImageFilter.GaussianBlur(6 * S))
+    blot = (np.asarray(blot, np.float32) - 128) / 128
     td = np.clip(r / R_DIAL, 0, 1)
-    dv = 19 - 6 * td ** 2 + 1.2 * light
-    noise = rng.normal(0, 1.0, (n, n)).astype(np.float32)
+    dial = 21 - 5 * td ** 2 + 2.2 * blot + 1.0 * light + rng.normal(0, 0.9, (n, n)).astype(np.float32)
 
-    v = np.where(od > OCT_A, case, np.where(r >= R_OPEN, bez, np.where(r >= R_DIAL, fl, dv))) + noise
-    rgb = np.stack([v, v + 1, v + 2], -1)
-    # 段差: ベゼル外周のふち（明るい線）、ガラスの縁（影）、文字盤の縁
-    rgb += (6 * np.exp(-((od - (OCT_A - 1.5)) / 1.1) ** 2) * (0.6 + 0.4 * light))[..., None]
-    rgb -= (5 * np.exp(-((od - (OCT_A + 1.5)) / 1.2) ** 2))[..., None]
-    rgb -= (14 * np.exp(-((r - R_OPEN) / 1.0) ** 2))[..., None]
-    rgb += (6 * np.exp(-((r - (R_OPEN + 2.2)) / 0.8) ** 2) * (0.5 - 0.5 * light))[..., None]
-    rgb -= (8 * np.exp(-((r - R_DIAL) / 0.9) ** 2))[..., None]
+    v = np.where(r >= R_RING, bez, np.where(r >= R_DIAL, ring, dial))
+    rgb = np.stack([v, v + 1, v + 3], -1)
+    for rr, k, w in ((R_RING, -16, 1.0), (R_RING + 1.6, 10, 0.8), (R_DIAL, -10, 1.0), (R_BEZEL - 1.5, -12, 1.2)):
+        rgb += (k * np.exp(-((r - rr) / w) ** 2))[..., None]
     alpha = np.clip((240 - r) * S, 0, 1) * 255
     return Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), alpha[..., None]], -1).astype(np.uint8), 'RGBA')
 
 
-def side_text(layer, s, side_deg, size, fill, weight=700, spacing=1.6, dist=211):
-    """八角形の辺に沿ったまっすぐな文字（下半分は読める向きに）"""
-    rot = side_deg + 180 if 90 < side_deg < 270 else side_deg
-    text_at(layer, s, *polar(dist, side_deg), size, fill, weight=weight, spacing=spacing, rot=rot)
-
-
-def draw_bezel(bg):
-    def words(layer, fill):
-        side_text(layer, 'TOUGH Ti', 315, 17, fill, spacing=1.8)
-        side_text(layer, 'LIGHT', 45, 12, fill)
-        side_text(layer, 'START', 90, 12, fill)
-        side_text(layer, 'PROTECTION', 180, 13, fill, spacing=2.0)
-        side_text(layer, 'MODE', 225, 12, fill)
-        side_text(layer, 'ADJUST', 270, 12, fill)
-    engraved(bg, words)
-
-
-def draw_rehaut(bg):
-    """見返し: 歯車のように並んだ細い溝。光の向きで明るさが変わる"""
+def draw_panel_lines(bg):
+    """文字盤のうっすらした段差の線（ミリタリーの計器パネル風）"""
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
-    for i in range(120):
-        deg = i * 3
-        lit = max(0.0, math.cos(math.radians(deg - 315)))
-        v = int(30 + 34 * lit)
-        d.polygon(sp(radial_bar(R_DIAL + 1, R_OPEN - 2, deg, 1.3)), fill=(v, v + 1, v + 3, 255))
-        sh = int(6 + 4 * (1 - lit))
-        a_ = deg + 1.1
-        d.polygon(sp(radial_bar(R_DIAL + 1, R_OPEN - 2, a_, 0.9)), fill=(sh, sh, sh + 1, 255))
+    col = (30, 31, 34, 255)
+    dark = (10, 10, 11, 255)
+    for r_, a0, a1 in ((118, 200, 340), (118, 20, 160), (86, 120, 240)):
+        box = sp([(C - r_, C - r_), (C + r_, C + r_)])
+        d.arc(box, start=a0 - 90, end=a1 - 90, fill=dark, width=int(1.2 * S))
+        box2 = sp([(C - r_ - 1.2, C - r_ - 1.2), (C + r_ + 1.2, C + r_ + 1.2)])
+        d.arc(box2, start=a0 - 90, end=a1 - 90, fill=col, width=int(1 * S))
+    for deg in (45, 135, 225, 315):
+        d.line(sp([polar(122, deg), polar(186, deg)]), fill=dark, width=int(1.2 * S))
     bg.alpha_composite(layer)
-    # 見返しの内側（文字盤との境）に落ちる影
-    sh = canvas(W)
-    ImageDraw.Draw(sh).ellipse(sp([(C - R_DIAL - 3, C - R_DIAL - 3), (C + R_DIAL + 3, C + R_DIAL + 3)]), outline=(0, 0, 0, 200), width=int(3 * S))
-    bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.5 * S)))
 
 
-def index_blocks():
-    """インデックスの一覧: (角度, 内側の幅, 外側の幅, 中心をずらす量)。12 時は 2 本、3 時は液晶窓があるので無し"""
-    out = []
-    for h in range(12):
-        if h == 0:
-            out += [(0, 8, 10, -6.5), (0, 8, 10, 6.5)]
-        elif h != 3:
-            out.append((h * 30, 10, 15, 0))
-    return out
+def draw_ring_marks(bg):
+    layer = canvas(W)
+    d = ImageDraw.Draw(layer)
+    for i in range(60):
+        deg = i * 6
+        if i % 15 == 0:
+            if i == 0:
+                d.polygon(sp([polar(R_RING - 4, -3.2), polar(R_RING - 4, 3.2), polar(R_DIAL + 6, 0)]), fill=ORANGE)
+            else:
+                d.polygon(sp(radial_bar(R_DIAL + 6, R_RING - 4, deg, 4.5)), fill=ORANGE)
+        elif i % 5 == 0:
+            d.polygon(sp(radial_bar(R_DIAL + 7, R_RING - 5, deg, 2.2)), fill=TEXT)
+        else:
+            d.polygon(sp(radial_bar(R_DIAL + 10, R_RING - 7, deg, 1.0)), fill=(92, 96, 100, 255))
+        if i % 5 == 2 or i % 5 == 3:
+            pass
+    # 2.5 分ごとの小さなオレンジの点（3・6・9・12 の両隣）
+    for deg in (15, 75, 105, 165, 195, 255, 285, 345):
+        x, y = polar((R_DIAL + R_RING) / 2, deg)
+        d.ellipse(sp([(x - 1.2, y - 1.2), (x + 1.2, y + 1.2)]), fill=ORANGE_D)
+    bg.alpha_composite(layer)
 
 
-def block_poly(deg, w1, w2, off, r1=IDX_R1, r2=IDX_R2):
-    a = math.radians(deg)
-    dx, dy = math.sin(a), -math.cos(a)
-    nx, ny = math.cos(a), math.sin(a)
-    pts = [(C + dx * r1 + nx * w1 / 2, C + dy * r1 + ny * w1 / 2), (C + dx * r2 + nx * w2 / 2, C + dy * r2 + ny * w2 / 2),
-           (C + dx * r2 - nx * w2 / 2, C + dy * r2 - ny * w2 / 2), (C + dx * r1 - nx * w1 / 2, C + dy * r1 - ny * w1 / 2)]
-    return [(x + nx * off, y + ny * off) for x, y in pts]
+def index_list():
+    return [(h * 30, h % 3 == 0) for h in range(12)]
 
 
 def draw_indices(bg):
-    """立体の黒いインデックス（上が平らな台形のブロック）。左上の縁が光り、右下に影が落ちる"""
-    m = mask_of(lambda d: [d.polygon(sp(block_poly(*b)), fill=255) for b in index_blocks()])
+    """立体の金属バー。光の側の面が明るい。12・3・6・9 は外側半分にオレンジを差す"""
+    lx, ly = -0.707, -0.707
+    m = mask_of(lambda d: [d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 12 if big else 10)), fill=255) for deg, big in index_list()])
     body = Image.new('RGBA', m.size, (0, 0, 0, 255))
     body.putalpha(m)
-    drop_shadow(bg, body, off=3.2, blur=2.6, alpha=1.0)
-    # 側面: 光の側（左上）に明るい縁、反対側に暗い縁
-    hi = Image.new('RGBA', m.size, (96, 100, 104, 255))
-    hi.putalpha(m)
-    bg.alpha_composite(hi, (int(-1.3 * S), int(-1.3 * S)))
-    lo = Image.new('RGBA', m.size, (6, 6, 7, 255))
-    lo.putalpha(m)
-    bg.alpha_composite(lo, (int(1.0 * S), int(1.0 * S)))
-    # 上面: ほぼ黒。外側ほどわずかに明るい
-    n = W * S
-    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
-    r = np.hypot((xx + 0.5) / S - C, (yy + 0.5) / S - C)
-    v = 22 + 10 * np.clip((r - IDX_R1) / (IDX_R2 - IDX_R1), 0, 1)
-    top = np.stack([v, v + 1, v + 3, np.asarray(m, np.float32)], -1).astype(np.uint8)
-    bg.alpha_composite(Image.fromarray(top, 'RGBA'))
+    drop_shadow(bg, body, off=3.0, blur=2.4, alpha=1.0)
+    layer = canvas(W)
+    d = ImageDraw.Draw(layer)
+    for deg, big in index_list():
+        w = 12 if big else 10
+        a = math.radians(deg)
+        nx, ny = math.cos(a), math.sin(a)
+        p = radial_bar(IDX_R1, IDX_R2, deg, w)
+        mid1 = ((p[0][0] + p[3][0]) / 2, (p[0][1] + p[3][1]) / 2)
+        mid2 = ((p[1][0] + p[2][0]) / 2, (p[1][1] + p[2][1]) / 2)
+        for face, sign in (([p[0], p[1], mid2, mid1], 1), ([mid1, mid2, p[2], p[3]], -1)):
+            lit = max(0.0, (nx * lx + ny * ly) * sign)
+            v = int(64 + 96 * lit)
+            d.polygon(sp(face), fill=(v, v + 2, v + 4, 255))
+        d.line(sp([mid1, mid2]), fill=METAL_HI, width=int(0.8 * S))
+        d.line(sp(p + [p[0]]), fill=(14, 14, 15, 255), width=int(0.8 * S))
+        if big:
+            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.42, IDX_R2 - 3, deg, w - 5)), fill=ORANGE)
+            d.polygon(sp(radial_bar(IDX_R2 - 6, IDX_R2 - 3, deg, w - 5)), fill=(255, 168, 96, 255))
+    bg.alpha_composite(layer)
 
 
-def subdial_layer(cx, cy, r):
-    """くぼんだサブダイヤル: 同心円の溝、上側の内影、下側のふちのハイライト"""
+def recess(bg, cx, cy, r, rim=True):
+    """くぼんだ丸: 上側に内影、下のふちにハイライト、細い金属のふち"""
     n = int(2 * (r + 4) * S)
     yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
     xx = (xx + 0.5) / S - (r + 4)
     yy = (yy + 0.5) / S - (r + 4)
     rr = np.hypot(xx, yy)
-    v = 14 + 1.6 * np.sin(rr * 2 * math.pi / 1.5)
-    v -= 6 * np.clip(1 - (r - rr) / 8, 0, 1) * np.clip(-yy / r, 0, 1)
+    v = 13 + 1.2 * np.sin(rr * 2 * math.pi / 1.6)
+    v -= 7 * np.clip(1 - (r - rr) / 9, 0, 1) * np.clip(-yy / r, 0, 1)
     rgb = np.stack([v, v + 1, v + 2], -1)
-    rgb += (np.exp(-((rr - r) / 0.8) ** 2) * np.clip(yy / r, 0, 1) * 50)[..., None]
-    a = np.clip((r + 0.6 - rr) * S, 0, 1) * 255
+    if rim:
+        rgb += (np.exp(-((rr - r) / 0.9) ** 2) * (40 + 40 * np.clip(yy / r, 0, 1)))[..., None]
+    a = np.clip((r + 1 - rr) * S, 0, 1) * 255
     img = Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), a[..., None]], -1).astype(np.uint8), 'RGBA')
-    return img, (int((cx - r - 4) * S), int((cy - r - 4) * S))
+    bg.alpha_composite(img, (int((cx - r - 4) * S), int((cy - r - 4) * S)))
 
 
-def draw_subdial(bg):
-    cx, cy = SUB['week']
-    img, pos = subdial_layer(cx, cy, SUB_R)
-    bg.alpha_composite(img, pos)
+def draw_window(bg):
+    x, y, w, h = WIN
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
-    for i, s in enumerate(['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']):
-        deg = i * 360 / 7
-        text_at(layer, s, *polar(SUB_R - 12, deg, cx, cy), 7.5, (150, 154, 158, 255) if i else WHITE, weight=700)
-        d.polygon(sp(radial_bar(SUB_R - 4, SUB_R - 1.2, deg, 1.4, cx, cy)), fill=GREY)
+    d.rounded_rectangle(sp([(x - 3, y - 3), (x + w + 3, y + h + 3)]), radius=9 * S, fill=(58, 60, 64, 255))
+    d.rounded_rectangle(sp([(x - 1.4, y - 1.4), (x + w + 1.4, y + h + 1.4)]), radius=8 * S, fill=(6, 6, 7, 255))
+    d.rounded_rectangle(sp([(x, y), (x + w, y + h)]), radius=7 * S, fill=WIN_BG)
+    drop_shadow(bg, layer, off=2, blur=2)
     bg.alpha_composite(layer)
-
-
-def lcd_shape(x, y, w, h, k=10):
-    """左上の角を大きく斜めに落とした窓"""
-    return [(x + k * 1.6, y), (x + w, y), (x + w, y + h), (x, y + h), (x, y + k)]
-
-
-def draw_lcd(bg):
-    x, y, w, h = LCD
-    layer = canvas(W)
-    d = ImageDraw.Draw(layer)
-    d.polygon(sp(lcd_shape(x - 3, y - 3, w + 6, h + 6, LCD_K + 2)), fill=(40, 42, 45, 255))  # 枠
-    d.polygon(sp(lcd_shape(x - 1.4, y - 1.4, w + 2.8, h + 2.8, LCD_K + 1)), fill=(5, 5, 6, 255))
-    d.polygon(sp(lcd_shape(x, y, w, h, LCD_K)), fill=LCD_BG)
-    drop_shadow(bg, layer, off=-1.2, blur=1.5, alpha=0.6)
-    bg.alpha_composite(layer)
-    # 窓の上側の内影
     sh = canvas(W)
-    ImageDraw.Draw(sh).polygon(sp(lcd_shape(x, y, w, 7, 7)), fill=(0, 0, 0, 160))
-    bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.6 * S)))
-    # 液晶の中の小さな文字とコロン
+    ImageDraw.Draw(sh).rounded_rectangle(sp([(x, y), (x + w, y + 8)]), radius=7 * S, fill=(0, 0, 0, 170))
+    bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.8 * S)))
     t = canvas(W)
-    text_at(t, 'BAT', L['lcd']['bat_x'] - 9, y + 11, 6, (70, 74, 76, 255), weight=700, spacing=0.4)
-    dd = ImageDraw.Draw(t)
-    cxl = L['lcd']['colon_x']
-    ty = L['lcd']['time_y']
-    for yy in (ty + 10, ty + 21):
-        dd.rectangle(sp([(cxl - 1.6, yy - 1.6), (cxl + 1.6, yy + 1.6)]), fill=LCD_ON)
+    D = L['win']
+    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 28, TEXT, weight=500)
+    text_at(t, '/', D['slash_x'], D['date_y'] + D['date_h'] / 2, 15, TEXT_DIM, weight=400)
     bg.alpha_composite(t)
 
 
-def draw_dial_print(bg):
+def battery_icon(layer, cx, cy, col):
+    d = ImageDraw.Draw(layer)
+    d.rounded_rectangle(sp([(cx - 8, cy - 5), (cx + 6, cy + 5)]), radius=1.6 * S, outline=col, width=int(1.4 * S))
+    d.rectangle(sp([(cx + 6.6, cy - 2), (cx + 8.4, cy + 2)]), fill=col)
+    d.rectangle(sp([(cx - 5.6, cy - 2.6), (cx + 1, cy + 2.6)]), fill=col)
+
+
+def draw_subdials(bg):
+    recess(bg, *WEEK_C, WEEK_R)
+    recess(bg, *BAT_C, BAT_R)
     layer = canvas(W)
-    text_at(layer, 'TOUGH Ti', 246, 174, 14, (112, 116, 120, 255), weight=700, spacing=1.2)
-    text_at(layer, 'SHOCK RESIST', 246, 191, 8, PRINT, weight=600, spacing=1.4)
-    x, y, w, h = LCD
-    text_at(layer, 'WR20BAR', x + w - 24, y - 9, 7.5, PRINT, weight=600, spacing=0.6)
+    d = ImageDraw.Draw(layer)
+    cx, cy = BAT_C
+    d.ellipse(sp([(cx - BAT_RING, cy - BAT_RING), (cx + BAT_RING, cy + BAT_RING)]), outline=TRACK, width=int(5 * S))
+    battery_icon(layer, cx, cy - 11, TEXT_DIM)
+    bg.alpha_composite(layer)
+
+
+def draw_print(bg):
+    layer = canvas(W)
+    text_at(layer, 'BALANCE 3 Ti', 240, 148, 15, TEXT, weight=500, spacing=1.6)
+    text_at(layer, 'TOUGH', 240, 166, 8, TEXT_DIM, weight=500, spacing=2.4)
     bg.alpha_composite(layer)
 
 
 def build_background():
     bg = base_layer()
-    draw_bezel(bg)
-    draw_rehaut(bg)
-    draw_subdial(bg)
+    draw_panel_lines(bg)
+    draw_ring_marks(bg)
+    draw_subdials(bg)
     draw_indices(bg)
-    draw_lcd(bg)
-    draw_dial_print(bg)
+    draw_window(bg)
+    draw_print(bg)
     full = Image.new('RGBA', (W * S, W * S), (0, 0, 0, 255))
     full.alpha_composite(bg)
     out = shrink(full).convert('RGB')
@@ -393,142 +370,158 @@ def build_background():
     return out
 
 
-# ---------------------------------------------------------------- 液晶の数字（7 セグメント。消えている部分もうっすら見える）
+# ---------------------------------------------------------------- 数字・曜日・電池
 
-SEGS = {0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg'}
-
-
-def seg_polys(w, h, t, g=0.7):
-    def hbar(x0, x1, yc):
-        x0 += g
-        x1 -= g
-        return [(x0, yc), (x0 + t / 2, yc - t / 2), (x1 - t / 2, yc - t / 2), (x1, yc), (x1 - t / 2, yc + t / 2), (x0 + t / 2, yc + t / 2)]
-
-    def vbar(xc, y0, y1):
-        y0 += g
-        y1 -= g
-        return [(xc, y0), (xc + t / 2, y0 + t / 2), (xc + t / 2, y1 - t / 2), (xc, y1), (xc - t / 2, y1 - t / 2), (xc - t / 2, y0 + t / 2)]
-
-    hx0, hx1 = t / 2, w - t / 2
-    top, mid, bot = t / 2, h / 2, h - t / 2
-    return {
-        'a': hbar(hx0, hx1, top), 'g': hbar(hx0, hx1, mid), 'd': hbar(hx0, hx1, bot),
-        'f': vbar(hx0, top, mid), 'b': vbar(hx1, top, mid), 'e': vbar(hx0, mid, bot), 'c': vbar(hx1, mid, bot),
-    }
+def digit_cells(name, size, weight, color, cell_w=None):
+    f = font(weight, size * S)
+    imgs = [text_img(str(i), f, color) for i in range(10)]
+    cw = cell_w or max(i.width for i in imgs) / S + 1
+    ch = max(i.height for i in imgs) / S + 1
+    paths = []
+    for i, t in enumerate(imgs):
+        cell = Image.new('RGBA', (int(math.ceil(cw * S)), int(math.ceil(ch * S))), (0, 0, 0, 0))
+        cell.alpha_composite(t, ((cell.width - t.width) // 2, cell.height - t.height))
+        paths.append(save(shrink(cell), f'{name}/{i}.png'))
+    return paths, int(math.ceil(cw)), int(math.ceil(ch))
 
 
-def seg_digit(n, w, h, t, on, off, slant=0.1):
-    pw = w + h * slant + 1
-    img = Image.new('RGBA', (int(math.ceil(pw * S)), int(math.ceil((h + 1) * S))), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    for k, poly in seg_polys(w, h, t).items():
-        lit = n is not None and k in SEGS[n]
-        if not lit and off is None:
-            continue
-        pts = [((x + (h - y) * slant + 0.5) * S, (y + 0.5) * S) for x, y in poly]
-        d.polygon(pts, fill=on if lit else off)
-    return img
+def win_layout():
+    x, y, w, h = WIN
+    big, bw, bh = digit_cells('win/time', 34, 500, TEXT)
+    small, sw, shh = digit_cells('win/date', 17, 400, TEXT)
+    aod, _, _ = digit_cells('win/time_aod', 34, 500, (150, 154, 156, 255))
+    colon_w = 9
+    total = bw * 4 + colon_w
+    tx = int(x + (w - total) / 2)
+    ty = int(y + 9)
+    slash_w = 14
+    dtotal = sw * 4 + slash_w
+    dx = int(x + (w - dtotal) / 2)
+    dy = int(y + h - shh - 9)
+    L['win'] = dict(time=big, time_aod=aod, date=small, time_x=tx, min_x=tx + bw * 2 + colon_w, time_y=ty, time_h=bh,
+                    colon_x=tx + bw * 2 + colon_w / 2, digit_w=bw, date_x=dx, day_x=dx + sw * 2 + slash_w, date_y=dy, date_h=shh,
+                    slash_x=dx + sw * 2 + slash_w / 2, date_w=sw)
 
 
-def digit_set(name, w, h, t, on, off):
-    return [save(shrink(seg_digit(i, w, h, t, on, off)), f'{name}/{i}.png') for i in range(10)]
+def week_frames():
+    """曜日: 大きな曜日名と、M T W T F S S の行（今日だけオレンジ＋下線）。IMG_WEEK は月曜始まり"""
+    names = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    letters = 'MTWTFSS'
+    bw, bh = 96, 62
+    paths = []
+    fb = font(500, 25 * S)
+    fs = font(500, 10.5 * S)
+    for i, nm in enumerate(names):
+        img = canvas(bw, bh)
+        t = text_img(nm, fb, TEXT, spacing=1.2)
+        img.alpha_composite(t, ((img.width - t.width) // 2, int(6 * S)))
+        step = 11.5
+        x0 = bw / 2 - step * 3
+        for k, ch in enumerate(letters):
+            col = ORANGE if k == i else TEXT_DIM
+            g = text_img(ch, fs, col)
+            img.alpha_composite(g, (int((x0 + k * step) * S - g.width / 2), int(40 * S)))
+            if k == i:
+                ImageDraw.Draw(img).rectangle(sp([(x0 + k * step - 4.5, 54), (x0 + k * step + 4.5, 55.6)]), fill=ORANGE)
+        paths.append(save(shrink(img), f'week/{i}.png'))
+    cx, cy = WEEK_C
+    return dict(x=int(cx - bw / 2), y=int(cy - bh / 2), src=paths)
 
 
-BIG = (17, 32, 4.0)  # 液晶の大きい数字: 幅・高さ・線の太さ
-SMALL = (8, 13, 2.0)
+def battery_frames():
+    cx, cy = BAT_C
+    r = BAT_RING
+    box = 2 * (r + 4)
+    paths = []
+    for i in range(21):
+        img = canvas(box)
+        d = ImageDraw.Draw(img)
+        if i:
+            c = r + 4
+            d.arc(sp([(c - r, c - r), (c + r, c + r)]), start=-90, end=-90 + i * 18, fill=ORANGE, width=int(5 * S))
+        paths.append(save(shrink(img), f'bat/{i}.png'))
+    pct, pw, ph = digit_cells('bat/num', 15, 500, TEXT)
+    f = font(500, 10 * S)
+    unit = text_img('%', f, TEXT)
+    ucell = Image.new('RGBA', (unit.width + 2 * S, int(ph * S)), (0, 0, 0, 0))
+    ucell.alpha_composite(unit, (2 * S, int(ph * S) - unit.height - int(1.5 * S)))
+    upath = save(shrink(ucell), 'bat/pct.png')
+    return dict(x=int(cx - r - 4), y=int(cy - r - 4), src=paths, num=pct, unit=upath, num_x=int(cx - 30), num_y=int(cy + 1), num_w=60, num_h=ph)
 
 
-def lcd_layout():
-    x, y, w, h = LCD
-    big_w, big_h, _ = BIG
-    gap = 3
-    pw = big_w + int(big_h * 0.1) + 1  # 1 文字の画像の幅
-    total = pw * 4 + gap * 2 + 9
-    tx = int(x + w - total - 6)
-    ty = y + h - big_h - 6
-    sw = SMALL[0] + int(SMALL[1] * 0.1) + 1
-    L['lcd'] = dict(time_x=tx, time_y=ty, min_x=tx + pw * 2 + gap + 9, colon_x=tx + pw * 2 + gap + 4, space=gap - (pw - big_w - int(big_h * 0.1) - 1),
-                    day_x=x + 30, day_y=y + 5, bat_x=x + w - 6 - 3 * (sw + 1), bat_y=y + 5, bat_w=3 * (sw + 1), small_w=sw)
+# ---------------------------------------------------------------- スケルトン針
+
+def profile_poly(prof, shrink_by=0.0, y0=None, y1=None):
+    """(y, 半幅) の折れ線から左右対称の多角形。shrink_by で内側にずらし、y0〜y1（y0 が中心寄り）の範囲だけにする"""
+    def hw(y):
+        for (ya, wa), (yb, wb) in zip(prof, prof[1:]):
+            if yb <= y <= ya:
+                return wa + (wb - wa) * (ya - y) / (ya - yb)
+        return 0.0
+    top, bot = prof[-1][0], prof[0][0]
+    a_, b_ = (bot, top) if y0 is None else (y0, y1)
+    ys = [a_ + (b_ - a_) * k / 60 for k in range(61)] + [y for y, _ in prof if b_ < y < a_]
+    ys = sorted(set(ys), reverse=True)
+    pts = [(y, max(0.0, hw(y) - shrink_by)) for y in ys]
+    return [(w, y) for y, w in pts] + [(-w, y) for y, w in reversed(pts)]
 
 
-# ---------------------------------------------------------------- 針
-
-def blade(length, width, tip, tail):
-    """平たい刃の形の針（回転の中心が原点、上向き）"""
-    return [(0, -length), (width / 2, -length + tip), (width / 2, tail), (-width / 2, tail), (-width / 2, -length + tip)]
-
-
-def hand_image(name, length, width, tip, tail, aod=False, lume_from=0.5):
+def skeleton_hand(name, length, hw, aod=False):
+    tipl = 18
+    prof = [(14, hw * 0.45), (0, hw * 0.75), (-12, hw * 0.85), (-length + tipl, hw), (-length, 0)]
     pad = 4
-    w = int(width + pad * 2)
-    h = int(length + tail + pad * 2)
+    w = int(2 * hw + pad * 2)
+    h = int(length + 14 + pad * 2)
     ox, oy = w / 2, length + pad
     img = canvas(w, h)
     d = ImageDraw.Draw(img)
-    outer = [(ox + x, oy + y) for x, y in blade(length, width, tip, tail)]
+    tr = lambda poly: sp([(ox + x, oy + y) for x, y in poly])
+    outer = profile_poly(prof)
+    lume_from = -length * 0.5
     if aod:
-        d.polygon(sp(outer), fill=(0, 0, 0, 255))
-        d.line(sp(outer + [outer[0]]), fill=AOD_LINE, width=int(2 * S), joint='curve')
+        d.line(tr(outer + [outer[0]]), fill=AOD_LINE, width=int(1.8 * S), joint='curve')
+        tip = profile_poly(prof, 2.2, -length + tipl, -length + 4)
+        d.polygon(tr(tip), fill=AOD_ORANGE)
     else:
-        d.polygon(sp(outer), fill=HAND_EDGE)
-        inner = [(ox + x, oy + y) for x, y in blade(length - 1.4, width - 2.6, tip - 0.6, tail - 1.4)]
-        d.polygon(sp(inner), fill=HAND)
-        # 夜光の帯
-        lume = [(ox + x, oy + y) for x, y in blade(length - 6, width - 6, tip - 2, -length * lume_from)]
-        d.polygon(sp(lume), fill=LUME)
-        d.ellipse(sp([(ox - width / 2 - 1, oy - width / 2 - 1), (ox + width / 2 + 1, oy + width / 2 + 1)]), fill=HAND, outline=HAND_EDGE, width=int(1.3 * S))
-    out = canvas(w, h)
-    if not aod:
-        drop_shadow(out, img, off=0, blur=0.01, alpha=0)
-    out.alpha_composite(img)
-    path = save(shrink(out), f'hands/{name}{"_aod" if aod else ""}.png')
+        d.polygon(tr(outer), fill=METAL)
+        # 中抜き（中心寄り）
+        hole = profile_poly(prof, 2.6, -15, lume_from + 3)
+        m = Image.new('L', img.size, 0)
+        ImageDraw.Draw(m).polygon(tr(hole), fill=255)
+        a = np.asarray(img.getchannel('A'), np.int16) - np.asarray(m, np.int16)
+        img.putalpha(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)))
+        d = ImageDraw.Draw(img)
+        # 夜光（外側半分）とオレンジの先端
+        d.polygon(tr(profile_poly(prof, 2.6, lume_from, -length + tipl + 2)), fill=LUME)
+        d.polygon(tr(profile_poly(prof, 2.4, -length + tipl - 1, -length + 3.5)), fill=ORANGE)
+        # 片側だけ明るい縁で金属らしく
+        d.line(tr([(x, y) for x, y in outer[:len(outer) // 2]]), fill=METAL_HI, width=int(0.8 * S))
+        d.ellipse(tr([(-hw * 0.85, -hw * 0.85), (hw * 0.85, hw * 0.85)]), fill=METAL)
+    path = save(shrink(img), f'hands/{name}{"_aod" if aod else ""}.png')
     return dict(path=path, pos_x=int(round(ox)), pos_y=int(round(oy)))
 
 
 def second_image():
-    length, tail = 166, 38
-    w, h = 16, length + tail + 8
+    length, tail = 172, 40
+    w, h = 18, length + tail + 8
     ox, oy = w / 2, length + 4
     img = canvas(w, h)
     d = ImageDraw.Draw(img)
-    col = (150, 154, 158, 255)
-    d.polygon(sp([(ox - 1.1, oy + tail), (ox + 1.1, oy + tail), (ox + 0.7, oy - length + 10), (ox, oy - length), (ox - 0.7, oy - length + 10)]), fill=col)
-    d.rounded_rectangle(sp([(ox - 3, oy + 14), (ox + 3, oy + tail)]), radius=1.5 * S, fill=col)
-    d.polygon(sp([(ox - 1.4, oy - length + 26), (ox + 1.4, oy - length + 26), (ox + 0.9, oy - length + 6), (ox - 0.9, oy - length + 6)]), fill=LUME)
+    d.polygon(sp([(ox - 1.1, oy + tail), (ox + 1.1, oy + tail), (ox + 0.7, oy - length + 8), (ox, oy - length), (ox - 0.7, oy - length + 8)]), fill=ORANGE)
+    d.rounded_rectangle(sp([(ox - 3, oy + 16), (ox + 3, oy + tail)]), radius=1.5 * S, fill=ORANGE)
     path = save(shrink(img), 'hands/second.png')
     return dict(path=path, pos_x=int(round(ox)), pos_y=int(round(oy)))
 
 
 def cap_image(aod=False):
-    r = 9
+    r = 10
     img = canvas(2 * r)
     d = ImageDraw.Draw(img)
-    d.ellipse(sp([(0.5, 0.5), (2 * r - 0.5, 2 * r - 0.5)]), fill=(18, 19, 20, 255), outline=AOD_LINE if aod else (96, 100, 104, 255), width=int(1.4 * S))
-    d.ellipse(sp([(r - 3, r - 3), (r + 3, r + 3)]), fill=(120, 124, 128, 255) if not aod else (60, 62, 66, 255))
+    d.ellipse(sp([(0.5, 0.5), (2 * r - 0.5, 2 * r - 0.5)]), fill=(24, 25, 27, 255))
+    d.ellipse(sp([(2.5, 2.5), (2 * r - 2.5, 2 * r - 2.5)]), outline=AOD_ORANGE if aod else ORANGE, width=int(2.6 * S))
+    d.ellipse(sp([(r - 2.4, r - 2.4), (r + 2.4, r + 2.4)]), fill=(150, 154, 158, 255) if not aod else (70, 72, 76, 255))
     path = save(shrink(img), f'hands/cap{"_aod" if aod else ""}.png')
     return dict(path=path, x=int(C - r), y=int(C - r))
-
-
-def sub_hand_frames(key, angles):
-    """サブダイヤルの針を角度ごとに描いたコマ（IMG_WEEK で差し替え）"""
-    cx, cy = SUB[key]
-    r = SUB_R
-    box = 2 * r
-    paths = []
-    for i, deg in enumerate(angles):
-        img = canvas(box)
-        d = ImageDraw.Draw(img)
-        c = r
-        body = rotate_pts([(c - 1.6, c + 7), (c + 1.6, c + 7), (c + 0.9, c - (r - 18)), (c - 0.9, c - (r - 18))], deg, c, c)
-        d.polygon(sp(body), fill=(200, 204, 200, 255))
-        head = rotate_pts([(c - 1.9, c - (r - 18)), (c + 1.9, c - (r - 18)), (c, c - (r - 6))], deg, c, c)
-        d.polygon(sp(head), fill=WHITE)
-        d.ellipse(sp([(c - 3.6, c - 3.6), (c + 3.6, c + 3.6)]), fill=(40, 42, 45, 255), outline=(110, 114, 118, 255), width=int(1 * S))
-        out = canvas(box)
-        drop_shadow(out, img, off=1.2, blur=1.2, alpha=0.8)
-        out.alpha_composite(img)
-        paths.append(save(shrink(out), f'sub/{key}/{i}.png'))
-    return dict(x=int(cx - r), y=int(cy - r), w=box, h=box, src=paths)
 
 
 # ---------------------------------------------------------------- 常時表示（AOD）
@@ -537,41 +530,32 @@ def build_aod():
     img = Image.new('RGBA', (W * S, W * S), (0, 0, 0, 255))
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
-    for b in index_blocks():
-        d.polygon(sp(block_poly(*b)), outline=AOD_DIM, width=int(1.5 * S))
-    x, y, w, h = LCD
-    d.polygon(sp(lcd_shape(x - 1.4, y - 1.4, w + 2.8, h + 2.8, LCD_K + 1)), outline=AOD_DIM, width=int(1.4 * S))
-    cxl = L['lcd']['colon_x']
-    ty = L['lcd']['time_y']
-    for yy in (ty + 10, ty + 21):
-        d.rectangle(sp([(cxl - 1.6, yy - 1.6), (cxl + 1.6, yy + 1.6)]), fill=AOD_LCD)
+    for deg, big in index_list():
+        d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 12 if big else 10)), outline=AOD_DIM, width=int(1.5 * S))
+        if big:
+            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.42, IDX_R2 - 3, deg, 7)), fill=AOD_ORANGE)
+    x, y, w, h = WIN
+    d.rounded_rectangle(sp([(x - 1.4, y - 1.4), (x + w + 1.4, y + h + 1.4)]), radius=8 * S, outline=AOD_DIM, width=int(1.4 * S))
     img.alpha_composite(layer)
+    D = L['win']
+    t = canvas(W)
+    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 28, (150, 154, 156, 255), weight=500)
+    img.alpha_composite(t)
     L['aod_bg'] = save(shrink(img).convert('RGB'), 'aod_bg.png')
 
 
 # ---------------------------------------------------------------- 書き出し
 
-def preview(bg, hh=10, mm=8, ss=36, wday=5, day=24, bat=72):
+def preview(bg, hh=10, mm=8, ss=36, wday=6, month=10, day=18, bat=72):
     mask = Image.new('L', (W, W), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, W - 1, W - 1), fill=255)
 
     def open_(path):
         return Image.open(os.path.join(ROOT, 'assets', 'balance3', path)).convert('RGBA')
 
-    def lcd_digits(img, big, small):
-        lc = L['lcd']
-        pw = open_(big[0]).width
-        for i, ch in enumerate(f'{hh:02d}'):
-            img.alpha_composite(open_(big[int(ch)]), (lc['time_x'] + i * (pw + lc['space']), lc['time_y']))
-        for i, ch in enumerate(f'{mm:02d}'):
-            img.alpha_composite(open_(big[int(ch)]), (lc['min_x'] + i * (pw + lc['space']), lc['time_y']))
-        if small:
-            sw = open_(small[0]).width
-            for i, ch in enumerate(f'{day:02d}'):
-                img.alpha_composite(open_(small[int(ch)]), (lc['day_x'] + i * (sw + 1), lc['day_y']))
-            s = str(bat)
-            for i, ch in enumerate(s):
-                img.alpha_composite(open_(small[int(ch)]), (lc['bat_x'] + lc['bat_w'] - (len(s) - i) * (sw + 1), lc['bat_y']))
+    def digits(img, arr, x, y, s, step):
+        for i, ch in enumerate(s):
+            img.alpha_composite(open_(arr[int(ch)]), (x + i * step, y))
 
     def hand(img, info, deg, shadow=True):
         h = open_(info['path'])
@@ -584,9 +568,22 @@ def preview(bg, hh=10, mm=8, ss=36, wday=5, day=24, bat=72):
             img.alpha_composite(sh, (3, 5))
         img.alpha_composite(big)
 
+    D = L['win']
+    hh24 = hh + 6  # プレビューは 16:37 風に
     img = bg.convert('RGBA')
     img.alpha_composite(open_(L['week']['src'][(wday + 6) % 7]), (L['week']['x'], L['week']['y']))
-    lcd_digits(img, L['lcd']['big'], L['lcd']['small'])
+    digits(img, D['time'], D['time_x'], D['time_y'], f'{hh24:02d}', D['digit_w'])
+    digits(img, D['time'], D['min_x'], D['time_y'], f'{mm:02d}', D['digit_w'])
+    digits(img, D['date'], D['date_x'], D['date_y'], f'{month:02d}', D['date_w'])
+    digits(img, D['date'], D['day_x'], D['date_y'], f'{day:02d}', D['date_w'])
+    B = L['bat']
+    img.alpha_composite(open_(B['src'][round(bat / 5)]), (B['x'], B['y']))
+    nw = open_(B['num'][0]).width
+    u = open_(B['unit'])
+    total = nw * len(str(bat)) + u.width
+    x0 = B['num_x'] + (B['num_w'] - total) // 2
+    digits(img, B['num'], x0, B['num_y'], str(bat), nw)
+    img.alpha_composite(u, (x0 + nw * len(str(bat)), B['num_y']))
     hand(img, L['hour'], (hh % 12) * 30 + mm * 0.5)
     hand(img, L['minute'], mm * 6 + ss * 0.1)
     hand(img, L['second'], ss * 6)
@@ -596,7 +593,8 @@ def preview(bg, hh=10, mm=8, ss=36, wday=5, day=24, bat=72):
     out.save(os.path.join(ROOT, 'preview.png'))
 
     img = open_(L['aod_bg'])
-    lcd_digits(img, L['lcd']['big_aod'], None)
+    digits(img, D['time_aod'], D['time_x'], D['time_y'], f'{hh24:02d}', D['digit_w'])
+    digits(img, D['time_aod'], D['min_x'], D['time_y'], f'{mm:02d}', D['digit_w'])
     hand(img, L['hour_aod'], (hh % 12) * 30 + mm * 0.5, shadow=False)
     hand(img, L['minute_aod'], mm * 6, shadow=False)
     img.alpha_composite(open_(L['cap_aod']['path']), (L['cap']['x'], L['cap']['y']))
@@ -608,20 +606,17 @@ def preview(bg, hh=10, mm=8, ss=36, wday=5, day=24, bat=72):
 def main():
     import shutil
     shutil.rmtree(IMG_DIR, ignore_errors=True)
-    lcd_layout()
-    L['lcd']['big'] = digit_set('lcd/big', *BIG, LCD_ON, LCD_OFF)
-    L['lcd']['small'] = digit_set('lcd/small', *SMALL, LCD_ON, LCD_OFF)
-    L['lcd']['big_aod'] = digit_set('lcd/big_aod', *BIG, AOD_LCD, None)
+    win_layout()
     bg = build_background()
-    L['hour'] = hand_image('hour', 96, 24, 14, 12, lume_from=0.55)
-    L['minute'] = hand_image('minute', 150, 17, 22, 16, lume_from=0.45)
+    L['week'] = week_frames()
+    L['bat'] = battery_frames()
+    L['hour'] = skeleton_hand('hour', 100, 9.5)
+    L['minute'] = skeleton_hand('minute', 158, 7.5)
     L['second'] = second_image()
     L['cap'] = cap_image()
-    L['hour_aod'] = hand_image('hour', 96, 24, 14, 12, aod=True)
-    L['minute_aod'] = hand_image('minute', 150, 17, 22, 16, aod=True)
+    L['hour_aod'] = skeleton_hand('hour', 100, 9.5, aod=True)
+    L['minute_aod'] = skeleton_hand('minute', 158, 7.5, aod=True)
     L['cap_aod'] = cap_image(aod=True)
-    # IMG_WEEK は月曜始まり。目盛りは 12 時が日曜で時計回り
-    L['week'] = sub_hand_frames('week', [((i + 1) % 7) * 360 / 7 for i in range(7)])
     build_aod()
     preview(bg)
     L['icon'] = save(Image.open(os.path.join(ROOT, 'preview.png')).convert('RGBA').resize((124, 124), Image.LANCZOS), 'icon.png')
