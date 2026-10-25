@@ -33,4 +33,4 @@ zeus build && zeus prune --ip
 ## ビルド済みファイル（release/）
 
 - `release/TOUGH_Ti-1.0.0.zab` … インストールパッケージ
-- `release/balance3ti-qr.png` … 転送用 QR コード（**2026-10-31 まで有効**）。Zepp アプリ → プロフィール → 開発者モード → スキャン
+- `release/balance3ti-qr.png` … 転送用 QR コード（**2026-11-01 まで有効**）。Zepp アプリ → プロフィール → 開発者モード → スキャン
