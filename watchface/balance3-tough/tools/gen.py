@@ -38,9 +38,10 @@ AOD_ORANGE = (160, 74, 16, 255)
 CYAN, CYAN_HI, CYAN_LO = METAL, METAL_HI, METAL_LO  # applied() の既定色
 ENGRAVE = (11, 11, 12, 255)
 
-R_BEZEL = 240  # ガンメタのベゼル
-R_RING = 216  # 分目盛りのリング
-R_DIAL = 192  # 文字盤
+# 時計本体に金属のベゼルがあるので、画面にはベゼルを描かない
+R_BEZEL = 240
+R_RING = 240  # 画面の端
+R_DIAL = 214  # 文字盤（外側 214〜240 は分目盛りのリング）
 IDX_R1, IDX_R2 = 140, 174  # インデックス
 
 WEEK_C = (164, 248)  # 左: 曜日
@@ -204,7 +205,7 @@ def base_layer():
     # ベゼル: ガンメタの同心円ヘアライン
     rings = rng.normal(0, 1, 4096).astype(np.float32)
     hair = rings[np.clip((r * 8).astype(np.int32), 0, 4095)]
-    tb = np.clip((r - R_RING) / (R_BEZEL - R_RING), 0, 1)
+    tb = np.clip((r - R_RING) / max(1, R_BEZEL - R_RING), 0, 1)
     bez = 44 + 14 * np.sin(tb * math.pi) + 16 * light + 3 * hair
     # 分目盛りのリング: 暗い、内側へ少し下がる
     tr = np.clip((r - R_DIAL) / (R_RING - R_DIAL), 0, 1)
@@ -217,7 +218,7 @@ def base_layer():
 
     v = np.where(r >= R_RING, bez, np.where(r >= R_DIAL, ring, dial))
     rgb = np.stack([v, v + 1, v + 3], -1)
-    for rr, k, w in ((R_RING, -16, 1.0), (R_RING + 1.6, 10, 0.8), (R_DIAL, -10, 1.0), (R_BEZEL - 1.5, -12, 1.2)):
+    for rr, k, w in ((R_DIAL, -14, 1.0), (R_DIAL - 1.8, 8, 0.8)):
         rgb += (k * np.exp(-((r - rr) / w) ** 2))[..., None]
     alpha = np.clip((240 - r) * S, 0, 1) * 255
     return Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), alpha[..., None]], -1).astype(np.uint8), 'RGBA')
