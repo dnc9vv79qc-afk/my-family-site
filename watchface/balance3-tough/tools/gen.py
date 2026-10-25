@@ -38,17 +38,18 @@ AOD_ORANGE = (160, 74, 16, 255)
 CYAN, CYAN_HI, CYAN_LO = METAL, METAL_HI, METAL_LO  # applied() の既定色
 ENGRAVE = (11, 11, 12, 255)
 
-R_BEZEL = 240  # ガンメタのベゼル
-R_RING = 216  # 分目盛りのリング
-R_DIAL = 192  # 文字盤
-IDX_R1, IDX_R2 = 140, 174  # インデックス
+# 時計本体に金属のベゼルがあるので、画面にはベゼルを描かず文字盤を端まで使う
+R_BEZEL = 240
+R_RING = 240  # 画面の端
+R_DIAL = 214  # 文字盤（外側 214〜240 は分目盛りのリング）
+IDX_R1, IDX_R2 = 156, 206  # インデックス
 
-WEEK_C = (164, 248)  # 左: 曜日
-WEEK_R = 52
-WIN = (262, 210, 112, 76)  # 右: デジタル時刻・日付の窓 x, y, w, h
-BAT_C = (240, 334)  # 下: 電池
-BAT_R = 44
-BAT_RING = 33
+WEEK_C = (146, 240)  # 左: 曜日
+WEEK_R = 62
+WIN = (270, 196, 128, 88)  # 右: デジタル時刻・日付の窓 x, y, w, h
+BAT_C = (240, 344)  # 下: 電池
+BAT_R = 52
+BAT_RING = 40
 
 L = {}
 
@@ -204,20 +205,22 @@ def base_layer():
     # ベゼル: ガンメタの同心円ヘアライン
     rings = rng.normal(0, 1, 4096).astype(np.float32)
     hair = rings[np.clip((r * 8).astype(np.int32), 0, 4095)]
-    tb = np.clip((r - R_RING) / (R_BEZEL - R_RING), 0, 1)
+    tb = np.clip((r - R_RING) / max(1, R_BEZEL - R_RING), 0, 1)
     bez = 44 + 14 * np.sin(tb * math.pi) + 16 * light + 3 * hair
     # 分目盛りのリング: 暗い、内側へ少し下がる
     tr = np.clip((r - R_DIAL) / (R_RING - R_DIAL), 0, 1)
-    ring = 15 + 6 * tr + 2 * light
+    ring = 13 + 5 * tr + 2 * light
     # 文字盤: マットな黒に、ぼかしたむら
     blot = Image.fromarray((rng.random((n // 16, n // 16)) * 255).astype(np.uint8)).resize((n, n), Image.BICUBIC).filter(ImageFilter.GaussianBlur(6 * S))
     blot = (np.asarray(blot, np.float32) - 128) / 128
     td = np.clip(r / R_DIAL, 0, 1)
-    dial = 21 - 5 * td ** 2 + 2.2 * blot + 1.0 * light + rng.normal(0, 0.9, (n, n)).astype(np.float32)
+    dial = 34 - 9 * td ** 2 + 3.0 * blot + 2.0 * light + rng.normal(0, 1.0, (n, n)).astype(np.float32)
+    # インデックスの並ぶ外周の帯は一段暗く
+    dial -= 5 * np.clip((r - 150) / 3, 0, 1)
 
     v = np.where(r >= R_RING, bez, np.where(r >= R_DIAL, ring, dial))
     rgb = np.stack([v, v + 1, v + 3], -1)
-    for rr, k, w in ((R_RING, -16, 1.0), (R_RING + 1.6, 10, 0.8), (R_DIAL, -10, 1.0), (R_BEZEL - 1.5, -12, 1.2)):
+    for rr, k, w in ((R_DIAL, -14, 1.0), (R_DIAL - 1.8, 8, 0.8), (150, -8, 0.8), (151.5, 5, 0.7)):
         rgb += (k * np.exp(-((r - rr) / w) ** 2))[..., None]
     alpha = np.clip((240 - r) * S, 0, 1) * 255
     return Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), alpha[..., None]], -1).astype(np.uint8), 'RGBA')
@@ -229,13 +232,13 @@ def draw_panel_lines(bg):
     d = ImageDraw.Draw(layer)
     col = (30, 31, 34, 255)
     dark = (10, 10, 11, 255)
-    for r_, a0, a1 in ((118, 200, 340), (118, 20, 160), (86, 120, 240)):
+    for r_, a0, a1 in ((112, 200, 340), (112, 20, 160)):
         box = sp([(C - r_, C - r_), (C + r_, C + r_)])
         d.arc(box, start=a0 - 90, end=a1 - 90, fill=dark, width=int(1.2 * S))
         box2 = sp([(C - r_ - 1.2, C - r_ - 1.2), (C + r_ + 1.2, C + r_ + 1.2)])
         d.arc(box2, start=a0 - 90, end=a1 - 90, fill=col, width=int(1 * S))
     for deg in (45, 135, 225, 315):
-        d.line(sp([polar(122, deg), polar(186, deg)]), fill=dark, width=int(1.2 * S))
+        d.line(sp([polar(116, deg), polar(148, deg)]), fill=dark, width=int(1.2 * S))
     bg.alpha_composite(layer)
 
 
@@ -269,14 +272,14 @@ def index_list():
 def draw_indices(bg):
     """立体の金属バー。光の側の面が明るい。12・3・6・9 は外側半分にオレンジを差す"""
     lx, ly = -0.707, -0.707
-    m = mask_of(lambda d: [d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 12 if big else 10)), fill=255) for deg, big in index_list()])
+    m = mask_of(lambda d: [d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 17 if big else 14)), fill=255) for deg, big in index_list()])
     body = Image.new('RGBA', m.size, (0, 0, 0, 255))
     body.putalpha(m)
     drop_shadow(bg, body, off=3.0, blur=2.4, alpha=1.0)
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
     for deg, big in index_list():
-        w = 12 if big else 10
+        w = 17 if big else 14
         a = math.radians(deg)
         nx, ny = math.cos(a), math.sin(a)
         p = radial_bar(IDX_R1, IDX_R2, deg, w)
@@ -289,8 +292,8 @@ def draw_indices(bg):
         d.line(sp([mid1, mid2]), fill=METAL_HI, width=int(0.8 * S))
         d.line(sp(p + [p[0]]), fill=(14, 14, 15, 255), width=int(0.8 * S))
         if big:
-            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.42, IDX_R2 - 3, deg, w - 5)), fill=ORANGE)
-            d.polygon(sp(radial_bar(IDX_R2 - 6, IDX_R2 - 3, deg, w - 5)), fill=(255, 168, 96, 255))
+            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.45, IDX_R2 - 4, deg, w - 7)), fill=ORANGE)
+            d.polygon(sp(radial_bar(IDX_R2 - 8, IDX_R2 - 4, deg, w - 7)), fill=(255, 168, 96, 255))
     bg.alpha_composite(layer)
 
 
@@ -305,7 +308,11 @@ def recess(bg, cx, cy, r, rim=True):
     v -= 7 * np.clip(1 - (r - rr) / 9, 0, 1) * np.clip(-yy / r, 0, 1)
     rgb = np.stack([v, v + 1, v + 2], -1)
     if rim:
-        rgb += (np.exp(-((rr - r) / 0.9) ** 2) * (40 + 40 * np.clip(yy / r, 0, 1)))[..., None]
+        # 金属のふち（幅 3px、左上が明るい）
+        ang = np.degrees(np.arctan2(xx, -yy))
+        lit = np.cos(np.radians(ang - 315))
+        band = np.clip(1 - np.abs(rr - (r - 1.5)) / 1.8, 0, 1)
+        rgb += (band * (70 + 50 * lit))[..., None]
     a = np.clip((r + 1 - rr) * S, 0, 1) * 255
     img = Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), a[..., None]], -1).astype(np.uint8), 'RGBA')
     bg.alpha_composite(img, (int((cx - r - 4) * S), int((cy - r - 4) * S)))
@@ -325,8 +332,8 @@ def draw_window(bg):
     bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.8 * S)))
     t = canvas(W)
     D = L['win']
-    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 28, TEXT, weight=500)
-    text_at(t, '/', D['slash_x'], D['date_y'] + D['date_h'] / 2, 15, TEXT_DIM, weight=400)
+    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 34, TEXT, weight=500)
+    text_at(t, '/', D['slash_x'], D['date_y'] + D['date_h'] / 2, 19, TEXT_DIM, weight=400)
     bg.alpha_composite(t)
 
 
@@ -343,15 +350,14 @@ def draw_subdials(bg):
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
     cx, cy = BAT_C
-    d.ellipse(sp([(cx - BAT_RING, cy - BAT_RING), (cx + BAT_RING, cy + BAT_RING)]), outline=TRACK, width=int(5 * S))
-    battery_icon(layer, cx, cy - 11, TEXT_DIM)
+    d.ellipse(sp([(cx - BAT_RING, cy - BAT_RING), (cx + BAT_RING, cy + BAT_RING)]), outline=TRACK, width=int(6 * S))
+    battery_icon(layer, cx, cy - 14, TEXT_DIM)
     bg.alpha_composite(layer)
 
 
 def draw_print(bg):
     layer = canvas(W)
-    text_at(layer, 'BALANCE 3 Ti', 240, 148, 15, TEXT, weight=500, spacing=1.6)
-    text_at(layer, 'TOUGH', 240, 166, 8, TEXT_DIM, weight=500, spacing=2.4)
+    text_at(layer, 'BALANCE 3 Ti', 240, 128, 18, TEXT, weight=500, spacing=2.0)
     bg.alpha_composite(layer)
 
 
@@ -387,9 +393,10 @@ def digit_cells(name, size, weight, color, cell_w=None):
 
 def win_layout():
     x, y, w, h = WIN
-    big, bw, bh = digit_cells('win/time', 34, 500, TEXT)
-    small, sw, shh = digit_cells('win/date', 17, 400, TEXT)
-    aod, _, _ = digit_cells('win/time_aod', 34, 500, (150, 154, 156, 255))
+    big, bw, bh = digit_cells('win/time', 42, 500, TEXT)
+    small, sw, shh = digit_cells('win/date', 21, 400, TEXT)
+    aod, _, _ = digit_cells('win/time_aod', 42, 500, (150, 154, 156, 255))
+    date_aod, _, _ = digit_cells('win/date_aod', 21, 400, (120, 124, 126, 255))
     colon_w = 9
     total = bw * 4 + colon_w
     tx = int(x + (w - total) / 2)
@@ -398,7 +405,7 @@ def win_layout():
     dtotal = sw * 4 + slash_w
     dx = int(x + (w - dtotal) / 2)
     dy = int(y + h - shh - 9)
-    L['win'] = dict(time=big, time_aod=aod, date=small, time_x=tx, min_x=tx + bw * 2 + colon_w, time_y=ty, time_h=bh,
+    L['win'] = dict(time=big, time_aod=aod, date=small, date_aod=date_aod, time_x=tx, min_x=tx + bw * 2 + colon_w, time_y=ty, time_h=bh,
                     colon_x=tx + bw * 2 + colon_w / 2, digit_w=bw, date_x=dx, day_x=dx + sw * 2 + slash_w, date_y=dy, date_h=shh,
                     slash_x=dx + sw * 2 + slash_w / 2, date_w=sw)
 
@@ -407,22 +414,22 @@ def week_frames():
     """曜日: 大きな曜日名と、M T W T F S S の行（今日だけオレンジ＋下線）。IMG_WEEK は月曜始まり"""
     names = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     letters = 'MTWTFSS'
-    bw, bh = 96, 62
+    bw, bh = 116, 74
     paths = []
-    fb = font(500, 25 * S)
-    fs = font(500, 10.5 * S)
+    fb = font(500, 32 * S)
+    fs = font(600, 12.5 * S)
     for i, nm in enumerate(names):
         img = canvas(bw, bh)
         t = text_img(nm, fb, TEXT, spacing=1.2)
         img.alpha_composite(t, ((img.width - t.width) // 2, int(6 * S)))
-        step = 11.5
+        step = 14
         x0 = bw / 2 - step * 3
         for k, ch in enumerate(letters):
             col = ORANGE if k == i else TEXT_DIM
             g = text_img(ch, fs, col)
-            img.alpha_composite(g, (int((x0 + k * step) * S - g.width / 2), int(40 * S)))
+            img.alpha_composite(g, (int((x0 + k * step) * S - g.width / 2), int(49 * S)))
             if k == i:
-                ImageDraw.Draw(img).rectangle(sp([(x0 + k * step - 4.5, 54), (x0 + k * step + 4.5, 55.6)]), fill=ORANGE)
+                ImageDraw.Draw(img).rectangle(sp([(x0 + k * step - 5.5, 66), (x0 + k * step + 5.5, 68)]), fill=ORANGE)
         paths.append(save(shrink(img), f'week/{i}.png'))
     cx, cy = WEEK_C
     return dict(x=int(cx - bw / 2), y=int(cy - bh / 2), src=paths)
@@ -438,15 +445,15 @@ def battery_frames():
         d = ImageDraw.Draw(img)
         if i:
             c = r + 4
-            d.arc(sp([(c - r, c - r), (c + r, c + r)]), start=-90, end=-90 + i * 18, fill=ORANGE, width=int(5 * S))
+            d.arc(sp([(c - r, c - r), (c + r, c + r)]), start=-90, end=-90 + i * 18, fill=ORANGE, width=int(6 * S))
         paths.append(save(shrink(img), f'bat/{i}.png'))
-    pct, pw, ph = digit_cells('bat/num', 15, 500, TEXT)
-    f = font(500, 10 * S)
+    pct, pw, ph = digit_cells('bat/num', 19, 500, TEXT)
+    f = font(500, 12 * S)
     unit = text_img('%', f, TEXT)
     ucell = Image.new('RGBA', (unit.width + 2 * S, int(ph * S)), (0, 0, 0, 0))
     ucell.alpha_composite(unit, (2 * S, int(ph * S) - unit.height - int(1.5 * S)))
     upath = save(shrink(ucell), 'bat/pct.png')
-    return dict(x=int(cx - r - 4), y=int(cy - r - 4), src=paths, num=pct, unit=upath, num_x=int(cx - 30), num_y=int(cy + 1), num_w=60, num_h=ph)
+    return dict(x=int(cx - r - 4), y=int(cy - r - 4), src=paths, num=pct, unit=upath, num_x=int(cx - 34), num_y=int(cy - 1), num_w=68, num_h=ph)
 
 
 # ---------------------------------------------------------------- スケルトン針
@@ -467,7 +474,7 @@ def profile_poly(prof, shrink_by=0.0, y0=None, y1=None):
 
 
 def skeleton_hand(name, length, hw, aod=False):
-    tipl = 18
+    tipl = 22
     prof = [(14, hw * 0.45), (0, hw * 0.75), (-12, hw * 0.85), (-length + tipl, hw), (-length, 0)]
     pad = 4
     w = int(2 * hw + pad * 2)
@@ -485,15 +492,15 @@ def skeleton_hand(name, length, hw, aod=False):
     else:
         d.polygon(tr(outer), fill=METAL)
         # 中抜き（中心寄り）
-        hole = profile_poly(prof, 2.6, -15, lume_from + 3)
+        hole = profile_poly(prof, 3.6, -16, lume_from + 4)
         m = Image.new('L', img.size, 0)
         ImageDraw.Draw(m).polygon(tr(hole), fill=255)
         a = np.asarray(img.getchannel('A'), np.int16) - np.asarray(m, np.int16)
         img.putalpha(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)))
         d = ImageDraw.Draw(img)
         # 夜光（外側半分）とオレンジの先端
-        d.polygon(tr(profile_poly(prof, 2.6, lume_from, -length + tipl + 2)), fill=LUME)
-        d.polygon(tr(profile_poly(prof, 2.4, -length + tipl - 1, -length + 3.5)), fill=ORANGE)
+        d.polygon(tr(profile_poly(prof, 3.2, lume_from, -length + tipl + 2)), fill=LUME)
+        d.polygon(tr(profile_poly(prof, 3.0, -length + tipl - 1, -length + 4.5)), fill=ORANGE)
         # 片側だけ明るい縁で金属らしく
         d.line(tr([(x, y) for x, y in outer[:len(outer) // 2]]), fill=METAL_HI, width=int(0.8 * S))
         d.ellipse(tr([(-hw * 0.85, -hw * 0.85), (hw * 0.85, hw * 0.85)]), fill=METAL)
@@ -502,19 +509,19 @@ def skeleton_hand(name, length, hw, aod=False):
 
 
 def second_image():
-    length, tail = 172, 40
+    length, tail = 208, 44
     w, h = 18, length + tail + 8
     ox, oy = w / 2, length + 4
     img = canvas(w, h)
     d = ImageDraw.Draw(img)
-    d.polygon(sp([(ox - 1.1, oy + tail), (ox + 1.1, oy + tail), (ox + 0.7, oy - length + 8), (ox, oy - length), (ox - 0.7, oy - length + 8)]), fill=ORANGE)
+    d.polygon(sp([(ox - 1.5, oy + tail), (ox + 1.5, oy + tail), (ox + 1.0, oy - length + 8), (ox, oy - length), (ox - 1.0, oy - length + 8)]), fill=ORANGE)
     d.rounded_rectangle(sp([(ox - 3, oy + 16), (ox + 3, oy + tail)]), radius=1.5 * S, fill=ORANGE)
     path = save(shrink(img), 'hands/second.png')
     return dict(path=path, pos_x=int(round(ox)), pos_y=int(round(oy)))
 
 
 def cap_image(aod=False):
-    r = 10
+    r = 12
     img = canvas(2 * r)
     d = ImageDraw.Draw(img)
     d.ellipse(sp([(0.5, 0.5), (2 * r - 0.5, 2 * r - 0.5)]), fill=(24, 25, 27, 255))
@@ -531,15 +538,16 @@ def build_aod():
     layer = canvas(W)
     d = ImageDraw.Draw(layer)
     for deg, big in index_list():
-        d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 12 if big else 10)), outline=AOD_DIM, width=int(1.5 * S))
+        d.polygon(sp(radial_bar(IDX_R1, IDX_R2, deg, 17 if big else 14)), outline=AOD_DIM, width=int(1.5 * S))
         if big:
-            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.42, IDX_R2 - 3, deg, 7)), fill=AOD_ORANGE)
+            d.polygon(sp(radial_bar(IDX_R1 + (IDX_R2 - IDX_R1) * 0.45, IDX_R2 - 4, deg, 9)), fill=AOD_ORANGE)
     x, y, w, h = WIN
     d.rounded_rectangle(sp([(x - 1.4, y - 1.4), (x + w + 1.4, y + h + 1.4)]), radius=8 * S, outline=AOD_DIM, width=int(1.4 * S))
     img.alpha_composite(layer)
     D = L['win']
     t = canvas(W)
-    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 28, (150, 154, 156, 255), weight=500)
+    text_at(t, ':', D['colon_x'], D['time_y'] + D['time_h'] / 2 - 1, 34, (150, 154, 156, 255), weight=500)
+    text_at(t, '/', D['slash_x'], D['date_y'] + D['date_h'] / 2, 19, (90, 94, 96, 255), weight=400)
     img.alpha_composite(t)
     L['aod_bg'] = save(shrink(img).convert('RGB'), 'aod_bg.png')
 
@@ -595,6 +603,8 @@ def preview(bg, hh=10, mm=8, ss=36, wday=6, month=10, day=18, bat=72):
     img = open_(L['aod_bg'])
     digits(img, D['time_aod'], D['time_x'], D['time_y'], f'{hh24:02d}', D['digit_w'])
     digits(img, D['time_aod'], D['min_x'], D['time_y'], f'{mm:02d}', D['digit_w'])
+    digits(img, D['date_aod'], D['date_x'], D['date_y'], f'{month:02d}', D['date_w'])
+    digits(img, D['date_aod'], D['day_x'], D['date_y'], f'{day:02d}', D['date_w'])
     hand(img, L['hour_aod'], (hh % 12) * 30 + mm * 0.5, shadow=False)
     hand(img, L['minute_aod'], mm * 6, shadow=False)
     img.alpha_composite(open_(L['cap_aod']['path']), (L['cap']['x'], L['cap']['y']))
@@ -610,12 +620,12 @@ def main():
     bg = build_background()
     L['week'] = week_frames()
     L['bat'] = battery_frames()
-    L['hour'] = skeleton_hand('hour', 100, 9.5)
-    L['minute'] = skeleton_hand('minute', 158, 7.5)
+    L['hour'] = skeleton_hand('hour', 124, 12.5)
+    L['minute'] = skeleton_hand('minute', 194, 10)
     L['second'] = second_image()
     L['cap'] = cap_image()
-    L['hour_aod'] = skeleton_hand('hour', 100, 9.5, aod=True)
-    L['minute_aod'] = skeleton_hand('minute', 158, 7.5, aod=True)
+    L['hour_aod'] = skeleton_hand('hour', 124, 12.5, aod=True)
+    L['minute_aod'] = skeleton_hand('minute', 194, 10, aod=True)
     L['cap_aod'] = cap_image(aod=True)
     build_aod()
     preview(bg)

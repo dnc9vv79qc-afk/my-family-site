@@ -37,23 +37,35 @@ export const L = {
    "images/win/date/8.png",
    "images/win/date/9.png"
   ],
-  "time_x": 271,
-  "min_x": 322,
-  "time_y": 219,
-  "time_h": 26,
-  "colon_x": 317.5,
-  "digit_w": 21,
-  "date_x": 289,
-  "day_x": 325,
-  "date_y": 263,
-  "date_h": 14,
-  "slash_x": 318.0,
-  "date_w": 11
+  "date_aod": [
+   "images/win/date_aod/0.png",
+   "images/win/date_aod/1.png",
+   "images/win/date_aod/2.png",
+   "images/win/date_aod/3.png",
+   "images/win/date_aod/4.png",
+   "images/win/date_aod/5.png",
+   "images/win/date_aod/6.png",
+   "images/win/date_aod/7.png",
+   "images/win/date_aod/8.png",
+   "images/win/date_aod/9.png"
+  ],
+  "time_x": 277,
+  "min_x": 338,
+  "time_y": 205,
+  "time_h": 32,
+  "colon_x": 333.5,
+  "digit_w": 26,
+  "date_x": 301,
+  "day_x": 341,
+  "date_y": 258,
+  "date_h": 17,
+  "slash_x": 334.0,
+  "date_w": 13
  },
  "bg": "images/bg.png",
  "week": {
-  "x": 116,
-  "y": 217,
+  "x": 88,
+  "y": 203,
   "src": [
    "images/week/0.png",
    "images/week/1.png",
@@ -65,8 +77,8 @@ export const L = {
   ]
  },
  "bat": {
-  "x": 203,
-  "y": 297,
+  "x": 196,
+  "y": 300,
   "src": [
    "images/bat/0.png",
    "images/bat/1.png",
@@ -103,45 +115,45 @@ export const L = {
    "images/bat/num/9.png"
   ],
   "unit": "images/bat/pct.png",
-  "num_x": 210,
-  "num_y": 335,
-  "num_w": 60,
-  "num_h": 12
+  "num_x": 206,
+  "num_y": 343,
+  "num_w": 68,
+  "num_h": 15
  },
  "hour": {
   "path": "images/hands/hour.png",
-  "pos_x": 14,
-  "pos_y": 104
+  "pos_x": 16,
+  "pos_y": 128
  },
  "minute": {
   "path": "images/hands/minute.png",
-  "pos_x": 12,
-  "pos_y": 162
+  "pos_x": 14,
+  "pos_y": 198
  },
  "second": {
   "path": "images/hands/second.png",
   "pos_x": 9,
-  "pos_y": 176
+  "pos_y": 212
  },
  "cap": {
   "path": "images/hands/cap.png",
-  "x": 230,
-  "y": 230
+  "x": 228,
+  "y": 228
  },
  "hour_aod": {
   "path": "images/hands/hour_aod.png",
-  "pos_x": 14,
-  "pos_y": 104
+  "pos_x": 16,
+  "pos_y": 128
  },
  "minute_aod": {
   "path": "images/hands/minute_aod.png",
-  "pos_x": 12,
-  "pos_y": 162
+  "pos_x": 14,
+  "pos_y": 198
  },
  "cap_aod": {
   "path": "images/hands/cap_aod.png",
-  "x": 230,
-  "y": 230
+  "x": 228,
+  "y": 228
  },
  "aod_bg": "images/aod_bg.png",
  "icon": "images/icon.png"
